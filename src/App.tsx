@@ -167,10 +167,10 @@ export default function App() {
 
   // ログインスタンプ起動時処理（1日のログイン連続日数の自動更新など）
   useEffect(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayS = todayStr();
     const yesterdayStr = getYesterdayString();
 
-    if (stats.lastLoginDate !== todayStr) {
+    if (stats.lastLoginDate !== todayS) {
       if (stats.lastLoginDate === yesterdayStr) {
         // 連続ログイン維持
         // スタンプラリー用：翌日になったら連続日数を繰り上げ（ただし、Dashboardのボタンを実際に踏んで報酬を受け取るまでスコアは上がらない仕組み）
@@ -189,7 +189,7 @@ export default function App() {
   const getYesterdayString = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split("T")[0];
+    return todayStr(d);
   };
 
   // 2. 変更時の各LocalStorageへ同期保存

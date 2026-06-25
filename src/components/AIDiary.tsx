@@ -371,14 +371,17 @@ export default function AIDiary({
                 <Clock className="w-4 h-4 text-gray-300 dark:text-slate-500 shrink-0" />
                 <span>一問一答テストや例文穴埋めを行い、あと <strong>{200 - masteredCount} 単語</strong> 正解すると開放！</span>
               </div>
-              <button
-                onClick={handleSimulateMastery}
-                className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold px-4 py-3 rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                id="cheat_mastery_btn"
-              >
-                <Sparkles className="w-4 h-4 fill-amber-100 animate-pulse" />
-                <span>【動作確認】200語の習得をシミュレート</span>
-              </button>
+              {/* 開発時のみ表示するテスト用ボタン（本番ビルドでは非表示） */}
+              {import.meta.env.DEV && (
+                <button
+                  onClick={handleSimulateMastery}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold px-4 py-3 rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  id="cheat_mastery_btn"
+                >
+                  <Sparkles className="w-4 h-4 fill-amber-100 animate-pulse" />
+                  <span>【動作確認】200語の習得をシミュレート</span>
+                </button>
+              )}
             </>
           )}
 

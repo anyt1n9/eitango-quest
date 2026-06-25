@@ -29,6 +29,8 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
+import SimpleMarkdown from "./SimpleMarkdown";
+import { todayStr } from "../srs";
 import { initialVocabulary } from "../data/vocabulary";
 
 // 簡単なシンセサイザー音の実装
@@ -594,15 +596,14 @@ export default function Dashboard({
 
   // 今日ログイン可能か判定
   const checkCanClaimToday = () => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    return stats.lastLoginDate !== todayStr;
+    return stats.lastLoginDate !== todayStr();
   };
 
   const handleClaimLoginBonus = () => {
     if (!checkCanClaimToday()) return;
-    
+
     playAudio("bonus");
-    const todayStr = new Date().toISOString().split("T")[0];
+    const today = todayStr();
     
     // スコア追加
     const rawIndex = stats.currentStreak % 7;
@@ -615,7 +616,7 @@ export default function Dashboard({
       ...prev,
       score: newScore,
       currentStreak: nextStreak,
-      lastLoginDate: todayStr
+      lastLoginDate: today
     }));
 
     // ランキングの更新
@@ -630,7 +631,7 @@ export default function Dashboard({
   const getYesterdayString = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split("T")[0];
+    return todayStr(d);
   };
 
   // AI単語追加
@@ -1529,12 +1530,8 @@ export default function Dashboard({
           <div className="mt-6 border-t border-gray-100 pt-6">
             {advice ? (
               <div className="space-y-4">
-                <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-5 text-gray-800 text-sm leading-relaxed prose prose-indigo max-w-none">
-                  {advice.split("\n").map((line, idx) => (
-                    <p key={idx} className="mb-2 last:mb-0 font-medium">
-                      {line}
-                    </p>
-                  ))}
+                <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-5 text-gray-800 text-sm leading-relaxed max-w-none">
+                  <SimpleMarkdown text={advice} />
                 </div>
                 <div className="flex gap-2 justify-end">
                   <button
