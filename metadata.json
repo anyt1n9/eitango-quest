@@ -1,0 +1,6 @@
+{
+  "name": "英単語レベル別学習アプリ",
+  "description": "中学生、高校生、大学生・社会人レベルに対応した英単語一問一答および穴埋め例文形式の学習アプリ。間違えた単語の復習、習熟度グラフ、デイリーログインボーナス、ランキング機能を搭載しています。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

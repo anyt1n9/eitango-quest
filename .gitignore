@@ -1,0 +1,58 @@
+# ===== 秘密情報 (APIキーなど絶対に公開しない) =====
+.env
+.env.*
+!.env.example
+*.local
+secrets.json
+*.pem
+*.key
+
+# ===== 依存パッケージ =====
+node_modules/
+
+# ===== ビルド成果物 =====
+build/
+dist/
+coverage/
+*.tsbuildinfo
+server.js
+server.cjs
+
+# ===== ログ・キャッシュ =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.cache/
+.vite/
+
+# ===== 機械学習モデル・大きなバイナリ =====
+*.bin
+*.gguf
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.h5
+*.model
+*.weights
+
+# ===== Python / conda 環境 =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+envs/
+conda-env/
+miniconda3/
+anaconda3/
+*.egg-info/
+
+# ===== エディタ・OS が生成するファイル =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

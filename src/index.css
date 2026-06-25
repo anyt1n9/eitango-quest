@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Configure beautiful dark mode variables that automatically transition the whole tailwind suite */
+.dark {
+  --color-white: #0f172a;         /* bg-white becomes beautiful deep-navy slate-900 card */
+  --color-slate-50: #020617;      /* bg-slate-50 becomes dark slate-950 background */
+  --color-gray-50: #090d1a;       /* bg-gray-50 becomes dark deep-slate */
+  --color-zinc-50: #090d1a;
+  --color-zinc-100: #1e293b;
+  --color-zinc-200: #334155;
+  --color-zinc-900: #f8fafc;
+  --color-gray-100: #1e293b;      /* border, background etc. */
+  --color-gray-150: #26354a;
+  --color-gray-200: #1e293b;      /* border colors soften */
+  --color-gray-250: #2d3d54;
+  --color-gray-300: #334155;
+  --color-gray-400: #475569;
+  --color-gray-500: #94a3b8;      /* muted texts become slate-400 */
+  --color-gray-600: #cbd5e1;      /* light texts */
+  --color-gray-700: #e2e8f0;
+  --color-gray-800: #f1f5f9;      /* body text */
+  --color-gray-900: #f8fafc;      /* bold headings */
+  --color-slate-100: #f8fafc;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #818cf8;
+  --color-slate-500: #6366f1;
+  --color-slate-600: #4f46e5;
+  --color-slate-700: #a5b4fc;
+  --color-slate-850: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+
+  /* Indigo adjustments for contrast, readability */
+  --color-indigo-50: #141b2f;     /* bg-indigo-50 */
+  --color-indigo-100: #1e294b;    /* bg-indigo-100 */
+  --color-indigo-200: #2e3e6b;
+  --color-indigo-300: #3f5188;
+  --color-indigo-400: #a5b4fc;
+  --color-indigo-500: #818cf8;
+  --color-indigo-600: #6366f1;    /* keep primary button look clean and electric */
+  --color-indigo-700: #818cf8;
+  --color-indigo-800: #a5b4fc;
+  --color-indigo-900: #e2e8f0;
+  --color-indigo-950: #f8fafc;
+
+  /* Neutral dark tones for cards and details */
+  --color-neutral-50: #090d1a;
+  --color-neutral-100: #1e293b;
+  --color-neutral-800: #f1f5f9;
+  --color-neutral-900: #f8fafc;
+}
+
+/* Base custom interactive states in dark mode to ensure comfortable reading */
+.dark input, 
+.dark select, 
+.dark textarea {
+  background-color: #0c1222 !important;
+  color: #f8fafc !important;
+  border-color: #22314d !important;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: #4a5f80 !important;
+}
+
+/* Gentle transitions for theme mode changes */
+*, *::before, *::after {
+  transition-property: background-color, border-color;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure nice dark scrollbar */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #020617;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+  border: 2px solid #020617;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Eye-safe highlight popups adaptation for dark mode text */
+.dark .text-emerald-800 { color: #34d399 !important; }
+.dark .text-blue-800 { color: #60a5fa !important; }
+.dark .text-purple-800 { color: #c084fc !important; }
+.dark .text-pink-800 { color: #f472b6 !important; }
+.dark .text-amber-800 { color: #fbbf24 !important; }
+
+/* Eye-safe backgrounds for levels highlights */
+.dark .bg-emerald-50\/70, .dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+.dark .bg-blue-50\/70, .dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+.dark .bg-purple-50\/70, .dark .bg-purple-50 {
+  background-color: rgba(168, 85, 247, 0.15) !important;
+}
+.dark .bg-pink-50\/70, .dark .bg-pink-50 {
+  background-color: rgba(236, 72, 153, 0.15) !important;
+}
+.dark .bg-amber-50\/70, .dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Level Borders contrast */
+.dark .border-emerald-250, .dark .border-emerald-200 { border-color: rgba(16, 185, 129, 0.45) !important; }
+.dark .border-blue-250, .dark .border-blue-200 { border-color: rgba(59, 130, 246, 0.45) !important; }
+.dark .border-purple-250, .dark .border-purple-200 { border-color: rgba(168, 85, 247, 0.45) !important; }
+.dark .border-pink-250, .dark .border-pink-200 { border-color: rgba(236, 72, 153, 0.45) !important; }
+.dark .border-amber-250, .dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.45) !important; }
+

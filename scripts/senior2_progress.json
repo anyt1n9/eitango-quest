@@ -1,0 +1,802 @@
+[
+  {
+    "id": "s2_1",
+    "word": "on duty",
+    "translation": "勤務時間中で，当番の",
+    "level": "senior2",
+    "options": [
+      "勤務時間中で，当番の",
+      "休暇中で",
+      "旅行中で",
+      "準備ができて"
+    ],
+    "sentence": "The nurse [_____] must stay alert throughout the night.",
+    "sentenceTranslation": "当番の看護師は一晩中、注意を怠ってはならない。",
+    "sentenceOptions": [
+      "on duty",
+      "on time",
+      "on purpose",
+      "on sale"
+    ]
+  },
+  {
+    "id": "s2_2",
+    "word": "skill",
+    "translation": "技能、技術",
+    "level": "senior2",
+    "options": [
+      "技能、技術",
+      "才能、天性",
+      "努力、試み",
+      "知識、学問"
+    ],
+    "sentence": "Learning a new language requires time and [_____].",
+    "sentenceTranslation": "新しい言語を学ぶには時間と技術が必要です。",
+    "sentenceOptions": [
+      "skill",
+      "scale",
+      "skull",
+      "scent"
+    ]
+  },
+  {
+    "id": "s2_3",
+    "word": "equally",
+    "translation": "均等に",
+    "level": "senior2",
+    "options": [
+      "均等に",
+      "不公平に",
+      "徐々に",
+      "突然に"
+    ],
+    "sentence": "The teacher divided the sweets [_____] among all the students.",
+    "sentenceTranslation": "先生はお菓子をすべての生徒に均等に分けた。",
+    "sentenceOptions": [
+      "equally",
+      "easily",
+      "exactly",
+      "entirely"
+    ]
+  },
+  {
+    "id": "s2_4",
+    "word": "feed",
+    "translation": "(食べ物、餌を）与える，育てる",
+    "level": "senior2",
+    "options": [
+      "(食べ物、餌を）与える，育てる",
+      "（植物を）植える",
+      "（水を）まく",
+      "（動物を）捕まえる"
+    ],
+    "sentence": "Don't forget to [_____] the dog before you go to school.",
+    "sentenceTranslation": "学校に行く前に犬に餌をやるのを忘れないでね。",
+    "sentenceOptions": [
+      "feed",
+      "feel",
+      "find",
+      "fear"
+    ]
+  },
+  {
+    "id": "s2_5",
+    "word": "on demand",
+    "translation": "要求に応じて",
+    "level": "senior2",
+    "options": [
+      "要求に応じて",
+      "偶然に",
+      "故意に",
+      "急いで"
+    ],
+    "sentence": "You can watch your favorite movies [_____] using this streaming service.",
+    "sentenceTranslation": "この配信サービスを使えば、お気に入りの映画を要求に応じていつでも見ることができます。",
+    "sentenceOptions": [
+      "on demand",
+      "on duty",
+      "on average",
+      "on purpose"
+    ]
+  },
+  {
+    "id": "s2_6",
+    "word": "tragedy",
+    "translation": "悲劇",
+    "level": "senior2",
+    "options": [
+      "悲劇",
+      "喜劇",
+      "冒険",
+      "奇跡"
+    ],
+    "sentence": "The sudden car accident was a great [_____] for the whole town.",
+    "sentenceTranslation": "突然の自動車事故は、町全体にとって大きな悲劇だった。",
+    "sentenceOptions": [
+      "tragedy",
+      "triumph",
+      "treasure",
+      "treaty"
+    ]
+  },
+  {
+    "id": "s2_7",
+    "word": "carbon dioxide",
+    "translation": "二酸化炭素",
+    "level": "senior2",
+    "options": [
+      "二酸化炭素",
+      "一酸化炭素",
+      "酸素",
+      "水素"
+    ],
+    "sentence": "Plants absorb [_____] and release oxygen during the day.",
+    "sentenceTranslation": "植物は日中、二酸化炭素を吸収して酸素を放出します。",
+    "sentenceOptions": [
+      "carbon dioxide",
+      "carbon monoxide",
+      "nitrogen oxide",
+      "hydrogen sulfide"
+    ]
+  },
+  {
+    "id": "s2_8",
+    "word": "deal",
+    "translation": "を扱う，分配する",
+    "level": "senior2",
+    "options": [
+      "を扱う，分配する",
+      "を無視する",
+      "を破壊する",
+      "を延期する"
+    ],
+    "sentence": "This book attempts to [_____] with the problems of modern society.",
+    "sentenceTranslation": "この本は現代社会の問題を扱おうとしている。",
+    "sentenceOptions": [
+      "deal",
+      "deliver",
+      "depend",
+      "demand"
+    ]
+  },
+  {
+    "id": "s2_9",
+    "word": "material",
+    "translation": "材料，原料",
+    "level": "senior2",
+    "options": [
+      "材料，原料",
+      "製品，成果",
+      "道具，器具",
+      "機械，装置"
+    ],
+    "sentence": "Wood is a common [_____] used for building houses.",
+    "sentenceTranslation": "木材は家を建てるために使われる一般的な材料です。",
+    "sentenceOptions": [
+      "material",
+      "machinery",
+      "method",
+      "mixture"
+    ]
+  },
+  {
+    "id": "s2_10",
+    "word": "in effect",
+    "translation": "効果のある，効いている",
+    "level": "senior2",
+    "options": [
+      "効果のある，効いている",
+      "故障している",
+      "準備中の",
+      "売り切れている"
+    ],
+    "sentence": "The new school rule is already [_____] from this morning.",
+    "sentenceTranslation": "新しい校則は今朝からすでに効いています。",
+    "sentenceOptions": [
+      "in effect",
+      "in advance",
+      "in detail",
+      "in public"
+    ]
+  },
+  {
+    "id": "s2_11",
+    "word": "sphere",
+    "translation": "球，球体",
+    "level": "senior2",
+    "options": [
+      "球，球体",
+      "立方体",
+      "三角形",
+      "直線"
+    ],
+    "sentence": "The Earth is not a perfect [_____], but slightly flattened at the poles.",
+    "sentenceTranslation": "地球は完全な球体ではなく、極の部分が少し平らになっている。",
+    "sentenceOptions": [
+      "sphere",
+      "square",
+      "spiral",
+      "shadow"
+    ]
+  },
+  {
+    "id": "s2_12",
+    "word": "effective",
+    "translation": "効果的な",
+    "level": "senior2",
+    "options": [
+      "効果的な",
+      "無駄な",
+      "一時的な",
+      "危険な"
+    ],
+    "sentence": "Taking a short nap can be an [_____] way to refresh your mind.",
+    "sentenceTranslation": "短い昼寝をすることは、頭をすっきりさせる効果的な方法になり得る。",
+    "sentenceOptions": [
+      "effective",
+      "expensive",
+      "effortless",
+      "excessive"
+    ]
+  },
+  {
+    "id": "s2_13",
+    "word": "out of date",
+    "translation": "時代遅れの",
+    "level": "senior2",
+    "options": [
+      "時代遅れの",
+      "最新の",
+      "売り切れの",
+      "故障中の"
+    ],
+    "sentence": "This computer software is [_____] and needs to be updated.",
+    "sentenceTranslation": "このコンピュータのソフトウェアは時代遅れなので、更新する必要があります。",
+    "sentenceOptions": [
+      "out of date",
+      "out of order",
+      "out of control",
+      "out of work"
+    ]
+  },
+  {
+    "id": "s2_14",
+    "word": "substitute",
+    "translation": "代わりに用いる，代用品",
+    "level": "senior2",
+    "options": [
+      "代わりに用いる，代用品",
+      "本物，オリジナル",
+      "障害物",
+      "付属品"
+    ],
+    "sentence": "You can use margarine as a [_____] for butter in this recipe.",
+    "sentenceTranslation": "このレシピでは、バターの代用品としてマーガリンを使うことができます。",
+    "sentenceOptions": [
+      "substitute",
+      "substance",
+      "subject",
+      "subway"
+    ]
+  },
+  {
+    "id": "s2_15",
+    "word": "bravely",
+    "translation": "勇敢に，りっぱに",
+    "level": "senior2",
+    "options": [
+      "勇敢に，りっぱに",
+      "臆病に",
+      "静かに",
+      "不器用に"
+    ],
+    "sentence": "The firefighters [_____] entered the burning building to save the child.",
+    "sentenceTranslation": "消防士たちは子供を救うために、勇敢に燃え盛る建物に入っていった。",
+    "sentenceOptions": [
+      "bravely",
+      "briefly",
+      "barely",
+      "bitterly"
+    ]
+  },
+  {
+    "id": "s2_16",
+    "word": "moderator",
+    "translation": "調整者，司会，仲介者",
+    "level": "senior2",
+    "options": [
+      "調整者，司会，仲介者",
+      "参加者",
+      "観客",
+      "主催者"
+    ],
+    "sentence": "The [_____] kept the debate fair and made sure everyone had a turn to speak.",
+    "sentenceTranslation": "司会者は討論を公平に保ち、全員に発言の順番が回るようにした。",
+    "sentenceOptions": [
+      "moderator",
+      "messenger",
+      "manufacturer",
+      "mechanic"
+    ]
+  },
+  {
+    "id": "s2_17",
+    "word": "knowledge",
+    "translation": "知識",
+    "level": "senior2",
+    "options": [
+      "知識",
+      "想像力",
+      "感情",
+      "技術"
+    ],
+    "sentence": "Reading books is a great way to gain [_____] about the world.",
+    "sentenceTranslation": "本を読むことは、世界についての知識を得るための素晴らしい方法です。",
+    "sentenceOptions": [
+      "knowledge",
+      "kingdom",
+      "kindness",
+      "keyboard"
+    ]
+  },
+  {
+    "id": "s2_18",
+    "word": "welfare",
+    "translation": "福祉，幸福",
+    "level": "senior2",
+    "options": [
+      "福祉，幸福",
+      "富，財産",
+      "貧困",
+      "不運"
+    ],
+    "sentence": "The government should focus more on the [_____] of elderly people.",
+    "sentenceTranslation": "政府は高齢者の福祉にもっと焦点を当てるべきだ。",
+    "sentenceOptions": [
+      "welfare",
+      "warfare",
+      "wealth",
+      "wisdom"
+    ]
+  },
+  {
+    "id": "s2_19",
+    "word": "on the run",
+    "translation": "逃げて，奔走して",
+    "level": "senior2",
+    "options": [
+      "逃げて，奔走して",
+      "立ち止まって",
+      "順調に進んで",
+      "急に"
+    ],
+    "sentence": "The suspect has been [_____] from the police for three days.",
+    "sentenceTranslation": "容疑者は3日間、警察から逃げ続けている。",
+    "sentenceOptions": [
+      "on the run",
+      "on the rise",
+      "on the whole",
+      "on the spot"
+    ]
+  },
+  {
+    "id": "s2_20",
+    "word": "be short of",
+    "translation": "が不足する",
+    "level": "senior2",
+    "options": [
+      "が不足する",
+      "が得意である",
+      "に満ちている",
+      "に慣れている"
+    ],
+    "sentence": "We cannot bake the cake because we [_____] sugar.",
+    "sentenceTranslation": "砂糖が不足しているので、私たちはケーキを焼くことができません。",
+    "sentenceOptions": [
+      "are short of",
+      "are full of",
+      "are good at",
+      "are tired of"
+    ]
+  },
+  {
+    "id": "s2_21",
+    "word": "revenge",
+    "translation": "に復讐する/復讐",
+    "level": "senior2",
+    "options": [
+      "に復讐する/復讐",
+      "を尊敬する",
+      "を後悔する",
+      "を許す"
+    ],
+    "sentence": "He swore to take [_____] on the people who ruined his career.",
+    "sentenceTranslation": "彼は自分のキャリアを台無しにした人々に復讐することを誓った。",
+    "sentenceOptions": [
+      "revenge",
+      "respect",
+      "regret",
+      "relief"
+    ]
+  },
+  {
+    "id": "s2_22",
+    "word": "out of use",
+    "translation": "すたれて，使用できない",
+    "level": "senior2",
+    "options": [
+      "すたれて，使用できない",
+      "故障して",
+      "売り切れて",
+      "制御不能で"
+    ],
+    "sentence": "This old telephone booth has been [_____] for many years.",
+    "sentenceTranslation": "この古い電話ボックスは長年すたれて、使用できない状態になっている。",
+    "sentenceOptions": [
+      "out of use",
+      "out of order",
+      "out of stock",
+      "out of control"
+    ]
+  },
+  {
+    "id": "s2_23",
+    "word": "get rid of",
+    "translation": "を取り除く",
+    "level": "senior2",
+    "options": [
+      "を取り除く",
+      "を育てる",
+      "を思い出す",
+      "を延期する"
+    ],
+    "sentence": "I need to [_____] these old clothes to make space in my closet.",
+    "sentenceTranslation": "クローゼットにスペースを作るために、これらの古い服を取り除く必要がある。",
+    "sentenceOptions": [
+      "get rid of",
+      "get along with",
+      "get used to",
+      "get in touch with"
+    ]
+  },
+  {
+    "id": "s2_24",
+    "word": "gather",
+    "translation": "を集める",
+    "level": "senior2",
+    "options": [
+      "を集める",
+      "を散らす",
+      "を避ける",
+      "を無視する"
+    ],
+    "sentence": "We need to [_____] enough information before making a decision.",
+    "sentenceTranslation": "私たちは決定を下す前に十分な情報を集める必要がある。",
+    "sentenceOptions": [
+      "gather",
+      "scatter",
+      "ignore",
+      "avoid"
+    ]
+  },
+  {
+    "id": "s2_25",
+    "word": "happen",
+    "translation": "起こる，発生する",
+    "level": "senior2",
+    "options": [
+      "起こる，発生する",
+      "消える",
+      "成功する",
+      "期待する"
+    ],
+    "sentence": "No one knows what will [_____] in the future.",
+    "sentenceTranslation": "将来何が起こるかは誰にもわからない。",
+    "sentenceOptions": [
+      "happen",
+      "appear",
+      "succeed",
+      "expect"
+    ]
+  },
+  {
+    "id": "s2_26",
+    "word": "examine",
+    "translation": "を検査する",
+    "level": "senior2",
+    "options": [
+      "を検査する",
+      "を無視する",
+      "を破壊する",
+      "を誇張する"
+    ],
+    "sentence": "The doctor will [_____] your throat to see if it is infected.",
+    "sentenceTranslation": "医師は感染しているかどうかを確認するためにあなたの喉を検査します。",
+    "sentenceOptions": [
+      "examine",
+      "ignore",
+      "destroy",
+      "exaggerate"
+    ]
+  },
+  {
+    "id": "s2_27",
+    "word": "desert",
+    "translation": "砂漠",
+    "level": "senior2",
+    "options": [
+      "砂漠",
+      "森林",
+      "渓谷",
+      "湿地"
+    ],
+    "sentence": "Camels are well adapted to living in the harsh [_____].",
+    "sentenceTranslation": "ラクダは過酷な砂漠での生活によく適応している。",
+    "sentenceOptions": [
+      "desert",
+      "forest",
+      "valley",
+      "swamp"
+    ]
+  },
+  {
+    "id": "s2_28",
+    "word": "unexpected",
+    "translation": "意外な，突然の",
+    "level": "senior2",
+    "options": [
+      "意外な，突然の",
+      "予想通りの",
+      "不必要な",
+      "不快な"
+    ],
+    "sentence": "We had some [_____] visitors last night, which surprised us.",
+    "sentenceTranslation": "昨夜、意外な訪問者があり、私たちは驚いた。",
+    "sentenceOptions": [
+      "unexpected",
+      "expected",
+      "unnecessary",
+      "unpleasant"
+    ]
+  },
+  {
+    "id": "s2_29",
+    "word": "rug",
+    "translation": "じゅうたん，敷物",
+    "level": "senior2",
+    "options": [
+      "じゅうたん，敷物",
+      "カーテン",
+      "毛布",
+      "枕"
+    ],
+    "sentence": "She bought a beautiful colorful [_____] for her living room floor.",
+    "sentenceTranslation": "彼女は居間の床用に、美しくカラフルなじゅうたんを買った。",
+    "sentenceOptions": [
+      "rug",
+      "curtain",
+      "blanket",
+      "pillow"
+    ]
+  },
+  {
+    "id": "s2_30",
+    "word": "education",
+    "translation": "教育",
+    "level": "senior2",
+    "options": [
+      "教育",
+      "娯楽",
+      "職業",
+      "環境"
+    ],
+    "sentence": "Every child has the right to receive a quality [_____].",
+    "sentenceTranslation": "すべての子どもには質の高い教育を受ける権利がある。",
+    "sentenceOptions": [
+      "education",
+      "entertainment",
+      "employment",
+      "environment"
+    ]
+  },
+  {
+    "id": "s2_31",
+    "word": "favor",
+    "translation": "好み、お願い",
+    "level": "senior2",
+    "options": [
+      "好み、お願い",
+      "不満",
+      "義務",
+      "秘密"
+    ],
+    "sentence": "Could you do me a [_____] and hold this bag for a moment?",
+    "sentenceTranslation": "お願いがあるのですが、このバッグを少しの間持っていてくれませんか？",
+    "sentenceOptions": [
+      "favor",
+      "flavor",
+      "fever",
+      "fear"
+    ]
+  },
+  {
+    "id": "s2_32",
+    "word": "instruct",
+    "translation": "指示する，教える",
+    "level": "senior2",
+    "options": [
+      "指示する，教える",
+      "邪魔する",
+      "無視する",
+      "誤解する"
+    ],
+    "sentence": "The manual will [_____] you on how to assemble the bookshelf.",
+    "sentenceTranslation": "マニュアルは本棚の組み立て方を指示して（教えて）くれます。",
+    "sentenceOptions": [
+      "instruct",
+      "interrupt",
+      "ignore",
+      "misunderstand"
+    ]
+  },
+  {
+    "id": "s2_33",
+    "word": "even though",
+    "translation": "～だけれども，～であるのに",
+    "level": "senior2",
+    "options": [
+      "～だけれども，～であるのに",
+      "～である限り",
+      "～の代わりに",
+      "～に加えて"
+    ],
+    "sentence": "She went for a run [_____] it was raining heavily.",
+    "sentenceTranslation": "大雨が降っていたのだけれども、彼女は走りに行った。",
+    "sentenceOptions": [
+      "even though",
+      "as long as",
+      "instead of",
+      "in addition to"
+    ]
+  },
+  {
+    "id": "s2_34",
+    "word": "as well",
+    "translation": "同様に，その上",
+    "level": "senior2",
+    "options": [
+      "同様に，その上",
+      "めったに～ない",
+      "代わりに",
+      "突然に"
+    ],
+    "sentence": "She speaks French, and she can speak Spanish [_____].",
+    "sentenceTranslation": "彼女はフランス語を話し、同様にスペイン語も話すことができる。",
+    "sentenceOptions": [
+      "as well",
+      "as if",
+      "as for",
+      "as to"
+    ]
+  },
+  {
+    "id": "s2_35",
+    "word": "relative",
+    "translation": "相対的な，比較上の，親戚",
+    "level": "senior2",
+    "options": [
+      "相対的な，比較上の，親戚",
+      "絶対的な，完全な",
+      "一時的な",
+      "公式の"
+    ],
+    "sentence": "The value of money is [_____] to the cost of living.",
+    "sentenceTranslation": "お金の価値は生活費に対して相対的なものである。",
+    "sentenceOptions": [
+      "relative",
+      "absolute",
+      "temporary",
+      "official"
+    ]
+  },
+  {
+    "id": "s2_36",
+    "word": "company",
+    "translation": "会社",
+    "level": "senior2",
+    "options": [
+      "会社",
+      "工場",
+      "市場",
+      "政府"
+    ],
+    "sentence": "He works for an international IT [_____] in Tokyo.",
+    "sentenceTranslation": "彼は東京にある国際的なIT会社で働いている。",
+    "sentenceOptions": [
+      "company",
+      "factory",
+      "market",
+      "government"
+    ]
+  },
+  {
+    "id": "s2_37",
+    "word": "variety",
+    "translation": "様々な，色々な",
+    "level": "senior2",
+    "options": [
+      "様々な，色々な",
+      "単一の",
+      "退屈な",
+      "一定の"
+    ],
+    "sentence": "The shop sells a wide [_____] of fresh vegetables.",
+    "sentenceTranslation": "その店は様々な種類の新鮮な野菜を販売している。",
+    "sentenceOptions": [
+      "variety",
+      "scarcity",
+      "monotony",
+      "uniformity"
+    ]
+  },
+  {
+    "id": "s2_38",
+    "word": "impact",
+    "translation": "影響，衝撃",
+    "level": "senior2",
+    "options": [
+      "影響，衝撃",
+      "意図",
+      "無視",
+      "改善"
+    ],
+    "sentence": "The new technology had a huge [_____] on our daily lives.",
+    "sentenceTranslation": "その新しい技術は私たちの日常生活に巨大な影響を与えた。",
+    "sentenceOptions": [
+      "impact",
+      "intent",
+      "neglect",
+      "improvement"
+    ]
+  },
+  {
+    "id": "s2_39",
+    "word": "unique",
+    "translation": "他に類のない，唯一の",
+    "level": "senior2",
+    "options": [
+      "他に類のない，唯一の",
+      "一般的な",
+      "退屈な",
+      "一時的な"
+    ],
+    "sentence": "Each person has a [_____] fingerprint that belongs only to them.",
+    "sentenceTranslation": "一人ひとりが、その人だけに属する他に類のない指紋を持っている。",
+    "sentenceOptions": [
+      "unique",
+      "common",
+      "boring",
+      "temporary"
+    ]
+  },
+  {
+    "id": "s2_40",
+    "word": "under way",
+    "translation": "進行中で",
+    "level": "senior2",
+    "options": [
+      "進行中で",
+      "延期されて",
+      "完了して",
+      "中止されて"
+    ],
+    "sentence": "Preparations for the school festival are already [_____].",
+    "sentenceTranslation": "文化祭の準備はすでに進行中である。",
+    "sentenceOptions": [
+      "under way",
+      "on sale",
+      "in vain",
+      "by chance"
+    ]
+  }
+]
