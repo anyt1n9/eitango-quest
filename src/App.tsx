@@ -280,6 +280,12 @@ export default function App() {
   // 今日解いた問題数（日付が変わっていたら0）
   const todayCount = dailyProgress.date === today ? dailyProgress.count : 0;
   const goalReached = todayCount >= dailyGoal;
+  // クイズなど集中して取り組む画面では、ヘッダーの機能ボタン群を隠して画面を広く使う
+  const isFocusScreen =
+    currentScreen === "quiz" ||
+    currentScreen === "sentence_quiz" ||
+    currentScreen === "review" ||
+    currentScreen === "srs_review";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
@@ -304,6 +310,9 @@ export default function App() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* クイズなど集中画面では機能ボタン群を隠す */}
+            {!isFocusScreen && (
+            <>
             {/* 長文読破 Quest ボタン */}
             <button
               onClick={() => setCurrentScreen(currentScreen === "reading" ? "dashboard" : "reading")}
@@ -397,6 +406,8 @@ export default function App() {
               <Database className="w-3.5 h-3.5" />
               <span>データ</span>
             </button>
+            </>
+            )}
 
             {/* 今日の学習目標チップ */}
             <div
