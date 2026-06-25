@@ -10,7 +10,8 @@ const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-const PORT = 3000;
+// デプロイ環境(Cloud Run など)は PORT 環境変数でリッスンするポートを指定するため、それを優先する
+const PORT = Number(process.env.PORT) || 3000;
 
 // Gemini API の安全な初期化
 let ai: GoogleGenAI | null = null;
