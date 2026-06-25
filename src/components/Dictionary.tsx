@@ -20,6 +20,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { Word, Level } from "../types";
+import Phonetic from "./Phonetic";
 
 interface DictionaryProps {
   vocabulary: Word[];
@@ -463,6 +464,9 @@ export default function Dictionary({
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                     </button>
+
+                    {/* 発音記号(IPA) */}
+                    <Phonetic word={word.word} className="text-xs shrink-0" />
 
                     {/* 習得ステータス */}
                     {statusBadge}

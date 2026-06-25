@@ -46,6 +46,8 @@ interface SentenceQuizProps {
   setStats: React.Dispatch<React.SetStateAction<UserStats>>;
   onBackToDashboard: () => void;
   updateRankingScore: (points: number) => void;
+  // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
+  recordAnswer?: (wordId: string, isCorrect: boolean) => void;
 }
 
 export default function SentenceQuiz({
@@ -57,7 +59,8 @@ export default function SentenceQuiz({
   setSolvedHistory,
   setStats,
   onBackToDashboard,
-  updateRankingScore
+  updateRankingScore,
+  recordAnswer
 }: SentenceQuizProps) {
   const [questions, setQuestions] = useState<Word[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -139,6 +142,9 @@ export default function SentenceQuiz({
 
     playSentenceSound(isCorrect);
     setShowFeedback(isCorrect ? "correct" : "incorrect");
+
+    // 間隔反復(SRS)・デイリー目標の更新
+    recordAnswer?.(currentQuestion.id, isCorrect);
 
     // 進捗履歴と苦手単語の永続化
     setSolvedHistory(prev => {

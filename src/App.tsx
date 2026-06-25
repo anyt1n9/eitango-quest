@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Level, Word, UserStats, RankingUser } from "./types";
 import { initialVocabulary } from "./data/vocabulary";
 import Dashboard from "./components/Dashboard";
@@ -14,7 +14,9 @@ import Dictionary from "./components/Dictionary";
 import Reading from "./components/Reading";
 import MapAndPuzzle from "./components/MapAndPuzzle";
 import AIDiary from "./components/AIDiary";
-import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles } from "lucide-react";
+import DataBackup from "./components/DataBackup";
+import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
+import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2 } from "lucide-react";
 
 // デフォルトのランキング架空ユーザー
 const DEFAULT_RANKING: RankingUser[] = [
@@ -122,6 +124,38 @@ export default function App() {
     return localStorage.getItem("quest_theme") === "dark";
   });
 
+  // 間隔反復(SRS)の単語ごとのスケジュール状態
+  const [srsData, setSrsData] = useState<Record<string, SrsState>>(() => {
+    const saved = localStorage.getItem("quest_srs");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return {};
+  });
+
+  // デイリー学習目標の進捗（今日の解答数）
+  const [dailyProgress, setDailyProgress] = useState<{ date: string; count: number }>(() => {
+    const saved = localStorage.getItem("quest_daily_progress");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return { date: todayStr(), count: 0 };
+  });
+
+  // 1日の学習目標（問題数）
+  const [dailyGoal, setDailyGoal] = useState<number>(() => {
+    const v = Number(localStorage.getItem("quest_daily_goal"));
+    return v > 0 ? v : 20;
+  });
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
@@ -181,9 +215,21 @@ export default function App() {
     localStorage.setItem("quest_vocab_custom", JSON.stringify(customOnly));
   }, [vocabulary]);
 
+  useEffect(() => {
+    localStorage.setItem("quest_srs", JSON.stringify(srsData));
+  }, [srsData]);
+
+  useEffect(() => {
+    localStorage.setItem("quest_daily_progress", JSON.stringify(dailyProgress));
+  }, [dailyProgress]);
+
+  useEffect(() => {
+    localStorage.setItem("quest_daily_goal", String(dailyGoal));
+  }, [dailyGoal]);
+
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -213,6 +259,27 @@ export default function App() {
       return updated.sort((a, b) => b.score - a.score);
     });
   };
+
+  // 解答1件ごとの中央処理: 間隔反復(SRS)スケジュールと、今日の学習目標の進捗を更新する
+  const recordAnswer = useCallback((wordId: string, isCorrect: boolean) => {
+    const today = todayStr();
+    setSrsData(prev => ({
+      ...prev,
+      [wordId]: nextSrsState(prev[wordId], isCorrect, today)
+    }));
+    setDailyProgress(prev => {
+      const base = prev.date === today ? prev.count : 0;
+      return { date: today, count: base + 1 };
+    });
+  }, []);
+
+  // 今日復習すべき単語（SRSの期日が今日以前のもの）
+  const today = todayStr();
+  const dueWordIds = getDueWordIds(srsData, today);
+  const dueWords = vocabulary.filter(w => dueWordIds.includes(w.id));
+  // 今日解いた問題数（日付が変わっていたら0）
+  const todayCount = dailyProgress.date === today ? dailyProgress.count : 0;
+  const goalReached = todayCount >= dailyGoal;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
@@ -296,6 +363,54 @@ export default function App() {
               </span>
             </button>
 
+            {/* 今日の復習(SRS)ボタン */}
+            <button
+              onClick={() => setCurrentScreen(currentScreen === "srs_review" ? "dashboard" : "srs_review")}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+                currentScreen === "srs_review"
+                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
+                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
+              }`}
+              id="nav_srs_review_btn"
+              title="忘却曲線に沿って、今日復習すべき単語を出題します"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>今日の復習</span>
+              {dueWords.length > 0 && (
+                <span className="ml-0.5 bg-rose-500 text-white text-[9px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-black">
+                  {dueWords.length}
+                </span>
+              )}
+            </button>
+
+            {/* データ設定・バックアップボタン */}
+            <button
+              onClick={() => setCurrentScreen(currentScreen === "settings" ? "dashboard" : "settings")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+                currentScreen === "settings"
+                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
+                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
+              }`}
+              id="nav_settings_btn"
+              title="学習データのバックアップとデイリー目標の設定"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>データ</span>
+            </button>
+
+            {/* 今日の学習目標チップ */}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs font-bold font-mono shadow-inner ${
+                goalReached
+                  ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300"
+                  : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400"
+              }`}
+              title="今日の学習目標の進捗"
+            >
+              {goalReached ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Target className="w-3.5 h-3.5" />}
+              <span>{todayCount}/{dailyGoal}</span>
+            </div>
+
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 font-mono shadow-inner border-gray-200 dark:border-slate-700">
               <Compass className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
               <span>Ver 1.6.0</span>
@@ -354,6 +469,7 @@ export default function App() {
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
+            recordAnswer={recordAnswer}
           />
         )}
 
@@ -368,6 +484,7 @@ export default function App() {
             setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
+            recordAnswer={recordAnswer}
           />
         )}
 
@@ -381,6 +498,7 @@ export default function App() {
             setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
+            recordAnswer={recordAnswer}
           />
         )}
 
@@ -416,6 +534,52 @@ export default function App() {
             vocabulary={vocabulary}
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
+            onBackToDashboard={handleBackToDashboard}
+          />
+        )}
+
+        {currentScreen === "srs_review" && (
+          dueWords.length > 0 ? (
+            <Quiz
+              level={selectedLevel}
+              vocabulary={vocabulary}
+              wrongWords={wrongWords}
+              setWrongWords={setWrongWords}
+              solvedHistory={solvedHistory}
+              setSolvedHistory={setSolvedHistory}
+              setStats={setStats}
+              onBackToDashboard={handleBackToDashboard}
+              updateRankingScore={updateRankingScore}
+              questionCount={Math.min(dueWords.length, 30)}
+              customWords={dueWords}
+              reviewMode={true}
+              recordAnswer={recordAnswer}
+            />
+          ) : (
+            <div className="max-w-xl mx-auto">
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-8 shadow-sm text-center space-y-4">
+                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-black text-gray-900 dark:text-slate-100">今日の復習は完了です！</h2>
+                <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
+                  忘却曲線にもとづく今日の復習対象はありません。クイズで新しい単語に挑戦すると、最適なタイミングでここに復習が出題されます。
+                </p>
+                <button
+                  onClick={handleBackToDashboard}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
+                >
+                  ダッシュボードに戻る
+                </button>
+              </div>
+            </div>
+          )
+        )}
+
+        {currentScreen === "settings" && (
+          <DataBackup
+            dailyGoal={dailyGoal}
+            setDailyGoal={setDailyGoal}
             onBackToDashboard={handleBackToDashboard}
           />
         )}

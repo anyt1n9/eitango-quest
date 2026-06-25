@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="150" fill="#ffffff" opacity="0.10"/>
+  <text x="50%" y="52%" dominant-baseline="central" text-anchor="middle"
+        font-family="'Hiragino Kaku Gothic ProN','Yu Gothic',system-ui,sans-serif"
+        font-weight="900" font-size="300" fill="#ffffff">英</text>
+  <circle cx="120" cy="120" r="14" fill="#fde047" opacity="0.9"/>
+  <circle cx="400" cy="404" r="18" fill="#a5b4fc" opacity="0.9"/>
+</svg>

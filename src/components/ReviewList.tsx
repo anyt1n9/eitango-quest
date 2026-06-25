@@ -45,6 +45,8 @@ interface ReviewListProps {
   setStats: React.Dispatch<React.SetStateAction<UserStats>>;
   onBackToDashboard: () => void;
   updateRankingScore: (points: number) => void;
+  // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
+  recordAnswer?: (wordId: string, isCorrect: boolean) => void;
 }
 
 export default function ReviewList({
@@ -55,7 +57,8 @@ export default function ReviewList({
   setSolvedHistory,
   setStats,
   onBackToDashboard,
-  updateRankingScore
+  updateRankingScore,
+  recordAnswer
 }: ReviewListProps) {
   // リストアップ対象の間違えた単語実体
   const wrongWordObjects = vocabulary.filter(w => wrongWords.includes(w.id));
@@ -102,6 +105,9 @@ export default function ReviewList({
 
     playReviewSound(isCorrect);
     setTestFeedback(isCorrect ? "correct" : "incorrect");
+
+    // 間隔反復(SRS)・デイリー目標の更新
+    recordAnswer?.(activeWord.id, isCorrect);
 
     // もし正解なら、苦手リスト（wrongWords）からの「卒業予定（graduated）」に追加
     if (isCorrect) {

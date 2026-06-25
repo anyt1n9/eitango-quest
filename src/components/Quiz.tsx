@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2 } from "lucide-react";
 import { Level, Word, UserStats, QuizHistory } from "../types";
+import Phonetic from "./Phonetic";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
 const playQuizSound = (isCorrect: boolean) => {
@@ -49,6 +50,12 @@ interface QuizProps {
   onBackToDashboard: () => void;
   updateRankingScore: (points: number) => void;
   questionCount?: number;
+  // SRS復習セッション用: 指定された単語のみを出題する（レベルフィルタを上書き）
+  customWords?: Word[];
+  // 復習セッションかどうか（表示文言の切り替え用）
+  reviewMode?: boolean;
+  // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
+  recordAnswer?: (wordId: string, isCorrect: boolean) => void;
 }
 
 export default function Quiz({
@@ -61,7 +68,10 @@ export default function Quiz({
   setStats,
   onBackToDashboard,
   updateRankingScore,
-  questionCount = 10
+  questionCount = 10,
+  customWords,
+  reviewMode = false,
+  recordAnswer
 }: QuizProps) {
   // レベルに合致する単語プールをシャッフルして10問抽出 (10問未満ならすべて)
   const [questions, setQuestions] = useState<Word[]>([]);
@@ -102,7 +112,10 @@ export default function Quiz({
 
   // 初期化で問題をピックアップし、各問題の4択選択肢をシャッフル
   useEffect(() => {
-    const levelWords = vocabulary.filter(w => w.level === level);
+    // customWords が渡された場合（SRS復習）はそれを出題プールにする
+    const levelWords = (customWords && customWords.length > 0)
+      ? customWords
+      : vocabulary.filter(w => w.level === level);
     const shuffled = [...levelWords].sort(() => Math.random() - 0.5);
     const limitNum = Math.min(questionCount, shuffled.length);
     const preparedQuestions = shuffled.slice(0, limitNum).map(q => {
@@ -112,7 +125,7 @@ export default function Quiz({
       };
     });
     setQuestions(preparedQuestions);
-  }, [level, vocabulary, questionCount]);
+  }, [level, vocabulary, questionCount, customWords]);
 
   const currentQuestion = questions[currentIndex];
 
@@ -141,6 +154,9 @@ export default function Quiz({
     
     playQuizSound(isCorrect);
     setShowFeedback(isCorrect ? "correct" : "incorrect");
+
+    // 間隔反復(SRS)・デイリー目標の更新
+    recordAnswer?.(currentQuestion.id, isCorrect);
 
     // 進捗履歴と苦手単語の永続化バッファの追加
     setSolvedHistory(prev => {
@@ -367,9 +383,14 @@ export default function Quiz({
                 <Volume2 className="w-4 h-4" />
               </button>
             </div>
-            
+
+            {/* 発音記号(IPA) */}
+            <Phonetic word={currentQuestion.word} className="text-sm" />
+
             <p className="text-xs text-gray-400 font-mono">
-              レベル: {level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}
+              {reviewMode
+                ? "🔁 今日の復習 (間隔反復)"
+                : `レベル: ${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}`}
             </p>
           </div>
 
@@ -423,7 +444,9 @@ export default function Quiz({
             </div>
             <h2 className="text-2xl font-black text-gray-900">クイズ完了！</h2>
             <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
-              {level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : "上級 (大・社会人)"}・一問一答リザルト
+              {reviewMode
+                ? "今日の復習・一問一答リザルト"
+                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : "上級 (大・社会人)"}・一問一答リザルト`}
             </p>
           </div>
 
