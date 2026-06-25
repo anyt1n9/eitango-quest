@@ -194,10 +194,10 @@ export default function SentenceQuiz({
     };
     nextCallbackRef.current = onNext;
 
-    // 不正解の場合は10秒（10000ms）、正解の場合は1200ms待つ
-    const delay = isCorrect ? 1200 : 10000;
+    // 不正解の場合は6秒（6000ms）、正解の場合は1200ms待つ（「すぐに次に進む」で即スキップ可）
+    const delay = isCorrect ? 1200 : 6000;
     if (!isCorrect) {
-      setCountdown(10);
+      setCountdown(6);
     }
 
     const timerId = setTimeout(() => {

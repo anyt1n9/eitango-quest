@@ -110,8 +110,11 @@ export default function ReviewList({
     recordAnswer?.(activeWord.id, isCorrect);
 
     // もし正解なら、苦手リスト（wrongWords）からの「卒業予定（graduated）」に追加
+    // 最後の問題で handleFinishTest を呼ぶ際、state 更新は非同期で間に合わないため
+    // 確定した卒業リストをローカル変数で持ち、そのまま終了処理へ渡す（古いクロージャ参照によるバグ防止）
+    const newGraduated = isCorrect ? [...graduatedWordIds, activeWord.id] : graduatedWordIds;
     if (isCorrect) {
-      setGraduatedWordIds(prev => [...prev, activeWord.id]);
+      setGraduatedWordIds(newGraduated);
     }
 
     setTimeout(() => {
@@ -121,22 +124,22 @@ export default function ReviewList({
         setTestIndex(prev => prev + 1);
       } else {
         // テスト終了
-        handleFinishTest();
+        handleFinishTest(newGraduated);
       }
     }, 1200);
   };
 
   // 復習テストの終了処理
-  const handleFinishTest = () => {
+  const handleFinishTest = (finalGraduated: string[] = graduatedWordIds) => {
     setIsTestFinished(true);
 
     // 卒業した単語を「苦手リスト」から永久削除
-    setWrongWords(prev => prev.filter(id => !graduatedWordIds.includes(id)));
+    setWrongWords(prev => prev.filter(id => !finalGraduated.includes(id)));
 
     // 卒業した単語履歴（solvedHistory）でも、正解カウントを底上げ
     setSolvedHistory(prev => {
       const copy = { ...prev };
-      graduatedWordIds.forEach(id => {
+      finalGraduated.forEach(id => {
         if (copy[id]) {
           copy[id] = {
             correctCount: copy[id].correctCount + 1,
@@ -148,7 +151,7 @@ export default function ReviewList({
     });
 
     // 卒業ボーナススコア支給 (1単語卒業につき50ポイント)
-    const bonus = graduatedWordIds.length * 50;
+    const bonus = finalGraduated.length * 50;
     if (bonus > 0) {
       updateRankingScore(bonus);
       setStats(prev => ({
