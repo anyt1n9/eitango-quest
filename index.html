@@ -3,8 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="レベル別の英単語学習アプリ。間隔反復による復習、発音、AI機能を搭載。" />
+    <meta name="description" content="英単語クエストは、中学A1から大学・社会人C1/C2まで約7800語を収録した無料の英単語学習アプリ。間隔反復(SRS)による復習、発音記号と音声、レベル別の一問一答・例文穴埋めクイズ、AI機能を搭載。難関大受験・TOEIC・TOEFL対策にも。" />
+    <meta name="keywords" content="英単語,英単語アプリ,英単語クイズ,英単語学習,英語学習,間隔反復,SRS,TOEIC,TOEFL,大学受験,英検,発音記号,無料,eitango,vocabulary" />
+    <meta name="author" content="eitango-quest" />
+    <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#4f46e5" />
+
+    <!-- Open Graph (SNS・検索でのカード表示用) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="英単語クエスト" />
+    <meta property="og:title" content="英単語クエスト | 中学〜大学レベルの無料英単語学習アプリ" />
+    <meta property="og:description" content="約7800語を収録。間隔反復・発音・AI搭載のレベル別英単語クイズ。難関大・TOEIC・TOEFL対策に。" />
+    <meta property="og:image" content="/icon.svg" />
+    <meta property="og:locale" content="ja_JP" />
+    <!-- ▼デプロイ後、公開URLに置き換えてください（例: https://your-domain.com/） -->
+    <!-- <meta property="og:url" content="https://your-domain.com/" /> -->
+    <!-- <link rel="canonical" href="https://your-domain.com/" /> -->
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="英単語クエスト | 無料英単語学習アプリ" />
+    <meta name="twitter:description" content="約7800語・間隔反復・発音・AI搭載。難関大/TOEIC/TOEFL対策に。" />
+    <meta name="twitter:image" content="/icon.svg" />
+
     <!-- iOS でホーム画面に追加した際のフルスクリーン表示・アイコン設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -12,10 +33,31 @@
     <meta name="apple-mobile-web-app-title" content="英単語Quest" />
     <link rel="apple-touch-icon" href="/icon.svg" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <title>英単語クエスト</title>
+
+    <!-- 構造化データ(JSON-LD): 検索エンジンにアプリ情報を伝える -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "英単語クエスト",
+      "alternateName": "eitango-quest",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "ja",
+      "description": "中学A1から大学・社会人C1/C2まで約7800語を収録した無料の英単語学習アプリ。間隔反復による復習、発音、レベル別クイズ、AI機能を搭載。",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "JPY" }
+    }
+    </script>
+
+    <title>英単語クエスト | 中学〜大学レベルの無料英単語学習アプリ（TOEIC/TOEFL/受験対策）</title>
   </head>
   <body>
     <div id="root"></div>
+    <!-- 検索エンジン・JavaScript無効環境向けの説明（クロール補助） -->
+    <noscript>
+      <h1>英単語クエスト</h1>
+      <p>英単語クエストは、中学レベルから大学・社会人レベルまで約7800語を収録した無料の英単語学習アプリです。間隔反復(SRS)による復習、発音記号と音声、レベル別の一問一答・例文穴埋めクイズ、AIによる学習支援を備え、難関大受験・TOEIC・TOEFL対策にも使えます。ご利用にはJavaScriptを有効にしてください。</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,0 +1,6 @@
+# 英単語クエスト - 検索エンジンのクロールを許可
+User-agent: *
+Allow: /
+
+# デプロイ後、公開URLに合わせて以下のコメントを外してください
+# Sitemap: https://your-domain.com/sitemap.xml
