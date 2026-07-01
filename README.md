@@ -53,6 +53,21 @@ npm run build   # 本番用にビルド
 npm run start   # ビルドしたサーバーを起動
 ```
 
+## Web公開（Renderへのデプロイ）
+
+このアプリを誰でもアクセスできるURLで公開したい場合、[Render](https://render.com/) を使うと手元のPCにNode.jsをインストールせずにブラウザだけでデプロイできます。
+
+1. GitHubアカウントで [Render](https://dashboard.render.com/) にログイン
+2. 「New +」→「Blueprint」を選択し、このリポジトリを連携
+   （リポジトリ直下の `render.yaml` が自動で読み込まれます）
+3. 環境変数 `GEMINI_API_KEY` にご自身の Gemini API キーを設定
+   （[Google AI Studio](https://ai.studio/) で取得できます）
+4. 「Apply」でデプロイを実行すると、`https://<サービス名>.onrender.com` のようなURLが発行されます
+
+以後は `main` ブランチ（または連携したブランチ）に push するたびに自動で再デプロイされます。
+
+※ Renderの無料プランは一定時間アクセスがないとスリープし、次のアクセス時に起動まで数十秒かかることがあります。
+
 ## スマホアプリとして使う（PWA）
 
 このアプリは PWA（プログレッシブウェブアプリ）に対応しています。ビルドして公開した URL をスマホのブラウザで開き、
