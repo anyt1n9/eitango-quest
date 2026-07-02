@@ -33,6 +33,20 @@ import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr } from "../srs";
 import { initialVocabulary } from "../data/vocabulary";
 
+interface WeaknessStat {
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+interface WeaknessAnalysis {
+  summary: string;
+  partOfSpeechStats: WeaknessStat[];
+  topicStats: WeaknessStat[];
+  recommendations: string[];
+  isFallback?: boolean;
+}
+
 // 簡単なシンセサイザー音の実装
 const playAudio = (type: "correct" | "incorrect" | "bonus") => {
   try {
@@ -565,6 +579,10 @@ export default function Dashboard({
   const [isFetchingAdvice, setIsFetchingAdvice] = useState(false);
   const [adviceError, setAdviceError] = useState("");
 
+  const [weaknessAnalysis, setWeaknessAnalysis] = useState<WeaknessAnalysis | null>(null);
+  const [isFetchingWeakness, setIsFetchingWeakness] = useState(false);
+  const [weaknessError, setWeaknessError] = useState("");
+
   const [activeTab, setActiveTab] = useState<"progress" | "ranking" | "bonus" | "ai">("progress");
 
   // 出題単語数選択用のステート
@@ -721,6 +739,40 @@ export default function Dashboard({
       setAdviceError(err.message || "AIアドバイスの作成に失敗しました。");
     } finally {
       setIsFetchingAdvice(false);
+    }
+  };
+
+  // 弱点分野の自動分析（間違えた単語の傾向をAIが分析）
+  const handleFetchWeaknessAnalysis = async () => {
+    setIsFetchingWeakness(true);
+    setWeaknessError("");
+    try {
+      const targetWords = wrongWords
+        .map(id => vocabulary.find(w => w.id === id))
+        .filter((w): w is Word => !!w)
+        .map(w => ({ word: w.word, translation: w.translation, level: w.level }));
+
+      if (targetWords.length === 0) {
+        throw new Error("まだ間違えた単語が記録されていません。クイズに挑戦して苦手単語を集めましょう。");
+      }
+
+      const response = await fetch("/api/gemini/weakness-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wrongWords: targetWords })
+      });
+
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "弱点分析の取得に失敗しました。");
+      }
+      setWeaknessAnalysis(data);
+      playAudio("bonus");
+    } catch (err: any) {
+      console.error(err);
+      setWeaknessError(err.message || "弱点分析の作成に失敗しました。");
+    } finally {
+      setIsFetchingWeakness(false);
     }
   };
 
@@ -1577,6 +1629,129 @@ export default function Dashboard({
                 {adviceError}
               </p>
             )}
+          </div>
+
+          {/* 弱点分野の自動分析セクション */}
+          <div className="mt-8 border-t border-gray-100 pt-6" id="weakness_analysis_section">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="p-1.5 bg-rose-100 rounded-xl text-rose-700">
+                <Brain className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-black tracking-wider uppercase font-mono text-rose-700">Weakness Analyzer</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">弱点分野の自動分析</h2>
+            <p className="text-sm text-gray-500 mt-1 max-w-xl">
+              「間違えた単語の復習」に溜まった単語をGemini AIが品詞・分野の傾向から分析し、あなたが苦手とする領域とその克服アドバイスを提案します。
+            </p>
+
+            <div className="mt-6">
+              {weaknessAnalysis ? (
+                <div className="space-y-5">
+                  <div className="bg-rose-50/60 border border-rose-100 rounded-2xl p-5">
+                    <p className="text-sm text-gray-800 leading-relaxed font-semibold">
+                      {weaknessAnalysis.summary}
+                    </p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                      <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">品詞別の傾向</h3>
+                      <div className="space-y-2.5">
+                        {weaknessAnalysis.partOfSpeechStats.map((stat, i) => (
+                          <div key={i}>
+                            <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                              <span>{stat.label}</span>
+                              <span className="font-mono">{stat.count}語 ({stat.percentage}%)</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-rose-500 rounded-full"
+                                style={{ width: `${Math.min(stat.percentage, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                      <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">分野・テーマ別の傾向</h3>
+                      <div className="space-y-2.5">
+                        {weaknessAnalysis.topicStats.map((stat, i) => (
+                          <div key={i}>
+                            <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                              <span>{stat.label}</span>
+                              <span className="font-mono">{stat.count}語 ({stat.percentage}%)</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-indigo-500 rounded-full"
+                                style={{ width: `${Math.min(stat.percentage, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">克服のための学習アドバイス</h3>
+                    <ul className="space-y-1.5">
+                      {weaknessAnalysis.recommendations.map((rec, i) => (
+                        <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
+                          <ThumbsUp className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
+                          <span>{rec}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={handleFetchWeaknessAnalysis}
+                      disabled={isFetchingWeakness}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                    >
+                      {isFetchingWeakness ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                      <span>最新の間違えた単語で再分析</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <Brain className="w-12 h-12 text-rose-300 mx-auto mb-3" />
+                  <p className="text-gray-600 font-extrabold mb-1">間違えた単語の傾向を分析します</p>
+                  <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
+                    現在 <span className="font-mono font-bold">{wrongWords.length}語</span> の間違えた単語が記録されています。品詞や分野の傾向から、あなたの弱点分野を見つけます。
+                  </p>
+                  <button
+                    onClick={handleFetchWeaknessAnalysis}
+                    disabled={isFetchingWeakness}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm"
+                    id="btn_get_weakness_analysis"
+                  >
+                    {isFetchingWeakness ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>間違えた単語を分析中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="w-4 h-4" />
+                        <span>弱点分野を分析する</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {weaknessError && (
+                <p className="text-sm text-rose-500 font-medium mt-3 bg-rose-50 border border-rose-100 rounded-lg p-3">
+                  {weaknessError}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}

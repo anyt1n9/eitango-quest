@@ -568,6 +568,130 @@ app.post("/api/gemini/advice", async (req, res) => {
   }
 });
 
+// 1.85. API: 間違えた単語の傾向から弱点分野を自動分析
+function heuristicPosStats(words: { word: string }[]) {
+  const counts: Record<string, number> = { "動詞": 0, "名詞": 0, "形容詞": 0, "副詞": 0, "その他": 0 };
+  for (const w of words) {
+    const lw = w.word.toLowerCase();
+    if (lw.endsWith("ly")) counts["副詞"]++;
+    else if (lw.endsWith("tion") || lw.endsWith("ity") || lw.endsWith("ment") || lw.endsWith("ness")) counts["名詞"]++;
+    else if (lw.endsWith("ive") || lw.endsWith("ous") || lw.endsWith("al") || lw.endsWith("ful")) counts["形容詞"]++;
+    else if (lw.endsWith("ed") || lw.endsWith("ing") || lw.endsWith("ize") || lw.endsWith("ise")) counts["動詞"]++;
+    else counts["その他"]++;
+  }
+  const total = words.length || 1;
+  return Object.entries(counts)
+    .filter(([, count]) => count > 0)
+    .map(([label, count]) => ({ label, count, percentage: Math.round((count / total) * 100) }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function buildFallbackWeaknessAnalysis(words: { word: string }[]) {
+  const partOfSpeechStats = heuristicPosStats(words);
+  const topPos = partOfSpeechStats[0];
+  return {
+    summary: topPos
+      ? `間違えた単語の中では「${topPos.label}」が最も多く(${topPos.percentage}%)、ここが伸びしろのポイントです。`
+      : "分析できる間違えた単語がまだ十分にありません。",
+    partOfSpeechStats,
+    topicStats: [{ label: "総合", count: words.length, percentage: 100 }],
+    recommendations: [
+      "間違えた単語の復習リストを毎日少しずつ解き、定着させましょう。",
+      "似た品詞の単語をまとめて覚えると、語形の違いを整理しやすくなります。",
+      "例文ごと音読して、単語を文脈の中で覚える習慣をつけましょう。"
+    ],
+    isFallback: true
+  };
+}
+
+app.post("/api/gemini/weakness-analysis", async (req, res) => {
+  const { wrongWords } = req.body;
+  if (!Array.isArray(wrongWords) || wrongWords.length === 0) {
+    return res.status(400).json({ error: "分析対象の間違えた単語がありません。" });
+  }
+
+  const sample = wrongWords.slice(0, 60);
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return res.json(buildFallbackWeaknessAnalysis(sample));
+  }
+
+  try {
+    const client = getGeminiClient();
+    const list = sample
+      .map((w: any, i: number) => `${i + 1}. ${w.word} (${w.translation || ""})`)
+      .join("\n");
+
+    const prompt = `以下は、あるユーザーが英単語クイズで間違えた単語の一覧です(${wrongWords.length}語中、代表${sample.length}語を抜粋)。
+
+${list}
+
+これらの単語を分析し、以下を行ってください:
+1. 各単語の品詞(動詞・名詞・形容詞・副詞・その他)を判定し、品詞ごとの出現数と割合(%、合計100前後になるように整数で)を集計する。
+2. 各単語が属する分野・テーマ(例: 学術, ビジネス, 日常会話, 感情表現, 抽象概念など、実態に即して自由に命名してよい)を判定し、分野ごとの出現数と割合(%、合計100前後になるように整数で)を集計する。
+3. 上記の集計結果から見える、このユーザーの英単語学習における「弱点」を1〜2文で明確に要約する。
+4. その弱点を克服するための具体的な学習アドバイスを3つ、箇条書きで提案する。
+
+JSON形式で返却してください。マークダウンの \`\`\`json タグなどを一切付加せず、純粋なJSONオブジェクトのみを返却してください。`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["summary", "partOfSpeechStats", "topicStats", "recommendations"],
+          properties: {
+            summary: { type: Type.STRING },
+            partOfSpeechStats: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["label", "count", "percentage"],
+                properties: {
+                  label: { type: Type.STRING },
+                  count: { type: Type.INTEGER },
+                  percentage: { type: Type.INTEGER }
+                }
+              }
+            },
+            topicStats: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                required: ["label", "count", "percentage"],
+                properties: {
+                  label: { type: Type.STRING },
+                  count: { type: Type.INTEGER },
+                  percentage: { type: Type.INTEGER }
+                }
+              }
+            },
+            recommendations: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          }
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("No response text received from Gemini for weakness analysis");
+    }
+
+    const data = JSON.parse(text.trim());
+    res.json(data);
+  } catch (error: any) {
+    console.error("Gemini Weakness Analysis Error: ", error);
+    console.warn("弱点分析に失敗したため、ローカルフォールバックモードで動作します。");
+    res.json(buildFallbackWeaknessAnalysis(sample));
+  }
+});
+
 // 1.9. API: 単語のイメージ（SVGイラスト）の自動生成
 app.post("/api/gemini/word-image-svg", async (req, res) => {
   const { word, meaning } = req.body;
