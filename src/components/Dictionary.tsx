@@ -52,6 +52,40 @@ export default function Dictionary({
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
   const [imageError, setImageError] = useState<Record<string, string>>({});
 
+  // 類義語・反意語・コロケーションの情報キャッシュ
+  const [wordRelations, setWordRelations] = useState<Record<string, any>>({});
+  const [relationsLoading, setRelationsLoading] = useState<Record<string, boolean>>({});
+  const [relationsError, setRelationsError] = useState<Record<string, string>>({});
+
+  const handleFetchWordRelations = async (wordText: string, translationText?: string) => {
+    const trimmed = wordText.trim();
+    const key = trimmed.toLowerCase();
+    if (wordRelations[key] || relationsLoading[key]) return;
+
+    setRelationsLoading(prev => ({ ...prev, [key]: true }));
+    setRelationsError(prev => ({ ...prev, [key]: "" }));
+
+    try {
+      const response = await fetch("/api/gemini/word-relations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word: trimmed, translation: translationText })
+      });
+
+      const payload = await response.json();
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error || "類義語・反意語を取得できませんでした。");
+      }
+
+      setWordRelations(prev => ({ ...prev, [key]: payload }));
+    } catch (err: any) {
+      console.error(err);
+      setRelationsError(prev => ({ ...prev, [key]: err.message || "通信または解析エラーが発生しました。" }));
+    } finally {
+      setRelationsLoading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handleFetchWordFrequency = async (wordText: string) => {
     const trimmed = wordText.trim();
     const key = trimmed.toLowerCase();
@@ -668,6 +702,25 @@ export default function Dictionary({
 
                                 return (
                                   <div className="space-y-4">
+                                    {/* 簡易推定フォールバック時の明示的な警告 */}
+                                    {freqData.isFallback && (
+                                      <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2">
+                                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                        <div className="text-[11px] leading-relaxed">
+                                          <p className="font-black text-amber-900 dark:text-amber-300">これはAI分析ではありません（簡易推定）</p>
+                                          <p className="text-amber-800 dark:text-amber-400 font-semibold mt-0.5">
+                                            AIへの接続に失敗したため、綴りの語尾パターンによる大まかな推定値を表示しています。正確な分析は下の「再分析」からお試しください。
+                                          </p>
+                                          <button
+                                            onClick={() => handleFetchWordFrequency(word.word)}
+                                            className="mt-2 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-extrabold rounded-lg transition cursor-pointer"
+                                          >
+                                            AIで再分析する
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+
                                     {/* 3つのドメインの頻度比較メーター */}
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                       
@@ -817,6 +870,114 @@ export default function Dictionary({
                                 </button>
                               </div>
                             )}
+                          </div>
+                        </div>
+
+                        {/* —————————— 類義語・反意語・コロケーションセクション —————————— */}
+                        <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden">
+                          <div className="bg-teal-50/60 border-b border-teal-100/60 px-4 py-2.5 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-teal-800 font-extrabold text-xs">
+                              <Layers className="w-3.5 h-3.5 text-teal-600" />
+                              <span>AI 類義語・反意語・コロケーション</span>
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            {(() => {
+                              const relKey = word.word.trim().toLowerCase();
+                              const relData = wordRelations[relKey];
+                              if (relationsLoading[relKey]) {
+                                return (
+                                  <div className="flex items-center justify-center gap-2 py-6 text-gray-400 text-xs font-bold">
+                                    <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
+                                    <span>AIが語彙のつながりを分析しています...</span>
+                                  </div>
+                                );
+                              }
+                              if (relationsError[relKey]) {
+                                return (
+                                  <div className="flex flex-col items-center gap-2 py-4">
+                                    <p className="text-[10px] text-rose-600 font-semibold">{relationsError[relKey]}</p>
+                                    <button
+                                      onClick={() => {
+                                        setRelationsError(prev => ({ ...prev, [relKey]: "" }));
+                                        handleFetchWordRelations(word.word, word.translation);
+                                      }}
+                                      className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-[10px] font-extrabold rounded-lg hover:bg-teal-100 transition cursor-pointer"
+                                    >
+                                      再試行
+                                    </button>
+                                  </div>
+                                );
+                              }
+                              if (relData) {
+                                return (
+                                  <div className="space-y-4 text-xs">
+                                    {/* 類義語 */}
+                                    {relData.synonyms && relData.synonyms.length > 0 && (
+                                      <div>
+                                        <span className="text-[10px] font-black text-teal-700 uppercase tracking-wide block mb-2">類義語 (Synonyms)</span>
+                                        <div className="space-y-2">
+                                          {relData.synonyms.map((s: any, i: number) => (
+                                            <div key={i} className="bg-teal-50/40 border border-teal-100/60 rounded-xl p-2.5">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-mono font-extrabold text-sm text-gray-900">{s.word}</span>
+                                                <span className="text-gray-500 font-semibold">{s.translation}</span>
+                                              </div>
+                                              {s.nuance && (
+                                                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{s.nuance}</p>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* 反意語 */}
+                                    {relData.antonyms && relData.antonyms.length > 0 && (
+                                      <div>
+                                        <span className="text-[10px] font-black text-rose-700 uppercase tracking-wide block mb-2">反意語 (Antonyms)</span>
+                                        <div className="flex flex-wrap gap-2">
+                                          {relData.antonyms.map((a: any, i: number) => (
+                                            <span key={i} className="bg-rose-50/60 border border-rose-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                                              <span className="font-mono font-extrabold text-gray-900">{a.word}</span>
+                                              <span className="text-gray-500 font-semibold text-[11px]">{a.translation}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* コロケーション */}
+                                    {relData.collocations && relData.collocations.length > 0 && (
+                                      <div>
+                                        <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wide block mb-2">コロケーション (よく使われる組み合わせ)</span>
+                                        <div className="space-y-1.5">
+                                          {relData.collocations.map((c: any, i: number) => (
+                                            <div key={i} className="flex items-baseline justify-between gap-3 bg-indigo-50/40 border border-indigo-100/60 rounded-lg px-3 py-2">
+                                              <span className="font-mono font-bold text-gray-900">{c.phrase}</span>
+                                              <span className="text-gray-500 font-semibold text-[11px] text-right shrink-0">{c.translation}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div className="flex flex-col items-center justify-center py-4 space-y-2">
+                                  <p className="text-[11px] text-gray-400 font-semibold">
+                                    類義語・反意語・よく使われる組み合わせをAIが解説します。
+                                  </p>
+                                  <button
+                                    onClick={() => handleFetchWordRelations(word.word, word.translation)}
+                                    className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-[10px] font-extrabold rounded-lg hover:bg-teal-100 transition cursor-pointer"
+                                  >
+                                    語彙のつながりを分析する
+                                  </button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 

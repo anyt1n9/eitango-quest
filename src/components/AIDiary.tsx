@@ -185,28 +185,6 @@ export default function AIDiary({
     }
   };
 
-  // 1撃で200語習熟をクリアするテストシミュレーター
-  const handleSimulateMastery = () => {
-    playLocalSound("unlock");
-    
-    setSolvedHistory(prev => {
-      const updated = { ...prev };
-      // 既存の vocabulary から 205 個選んで mastered (correctCount = 1) に書き換え
-      let count = 0;
-      for (const word of vocabulary) {
-        if (count >= 205) break;
-        updated[word.id] = {
-          correctCount: Math.max(1, (updated[word.id]?.correctCount || 0) + 1),
-          attemptCount: Math.max(1, (updated[word.id]?.attemptCount || 0) + 1)
-        };
-        count++;
-      }
-      return updated;
-    });
-
-    alert("🎉 動作確認シミュレーター起動！\n初期ボキャブラリーから 205語の習熟実績をローカルストレージへ一瞬で移植しました！AI英語日記モードをご自由にお試しください。");
-  };
-
   // 削除確認用の状態
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
@@ -368,23 +346,10 @@ export default function AIDiary({
         {/* 右側アクション */}
         <div className="z-10 shrink-0 flex flex-col gap-2.5 justify-center md:items-end">
           {!isUnlocked && (
-            <>
-              <div className="flex items-center gap-1.5 p-3 rounded-2xl bg-gray-50 dark:bg-slate-850/80 border border-gray-150 dark:border-slate-800 text-xs text-gray-500 dark:text-slate-400 font-medium leading-normal max-w-[240px]">
-                <Clock className="w-4 h-4 text-gray-300 dark:text-slate-500 shrink-0" />
-                <span>一問一答テストや例文穴埋めを行い、あと <strong>{200 - masteredCount} 単語</strong> 正解すると開放！</span>
-              </div>
-              {/* 開発時のみ表示するテスト用ボタン（本番ビルドでは非表示） */}
-              {import.meta.env.DEV && (
-                <button
-                  onClick={handleSimulateMastery}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold px-4 py-3 rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-                  id="cheat_mastery_btn"
-                >
-                  <Sparkles className="w-4 h-4 fill-amber-100 animate-pulse" />
-                  <span>【動作確認】200語の習得をシミュレート</span>
-                </button>
-              )}
-            </>
+            <div className="flex items-center gap-1.5 p-3 rounded-2xl bg-gray-50 dark:bg-slate-850/80 border border-gray-150 dark:border-slate-800 text-xs text-gray-500 dark:text-slate-400 font-medium leading-normal max-w-[240px]">
+              <Clock className="w-4 h-4 text-gray-300 dark:text-slate-500 shrink-0" />
+              <span>一問一答テストや例文穴埋めを行い、あと <strong>{200 - masteredCount} 単語</strong> 正解すると開放！</span>
+            </div>
           )}
 
           {isUnlocked && (

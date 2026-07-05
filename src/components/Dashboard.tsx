@@ -873,7 +873,7 @@ export default function Dashboard({
         >
           <div className="flex flex-col md:flex-row items-center justify-center gap-1.5">
             <Trophy className="w-4 h-4 text-amber-500 fill-amber-150" />
-            <span>ランキング</span>
+            <span>記録</span>
           </div>
         </button>
         <button
@@ -1812,14 +1812,44 @@ export default function Dashboard({
             <span className="p-1.5 bg-amber-100 rounded-xl text-amber-700">
               <Trophy className="w-4 h-4 fill-amber-200" />
             </span>
-            <span className="text-xs font-black tracking-wider uppercase font-mono text-amber-700">Competitive Ranked Board</span>
+            <span className="text-xs font-black tracking-wider uppercase font-mono text-amber-700">My Records</span>
           </div>
-          <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">ライバルランキング</h2>
+          <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">自己ベスト記録</h2>
           <p className="text-sm text-gray-500 mt-1 max-w-md">
-            クイズの回答やAI単語の追加でスコアが増えます。仮想ライバルたちと競い合い、頂点を目指しましょう！
+            クイズの回答やAI単語の追加でスコアが増えます。過去の自分を超え続けることが一番の上達への近道です。
           </p>
 
-          <div className="mt-6 border border-gray-150 rounded-2xl divide-y divide-gray-100 overflow-hidden shadow-inner">
+          {/* 自己ベスト・累計スタッツパネル */}
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3" id="self_records_panel">
+            <div className="bg-amber-50/70 border border-amber-150 rounded-2xl p-4 text-center">
+              <span className="text-[10px] text-amber-600 font-black tracking-wider uppercase block">総スコア</span>
+              <p className="text-2xl font-black text-amber-800 font-mono mt-1">{stats.score}<span className="text-xs text-amber-500 ml-0.5">P</span></p>
+            </div>
+            <div className="bg-emerald-50/70 border border-emerald-150 rounded-2xl p-4 text-center">
+              <span className="text-[10px] text-emerald-600 font-black tracking-wider uppercase block">連続ログイン</span>
+              <p className="text-2xl font-black text-emerald-800 font-mono mt-1">{stats.currentStreak}<span className="text-xs text-emerald-500 ml-0.5">日</span></p>
+            </div>
+            <div className="bg-indigo-50/70 border border-indigo-150 rounded-2xl p-4 text-center">
+              <span className="text-[10px] text-indigo-600 font-black tracking-wider uppercase block">累計回答数</span>
+              <p className="text-2xl font-black text-indigo-800 font-mono mt-1">{stats.completedQuestions}<span className="text-xs text-indigo-500 ml-0.5">問</span></p>
+            </div>
+            <div className="bg-rose-50/70 border border-rose-150 rounded-2xl p-4 text-center">
+              <span className="text-[10px] text-rose-600 font-black tracking-wider uppercase block">累計正答率</span>
+              <p className="text-2xl font-black text-rose-800 font-mono mt-1">
+                {stats.completedQuestions > 0 ? Math.round((stats.correctAnswers / stats.completedQuestions) * 100) : 0}<span className="text-xs text-rose-500 ml-0.5">%</span>
+              </p>
+            </div>
+          </div>
+
+          {/* 仮想ライバル（CPU）との比較 */}
+          <div className="mt-8">
+            <h3 className="text-sm font-extrabold text-gray-700">仮想ライバル（CPU）とのスコア比較</h3>
+            <p className="text-xs text-gray-400 mt-1">
+              ※ 以下は実在のユーザーではなく、練習用に用意された架空のCPUライバルです。目標スコアの目安としてご活用ください。
+            </p>
+          </div>
+
+          <div className="mt-4 border border-gray-150 rounded-2xl divide-y divide-gray-100 overflow-hidden shadow-inner">
             {ranking.map((user, idx) => {
               const place = idx + 1;
               const isMe = user.isMe;
@@ -1847,9 +1877,9 @@ export default function Dashboard({
                     </div>
                     <div>
                       <h4 className={`text-sm tracking-tight ${isMe ? "font-black text-amber-900" : "font-bold text-gray-800"}`}>
-                        {user.name} {isMe && <span className="bg-amber-100 text-amber-700 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">YOU</span>}
+                        {user.name} {isMe ? <span className="bg-amber-100 text-amber-700 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">YOU</span> : <span className="bg-gray-100 text-gray-500 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">CPU</span>}
                       </h4>
-                      <p className="text-xs text-gray-400 font-medium">現在ランク</p>
+                      <p className="text-xs text-gray-400 font-medium">{isMe ? "あなたの現在位置" : "仮想ライバル"}</p>
                     </div>
                   </div>
                   <div className="text-right">
