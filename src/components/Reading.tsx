@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Level, UserStats, RankingUser } from "../types";
-import { passages, Passage } from "../data/passages";
-import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff } from "lucide-react";
+import { passages, Passage, PassageQuestion } from "../data/passages";
+import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X } from "lucide-react";
 
 interface ReadingProps {
   stats: UserStats;
@@ -31,6 +31,81 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
   useEffect(() => {
     localStorage.setItem("quest_read_passages", JSON.stringify(readPassages));
   }, [readPassages]);
+
+  // AI生成されたカスタム長文（localStorageに永続化）
+  const [customPassages, setCustomPassages] = useState<Passage[]>(() => {
+    const saved = localStorage.getItem("quest_custom_passages");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("quest_custom_passages", JSON.stringify(customPassages));
+  }, [customPassages]);
+
+  const allPassages = [...passages, ...customPassages];
+
+  // AI長文生成用のステート
+  const [genLevel, setGenLevel] = useState<Level>("junior");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [genError, setGenError] = useState("");
+
+  // 理解度チェック用のステート（選択肢はシャッフルして保持）
+  const [shuffledQuestions, setShuffledQuestions] = useState<PassageQuestion[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
+
+  // 長文を開いたとき、設問の選択肢をシャッフルして回答状態をリセットする
+  useEffect(() => {
+    if (selectedPassage?.questions && selectedPassage.questions.length > 0) {
+      const shuffled = selectedPassage.questions.map(q => {
+        const correctText = q.options[q.correctIndex];
+        const options = [...q.options].sort(() => Math.random() - 0.5);
+        return { question: q.question, options, correctIndex: options.indexOf(correctText) };
+      });
+      setShuffledQuestions(shuffled);
+    } else {
+      setShuffledQuestions([]);
+    }
+    setQuizAnswers({});
+  }, [selectedPassage]);
+
+  // AIによる長文の新規生成
+  const handleGeneratePassage = async () => {
+    setIsGenerating(true);
+    setGenError("");
+    try {
+      const response = await fetch("/api/gemini/generate-passage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level: genLevel })
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "AI長文の生成に失敗しました。");
+      }
+      setCustomPassages(prev => [...prev, data]);
+      alert(`✨ AIが新しい長文『${data.title}』を書き下ろしました！\n一覧から開いて読んでみましょう。`);
+    } catch (err: any) {
+      console.error(err);
+      setGenError(err.message || "AI長文の生成に失敗しました。");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // AI生成長文の削除
+  const handleDeleteCustomPassage = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("このAI生成長文を削除しますか？")) return;
+    setCustomPassages(prev => prev.filter(p => p.id !== id));
+    setReadPassages(prev => prev.filter(pid => pid !== id));
+  };
 
   // レベルバッジ用スタイル
   const getLevelBadge = (level: Level) => {
@@ -130,6 +205,12 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
     const badge = getLevelBadge(selectedPassage.level);
     const schema = getLevelColorSchema(selectedPassage.level);
     const isCompleted = readPassages.includes(selectedPassage.id);
+    const hasQuestions = shuffledQuestions.length > 0;
+    const allAnswered = hasQuestions && Object.keys(quizAnswers).length === shuffledQuestions.length;
+    const quizCorrectCount = shuffledQuestions.reduce(
+      (sum, q, i) => sum + (quizAnswers[i] === q.correctIndex ? 1 : 0),
+      0
+    );
 
     return (
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passage_detail_screen">
@@ -278,6 +359,10 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
                       <CheckCircle className="w-4 h-4 text-emerald-500" />
                       <span>報酬獲得済み (+{selectedPassage.pointReward}P)</span>
                     </div>
+                  ) : hasQuestions && !allAnswered ? (
+                    <div className="w-full bg-slate-800 border border-slate-700 text-slate-400 font-bold py-3 px-4 rounded-xl text-center text-[11px] leading-relaxed select-none">
+                      下の「理解度チェック」に全問回答すると<br />読破を完了できます 📝
+                    </div>
                   ) : (
                     <button
                       onClick={() => handleCompletePassage(selectedPassage)}
@@ -292,6 +377,84 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
 
           </div>
         </div>
+
+        {/* 理解度チェック（内容一致問題） */}
+        {hasQuestions && (
+          <div className="mt-10 border-t border-gray-150 pt-8" id="passage_comprehension_section">
+            <div className="text-center mb-6">
+              <span className="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-150/40">
+                📝 理解度チェック
+              </span>
+              <h3 className="text-xl font-black text-gray-900 mt-2">本文の内容に関する設問</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                全 {shuffledQuestions.length} 問に回答すると読破を完了できます（{Object.keys(quizAnswers).length}/{shuffledQuestions.length} 回答済み）
+              </p>
+            </div>
+
+            <div className="space-y-6 max-w-2xl mx-auto">
+              {shuffledQuestions.map((q, qi) => {
+                const answered = quizAnswers[qi] !== undefined;
+                return (
+                  <div key={qi} className="bg-slate-50 border border-gray-200/60 rounded-2xl p-5">
+                    <p className="text-sm font-extrabold text-gray-900 mb-4">
+                      <span className="text-indigo-600 font-mono mr-2">Q{qi + 1}.</span>
+                      {q.question}
+                    </p>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {q.options.map((opt, oi) => {
+                        const isSelected = quizAnswers[qi] === oi;
+                        const isCorrectOption = oi === q.correctIndex;
+                        let btnClass = "bg-white border-gray-200 text-gray-800 hover:bg-gray-100";
+                        if (answered) {
+                          if (isCorrectOption) {
+                            btnClass = "bg-emerald-50 border-emerald-300 text-emerald-900 font-bold";
+                          } else if (isSelected) {
+                            btnClass = "bg-rose-50 border-rose-300 text-rose-900";
+                          } else {
+                            btnClass = "bg-white border-gray-100 text-gray-400 opacity-60";
+                          }
+                        }
+                        return (
+                          <button
+                            key={oi}
+                            onClick={() => {
+                              if (answered) return;
+                              setQuizAnswers(prev => ({ ...prev, [qi]: oi }));
+                            }}
+                            disabled={answered}
+                            className={`border rounded-xl p-3.5 text-left text-sm font-medium transition flex items-center justify-between gap-2 cursor-pointer ${btnClass}`}
+                          >
+                            <span className="flex-1">{opt}</span>
+                            {answered && isCorrectOption && <Check className="w-4 h-4 text-emerald-600 stroke-3 shrink-0" />}
+                            {answered && isSelected && !isCorrectOption && <X className="w-4 h-4 text-rose-600 stroke-3 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 全問回答後のスコア表示 */}
+            {allAnswered && (
+              <div className="max-w-2xl mx-auto mt-6 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 text-center animate-fade-in">
+                <p className="text-sm font-black text-indigo-950">
+                  理解度チェック結果: <span className="font-mono text-xl text-indigo-700">{quizCorrectCount}</span> / {shuffledQuestions.length} 問正解
+                  {quizCorrectCount === shuffledQuestions.length && " 🎉 パーフェクト！"}
+                </p>
+                {!isCompleted && (
+                  <button
+                    onClick={() => handleCompletePassage(selectedPassage)}
+                    className="mt-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-black py-3 px-8 rounded-xl text-xs shadow-md active:translate-y-px transition cursor-pointer select-none"
+                  >
+                    読破を完了して +{selectedPassage.pointReward}P を獲得
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -331,7 +494,7 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
           <div>
             <p className="text-xs text-gray-400 font-bold font-mono">STORY XP PROGRESS</p>
             <p className="text-sm font-black text-indigo-950">
-              読覇ストーリー: <span className="font-mono text-base">{readPassages.length}</span> / {passages.length}
+              読覇ストーリー: <span className="font-mono text-base">{readPassages.length}</span> / {allPassages.length}
             </p>
           </div>
         </div>
@@ -339,17 +502,73 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
         <div className="flex-1 max-w-xs w-full bg-slate-200/60 rounded-full h-2 overflow-hidden shadow-inner">
           <div
             className="bg-indigo-600 h-full rounded-full transition-all duration-1000"
-            style={{ width: `${(readPassages.length / passages.length) * 100}%` }}
+            style={{ width: `${(readPassages.length / allPassages.length) * 100}%` }}
           />
         </div>
       </div>
 
+      {/* AIによる長文の新規生成パネル */}
+      <div className="mt-6 bg-gradient-to-r from-violet-50 to-indigo-50 border border-indigo-100 rounded-2xl p-5" id="ai_passage_generator">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-violet-600 rounded-xl text-white shadow shrink-0">
+              <Wand2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-gray-900">AIで新しい長文を生成</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Gemini AIがレベルに合わせたオリジナル長文（理解度チェック付き）を書き下ろします。
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <select
+              value={genLevel}
+              onChange={(e) => setGenLevel(e.target.value as Level)}
+              disabled={isGenerating}
+              className="text-xs font-bold border border-gray-200 rounded-xl px-3 py-2.5 bg-white text-gray-700 cursor-pointer"
+              id="gen_passage_level_select"
+            >
+              <option value="junior">初級 (中学生)</option>
+              <option value="senior">中級1 (高1)</option>
+              <option value="senior2">中級2 (高2)</option>
+              <option value="senior3">中級3 (高3)</option>
+              <option value="advanced">上級 (社会人)</option>
+            </select>
+            <button
+              onClick={handleGeneratePassage}
+              disabled={isGenerating}
+              className="bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
+              id="btn_generate_passage"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>AIが執筆中...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>長文を生成</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+        {genError && (
+          <p className="text-xs text-rose-500 font-medium mt-3 bg-rose-50 border border-rose-100 rounded-lg p-2.5">
+            {genError}
+          </p>
+        )}
+      </div>
+
       {/* ストーリーの一覧 */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6" id="passages_grid_container">
-        {passages.map((p) => {
+        {allPassages.map((p) => {
           const badge = getLevelBadge(p.level);
           const isCompleted = readPassages.includes(p.id);
           const schema = getLevelColorSchema(p.level);
+          const isCustom = p.id.startsWith("aip_");
 
           return (
             <div
@@ -359,10 +578,17 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
             >
               <div>
                 <div className="flex justify-between items-start gap-2">
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${badge.bg}`}>
-                    {badge.text}
-                  </span>
-                  
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${badge.bg}`}>
+                      {badge.text}
+                    </span>
+                    {isCustom && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-violet-50 text-violet-700 border-violet-200/60">
+                        ✨ AI生成
+                      </span>
+                    )}
+                  </div>
+
                   {isCompleted ? (
                     <span className="flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 rounded-full font-bold">
                       <CheckCircle className="w-3 h-3 text-emerald-600" />
@@ -389,9 +615,20 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
                 <span className="text-[10px] text-gray-400 font-bold font-mono tracking-wider">
                   ターゲット語数: {p.vocabularyHighlight.length}語
                 </span>
-                <span className="text-xs font-black text-indigo-600 group-hover:translate-x-1 transition-all flex items-center gap-0.5">
-                  読む ➔
-                </span>
+                <div className="flex items-center gap-2.5">
+                  {isCustom && (
+                    <button
+                      onClick={(e) => handleDeleteCustomPassage(p.id, e)}
+                      className="p-1.5 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                      title="このAI生成長文を削除"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <span className="text-xs font-black text-indigo-600 group-hover:translate-x-1 transition-all flex items-center gap-0.5">
+                    読む ➔
+                  </span>
+                </div>
               </div>
             </div>
           );

@@ -32,6 +32,8 @@ import { Level, Word, UserStats, RankingUser } from "../types";
 import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr } from "../srs";
 import { initialVocabulary } from "../data/vocabulary";
+import { getWordPos } from "../pos";
+import StudyCalendar from "./StudyCalendar";
 
 interface WeaknessStat {
   label: string;
@@ -124,12 +126,14 @@ interface DashboardProps {
   setVocabulary: React.Dispatch<React.SetStateAction<Word[]>>;
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
   wrongWords: string[];
-  onStartQuiz: (level: Level, type: "word" | "sentence", count?: number) => void;
+  onStartQuiz: (level: Level, type: "word" | "sentence" | "listening", count?: number) => void;
   onStartReview: () => void;
   onOpenDictionary: () => void;
   onStartReading: () => void;
   ranking: RankingUser[];
   setRanking: React.Dispatch<React.SetStateAction<RankingUser[]>>;
+  dailyLog: Record<string, { count: number; correct: number }>;
+  dailyGoal: number;
 }
 
 export default function Dashboard({
@@ -144,7 +148,9 @@ export default function Dashboard({
   onOpenDictionary,
   onStartReading,
   ranking,
-  setRanking
+  setRanking,
+  dailyLog,
+  dailyGoal
 }: DashboardProps) {
   const [newWord, setNewWord] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -750,7 +756,7 @@ export default function Dashboard({
       const targetWords = wrongWords
         .map(id => vocabulary.find(w => w.id === id))
         .filter((w): w is Word => !!w)
-        .map(w => ({ word: w.word, translation: w.translation, level: w.level }));
+        .map(w => ({ word: w.word, translation: w.translation, level: w.level, pos: getWordPos(w) }));
 
       if (targetWords.length === 0) {
         throw new Error("まだ間違えた単語が記録されていません。クイズに挑戦して苦手単語を集めましょう。");
@@ -883,6 +889,9 @@ export default function Dashboard({
       {/* タブコンテンツ */}
       {activeTab === "progress" && (
         <div className="space-y-6">
+          {/* 学習カレンダー（日別解答数のヒートマップ） */}
+          <StudyCalendar dailyLog={dailyLog} dailyGoal={dailyGoal} />
+
           {/* 復習セクション (間違えた単語がある場合のみ表示) */}
           {wrongWords.length > 0 && (
             <div className="bg-rose-50 border border-rose-200/60 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4" id="review_banner">
@@ -1049,6 +1058,13 @@ export default function Dashboard({
                 >
                   例文穴埋めを解く
                 </button>
+                <button
+                  onClick={() => onStartQuiz("junior", "listening")}
+                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  id="btn_junior_listening"
+                >
+                  🎧 リスニングを解く
+                </button>
               </div>
             </div>
 
@@ -1101,6 +1117,13 @@ export default function Dashboard({
                   id="btn_senior_sentence"
                 >
                   例文穴埋めを解く
+                </button>
+                <button
+                  onClick={() => onStartQuiz("senior", "listening")}
+                  className="w-full bg-emerald-50 text-emerald-700 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
+                  id="btn_senior_listening"
+                >
+                  🎧 リスニングを解く
                 </button>
               </div>
             </div>
@@ -1155,6 +1178,13 @@ export default function Dashboard({
                 >
                   例文穴埋めを解く
                 </button>
+                <button
+                  onClick={() => onStartQuiz("senior2", "listening")}
+                  className="w-full bg-purple-50 text-purple-700 font-bold py-2.5 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
+                  id="btn_senior2_listening"
+                >
+                  🎧 リスニングを解く
+                </button>
               </div>
             </div>
 
@@ -1208,6 +1238,13 @@ export default function Dashboard({
                 >
                   例文穴埋めを解く
                 </button>
+                <button
+                  onClick={() => onStartQuiz("senior3", "listening")}
+                  className="w-full bg-pink-50 text-pink-700 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
+                  id="btn_senior3_listening"
+                >
+                  🎧 リスニングを解く
+                </button>
               </div>
             </div>
 
@@ -1260,6 +1297,13 @@ export default function Dashboard({
                   id="btn_advanced_sentence"
                 >
                   例文穴埋めを解く
+                </button>
+                <button
+                  onClick={() => onStartQuiz("advanced", "listening")}
+                  className="w-full bg-amber-50 text-amber-700 font-bold py-2.5 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
+                  id="btn_advanced_listening"
+                >
+                  🎧 リスニングを解く
                 </button>
               </div>
             </div>

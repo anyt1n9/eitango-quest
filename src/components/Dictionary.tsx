@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Word, Level } from "../types";
 import Phonetic from "./Phonetic";
+import { getWordPosLabel } from "../pos";
 
 interface DictionaryProps {
   vocabulary: Word[];
@@ -467,6 +468,11 @@ export default function Dictionary({
 
                     {/* 発音記号(IPA) */}
                     <Phonetic word={word.word} className="text-xs shrink-0" />
+
+                    {/* 品詞バッジ */}
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-500 shrink-0">
+                      {getWordPosLabel(word)}
+                    </span>
 
                     {/* 習得ステータス */}
                     {statusBadge}

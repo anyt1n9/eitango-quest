@@ -1,5 +1,7 @@
 export type Level = "junior" | "senior" | "senior2" | "senior3" | "advanced";
 
+export type PartOfSpeech = "verb" | "noun" | "adjective" | "adverb" | "other";
+
 export interface Word {
   id: string; // 識別用
   word: string; // 英単語
@@ -9,6 +11,7 @@ export interface Word {
   sentence: string; // 例文 (例: "This flower is very [_____].")
   sentenceTranslation: string; // 例文の日本語訳
   sentenceOptions: string[]; // 例文クイズ用の四択選択肢(英語、スペル)
+  pos?: PartOfSpeech; // 品詞 (未設定の場合は訳語・語尾から推定する)
 }
 
 export interface QuizHistory {
