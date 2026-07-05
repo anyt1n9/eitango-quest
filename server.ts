@@ -848,6 +848,11 @@ app.post("/api/gemini/generate-passage", async (req, res) => {
 });
 
 // 1.9. API: 単語のイメージ（SVGイラスト）の自動生成
+// 生成済みSVGのサーバー内キャッシュ。全ユーザーで共有され、同じ単語の再生成を防ぐ
+// （プロセス再起動までの間有効。1枚目の生成後は誰が開いても即座に返る）
+const wordImageCache = new Map<string, string>();
+const WORD_IMAGE_CACHE_MAX = 5000;
+
 app.post("/api/gemini/word-image-svg", async (req, res) => {
   const { word, meaning } = req.body;
   if (!word || typeof word !== "string" || word.trim() === "") {
@@ -855,6 +860,14 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
   }
 
   const queryWord = word.trim();
+  const cacheKey = queryWord.toLowerCase();
+
+  // キャッシュ命中時は生成せず即返却
+  const cachedSvg = wordImageCache.get(cacheKey);
+  if (cachedSvg) {
+    return res.json({ word: queryWord, svg: cachedSvg, cached: true });
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -894,7 +907,7 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
   <rect x="70" y="142" width="60" height="4" rx="2" fill="#ffffff" opacity="0.4" />
 </svg>`;
 
-    return res.json({ word: queryWord, svg: fallbackSvg });
+    return res.json({ word: queryWord, svg: fallbackSvg, isFallback: true });
   }
 
   try {
@@ -934,6 +947,16 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
     }
 
     const data = JSON.parse(text.trim());
+
+    // 成功した生成結果のみキャッシュ（フォールバック画像はキャッシュしない）
+    if (data.svg) {
+      if (wordImageCache.size >= WORD_IMAGE_CACHE_MAX) {
+        const oldestKey = wordImageCache.keys().next().value;
+        if (oldestKey !== undefined) wordImageCache.delete(oldestKey);
+      }
+      wordImageCache.set(cacheKey, data.svg);
+    }
+
     res.json({ word: queryWord, svg: data.svg });
   } catch (error: any) {
     console.error("Gemini SVG Generation Error: ", error);

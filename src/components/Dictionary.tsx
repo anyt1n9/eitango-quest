@@ -36,6 +36,52 @@ type SortOption = "alphabetical-asc" | "alphabetical-desc" | "level-asc" | "leve
 // ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出）の判定
 const isCustomWordId = (id: string) => /^(ai_|csv_|pdf_)/.test(id);
 
+// —— AI生成SVG画像の端末内永続キャッシュ ——
+// [単語キー, SVG文字列] のペア配列として保存する（挿入順を保持し、古いものから削除）
+const WORD_IMAGES_STORAGE_KEY = "quest_word_images";
+const WORD_IMAGES_MAX_ENTRIES = 300;
+
+function loadPersistedWordImages(): Record<string, string> {
+  try {
+    const saved = localStorage.getItem(WORD_IMAGES_STORAGE_KEY);
+    if (!saved) return {};
+    const pairs: [string, string][] = JSON.parse(saved);
+    if (!Array.isArray(pairs)) return {};
+    return Object.fromEntries(pairs);
+  } catch (e) {
+    return {};
+  }
+}
+
+function persistWordImage(key: string, svg: string) {
+  try {
+    let pairs: [string, string][] = [];
+    try {
+      const saved = localStorage.getItem(WORD_IMAGES_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) pairs = parsed;
+      }
+    } catch (e) {
+      // 壊れたデータは捨てて作り直す
+    }
+    pairs = pairs.filter(([k]) => k !== key);
+    pairs.push([key, svg]);
+    if (pairs.length > WORD_IMAGES_MAX_ENTRIES) {
+      pairs = pairs.slice(pairs.length - WORD_IMAGES_MAX_ENTRIES);
+    }
+    try {
+      localStorage.setItem(WORD_IMAGES_STORAGE_KEY, JSON.stringify(pairs));
+    } catch (e) {
+      // 容量超過時は古い半分を削除して再試行
+      pairs = pairs.slice(Math.floor(pairs.length / 2));
+      localStorage.setItem(WORD_IMAGES_STORAGE_KEY, JSON.stringify(pairs));
+    }
+  } catch (e) {
+    console.warn("単語イメージの保存に失敗しました:", e);
+  }
+}
+
 export default function Dictionary({
   vocabulary,
   wrongWords,
@@ -48,7 +94,8 @@ export default function Dictionary({
   const [frequencyError, setFrequencyError] = useState<Record<string, string>>({});
 
   // AI単語イメージ（SVG）の情報キャッシュ
-  const [wordImages, setWordImages] = useState<Record<string, string>>({});
+  // localStorage に永続化し、一度生成した画像は次回以降すぐに表示する
+  const [wordImages, setWordImages] = useState<Record<string, string>>(() => loadPersistedWordImages());
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
   const [imageError, setImageError] = useState<Record<string, string>>({});
 
@@ -136,6 +183,10 @@ export default function Dictionary({
       }
 
       setWordImages(prev => ({ ...prev, [key]: payload.svg }));
+      // AIが実際に生成した画像のみ端末に永続保存する（フォールバック画像は保存しない）
+      if (!payload.isFallback) {
+        persistWordImage(key, payload.svg);
+      }
     } catch (err: any) {
       console.error(err);
       setImageError(prev => ({ ...prev, [key]: err.message || "通信または生成エラーが発生しました。" }));

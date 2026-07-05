@@ -14,8 +14,8 @@ const BACKUP_KEYS = [
   "quest_daily_log",
   "quest_read_passages",
   "quest_custom_passages",
+  "quest_word_images",
   "quest_theme",
-  "quest_read_passages",
   "quest_diary_history",
   "quest_current_diary_cache",
 ];
