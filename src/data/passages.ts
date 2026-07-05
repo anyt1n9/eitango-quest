@@ -1,3 +1,9 @@
+export interface PassageQuestion {
+  question: string; // 内容理解を問う設問（日本語）
+  options: string[]; // 4択の選択肢（日本語）
+  correctIndex: number; // 正解選択肢のインデックス (0-3)
+}
+
 export interface Passage {
   id: string;
   level: "junior" | "senior" | "senior2" | "senior3" | "advanced";
@@ -7,6 +13,7 @@ export interface Passage {
   vocabularyHighlight: { word: string; translation: string }[];
   description: string;
   pointReward: number;
+  questions?: PassageQuestion[]; // 理解度チェック設問
 }
 
 export const passages: Passage[] = [
@@ -28,7 +35,29 @@ export const passages: Passage[] = [
       { word: "important", translation: "重要な、大切な" }
     ],
     description: "中学レベルの重要語彙（beautiful, library, important）を含む心温まる短いお話です。",
-    pointReward: 50
+    pointReward: 50,
+    questions: [
+      {
+        question: "語り手はなぜ図書館へ行きましたか？",
+        options: [
+          "花と水に関する大切な本を読むため",
+          "友達と一緒に宿題をするため",
+          "静かな場所で昼寝をするため",
+          "新しい本を借りて家に帰るため"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "古い本に書かれていた内容として正しいものはどれですか？",
+        options: [
+          "読書は夢と将来にとって重要である",
+          "図書館は放課後すぐに閉まってしまう",
+          "水よりも本の方がずっと大切である",
+          "子供はもっと外で遊ぶべきである"
+        ],
+        correctIndex: 0
+      }
+    ]
   },
   {
     id: "p2",
@@ -49,7 +78,29 @@ export const passages: Passage[] = [
       { word: "depend", translation: "依存する" }
     ],
     description: "高校1年生レベルの重要語（explore, term, exist, depend）を使用した、自然探検に関するエッセイです。",
-    pointReward: 60
+    pointReward: 60,
+    questions: [
+      {
+        question: "地域のリーダーたちが望んでいることは何ですか？",
+        options: [
+          "美しい自然を保護すること",
+          "山に新しい道路を建設すること",
+          "観光客をもっと増やすこと",
+          "野生動物を捕まえて保護施設に移すこと"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "本文によると、私たちが自然を大切にすべき理由は何ですか？",
+        options: [
+          "人間の生活が自然に依存しているから",
+          "法律で厳しく定められているから",
+          "野生動物の数が急激に減っているから",
+          "森の探検が流行しているから"
+        ],
+        correctIndex: 0
+      }
+    ]
   },
   {
     id: "p3",
@@ -74,7 +125,29 @@ export const passages: Passage[] = [
       { word: "primitive", translation: "原始的な" }
     ],
     description: "高校2年生レベルの語（evolution, involvement, doubt, derive, permanent, adjust）をふんだんに使った、人類の文化と社会の進歩に関するやや高度な読み物です。",
-    pointReward: 70
+    pointReward: 70,
+    questions: [
+      {
+        question: "本文では「文化の進化」はどのようなものだと述べられていますか？",
+        options: [
+          "変化の永続的なプロセスである",
+          "一度で完了する歴史的な出来事である",
+          "原始的な様式へ回帰する動きである",
+          "少数の天才によってのみ起こる発明である"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "安定した未来のための重要な要因として挙げられているものはどれですか？",
+        options: [
+          "協力してしっかりとした合意を築くこと",
+          "伝統的な答えを疑わずに守り続けること",
+          "急速な進歩をあえて止めること",
+          "各自がばらばらに行動すること"
+        ],
+        correctIndex: 0
+      }
+    ]
   },
   {
     id: "p4",
@@ -105,7 +178,39 @@ export const passages: Passage[] = [
       { word: "founder", translation: "創設者" }
     ],
     description: "新規追加された高校3年生レベルの語句（significant, sacrifice, trigger, disaster, overnight, transition, provision, asset, founder, courage）を厳選することなくストーリーに昇華し、地域社会の再建を描いた躍動的な長文です。",
-    pointReward: 80
+    pointReward: 80,
+    questions: [
+      {
+        question: "嵐のあと、苦しむ家族に慰め（快適さ）をもたらしたものは何ですか？",
+        options: [
+          "きれいな水と温かい食事の素早い供給",
+          "航空会社による運行の即時再開",
+          "新しい住宅の無償提供",
+          "政府からの多額の見舞金"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "地元の不動産の創設者がしたこととして正しいものはどれですか？",
+        options: [
+          "再建の試みを支援するため個人資産を犠牲にした",
+          "危険を避けて早々に町を離れた",
+          "災害対応の新しい会社を設立した",
+          "電気系統をたった一人で修理した"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "現在の地域社会の様子として本文の内容に合うものはどれですか？",
+        options: [
+          "回復力があり、団結している",
+          "今も停電が続き困窮している",
+          "人口が大きく減ってしまった",
+          "再建をあきらめて移転を決めた"
+        ],
+        correctIndex: 0
+      }
+    ]
   },
   {
     id: "p5",
@@ -144,6 +249,38 @@ export const passages: Passage[] = [
       { word: "prerequisite", translation: "必須条件、前提条件" }
     ],
     description: "最難関レベル（conspicuous, ubiquitous, ambiguity, lucrative, resilient, vulnerable, paradigm, synergy, prerequisite）を多数使用し、現代のデジタル社会のあり方に深く切り込んだオピニオン長文エッセイです。",
-    pointReward: 100
+    pointReward: 100,
+    questions: [
+      {
+        question: "本文が指摘する「顕著な矛盾（パラドックス）」とは何ですか？",
+        options: [
+          "儲かるデジタルプラットフォームが、停滞したユーザー関与に対して脆弱であること",
+          "テクノロジーが人間関係を完全に破壊してしまったこと",
+          "現代社会では革新がまったく起きていないこと",
+          "企業がテクノロジーから利益を得られないこと"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "真の革新に必要だと述べられているものはどれですか？",
+        options: [
+          "協調的な相乗効果（シナジー）",
+          "恣意的で余分な機能の追加",
+          "時代遅れの手法の復活",
+          "うわべだけの基準の遵守"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "リーダーたちが設計すべきだとされているものは何ですか？",
+        options: [
+          "長期的な持続可能性に焦点を当てた包括的なパラダイム",
+          "短期的な利益を最大化する販売戦略",
+          "より大規模な広告キャンペーン",
+          "従来型の厳格な階層組織"
+        ],
+        correctIndex: 0
+      }
+    ]
   }
 ];

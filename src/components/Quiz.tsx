@@ -55,6 +55,8 @@ interface QuizProps {
   customWords?: Word[];
   // 復習セッションかどうか（表示文言の切り替え用）
   reviewMode?: boolean;
+  // リスニングモード: 単語の綴りを隠し、音声だけを聞いて意味を答える
+  listeningMode?: boolean;
   // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
   recordAnswer?: (wordId: string, isCorrect: boolean) => void;
 }
@@ -72,6 +74,7 @@ export default function Quiz({
   questionCount = 10,
   customWords,
   reviewMode = false,
+  listeningMode = false,
   recordAnswer
 }: QuizProps) {
   // レベルに合致する単語プールをシャッフルして10問抽出 (10問未満ならすべて)
@@ -370,23 +373,43 @@ export default function Quiz({
           {/* 英単語の出題表示 */}
           <div className="text-center space-y-4 my-8 relative">
             <span className="text-xs font-black uppercase tracking-wider text-indigo-500 font-mono">
-              英単語の意味を選択
+              {listeningMode ? "🎧 音声を聞いて意味を選択" : "英単語の意味を選択"}
             </span>
-            <div className="flex items-center justify-center gap-3">
-              <h2 className="text-4xl font-black text-gray-900 tracking-tight select-all">
-                {currentQuestion.word}
-              </h2>
-              <button
-                onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
-                className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-all cursor-pointer active:scale-90"
-                title="発音を聴く"
-              >
-                <Volume2 className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* 発音記号(IPA) */}
-            <Phonetic word={currentQuestion.word} className="text-sm" />
+            {listeningMode && selectedOption === null ? (
+              /* リスニングモード中は綴りを隠し、大きな再生ボタンだけを見せる */
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
+                  className="w-24 h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all cursor-pointer active:scale-90 flex items-center justify-center shadow-lg shadow-indigo-200"
+                  title="もう一度発音を聴く"
+                  id="listening_replay_btn"
+                >
+                  <Volume2 className="w-10 h-10" />
+                </button>
+                <p className="text-xs text-gray-400 font-semibold">
+                  タップでもう一度再生できます
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-center gap-3">
+                  <h2 className="text-4xl font-black text-gray-900 tracking-tight select-all">
+                    {currentQuestion.word}
+                  </h2>
+                  <button
+                    onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
+                    className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-all cursor-pointer active:scale-90"
+                    title="発音を聴く"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* 発音記号(IPA) */}
+                <Phonetic word={currentQuestion.word} className="text-sm" />
+              </>
+            )}
 
             <p className="text-xs text-gray-400 font-mono">
               {reviewMode
@@ -447,7 +470,7 @@ export default function Quiz({
             <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
               {reviewMode
                 ? "今日の復習・一問一答リザルト"
-                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・一問一答リザルト`}
+                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・${listeningMode ? "リスニング" : "一問一答"}リザルト`}
             </p>
           </div>
 

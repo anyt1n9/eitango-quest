@@ -159,6 +159,19 @@ export default function App() {
     return v > 0 ? v : 20;
   });
 
+  // 学習カレンダー用の日別解答ログ（日付 -> 解答数・正解数）
+  const [dailyLog, setDailyLog] = useState<Record<string, { count: number; correct: number }>>(() => {
+    const saved = localStorage.getItem("quest_daily_log");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return {};
+  });
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
@@ -231,9 +244,13 @@ export default function App() {
     localStorage.setItem("quest_daily_goal", String(dailyGoal));
   }, [dailyGoal]);
 
+  useEffect(() => {
+    localStorage.setItem("quest_daily_log", JSON.stringify(dailyLog));
+  }, [dailyLog]);
+
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -243,10 +260,10 @@ export default function App() {
   // 崩壊する不具合があったため、復習開始時点のリストを固定して渡す。
   const [srsSessionWords, setSrsSessionWords] = useState<Word[]>([]);
 
-  const handleStartQuiz = (level: Level, type: "word" | "sentence", count: number = 10) => {
+  const handleStartQuiz = (level: Level, type: "word" | "sentence" | "listening", count: number = 10) => {
     setSelectedLevel(level);
     setQuizQuestionCount(count);
-    setCurrentScreen(type === "word" ? "quiz" : "sentence_quiz");
+    setCurrentScreen(type === "word" ? "quiz" : type === "listening" ? "listening_quiz" : "sentence_quiz");
   };
 
   const handleBackToDashboard = () => {
@@ -271,7 +288,7 @@ export default function App() {
     });
   };
 
-  // 解答1件ごとの中央処理: 間隔反復(SRS)スケジュールと、今日の学習目標の進捗を更新する
+  // 解答1件ごとの中央処理: 間隔反復(SRS)スケジュール、今日の学習目標、学習カレンダーを更新する
   const recordAnswer = useCallback((wordId: string, isCorrect: boolean) => {
     const today = todayStr();
     setSrsData(prev => ({
@@ -281,6 +298,13 @@ export default function App() {
     setDailyProgress(prev => {
       const base = prev.date === today ? prev.count : 0;
       return { date: today, count: base + 1 };
+    });
+    setDailyLog(prev => {
+      const entry = prev[today] || { count: 0, correct: 0 };
+      return {
+        ...prev,
+        [today]: { count: entry.count + 1, correct: entry.correct + (isCorrect ? 1 : 0) }
+      };
     });
   }, []);
 
@@ -295,6 +319,7 @@ export default function App() {
   const isFocusScreen =
     currentScreen === "quiz" ||
     currentScreen === "sentence_quiz" ||
+    currentScreen === "listening_quiz" ||
     currentScreen === "review" ||
     currentScreen === "srs_review";
 
@@ -484,6 +509,8 @@ export default function App() {
             onStartReading={() => setCurrentScreen("reading")}
             ranking={ranking}
             setRanking={setRanking}
+            dailyLog={dailyLog}
+            dailyGoal={dailyGoal}
           />
         )}
 
@@ -499,6 +526,23 @@ export default function App() {
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
+            recordAnswer={recordAnswer}
+          />
+        )}
+
+        {currentScreen === "listening_quiz" && (
+          <Quiz
+            level={selectedLevel}
+            vocabulary={vocabulary}
+            wrongWords={wrongWords}
+            setWrongWords={setWrongWords}
+            solvedHistory={solvedHistory}
+            setSolvedHistory={setSolvedHistory}
+            setStats={setStats}
+            onBackToDashboard={handleBackToDashboard}
+            updateRankingScore={updateRankingScore}
+            questionCount={quizQuestionCount}
+            listeningMode={true}
             recordAnswer={recordAnswer}
           />
         )}
