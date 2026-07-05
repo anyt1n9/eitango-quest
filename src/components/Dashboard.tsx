@@ -32,6 +32,7 @@ import { Level, Word, UserStats, RankingUser } from "../types";
 import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr } from "../srs";
 import { initialVocabulary } from "../data/vocabulary";
+import { getAudioContext } from "../sound";
 
 interface WeaknessStat {
   label: string;
@@ -50,7 +51,7 @@ interface WeaknessAnalysis {
 // 簡単なシンセサイザー音の実装
 const playAudio = (type: "correct" | "incorrect" | "bonus") => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = getAudioContext();
     if (!ctx) return;
     
     if (type === "correct") {
@@ -183,6 +184,7 @@ export default function Dashboard({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleCopyTemplate = (text: string) => {
@@ -402,6 +404,8 @@ export default function Dashboard({
   // ファイル入力が変更されたとき
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // 同じファイルを続けて選択してもonChangeが発火するよう値をリセット
+    e.target.value = "";
     if (file) {
       handleCsvUpload(file);
     }
@@ -541,6 +545,8 @@ export default function Dashboard({
   // PDF用マニュアルインプット選択
   const handlePdfFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // 同じファイルを続けて選択してもonChangeが発火するよう値をリセット
+    e.target.value = "";
     if (file) {
       handlePdfUpload(file);
     }
@@ -699,7 +705,7 @@ export default function Dashboard({
       const msg = data.isFallback
         ? `💡 一時的な自動調整モード:\nAI接続の混雑を避けるため、今回はローカルエンジンを使用して英単語「${data.word}」を登録しました。\n（自動生成されたクイズと例文が正常に追加されました！）`
         : `AIが英単語「${data.word}」の分析を完了しました！\n難易度: ${
-            data.level === "junior" ? "中学生" : data.level === "senior" ? "高校生" : "大学生・社会人"
+            data.level === "junior" ? "中学生" : data.level === "senior" ? "高校1年生" : data.level === "senior2" ? "高校2年生" : data.level === "senior3" ? "高校3年生" : "大学生・社会人"
           }\n自動分析された例文と選択肢がクイズに追加されました！ (獲得スコア: +50)`;
       alert(msg);
     } catch (err: any) {

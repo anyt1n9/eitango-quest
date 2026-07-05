@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Level, Word, UserStats } from "../types";
+import { getAudioContext } from "../sound";
 
 // クイズ回答時の効果音（シンセ）
 const playSentenceSound = (isCorrect: boolean) => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = getAudioContext();
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();

@@ -12,6 +12,9 @@ const BACKUP_KEYS = [
   "quest_daily_progress",
   "quest_daily_goal",
   "quest_theme",
+  "quest_read_passages",
+  "quest_diary_history",
+  "quest_current_diary_cache",
 ];
 
 interface DataBackupProps {

@@ -17,11 +17,12 @@ import {
   Trash2
 } from "lucide-react";
 import { Word } from "../types";
+import { getAudioContext } from "../sound";
 
 // 簡単なクリック/ファンファーレ音効果
 const playLocalSound = (type: "unlock" | "sparkle") => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = getAudioContext();
     if (!ctx) return;
     if (type === "unlock") {
       const notes = [261.63, 329.63, 392.00, 523.25, 659.25]; // C4, E4, G4, C5, E5
@@ -174,7 +175,8 @@ export default function AIDiary({
       setDiary(newEntry);
       setHistory(prev => [newEntry, ...prev]);
       playLocalSound("sparkle");
-      setSolvedHistory({});
+      // ※以前ここで setSolvedHistory({}) を呼んでいたが、日記を1回生成するだけで
+      //   全学習履歴（習熟度・習得単語数）が消えてしまう重大な不具合のため削除
     } catch (err: any) {
       console.error(err);
       setError(err.message || "通信または生成エラーが発生しました。");

@@ -18,6 +18,9 @@ import DataBackup from "./components/DataBackup";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2 } from "lucide-react";
 
+// 初期収録単語のIDセット（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使用）
+const INITIAL_VOCAB_IDS = new Set(initialVocabulary.map(w => w.id));
+
 // デフォルトのランキング架空ユーザー
 const DEFAULT_RANKING: RankingUser[] = [
   { id: "r1", name: "Takashi", score: 2800, avatar: "🧑‍💻" },
@@ -210,8 +213,9 @@ export default function App() {
   }, [ranking]);
 
   useEffect(() => {
-    // カスタムでAI追加した単語のみを抽出して保存
-    const customOnly = vocabulary.filter(w => w.id.startsWith("ai_"));
+    // ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出など、初期収録以外すべて）を保存
+    // ※以前は "ai_" で始まるIDのみ保存していたため、CSV/PDF由来の単語がリロードで消える不具合があった
+    const customOnly = vocabulary.filter(w => !INITIAL_VOCAB_IDS.has(w.id));
     localStorage.setItem("quest_vocab_custom", JSON.stringify(customOnly));
   }, [vocabulary]);
 
@@ -233,6 +237,12 @@ export default function App() {
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
+  // SRS復習セッション用の出題スナップショット。
+  // dueWords（毎レンダーで再計算される配列）を直接 Quiz に渡すと、1問解答するごとに
+  // SRSデータが更新されて配列の中身・参照が変わり、セッション途中で問題が再生成されて
+  // 崩壊する不具合があったため、復習開始時点のリストを固定して渡す。
+  const [srsSessionWords, setSrsSessionWords] = useState<Word[]>([]);
+
   const handleStartQuiz = (level: Level, type: "word" | "sentence", count: number = 10) => {
     setSelectedLevel(level);
     setQuizQuestionCount(count);
@@ -240,6 +250,7 @@ export default function App() {
   };
 
   const handleBackToDashboard = () => {
+    setSrsSessionWords([]);
     setCurrentScreen("dashboard");
   };
 
@@ -374,7 +385,15 @@ export default function App() {
 
             {/* 今日の復習(SRS)ボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "srs_review" ? "dashboard" : "srs_review")}
+              onClick={() => {
+                if (currentScreen === "srs_review") {
+                  handleBackToDashboard();
+                } else {
+                  // 復習セッション開始時点の対象単語を固定する
+                  setSrsSessionWords(dueWords);
+                  setCurrentScreen("srs_review");
+                }
+              }}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
                 currentScreen === "srs_review"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
@@ -550,7 +569,7 @@ export default function App() {
         )}
 
         {currentScreen === "srs_review" && (
-          dueWords.length > 0 ? (
+          srsSessionWords.length > 0 ? (
             <Quiz
               level={selectedLevel}
               vocabulary={vocabulary}
@@ -561,8 +580,8 @@ export default function App() {
               setStats={setStats}
               onBackToDashboard={handleBackToDashboard}
               updateRankingScore={updateRankingScore}
-              questionCount={Math.min(dueWords.length, 30)}
-              customWords={dueWords}
+              questionCount={Math.min(srsSessionWords.length, 30)}
+              customWords={srsSessionWords}
               reviewMode={true}
               recordAnswer={recordAnswer}
             />

@@ -32,6 +32,9 @@ interface DictionaryProps {
 type FilterLevel = "all" | Level | "custom" | "weak";
 type SortOption = "alphabetical-asc" | "alphabetical-desc" | "level-asc" | "level-desc";
 
+// ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出）の判定
+const isCustomWordId = (id: string) => /^(ai_|csv_|pdf_)/.test(id);
+
 export default function Dictionary({
   vocabulary,
   wrongWords,
@@ -150,7 +153,7 @@ export default function Dictionary({
     // レベル・条件フィルター
     if (filterLevel !== "all") {
       if (filterLevel === "custom") {
-        result = result.filter(w => w.id.startsWith("ai_"));
+        result = result.filter(w => isCustomWordId(w.id));
       } else if (filterLevel === "weak") {
         result = result.filter(w => wrongWords.includes(w.id));
       } else {
@@ -217,7 +220,7 @@ export default function Dictionary({
   const getLevelBadgeProps = (level: Level, isCustom: boolean) => {
     if (isCustom) {
       return {
-        text: "AI追加",
+        text: "追加単語",
         className: "bg-pink-100 text-pink-700 border-pink-200"
       };
     }
@@ -352,14 +355,14 @@ export default function Dictionary({
               { value: "senior2", label: "中級2 (高2)" },
               { value: "senior3", label: "中級3 (高3)" },
               { value: "advanced", label: "上級" },
-              { value: "custom", label: "AI追加された単語" },
+              { value: "custom", label: "追加した単語 (AI/CSV/PDF)" },
               { value: "weak", label: "苦手な単語のみ" }
             ] as const
           ).map((tab) => {
             const isActive = filterLevel === tab.value;
             let count = 0;
             if (tab.value === "all") count = vocabulary.length;
-            else if (tab.value === "custom") count = vocabulary.filter(w => w.id.startsWith("ai_")).length;
+            else if (tab.value === "custom") count = vocabulary.filter(w => isCustomWordId(w.id)).length;
             else if (tab.value === "weak") count = vocabulary.filter(w => wrongWords.includes(w.id)).length;
             else count = vocabulary.filter(w => w.level === tab.value).length;
 
@@ -401,7 +404,7 @@ export default function Dictionary({
         {paginatedVocabulary.length > 0 ? (
           paginatedVocabulary.map((word) => {
             const isExpanded = expandedWordId === word.id;
-            const isCustom = word.id.startsWith("ai_");
+            const isCustom = isCustomWordId(word.id);
             const badge = getLevelBadgeProps(word.level, isCustom);
             
             // クイズ習熟度状況判定

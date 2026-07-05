@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2 } from "lucide-react";
+import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Loader2 } from "lucide-react";
 import { Level, Word, UserStats, QuizHistory } from "../types";
 import Phonetic from "./Phonetic";
+import { getAudioContext } from "../sound";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
 const playQuizSound = (isCorrect: boolean) => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = getAudioContext();
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -446,7 +447,7 @@ export default function Quiz({
             <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
               {reviewMode
                 ? "今日の復習・一問一答リザルト"
-                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : "上級 (大・社会人)"}・一問一答リザルト`}
+                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・一問一答リザルト`}
             </p>
           </div>
 
@@ -548,5 +549,3 @@ function LoaderComponent() {
     </div>
   );
 }
-
-import { Loader2 } from "lucide-react";

@@ -17,6 +17,7 @@ import {
   BookOpen
 } from "lucide-react";
 import { UserStats, RankingUser } from "../types";
+import { getAudioContext } from "../sound";
 
 // TTS用の簡易発音ヘルパー
 const speakWord = (text: string) => {
@@ -31,7 +32,7 @@ const speakWord = (text: string) => {
 // シンセサイザー音
 const playSound = (type: "success" | "fail" | "click") => {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = getAudioContext();
     if (!ctx) return;
     if (type === "success") {
       const osc = ctx.createOscillator();
@@ -157,17 +158,21 @@ export default function MapAndPuzzle({
   };
 
   // 選択肢カードの一覧 (答え候補)
-  const getPuzzleChoices = () => {
+  // ※以前は「正解語→ひっかけ語」の順で並んでいたため、先頭から順に選ぶだけで
+  //   正解できてしまっていた。データ取得時に1回だけシャッフルして固定する。
+  const puzzleChoices = React.useMemo(() => {
     if (!data) return [];
-    // マスクされている語
     const maskedWords = data.puzzle
       .filter(item => item.masked)
       .map(item => item.word);
-    
-    // ひっかけ語
     const choices = Array.from(new Set([...maskedWords, ...data.distractors]));
+    // Fisher-Yates シャッフル
+    for (let i = choices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [choices[i], choices[j]] = [choices[j], choices[i]];
+    }
     return choices;
-  };
+  }, [data]);
 
   const handleSelectWordForBlank = (blankIdx: number, word: string) => {
     if (isAnswerChecked) return;
@@ -217,17 +222,22 @@ export default function MapAndPuzzle({
 
     if (totalCorrect) {
       playSound("success");
+      const isFirstClear = !isDoneAlready;
       setIsDoneAlready(true);
-      
-      // 初回正解ボーナス
-      const bonusPoints = 100;
-      setStats(prev => ({
-        ...prev,
-        score: prev.score + bonusPoints
-      }));
-      updateRankingScore(bonusPoints);
-      
-      alert(`素晴らしい！大正解です！ 🎉\n派生語変化の法則を完璧に解き明かしました！\n【+${bonusPoints} P】があなたのスコアに加算されました！`);
+
+      if (isFirstClear) {
+        // 初回正解ボーナス（同じパズルの再回答では加算しない）
+        const bonusPoints = 100;
+        setStats(prev => ({
+          ...prev,
+          score: prev.score + bonusPoints
+        }));
+        updateRankingScore(bonusPoints);
+
+        alert(`素晴らしい！大正解です！ 🎉\n派生語変化の法則を完璧に解き明かしました！\n【+${bonusPoints} P】があなたのスコアに加算されました！`);
+      } else {
+        alert("大正解です！ 🎉（このパズルのボーナスはすでに獲得済みです）");
+      }
     } else {
       playSound("fail");
       alert("残念！いくつか間違っている箇所があります。もう一度選択し直してみてください。");
@@ -583,7 +593,7 @@ export default function MapAndPuzzle({
                     👇 下記の英単語カードをクリックして、上部の 「ここを選択」 のスロットにピッタリはめてください！
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">
-                    {getPuzzleChoices().map((wordOption) => {
+                    {puzzleChoices.map((wordOption) => {
                       // 既に使用されているか？
                       const isUsed = Object.values(userSelections).includes(wordOption);
 
