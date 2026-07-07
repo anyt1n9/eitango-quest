@@ -17,6 +17,56 @@ app.set("trust proxy", 1);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const safeSvgIdSegment = (value: string): string => {
+  const safe = value.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48);
+  return safe || "word";
+};
+
+// フォールバック画像は自前テンプレートから組み立てる。ユーザー入力（単語）は
+// escapeHtml / safeSvgIdSegment を通してからしか埋め込まないため、そのまま返して安全。
+const buildFallbackWordSvg = (queryWord: string): string => {
+  const char = escapeHtml(queryWord.charAt(0).toUpperCase() || "?");
+  const gradientId = `fallbackGrad_${safeSvgIdSegment(queryWord)}`;
+  const colors = [
+    { bg1: "#818cf8", bg2: "#4f46e5", accent: "#fef08a" },
+    { bg1: "#34d399", bg2: "#059669", accent: "#fde047" },
+    { bg1: "#f59e0b", bg2: "#d97706", accent: "#38bdf8" },
+    { bg1: "#fb7185", bg2: "#e11d48", accent: "#a7f3d0" },
+    { bg1: "#a78bfa", bg2: "#7c3aed", accent: "#fbcfe8" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < queryWord.length; i++) {
+    hash = (hash << 5) - hash + queryWord.charCodeAt(i);
+    hash |= 0;
+  }
+  const color = colors[Math.abs(hash) % colors.length];
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${color.bg1}" />
+      <stop offset="100%" stop-color="${color.bg2}" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="32" fill="url(#${gradientId})" />
+  <circle cx="100" cy="100" r="50" fill="#ffffff" opacity="0.1" />
+  <circle cx="100" cy="100" r="72" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.2" />
+  <text x="100" y="118" text-anchor="middle" font-family="Arial, sans-serif" font-size="74" font-weight="800" fill="#ffffff">${char}</text>
+  <circle cx="48" cy="48" r="12" fill="${color.accent}" opacity="0.75" />
+  <circle cx="155" cy="45" r="4" fill="#ffffff" opacity="0.6" />
+  <circle cx="45" cy="155" r="4" fill="#ffffff" opacity="0.6" />
+  <rect x="70" y="142" width="60" height="4" rx="2" fill="#ffffff" opacity="0.4" />
+</svg>`;
+};
+
 // デプロイ環境(Cloud Run など)は PORT 環境変数でリッスンするポートを指定するため、それを優先する
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -968,43 +1018,8 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    // APIキーがない場合の、美しく、それらしいフラット風SVGフォールバック
-    const char = queryWord.charAt(0).toUpperCase();
-    const colors = [
-      { bg1: "#818cf8", bg2: "#4f46e5", accent: "#fef08a" }, // Indigo
-      { bg1: "#34d399", bg2: "#059669", accent: "#fde047" }, // Emerald
-      { bg1: "#f59e0b", bg2: "#d97706", accent: "#38bdf8" }, // Amber
-      { bg1: "#fb7185", bg2: "#e11d48", accent: "#a7f3d0" }, // Rose
-      { bg1: "#a78bfa", bg2: "#7c3aed", accent: "#fbcfe8" }, // Violet
-    ];
-    // 文字列のハッシュ値からカラーパレットを選択
-    let hash = 0;
-    for (let i = 0; i < queryWord.length; i++) {
-      hash = queryWord.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = colors[Math.abs(hash) % colors.length];
-
-    const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
-  <defs>
-    <linearGradient id="fallbackGrad_${queryWord}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="${color.bg1}" />
-      <stop offset="100%" stop-color="${color.bg2}" />
-    </linearGradient>
-  </defs>
-  <rect width="200" height="200" rx="32" fill="url(#fallbackGrad_${queryWord})" />
-  <circle cx="100" cy="100" r="50" fill="#ffffff" opacity="0.1" />
-  <circle cx="100" cy="100" r="35" fill="#ffffff" opacity="0.15" />
-  <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-weight="900" font-size="76" fill="#ffffff">
-    ${char}
-  </text>
-  <circle cx="45" cy="45" r="6" fill="${color.accent}" opacity="0.8" />
-  <circle cx="155" cy="155" r="8" fill="${color.accent}" opacity="0.8" />
-  <circle cx="155" cy="45" r="4" fill="#ffffff" opacity="0.6" />
-  <circle cx="45" cy="155" r="4" fill="#ffffff" opacity="0.6" />
-  <rect x="70" y="142" width="60" height="4" rx="2" fill="#ffffff" opacity="0.4" />
-</svg>`;
-
-    return res.json({ word: queryWord, svg: fallbackSvg, isFallback: true });
+    // APIキーがない場合のフラット風SVGフォールバック（単語はエスケープ済みテンプレートで安全に埋め込み）
+    return res.json({ word: queryWord, svg: buildFallbackWordSvg(queryWord), isFallback: true });
   }
 
   try {
@@ -1060,41 +1075,7 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
   } catch (error: any) {
     console.error("Gemini SVG Generation Error: ", error);
     console.warn("SVGイメージ自動生成に失敗したため、角丸カードSVGをフォールバックとして出力します。");
-    const char = queryWord.charAt(0).toUpperCase();
-    const colors = [
-      { bg1: "#818cf8", bg2: "#4f46e5", accent: "#fef08a" }, // Indigo
-      { bg1: "#34d399", bg2: "#059669", accent: "#fde047" }, // Emerald
-      { bg1: "#f59e0b", bg2: "#d97706", accent: "#38bdf8" }, // Amber
-      { bg1: "#fb7185", bg2: "#e11d48", accent: "#a7f3d0" }, // Rose
-      { bg1: "#a78bfa", bg2: "#7c3aed", accent: "#fbcfe8" }, // Violet
-    ];
-    let hash = 0;
-    for (let i = 0; i < queryWord.length; i++) {
-      hash = queryWord.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = colors[Math.abs(hash) % colors.length];
-
-    const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
-  <defs>
-    <linearGradient id="fallbackGrad_${queryWord}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="${color.bg1}" />
-      <stop offset="100%" stop-color="${color.bg2}" />
-    </linearGradient>
-  </defs>
-  <rect width="200" height="200" rx="32" fill="url(#fallbackGrad_${queryWord})" />
-  <circle cx="100" cy="100" r="50" fill="#ffffff" opacity="0.1" />
-  <circle cx="100" cy="100" r="35" fill="#ffffff" opacity="0.15" />
-  <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-weight="900" font-size="76" fill="#ffffff">
-    ${char}
-  </text>
-  <circle cx="45" cy="45" r="6" fill="${color.accent}" opacity="0.8" />
-  <circle cx="155" cy="155" r="8" fill="${color.accent}" opacity="0.8" />
-  <circle cx="155" cy="45" r="4" fill="#ffffff" opacity="0.6" />
-  <circle cx="45" cy="155" r="4" fill="#ffffff" opacity="0.6" />
-  <rect x="70" y="142" width="60" height="4" rx="2" fill="#ffffff" opacity="0.4" />
-</svg>`;
-
-    return res.json({ word: queryWord, svg: fallbackSvg, isFallback: true });
+    return res.json({ word: queryWord, svg: buildFallbackWordSvg(queryWord), isFallback: true });
   }
 });
 
