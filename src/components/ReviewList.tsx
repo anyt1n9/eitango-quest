@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Brain, Volume2, Trash2, CheckCircle2, ChevronRight, GraduationCap, Trophy, X, Check } from "lucide-react";
 import { Word, Level, UserStats } from "../types";
@@ -78,6 +78,28 @@ export default function ReviewList({
   const [graduatedWordIds, setGraduatedWordIds] = useState<string[]>([]);
   const [isTestFinished, setIsTestFinished] = useState(false);
 
+  // 不正解時のカウントダウン・即スキップ管理用（他の一問一答クイズと同様の挙動）
+  const timerRef = React.useRef<any>(null);
+  const nextCallbackRef = React.useRef<(() => void) | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
   // 復習テストの開始
   const handleStartReviewTest = () => {
     if (wrongWordObjects.length === 0) return;
@@ -118,16 +140,43 @@ export default function ReviewList({
       setGraduatedWordIds(newGraduated);
     }
 
-    setTimeout(() => {
+    // 次へ移る処理（ユーザーによる即時スキップでも共通で呼べるようにクロージャとして定義）
+    const onNext = () => {
       setTestFeedback(null);
       setSelectedOption(null);
+      setCountdown(0);
+      nextCallbackRef.current = null;
       if (testIndex + 1 < testQuestions.length) {
         setTestIndex(prev => prev + 1);
       } else {
         // テスト終了
         handleFinishTest(newGraduated);
       }
-    }, 1200);
+    };
+    nextCallbackRef.current = onNext;
+
+    // 不正解の場合は6秒（6000ms）、正解の場合は1200ms待つ（「すぐに次に進む」で即スキップ可）
+    const delay = isCorrect ? 1200 : 6000;
+    if (!isCorrect) {
+      setCountdown(6);
+    }
+
+    const timerId = setTimeout(() => {
+      if (nextCallbackRef.current === onNext) {
+        onNext();
+      }
+    }, delay);
+    timerRef.current = timerId;
+  };
+
+  const handleForceNext = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (nextCallbackRef.current) {
+      nextCallbackRef.current();
+    }
   };
 
   // 復習テストの終了処理
@@ -208,14 +257,46 @@ export default function ReviewList({
                 <span className="text-emerald-500 font-extrabold text-9xl">〇</span>
               </motion.div>
             ) : (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1.2 }}
-                exit={{ scale: 0 }}
-                className="w-48 h-48 rounded-full border-16 border-rose-500 flex items-center justify-center bg-white shadow-2xl"
-              >
-                <span className="text-rose-500 font-extrabold text-9xl">×</span>
-              </motion.div>
+              <div className="flex flex-col items-center gap-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1.2 }}
+                  exit={{ scale: 0 }}
+                  className="w-48 h-48 rounded-full border-16 border-rose-500 flex items-center justify-center bg-white shadow-2xl"
+                >
+                  <span className="text-rose-500 font-extrabold text-9xl">×</span>
+                </motion.div>
+
+                {/* 不正解の場合に正解を表示する */}
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="bg-slate-900/95 text-white px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5"
+                >
+                  <span className="text-[10px] text-rose-400 font-black tracking-wider uppercase">
+                    正解の単語 ＆ 日本語訳
+                  </span>
+                  <p className="text-base font-black text-white font-mono">
+                    {testQuestions[testIndex].word}
+                  </p>
+                  <p className="text-sm text-emerald-400 font-bold border-t border-slate-800 w-full pt-1.5 mt-1">
+                    {testQuestions[testIndex].translation}
+                  </p>
+
+                  <div className="border-t border-slate-800 w-full pt-2.5 mt-1 flex flex-col items-center gap-2">
+                    <span className="text-xs text-slate-300 font-semibold">
+                      次の問題まで あと <span className="text-yellow-400 font-black font-mono text-sm">{countdown}</span> 秒...
+                    </span>
+                    <button
+                      onClick={handleForceNext}
+                      className="text-xs bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black px-4.5 py-1.5 rounded-xl transition shadow-md border border-indigo-500/40 cursor-pointer"
+                    >
+                      すぐに次に進む
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </motion.div>
         )}
