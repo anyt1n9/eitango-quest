@@ -853,6 +853,37 @@ app.post("/api/gemini/generate-passage", async (req, res) => {
 const wordImageCache = new Map<string, string>();
 const WORD_IMAGE_CACHE_MAX = 5000;
 
+/**
+ * Geminiが生成したSVG文字列から、フロントエンドで dangerouslySetInnerHTML により
+ * そのまま描画しても安全なように危険な要素・属性を除去する。
+ * LLM出力は外部入力とみなし、<script>やイベントハンドラ属性によるXSSを防ぐ。
+ */
+function sanitizeInlineSvg(rawSvg: string): string | null {
+  if (typeof rawSvg !== "string" || rawSvg.trim() === "") return null;
+  let svg = rawSvg;
+
+  // <script>...</script> を完全に除去
+  svg = svg.replace(/<script[\s\S]*?<\/script\s*>/gi, "");
+  // 実行可能な埋め込みを許すタグを丸ごと除去
+  svg = svg.replace(/<(foreignObject|iframe|object|embed|link|meta)[\s\S]*?<\/\1\s*>/gi, "");
+  svg = svg.replace(/<(foreignObject|iframe|object|embed|link|meta)[^>]*\/?>/gi, "");
+  // onXxx="..." / onXxx='...' のイベントハンドラ属性を除去
+  svg = svg.replace(/\son\w+\s*=\s*"(?:[^"]*)"/gi, "");
+  svg = svg.replace(/\son\w+\s*=\s*'(?:[^']*)'/gi, "");
+  // href/xlink:href/src が javascript: や data:text/html を指すものを除去
+  svg = svg.replace(/\s(?:xlink:href|href|src)\s*=\s*"(?:\s*javascript:|\s*data:text\/html)[^"]*"/gi, "");
+  svg = svg.replace(/\s(?:xlink:href|href|src)\s*=\s*'(?:\s*javascript:|\s*data:text\/html)[^']*'/gi, "");
+  // <style> 内の expression()/javascript: を含むブロックごと除去（安全性を優先しCSSは失われてもよい）
+  svg = svg.replace(/<style[\s\S]*?<\/style\s*>/gi, (block) =>
+    /expression\s*\(|javascript:/i.test(block) ? "" : block
+  );
+
+  // ルートに <svg ...> タグが存在しない場合は信頼できないため破棄する
+  if (!/<svg[\s>]/i.test(svg)) return null;
+
+  return svg;
+}
+
 app.post("/api/gemini/word-image-svg", async (req, res) => {
   const { word, meaning } = req.body;
   if (!word || typeof word !== "string" || word.trim() === "") {
@@ -947,17 +978,19 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
     }
 
     const data = JSON.parse(text.trim());
-
-    // 成功した生成結果のみキャッシュ（フォールバック画像はキャッシュしない）
-    if (data.svg) {
-      if (wordImageCache.size >= WORD_IMAGE_CACHE_MAX) {
-        const oldestKey = wordImageCache.keys().next().value;
-        if (oldestKey !== undefined) wordImageCache.delete(oldestKey);
-      }
-      wordImageCache.set(cacheKey, data.svg);
+    const safeSvg = sanitizeInlineSvg(data.svg);
+    if (!safeSvg) {
+      throw new Error("Gemini returned an SVG that failed safety sanitization");
     }
 
-    res.json({ word: queryWord, svg: data.svg });
+    // 無害化済みの生成結果のみキャッシュ（フォールバック画像はキャッシュしない）
+    if (wordImageCache.size >= WORD_IMAGE_CACHE_MAX) {
+      const oldestKey = wordImageCache.keys().next().value;
+      if (oldestKey !== undefined) wordImageCache.delete(oldestKey);
+    }
+    wordImageCache.set(cacheKey, safeSvg);
+
+    res.json({ word: queryWord, svg: safeSvg });
   } catch (error: any) {
     console.error("Gemini SVG Generation Error: ", error);
     console.warn("SVGイメージ自動生成に失敗したため、角丸カードSVGをフォールバックとして出力します。");

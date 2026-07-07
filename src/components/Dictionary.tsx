@@ -36,6 +36,48 @@ type SortOption = "alphabetical-asc" | "alphabetical-desc" | "level-asc" | "leve
 // ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出）の判定
 const isCustomWordId = (id: string) => /^(ai_|csv_|pdf_)/.test(id);
 
+// AIが生成したSVGを dangerouslySetInnerHTML で描画する前に必ず通す安全化フィルタ。
+// サーバー側でも無害化済みだが、フィックス以前に localStorage へ保存された古いデータや
+// キャッシュ改ざんに備えて、描画直前にもDOMベースで再度除去する（多層防御）。
+const ALLOWED_SVG_TAGS = new Set([
+  "svg", "g", "defs", "title", "desc",
+  "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
+  "linearGradient", "radialGradient", "stop", "clipPath", "mask", "text", "tspan", "symbol", "use"
+]);
+
+function sanitizeSvgForRender(rawSvg: string): string {
+  try {
+    const doc = new DOMParser().parseFromString(rawSvg, "image/svg+xml");
+    const svgEl = doc.querySelector("svg");
+    if (!svgEl || doc.querySelector("parsererror")) return "";
+
+    const walk = (node: Element) => {
+      // 許可されていないタグは丸ごと削除（script, foreignObject, iframe など）
+      if (!ALLOWED_SVG_TAGS.has(node.tagName)) {
+        node.remove();
+        return;
+      }
+      // イベントハンドラ属性・javascript: スキームの参照属性を除去
+      Array.from(node.attributes).forEach((attr) => {
+        const name = attr.name.toLowerCase();
+        const value = attr.value.trim().toLowerCase();
+        if (name.startsWith("on")) {
+          node.removeAttribute(attr.name);
+        } else if ((name === "href" || name === "xlink:href" || name === "src") && /^\s*(javascript:|data:text\/html)/i.test(value)) {
+          node.removeAttribute(attr.name);
+        }
+      });
+      // 子要素は配列にコピーしてから走査（remove()中の生きたコレクション変化を避ける）
+      Array.from(node.children).forEach((child) => walk(child as Element));
+    };
+    walk(svgEl);
+
+    return new XMLSerializer().serializeToString(svgEl);
+  } catch (e) {
+    return "";
+  }
+}
+
 // —— AI生成SVG画像の端末内永続キャッシュ ——
 // [単語キー, SVG文字列] のペア配列として保存する（挿入順を保持し、古いものから削除）
 const WORD_IMAGES_STORAGE_KEY = "quest_word_images";
@@ -665,9 +707,9 @@ export default function Dictionary({
                               ) : wordImages[word.word.trim().toLowerCase()] ? (
                                 <div className="w-full flex flex-col items-center justify-center">
                                   {/* インラインHTMLとしてSVGを埋め込む */}
-                                  <div 
+                                  <div
                                     className="w-full max-w-[120px] aspect-square shadow-xs rounded-xl overflow-hidden border border-indigo-50 flex items-center justify-center bg-gray-50 hover:scale-105 transition duration-300 select-none cursor-pointer"
-                                    dangerouslySetInnerHTML={{ __html: wordImages[word.word.trim().toLowerCase()] }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeSvgForRender(wordImages[word.word.trim().toLowerCase()]) }}
                                     title="クリックして画像を再生成"
                                     onClick={() => {
                                       const key = word.word.trim().toLowerCase();
