@@ -23,11 +23,11 @@ export const passages: Passage[] = [
     title: "The Beautiful Secret of the Old Library",
     englishParagraphs: [
       "There is a beautiful and quiet library in my town. Many children like to study there after school. Yesterday, I went to the library to read important books about flowers and water.",
-      "I found an important book. The book was very old, but beautiful. It said, 'Reading is important for your dreams and future. Water is important for flowers, and books are important for the mind.' That was a simple other secret."
+      "I found an important book. The book was very old, but beautiful. It said, 'Reading is important for your dreams and future. Water is important for flowers, and books are important for the mind.' That was a simple and important secret."
     ],
     japaneseParagraphs: [
       "私の町には、美しく静かな図書館があります。多くの子供たちが放課後、そこで勉強するのが好きです。昨日、私は花と水に関する大切な本を読むために図書館へ行きました。",
-      "私は一冊の重要な本を見つけました。その本はとても古かったのですが、美しかったです。そこにはこう書かれていました。『読書はあなたの夢と将来にとって重要です。水が花にとって重要であるように、本は心にとって重要なのです。』それはシンプルで、もう一つの秘密でした。"
+      "私は一冊の重要な本を見つけました。その本はとても古かったのですが、美しかったです。そこにはこう書かれていました。『読書はあなたの夢と将来にとって重要です。水が花にとって重要であるように、本は心にとって重要なのです。』それはシンプルで、大切な秘密でした。"
     ],
     vocabularyHighlight: [
       { word: "beautiful", translation: "美しい、きれいな" },
@@ -68,7 +68,7 @@ export const passages: Passage[] = [
       "The local leaders want to preserve the beautiful nature. Exploring the forest guides us to understand our environment deeply. Since human lives depend on nature, caring for it is our top duty."
     ],
     japaneseParagraphs: [
-      "夏期の期間中、高い山々を探索することを好む人々がいます。そこには多くの興味深くユニークな野生動物が存在していることを私たちは知っています。彼らは活動的で、きれいた川の近くに住んでいます。",
+      "夏期の期間中、高い山々を探索することを好む人々がいます。そこには多くの興味深くユニークな野生動物が存在していることを私たちは知っています。彼らは活動的で、きれいな川の近くに住んでいます。",
       "地域のリーダーたちは美しい自然を保護したいと考えています。森を探索することは、私たちの環境を深く理解するための手引きとなります。人間の生活は自然に依存しているため、自然を思いやることは私たちの最優先の義務です。"
     ],
     vocabularyHighlight: [
@@ -156,7 +156,7 @@ export const passages: Passage[] = [
     englishParagraphs: [
       "The violent storm was a sudden disaster that became a trigger for a significant transition in our neighborhood. The regional airline and several shipping organizations stopped overnight operations due to severe damage. There was great fear, but the prompt provision of clean water and warm food brought comfort to the suffering families.",
       "The brave founder of the local estate decided to make a massive sacrifice of his personal assets to support the radical rebuild attempt. People showed great courage to clear blockages and restore electrical systems.",
-      "Today, the community is highly resilient and united. It is a absolute delight to see how they overcame a temporary failure and created a sustainable partnership."
+      "Today, the community is highly resilient and united. It is an absolute delight to see how they overcame a temporary failure and created a sustainable partnership."
     ],
     japaneseParagraphs: [
       "激しい嵐は、私たちの地域に重大な遷移（変革）をもたらす引き金（きっかけ）となった、突然の災害でした。地域の航空会社やいくつかの海運機関は、深刻な被害のために一晩中かかる運行業務を停止しました。大きな恐怖がありましたが、きれいな水と温かい食事の素早い供給は、苦しんでいる家族に快適さ（慰め）をもたらしました。",
