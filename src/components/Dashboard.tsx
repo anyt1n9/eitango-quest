@@ -984,7 +984,7 @@ export default function Dashboard({
                   navBtn.click();
                 }
               }}
-              className="bg-white text-slate-900 hover:bg-gray-100 text-xs font-black px-4.5 py-2.5 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+              className="bg-[#ffffff] hover:bg-[#f3f4f6] text-[#0f172a] text-xs font-black px-4.5 py-2.5 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
               id="dashboard_open_diary_btn"
             >
               <span>{Object.values(solvedHistory).filter(h => h.correctCount > 0).length >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}</span>
