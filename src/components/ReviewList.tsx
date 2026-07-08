@@ -78,6 +78,22 @@ export default function ReviewList({
   const [graduatedWordIds, setGraduatedWordIds] = useState<string[]>([]);
   const [isTestFinished, setIsTestFinished] = useState(false);
 
+  // テスト終了後、苦手単語が0になった場合に自動でダッシュボードへ戻るためのカウントダウン
+  const [allCleared, setAllCleared] = useState(false);
+  const [autoReturnCountdown, setAutoReturnCountdown] = useState(3);
+
+  useEffect(() => {
+    if (!(isTestFinished && allCleared)) return;
+    if (autoReturnCountdown <= 0) {
+      onBackToDashboard();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAutoReturnCountdown(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [isTestFinished, allCleared, autoReturnCountdown, onBackToDashboard]);
+
   // 不正解時のカウントダウン・即スキップ管理用（他の一問一答クイズと同様の挙動）
   const timerRef = React.useRef<any>(null);
   const nextCallbackRef = React.useRef<(() => void) | null>(null);
@@ -115,6 +131,7 @@ export default function ReviewList({
     setTestFeedback(null);
     setGraduatedWordIds([]);
     setIsTestFinished(false);
+    setAllCleared(false);
     setMode("test");
   };
 
@@ -182,6 +199,10 @@ export default function ReviewList({
   // 復習テストの終了処理
   const handleFinishTest = (finalGraduated: string[] = graduatedWordIds) => {
     setIsTestFinished(true);
+
+    // このテストで出題した単語が全て卒業＝苦手単語が0になる場合、自動でダッシュボードへ戻す
+    setAllCleared(finalGraduated.length === testQuestions.length);
+    setAutoReturnCountdown(3);
 
     // 卒業した単語を「苦手リスト」から永久削除
     setWrongWords(prev => prev.filter(id => !finalGraduated.includes(id)));
@@ -570,15 +591,27 @@ export default function ReviewList({
                 </div>
               )}
 
+              {/* 苦手単語が全て卒業した場合は自動でダッシュボードへ戻る */}
+              {allCleared && (
+                <div className="bg-indigo-50 border border-indigo-150 rounded-2xl p-4 text-center text-indigo-900 font-bold text-xs leading-relaxed">
+                  🎉 苦手単語をすべて克服しました！<br />
+                  あと <span className="font-mono text-sm text-indigo-700">{autoReturnCountdown}</span> 秒でダッシュボードに自動で戻ります...
+                </div>
+              )}
+
               <div className="pt-4 flex justify-center">
                 <button
                   onClick={() => {
-                    setMode("list");
-                    setIsTestFinished(false);
+                    if (allCleared) {
+                      onBackToDashboard();
+                    } else {
+                      setMode("list");
+                      setIsTestFinished(false);
+                    }
                   }}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-10 py-3.5 rounded-2xl shadow hover:shadow-md cursor-pointer transition text-sm text-center"
                 >
-                  カード一覧に戻る
+                  {allCleared ? "今すぐダッシュボードに戻る" : "カード一覧に戻る"}
                 </button>
               </div>
 
