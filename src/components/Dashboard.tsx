@@ -135,6 +135,8 @@ interface DashboardProps {
   setRanking: React.Dispatch<React.SetStateAction<RankingUser[]>>;
   dailyLog: Record<string, { count: number; correct: number }>;
   dailyGoal: number;
+  equipped: { avatar?: string; title?: string };
+  onOpenGachaShop: () => void;
 }
 
 export default function Dashboard({
@@ -151,7 +153,9 @@ export default function Dashboard({
   ranking,
   setRanking,
   dailyLog,
-  dailyGoal
+  dailyGoal,
+  equipped,
+  onOpenGachaShop
 }: DashboardProps) {
   const [newWord, setNewWord] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -1808,16 +1812,28 @@ export default function Dashboard({
 
       {activeTab === "ranking" && (
         <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6" id="ranking_section">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 bg-amber-100 rounded-xl text-amber-700">
-              <Trophy className="w-4 h-4 fill-amber-200" />
-            </span>
-            <span className="text-xs font-black tracking-wider uppercase font-mono text-amber-700">My Records</span>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="p-1.5 bg-amber-100 rounded-xl text-amber-700">
+                  <Trophy className="w-4 h-4 fill-amber-200" />
+                </span>
+                <span className="text-xs font-black tracking-wider uppercase font-mono text-amber-700">My Records</span>
+              </div>
+              <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">自己ベスト記録</h2>
+              <p className="text-sm text-gray-500 mt-1 max-w-md">
+                クイズの回答やAI単語の追加でスコアが増えます。過去の自分を超え続けることが一番の上達への近道です。
+              </p>
+            </div>
+            <button
+              onClick={onOpenGachaShop}
+              className="bg-gradient-to-r from-violet-600 to-indigo-700 hover:opacity-90 text-white font-bold text-xs px-4 py-3 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+              id="btn_open_gacha_from_ranking"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>貯めたポイントでガチャを引く</span>
+            </button>
           </div>
-          <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">自己ベスト記録</h2>
-          <p className="text-sm text-gray-500 mt-1 max-w-md">
-            クイズの回答やAI単語の追加でスコアが増えます。過去の自分を超え続けることが一番の上達への近道です。
-          </p>
 
           {/* 自己ベスト・累計スタッツパネル */}
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3" id="self_records_panel">
@@ -1873,13 +1889,17 @@ export default function Dashboard({
                       {badge}
                     </div>
                     <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 bg-white flex items-center justify-center text-xl shadow-sm">
-                      {user.avatar}
+                      {isMe && equipped.avatar ? equipped.avatar : user.avatar}
                     </div>
                     <div>
                       <h4 className={`text-sm tracking-tight ${isMe ? "font-black text-amber-900" : "font-bold text-gray-800"}`}>
                         {user.name} {isMe ? <span className="bg-amber-100 text-amber-700 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">YOU</span> : <span className="bg-gray-100 text-gray-500 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">CPU</span>}
                       </h4>
-                      <p className="text-xs text-gray-400 font-medium">{isMe ? "あなたの現在位置" : "仮想ライバル"}</p>
+                      <p className="text-xs text-gray-400 font-medium">
+                        {isMe && equipped.title ? (
+                          <span className="text-indigo-600 font-bold">🏷️ {equipped.title}</span>
+                        ) : isMe ? "あなたの現在位置" : "仮想ライバル"}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">

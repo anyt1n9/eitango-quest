@@ -15,8 +15,9 @@ import Reading from "./components/Reading";
 import MapAndPuzzle from "./components/MapAndPuzzle";
 import AIDiary from "./components/AIDiary";
 import DataBackup from "./components/DataBackup";
+import GachaShop from "./components/GachaShop";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
-import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2 } from "lucide-react";
+import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift } from "lucide-react";
 
 // 初期収録単語のIDセット（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使用）
 const INITIAL_VOCAB_IDS = new Set(initialVocabulary.map(w => w.id));
@@ -248,9 +249,52 @@ export default function App() {
     localStorage.setItem("quest_daily_log", JSON.stringify(dailyLog));
   }, [dailyLog]);
 
+  // ごほうびガチャ関連の永続化ステート
+  const [ownedRewardIds, setOwnedRewardIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem("quest_owned_rewards");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return [];
+  });
+
+  // これまでにガチャで消費したポイントの累計（stats.score自体は減算しない）
+  const [gachaSpent, setGachaSpent] = useState<number>(() => {
+    const v = Number(localStorage.getItem("quest_gacha_spent"));
+    return v > 0 ? v : 0;
+  });
+
+  const [equipped, setEquipped] = useState<{ avatar?: string; title?: string }>(() => {
+    const saved = localStorage.getItem("quest_equipped");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
+    return {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem("quest_owned_rewards", JSON.stringify(ownedRewardIds));
+  }, [ownedRewardIds]);
+
+  useEffect(() => {
+    localStorage.setItem("quest_gacha_spent", String(gachaSpent));
+  }, [gachaSpent]);
+
+  useEffect(() => {
+    localStorage.setItem("quest_equipped", JSON.stringify(equipped));
+  }, [equipped]);
+
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings" | "gacha">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -436,6 +480,21 @@ export default function App() {
               )}
             </button>
 
+            {/* ごほうびガチャボタン */}
+            <button
+              onClick={() => setCurrentScreen(currentScreen === "gacha" ? "dashboard" : "gacha")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+                currentScreen === "gacha"
+                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
+                  : "bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-slate-800 dark:to-slate-850 text-violet-800 dark:text-violet-300 hover:opacity-90 border-violet-200/55 dark:border-slate-700"
+              }`}
+              id="nav_gacha_btn"
+              title="貯めたポイントでアバターや称号を手に入れよう"
+            >
+              <Gift className="w-3.5 h-3.5" />
+              <span>ごほうびガチャ</span>
+            </button>
+
             {/* データ設定・バックアップボタン */}
             <button
               onClick={() => setCurrentScreen(currentScreen === "settings" ? "dashboard" : "settings")}
@@ -511,6 +570,8 @@ export default function App() {
             setRanking={setRanking}
             dailyLog={dailyLog}
             dailyGoal={dailyGoal}
+            equipped={equipped}
+            onOpenGachaShop={() => setCurrentScreen("gacha")}
           />
         )}
 
@@ -654,6 +715,20 @@ export default function App() {
           <DataBackup
             dailyGoal={dailyGoal}
             setDailyGoal={setDailyGoal}
+            onBackToDashboard={handleBackToDashboard}
+          />
+        )}
+
+        {currentScreen === "gacha" && (
+          <GachaShop
+            availablePoints={Math.max(0, stats.score - gachaSpent)}
+            totalScore={stats.score}
+            ownedRewardIds={ownedRewardIds}
+            setOwnedRewardIds={setOwnedRewardIds}
+            gachaSpent={gachaSpent}
+            setGachaSpent={setGachaSpent}
+            equipped={equipped}
+            setEquipped={setEquipped}
             onBackToDashboard={handleBackToDashboard}
           />
         )}

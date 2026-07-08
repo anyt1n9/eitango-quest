@@ -18,6 +18,9 @@ const BACKUP_KEYS = [
   "quest_theme",
   "quest_diary_history",
   "quest_current_diary_cache",
+  "quest_owned_rewards",
+  "quest_gacha_spent",
+  "quest_equipped",
 ];
 
 interface DataBackupProps {
