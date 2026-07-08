@@ -7,11 +7,68 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
+
+// Render/Cloud Run などのリバースプロキシ配下では、実クライアントのIPは
+// X-Forwarded-For ヘッダに入る。これを信頼して req.ip を正しく解決する
+// （レート制限をIP単位で機能させるために必須。信頼しないと全員が同一IP扱いになる）
+app.set("trust proxy", 1);
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // デプロイ環境(Cloud Run など)は PORT 環境変数でリッスンするポートを指定するため、それを優先する
 const PORT = Number(process.env.PORT) || 3000;
+
+// ───────────────────────────────────────────────────────────
+// AIエンドポイントのレート制限（IP単位・スライディングウィンドウ）
+// 公開エンドポイントの「ただ乗り」による Gemini 利用枠の浪費を防ぐ。
+// 依存追加なしのメモリ内実装。プロセス再起動でリセットされるが、
+// 悪用の連続大量アクセスを弾く目的には十分。
+// ───────────────────────────────────────────────────────────
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1分
+const RATE_LIMIT_MAX = 15;              // 1分あたり最大15リクエスト/IP
+const rateLimitBuckets = new Map<string, number[]>();
+
+// メモリ肥大を防ぐため、古いバケットを定期的に掃除する
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, timestamps] of rateLimitBuckets) {
+    const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (recent.length === 0) {
+      rateLimitBuckets.delete(ip);
+    } else {
+      rateLimitBuckets.set(ip, recent);
+    }
+  }
+}, RATE_LIMIT_WINDOW_MS).unref();
+
+function aiRateLimiter(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  const now = Date.now();
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const timestamps = (rateLimitBuckets.get(ip) || []).filter(
+    (t) => now - t < RATE_LIMIT_WINDOW_MS
+  );
+
+  if (timestamps.length >= RATE_LIMIT_MAX) {
+    const oldest = timestamps[0];
+    const retryAfterSec = Math.max(1, Math.ceil((RATE_LIMIT_WINDOW_MS - (now - oldest)) / 1000));
+    res.setHeader("Retry-After", String(retryAfterSec));
+    return res.status(429).json({
+      error: `リクエストが多すぎます。${retryAfterSec}秒ほど待ってから再度お試しください。`
+    });
+  }
+
+  timestamps.push(now);
+  rateLimitBuckets.set(ip, timestamps);
+  next();
+}
+
+// すべての /api/gemini/* エンドポイントにレート制限を適用（ルート定義より前に置く）
+app.use("/api/gemini", aiRateLimiter);
 
 // Gemini API の安全な初期化
 let ai: GoogleGenAI | null = null;
