@@ -26,7 +26,9 @@ const PORT = Number(process.env.PORT) || 3000;
 // 悪用の連続大量アクセスを弾く目的には十分。
 // ───────────────────────────────────────────────────────────
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1分
-const RATE_LIMIT_MAX = 15;              // 1分あたり最大15リクエスト/IP
+// 1分あたり最大40リクエスト/IP。辞書で単語を開くと画像・頻度分析で2回発火するため、
+// 通常の辞書学習(1語ごとに2回×十数語)を妨げない一方、悪用(毎分数百回)は確実に弾く水準。
+const RATE_LIMIT_MAX = 40;
 const rateLimitBuckets = new Map<string, number[]>();
 
 // メモリ肥大を防ぐため、古いバケットを定期的に掃除する
