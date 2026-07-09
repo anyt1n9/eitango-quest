@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { PREBAKED_WORD_IMAGES } from "./src/data/wordImages";
 
 dotenv.config();
 
@@ -951,6 +952,12 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
 
   const queryWord = word.trim();
   const cacheKey = queryWord.toLowerCase();
+
+  // 事前生成(手作り)イメージがあれば最優先で即返却（生成待ち・API消費なし）
+  const prebaked = PREBAKED_WORD_IMAGES[cacheKey];
+  if (prebaked) {
+    return res.json({ word: queryWord, svg: prebaked, prebaked: true });
+  }
 
   // キャッシュ命中時は生成せず即返却
   const cachedSvg = wordImageCache.get(cacheKey);
