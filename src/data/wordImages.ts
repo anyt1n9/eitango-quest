@@ -2133,5 +2133,65 @@ export const PREBAKED_WORD_IMAGES: Record<string, string> = {
   speaker: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_speaker" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#0f172a"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_speaker)"/><rect x="60" y="46" width="80" height="108" rx="8" fill="#78350f"/><circle cx="100" cy="72" r="12" fill="#1e293b"/><circle cx="100" cy="72" r="5" fill="#475569"/><circle cx="100" cy="118" r="24" fill="#1e293b"/><circle cx="100" cy="118" r="10" fill="#475569"/></svg>`,
 
   // accordion（アコーディオン）— アコーディオン
-  accordion: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_accordion" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_accordion)"/><rect x="44" y="72" width="24" height="60" rx="6" fill="#7f1d1d"/><rect x="132" y="72" width="24" height="60" rx="6" fill="#7f1d1d"/><rect x="68" y="72" width="64" height="60" fill="#fecaca"/><g stroke="#dc2626" stroke-width="3"><path d="M80 72 v60"/><path d="M92 72 v60"/><path d="M104 72 v60"/><path d="M116 72 v60"/></g><g fill="#fde047"><circle cx="56" cy="86" r="3"/><circle cx="56" cy="98" r="3"/><circle cx="56" cy="110" r="3"/></g><g fill="#f8fafc"><rect x="138" y="80" width="12" height="6"/><rect x="138" y="90" width="12" height="6"/><rect x="138" y="100" width="12" height="6"/><rect x="138" y="110" width="12" height="6"/></g></svg>`
+  accordion: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_accordion" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_accordion)"/><rect x="44" y="72" width="24" height="60" rx="6" fill="#7f1d1d"/><rect x="132" y="72" width="24" height="60" rx="6" fill="#7f1d1d"/><rect x="68" y="72" width="64" height="60" fill="#fecaca"/><g stroke="#dc2626" stroke-width="3"><path d="M80 72 v60"/><path d="M92 72 v60"/><path d="M104 72 v60"/><path d="M116 72 v60"/></g><g fill="#fde047"><circle cx="56" cy="86" r="3"/><circle cx="56" cy="98" r="3"/><circle cx="56" cy="110" r="3"/></g><g fill="#f8fafc"><rect x="138" y="80" width="12" height="6"/><rect x="138" y="90" width="12" height="6"/><rect x="138" y="100" width="12" height="6"/><rect x="138" y="110" width="12" height="6"/></g></svg>`,
+
+  // circle（円）— 円
+  circle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_circle" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#2563eb"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_circle)"/><circle cx="100" cy="100" r="52" fill="#dbeafe"/></svg>`,
+
+  // square（四角形）— 正方形
+  square: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_square" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#db2777"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_square)"/><rect x="52" y="52" width="96" height="96" rx="6" fill="#fce7f3"/></svg>`,
+
+  // rectangle（長方形）— 長方形
+  rectangle: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_rectangle" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_rectangle)"/><rect x="40" y="72" width="120" height="56" rx="6" fill="#d1fae5"/></svg>`,
+
+  // heart（心臓・ハート）— ハート
+  heart: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_heart" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fb7185"/><stop offset="100%" stop-color="#e11d48"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_heart)"/><path d="M100 156 C40 114 44 64 78 58 C92 55 100 66 100 76 C100 66 108 55 122 58 C156 64 160 114 100 156 Z" fill="#fee2e2"/></svg>`,
+
+  // oval（楕円）— 楕円
+  oval: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_oval" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_oval)"/><ellipse cx="100" cy="100" rx="58" ry="38" fill="#ede9fe"/></svg>`,
+
+  // pentagon（五角形）— 五角形
+  pentagon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_pentagon" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_pentagon)"/><path d="M100 46 L152 84 L132 146 L68 146 L48 84 Z" fill="#fef3c7"/></svg>`,
+
+  // hexagon（六角形）— 六角形
+  hexagon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_hexagon" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#0891b2"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_hexagon)"/><path d="M100 44 L148 72 L148 128 L100 156 L52 128 L52 72 Z" fill="#cffafe"/></svg>`,
+
+  // arrow（矢印）— 矢印
+  arrow: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_arrow" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#2563eb"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_arrow)"/><path d="M48 100 h74 M100 66 l40 34 l-40 34" fill="none" stroke="#dbeafe" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+
+  // cross（十字）— 十字
+  cross: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_cross" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_cross)"/><rect x="88" y="48" width="24" height="104" rx="4" fill="#ede9fe"/><rect x="60" y="80" width="80" height="24" rx="4" fill="#ede9fe"/></svg>`,
+
+  // plus（プラス）— プラス記号
+  plus: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_plus" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_plus)"/><rect x="88" y="52" width="24" height="96" rx="6" fill="#d1fae5"/><rect x="52" y="88" width="96" height="24" rx="6" fill="#d1fae5"/></svg>`,
+
+  // minus（マイナス）— マイナス記号
+  minus: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_minus" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_minus)"/><rect x="52" y="88" width="96" height="24" rx="12" fill="#fee2e2"/></svg>`,
+
+  // equal（イコール）— 等号
+  equal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_equal" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#2563eb"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_equal)"/><rect x="52" y="76" width="96" height="20" rx="10" fill="#dbeafe"/><rect x="52" y="104" width="96" height="20" rx="10" fill="#dbeafe"/></svg>`,
+
+  // percent（パーセント）— パーセント記号
+  percent: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_percent" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_percent)"/><path d="M132 56 L68 144" stroke="#fef3c7" stroke-width="12" stroke-linecap="round"/><circle cx="72" cy="72" r="16" fill="none" stroke="#fef3c7" stroke-width="10"/><circle cx="128" cy="128" r="16" fill="none" stroke="#fef3c7" stroke-width="10"/></svg>`,
+
+  // dollar（ドル）— ドル記号
+  dollar: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_dollar" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#15803d"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_dollar)"/><path d="M100 44 v112" stroke="#dcfce7" stroke-width="8" stroke-linecap="round"/><path d="M126 66 a26 20 0 0 0 -26 -14 a22 18 0 0 0 0 36 a22 18 0 0 1 0 36 a26 20 0 0 1 -26 -14" fill="none" stroke="#dcfce7" stroke-width="12" stroke-linecap="round"/></svg>`,
+
+  // euro（ユーロ）— ユーロ記号
+  euro: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_euro" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#4338ca"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_euro)"/><path d="M132 66 a34 34 0 1 0 0 68" fill="none" stroke="#e0e7ff" stroke-width="12" stroke-linecap="round"/><path d="M56 88 h50 M52 108 h50" stroke="#e0e7ff" stroke-width="10" stroke-linecap="round"/></svg>`,
+
+  // yen（円・元）— 円記号
+  yen: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_yen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_yen)"/><path d="M100 120 v36 M74 56 l26 40 l26 -40" fill="none" stroke="#fee2e2" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 104 h60 M70 122 h60" stroke="#fee2e2" stroke-width="9" stroke-linecap="round"/></svg>`,
+
+  // check（チェック）— チェックマーク
+  check: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_check" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#15803d"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_check)"/><path d="M56 104 l28 32 l60 -72" fill="none" stroke="#dcfce7" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+
+  // target（的）— 的
+  target: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_target" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#0f172a"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_target)"/><circle cx="100" cy="100" r="52" fill="#ef4444"/><circle cx="100" cy="100" r="38" fill="#f8fafc"/><circle cx="100" cy="100" r="24" fill="#ef4444"/><circle cx="100" cy="100" r="10" fill="#f8fafc"/></svg>`,
+
+  // gear（歯車）— 歯車
+  gear: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_gear" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#64748b"/><stop offset="100%" stop-color="#334155"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_gear)"/><g fill="#cbd5e1"><rect x="92" y="46" width="16" height="16"/><rect x="92" y="138" width="16" height="16"/><rect x="46" y="92" width="16" height="16"/><rect x="138" y="92" width="16" height="16"/><rect x="62" y="62" width="14" height="14" transform="rotate(45 69 69)"/><rect x="124" y="62" width="14" height="14" transform="rotate(45 131 69)"/><rect x="62" y="124" width="14" height="14" transform="rotate(45 69 131)"/><rect x="124" y="124" width="14" height="14" transform="rotate(45 131 131)"/></g><circle cx="100" cy="100" r="34" fill="#cbd5e1"/><circle cx="100" cy="100" r="12" fill="#64748b"/></svg>`,
+
+  // clover（クローバー）— 四つ葉のクローバー
+  clover: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%"><defs><linearGradient id="pb_clover" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#86efac"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><rect width="200" height="200" rx="32" fill="url(#pb_clover)"/><circle cx="86" cy="84" r="19" fill="#22c55e"/><circle cx="114" cy="84" r="19" fill="#22c55e"/><circle cx="86" cy="112" r="19" fill="#22c55e"/><circle cx="114" cy="112" r="19" fill="#22c55e"/><circle cx="100" cy="98" r="7" fill="#15803d"/><path d="M100 116 q-2 26 -14 38" fill="none" stroke="#15803d" stroke-width="5" stroke-linecap="round"/></svg>`
 };
