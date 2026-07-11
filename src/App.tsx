@@ -304,6 +304,13 @@ export default function App() {
   // 崩壊する不具合があったため、復習開始時点のリストを固定して渡す。
   const [srsSessionWords, setSrsSessionWords] = useState<Word[]>([]);
 
+  // 画面切り替え時にスクロールを先頭に戻す。
+  // ダッシュボード下部のボタンから遷移した際、前画面のスクロール位置が
+  // 引き継がれて次の画面が途中位置で表示されるのを防ぐ。
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentScreen]);
+
   const handleStartQuiz = (level: Level, type: "word" | "sentence" | "listening", count: number = 10) => {
     setSelectedLevel(level);
     setQuizQuestionCount(count);

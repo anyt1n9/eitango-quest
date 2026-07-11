@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Loader2, RotateCcw } from "lucide-react";
 import { Level, Word, UserStats, QuizHistory } from "../types";
 import Phonetic from "./Phonetic";
 import { getAudioContext } from "../sound";
@@ -114,22 +114,42 @@ export default function Quiz({
     };
   }, []);
 
-  // 初期化で問題をピックアップし、各問題の4択選択肢をシャッフル
-  useEffect(() => {
+  // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
+  const prepareQuestions = () => {
     // customWords が渡された場合（SRS復習）はそれを出題プールにする
     const levelWords = (customWords && customWords.length > 0)
       ? customWords
       : vocabulary.filter(w => w.level === level);
     const shuffled = [...levelWords].sort(() => Math.random() - 0.5);
     const limitNum = Math.min(questionCount, shuffled.length);
-    const preparedQuestions = shuffled.slice(0, limitNum).map(q => {
+    return shuffled.slice(0, limitNum).map(q => {
       return {
         ...q,
         options: q.options ? [...q.options].sort(() => Math.random() - 0.5) : []
       };
     });
-    setQuestions(preparedQuestions);
+  };
+
+  useEffect(() => {
+    setQuestions(prepareQuestions());
   }, [level, vocabulary, questionCount, customWords]);
+
+  // リザルト画面から同じ設定でもう一度挑戦する（新しい出題セットを再抽選）
+  const handleRetry = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    nextCallbackRef.current = null;
+    setQuestions(prepareQuestions());
+    setCurrentIndex(0);
+    setSelectedOption(null);
+    setShowFeedback(null);
+    setScore(0);
+    setDetails([]);
+    setCountdown(0);
+    setIsFinished(false);
+  };
 
   const currentQuestion = questions[currentIndex];
 
@@ -552,10 +572,18 @@ export default function Quiz({
             </div>
           </div>
 
-          <div className="pt-4 flex justify-center">
+          <div className="pt-4 flex flex-col sm:flex-row justify-center gap-3">
+            <button
+              onClick={handleRetry}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-10 py-3.5 rounded-2xl shadow hover:shadow-md cursor-pointer transition text-sm text-center font-sans tracking-wide flex items-center justify-center gap-2"
+              id="btn_retry_quiz"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>もう一度挑戦する</span>
+            </button>
             <button
               onClick={onBackToDashboard}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-10 py-3.5 rounded-2xl shadow hover:shadow-md cursor-pointer transition text-sm text-center font-sans tracking-wide"
+              className="bg-white hover:bg-gray-50 text-gray-700 font-extrabold px-10 py-3.5 rounded-2xl border border-gray-200 shadow-2xs hover:shadow cursor-pointer transition text-sm text-center font-sans tracking-wide"
               id="btn_back_dashboard_from_quiz"
             >
               ダッシュボードに戻る

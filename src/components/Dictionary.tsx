@@ -258,6 +258,13 @@ export default function Dictionary({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
+  // ページ送り用。切替後にリスト最下部へ留まったままにならないよう、単語リストの先頭へスクロールする
+  // （behavior: "smooth" はタブ非表示中にアニメーションが走らず不発になるため即時スクロールにする）
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    document.getElementById("dictionary_words_container")?.scrollIntoView({ block: "start" });
+  };
+
   // 3. 単語の読み上げ機能
   const handleSpeakWord = (wordText: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1152,14 +1159,14 @@ export default function Dictionary({
           
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => setCurrentPage(1)}
+              onClick={() => goToPage(1)}
               disabled={currentPage === 1}
               className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-black cursor-pointer transition"
             >
               &lt;&lt;
             </button>
             <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={() => goToPage(Math.max(currentPage - 1, 1))}
               disabled={currentPage === 1}
               className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
             >
@@ -1181,7 +1188,7 @@ export default function Dictionary({
               return (
                 <button
                   key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
+                  onClick={() => goToPage(pageNum)}
                   className={`w-8 h-8 rounded-lg font-bold border transition transition-all cursor-pointer ${
                     currentPage === pageNum
                       ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
@@ -1194,14 +1201,14 @@ export default function Dictionary({
             })}
 
             <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() => goToPage(Math.min(currentPage + 1, totalPages))}
               disabled={currentPage === totalPages}
               className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
             >
               次へ
             </button>
             <button
-              onClick={() => setCurrentPage(totalPages)}
+              onClick={() => goToPage(totalPages)}
               disabled={currentPage === totalPages}
               className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-black cursor-pointer transition"
             >
