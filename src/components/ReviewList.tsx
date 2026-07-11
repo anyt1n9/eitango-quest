@@ -264,7 +264,9 @@ export default function ReviewList({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`absolute inset-0 z-50 flex items-center justify-center rounded-3xl overflow-hidden backdrop-blur-xs ${
+            // pointer-events-none: 退場アニメーション中に下のボタンへのクリックを遮断しないようにする
+            // （多重回答は handleTestAnswer 側の state ガードで防止済み）
+            className={`absolute inset-0 z-50 flex items-center justify-center rounded-3xl overflow-hidden backdrop-blur-xs pointer-events-none ${
               testFeedback === "correct" ? "bg-emerald-500/10" : "bg-rose-500/10"
             }`}
           >
@@ -293,7 +295,7 @@ export default function ReviewList({
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="bg-slate-900/95 text-white px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5"
+                  className="bg-slate-900/95 text-white px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5 pointer-events-auto"
                 >
                   <span className="text-[10px] text-rose-400 font-black tracking-wider uppercase">
                     正解の単語 ＆ 日本語訳
