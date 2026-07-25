@@ -72,41 +72,6 @@ const safeSvgIdSegment = (value: string): string => {
 
 // フォールバック画像は自前テンプレートから組み立てる。ユーザー入力（単語）は
 // escapeHtml / safeSvgIdSegment を通してからしか埋め込まないため、そのまま返して安全。
-const buildFallbackWordSvg = (queryWord: string): string => {
-  const char = escapeHtml(queryWord.charAt(0).toUpperCase() || "?");
-  const gradientId = `fallbackGrad_${safeSvgIdSegment(queryWord)}`;
-  const colors = [
-    { bg1: "#818cf8", bg2: "#4f46e5", accent: "#fef08a" },
-    { bg1: "#34d399", bg2: "#059669", accent: "#fde047" },
-    { bg1: "#f59e0b", bg2: "#d97706", accent: "#38bdf8" },
-    { bg1: "#fb7185", bg2: "#e11d48", accent: "#a7f3d0" },
-    { bg1: "#a78bfa", bg2: "#7c3aed", accent: "#fbcfe8" },
-  ];
-  let hash = 0;
-  for (let i = 0; i < queryWord.length; i++) {
-    hash = (hash << 5) - hash + queryWord.charCodeAt(i);
-    hash |= 0;
-  }
-  const color = colors[Math.abs(hash) % colors.length];
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
-  <defs>
-    <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="${color.bg1}" />
-      <stop offset="100%" stop-color="${color.bg2}" />
-    </linearGradient>
-  </defs>
-  <rect width="200" height="200" rx="32" fill="url(#${gradientId})" />
-  <circle cx="100" cy="100" r="50" fill="#ffffff" opacity="0.1" />
-  <circle cx="100" cy="100" r="72" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.2" />
-  <text x="100" y="118" text-anchor="middle" font-family="Arial, sans-serif" font-size="74" font-weight="800" fill="#ffffff">${char}</text>
-  <circle cx="48" cy="48" r="12" fill="${color.accent}" opacity="0.75" />
-  <circle cx="155" cy="45" r="4" fill="#ffffff" opacity="0.6" />
-  <circle cx="45" cy="155" r="4" fill="#ffffff" opacity="0.6" />
-  <rect x="70" y="142" width="60" height="4" rx="2" fill="#ffffff" opacity="0.4" />
-</svg>`;
-};
-
 // デプロイ環境(Cloud Run など)は PORT 環境変数でリッスンするポートを指定するため、それを優先する
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -1056,45 +1021,9 @@ app.post("/api/gemini/generate-passage", async (req, res) => {
   }
 });
 
-// 1.9. API: 単語のイメージ（SVGイラスト）の自動生成
-// 生成済みSVGのサーバー内キャッシュ。全ユーザーで共有され、同じ単語の再生成を防ぐ
-// （プロセス再起動までの間有効。1枚目の生成後は誰が開いても即座に返る）
-const wordImageCache = new Map<string, string>();
-const WORD_IMAGE_CACHE_MAX = 5000;
-
-/**
- * Geminiが生成したSVG文字列から、フロントエンドで dangerouslySetInnerHTML により
- * そのまま描画しても安全なように危険な要素・属性を除去する。
- * LLM出力は外部入力とみなし、<script>やイベントハンドラ属性によるXSSを防ぐ。
- */
-function sanitizeInlineSvg(rawSvg: string): string | null {
-  if (typeof rawSvg !== "string" || rawSvg.trim() === "") return null;
-  let svg = rawSvg;
-
-  // <script>...</script> を完全に除去
-  svg = svg.replace(/<script[\s\S]*?<\/script\s*>/gi, "");
-  // 実行可能な埋め込みを許すタグを丸ごと除去
-  svg = svg.replace(/<(foreignObject|iframe|object|embed|link|meta)[\s\S]*?<\/\1\s*>/gi, "");
-  svg = svg.replace(/<(foreignObject|iframe|object|embed|link|meta)[^>]*\/?>/gi, "");
-  // onXxx="..." / onXxx='...' のイベントハンドラ属性を除去
-  svg = svg.replace(/\son\w+\s*=\s*"(?:[^"]*)"/gi, "");
-  svg = svg.replace(/\son\w+\s*=\s*'(?:[^']*)'/gi, "");
-  // href/xlink:href/src が javascript: や data:text/html を指すものを除去
-  svg = svg.replace(/\s(?:xlink:href|href|src)\s*=\s*"(?:\s*javascript:|\s*data:text\/html)[^"]*"/gi, "");
-  svg = svg.replace(/\s(?:xlink:href|href|src)\s*=\s*'(?:\s*javascript:|\s*data:text\/html)[^']*'/gi, "");
-  // <style> 内の expression()/javascript: を含むブロックごと除去（安全性を優先しCSSは失われてもよい）
-  svg = svg.replace(/<style[\s\S]*?<\/style\s*>/gi, (block) =>
-    /expression\s*\(|javascript:/i.test(block) ? "" : block
-  );
-
-  // ルートに <svg ...> タグが存在しない場合は信頼できないため破棄する
-  if (!/<svg[\s>]/i.test(svg)) return null;
-
-  return svg;
-}
-
+// 1.9. API: 単語のイメージ（SVGイラスト）の返却（手作りprebakedのみ・AI生成なし）
 app.post("/api/gemini/word-image-svg", async (req, res) => {
-  const { word, meaning } = req.body;
+  const { word } = req.body;
   if (!isValidShortText(word, MAX_WORD_LEN)) {
     return res.status(400).json({ error: "英単語が正しく指定されていません。(最大64文字)" });
   }
@@ -1102,83 +1031,14 @@ app.post("/api/gemini/word-image-svg", async (req, res) => {
   const queryWord = word.trim();
   const cacheKey = queryWord.toLowerCase();
 
-  // 事前生成(手作り)イメージがあれば最優先で即返却（生成待ち・API消費なし）
+  // 事前生成(手作り)イメージのみを返却する。AI(Gemini)による自動生成・再生成は行わない。
   const prebaked = PREBAKED_WORD_IMAGES[cacheKey];
   if (prebaked) {
     return res.json({ word: queryWord, svg: prebaked, prebaked: true });
   }
 
-  // キャッシュ命中時は生成せず即返却
-  const cachedSvg = wordImageCache.get(cacheKey);
-  if (cachedSvg) {
-    return res.json({ word: queryWord, svg: cachedSvg, cached: true });
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    // APIキーがない場合のフラット風SVGフォールバック（単語はエスケープ済みテンプレートで安全に埋め込み）
-    return res.json({ word: queryWord, svg: buildFallbackWordSvg(queryWord), isFallback: true });
-  }
-
-  // 任意項目の意味は、長さ・形式が正当な場合のみプロンプトに含める
-  const safeMeaning = isValidShortText(meaning, MAX_MEANING_LEN) ? meaning.trim() : "英単語";
-
-  try {
-    const client = getGeminiClient();
-    const prompt = `分析対象の英単語: "${queryWord}" (日本語の意味: ${safeMeaning})
-
-この英単語のビジュアルイメージを直感的に表す、美しく、シンプルでモダンなミニマリスト風のSVGイラスト（Scalable Vector Graphics）を生成してください。
-
-デザイン要件:
-1. viewBox は "0 0 200 200" としてください。インラインで伸縮自在にレンダリングされます。
-2. 背景には、上品でモダンな角丸長方形（rx="32"）を配置し、目に優しい色合いまたは綺麗な2色のグラデーションを設定してください（例: インディゴからバイオレット、ミントからエメラルド、アンバーからローズなど、スタイリッシュなグラデーション）。
-3. 中央に、この英単語の示す意味（例えば「achieve」ならトロフィーや登頂、「observe」なら望遠鏡や目、「innovate」ならひらめく電球など）を象徴する、フラットデザインまたはセミフラット風の、洗練されたSVGパス・シンボルを描写してください。
-4. 英単語自体（"${queryWord}"）やその意味を示す文字は、画像内（SVG内）にテキストとして描画しないでください（ビジュアルその目でイメージしてもらうため）。
-5. コードはシンプルに保ち、複雑すぎる何万ノードのポリゴン、base64エンコードされた外部の巨大画像、外部フォントなどは含めないでください。標準的な <path>, <circle>, <rect>, <ellipse>, <g>, <defs>, <linearGradient> などの標準SVGタグのみを使用してください。
-
-出力形式の指定:
-有効なJSONオブジェクトのみを返却してください。JSONスキーマの "svg" フィールドに、 \`<svg ...>...</svg>\` の生のSVGコード文字列そのものを格納してください。`;
-
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          required: ["svg"],
-          properties: {
-            svg: { type: Type.STRING, description: "Raw responsive inline XML SVG string representing the concept of the word" }
-          }
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) {
-      throw new Error("No response text received from Gemini for SVG generation");
-    }
-
-    const data = JSON.parse(text.trim());
-    const safeSvg = sanitizeInlineSvg(data.svg);
-    if (!safeSvg) {
-      throw new Error("Gemini returned an SVG that failed safety sanitization");
-    }
-
-    // 無害化済みの生成結果のみキャッシュ（フォールバック画像はキャッシュしない）
-    if (wordImageCache.size >= WORD_IMAGE_CACHE_MAX) {
-      const oldestKey = wordImageCache.keys().next().value;
-      if (oldestKey !== undefined) wordImageCache.delete(oldestKey);
-    }
-    wordImageCache.set(cacheKey, safeSvg);
-
-    res.json({ word: queryWord, svg: safeSvg });
-  } catch (error: any) {
-    console.error("Gemini SVG Generation Error: ", error);
-    console.warn("SVGイメージ自動生成に失敗したため、角丸カードSVGをフォールバックとして出力します。");
-    return res.json({ word: queryWord, svg: buildFallbackWordSvg(queryWord), isFallback: true });
-  }
+  // 手作り画像がない単語は画像を表示しない（svg は返さない）
+  return res.json({ word: queryWord, svg: null, none: true });
 });
 
 // 3. API: ユーザーの覚えている単語リストに基づいた英語日記の自動生成

@@ -78,52 +78,6 @@ function sanitizeSvgForRender(rawSvg: string): string {
   }
 }
 
-// —— AI生成SVG画像の端末内永続キャッシュ ——
-// [単語キー, SVG文字列] のペア配列として保存する（挿入順を保持し、古いものから削除）
-const WORD_IMAGES_STORAGE_KEY = "quest_word_images";
-const WORD_IMAGES_MAX_ENTRIES = 300;
-
-function loadPersistedWordImages(): Record<string, string> {
-  try {
-    const saved = localStorage.getItem(WORD_IMAGES_STORAGE_KEY);
-    if (!saved) return {};
-    const pairs: [string, string][] = JSON.parse(saved);
-    if (!Array.isArray(pairs)) return {};
-    return Object.fromEntries(pairs);
-  } catch (e) {
-    return {};
-  }
-}
-
-function persistWordImage(key: string, svg: string) {
-  try {
-    let pairs: [string, string][] = [];
-    try {
-      const saved = localStorage.getItem(WORD_IMAGES_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) pairs = parsed;
-      }
-    } catch (e) {
-      // 壊れたデータは捨てて作り直す
-    }
-    pairs = pairs.filter(([k]) => k !== key);
-    pairs.push([key, svg]);
-    if (pairs.length > WORD_IMAGES_MAX_ENTRIES) {
-      pairs = pairs.slice(pairs.length - WORD_IMAGES_MAX_ENTRIES);
-    }
-    try {
-      localStorage.setItem(WORD_IMAGES_STORAGE_KEY, JSON.stringify(pairs));
-    } catch (e) {
-      // 容量超過時は古い半分を削除して再試行
-      pairs = pairs.slice(Math.floor(pairs.length / 2));
-      localStorage.setItem(WORD_IMAGES_STORAGE_KEY, JSON.stringify(pairs));
-    }
-  } catch (e) {
-    console.warn("単語イメージの保存に失敗しました:", e);
-  }
-}
-
 export default function Dictionary({
   vocabulary,
   wrongWords,
@@ -135,11 +89,9 @@ export default function Dictionary({
   const [frequencyLoading, setFrequencyLoading] = useState<Record<string, boolean>>({});
   const [frequencyError, setFrequencyError] = useState<Record<string, string>>({});
 
-  // AI単語イメージ（SVG）の情報キャッシュ
-  // localStorage に永続化し、一度生成した画像は次回以降すぐに表示する
-  const [wordImages, setWordImages] = useState<Record<string, string>>(() => loadPersistedWordImages());
+  // 単語イメージ（手作りSVG）のメモリキャッシュ。サーバーの prebaked から取得する。
+  const [wordImages, setWordImages] = useState<Record<string, string>>({});
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
-  const [imageError, setImageError] = useState<Record<string, string>>({});
 
   // 類義語・反意語・コロケーションの情報キャッシュ
   const [wordRelations, setWordRelations] = useState<Record<string, any>>({});
@@ -204,34 +156,29 @@ export default function Dictionary({
     }
   };
 
-  const handleFetchWordImage = async (wordText: string, meaningText?: string) => {
+  // 手作り(prebaked)イメージのみを取得する。AIによる自動生成・再生成は行わない。
+  // 画像が存在しない単語は何も表示しない。
+  const handleFetchWordImage = async (wordText: string) => {
     const trimmed = wordText.trim();
     const key = trimmed.toLowerCase();
     if (wordImages[key] || imageLoading[key]) return;
 
     setImageLoading(prev => ({ ...prev, [key]: true }));
-    setImageError(prev => ({ ...prev, [key]: "" }));
 
     try {
       const response = await fetch("/api/gemini/word-image-svg", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word: trimmed, meaning: meaningText })
+        body: JSON.stringify({ word: trimmed })
       });
 
       const payload = await response.json();
-      if (!response.ok || payload.error) {
-        throw new Error(payload.error || "イメージを生成できませんでした。");
-      }
-
-      setWordImages(prev => ({ ...prev, [key]: payload.svg }));
-      // AIが実際に生成した画像のみ端末に永続保存する（フォールバック画像は保存しない）
-      if (!payload.isFallback) {
-        persistWordImage(key, payload.svg);
+      // svg があるものだけ表示する（無い場合は画像を出さない）
+      if (response.ok && payload && payload.svg) {
+        setWordImages(prev => ({ ...prev, [key]: payload.svg }));
       }
     } catch (err: any) {
       console.error(err);
-      setImageError(prev => ({ ...prev, [key]: err.message || "通信または生成エラーが発生しました。" }));
     } finally {
       setImageLoading(prev => ({ ...prev, [key]: false }));
     }
@@ -249,7 +196,7 @@ export default function Dictionary({
       const found = vocabulary.find(w => w.id === expandedWordId);
       if (found) {
         handleFetchWordFrequency(found.word);
-        handleFetchWordImage(found.word, found.translation);
+        handleFetchWordImage(found.word);
       }
     }
   }, [expandedWordId, vocabulary]);
@@ -677,86 +624,31 @@ export default function Dictionary({
                             </div>
                           </div>
 
-                          {/* 右側: AI自動生成ビジュアルイメージ */}
-                          <div className="md:col-span-4 flex flex-col justify-between">
-                            <div className="border border-indigo-100 rounded-2xl overflow-hidden bg-white shadow-3xs p-3.5 flex flex-col h-full items-center justify-center min-h-[165px] relative">
-                              {/* ヘッダー */}
-                              <div className="w-full flex items-center justify-between pb-2 mb-2 border-b border-gray-100 text-[11px]">
-                                <span className="font-extrabold text-indigo-950 flex items-center gap-1.5">
-                                  <Sparkles className="w-3.5 h-3.5 text-indigo-600 fill-indigo-250 animate-pulse" />
-                                  <span>AI 概念イメージ</span>
-                                </span>
-                                <span className="text-[9px] bg-indigo-100 text-indigo-700 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider font-mono">
-                                  Concept
-                                </span>
-                              </div>
+                          {/* 右側: 概念ビジュアルイメージ（手作り画像がある単語のみ表示。AI生成・再生成なし） */}
+                          {wordImages[word.word.trim().toLowerCase()] && (
+                            <div className="md:col-span-4 flex flex-col justify-between">
+                              <div className="border border-indigo-100 rounded-2xl overflow-hidden bg-white shadow-3xs p-3.5 flex flex-col h-full items-center justify-center min-h-[165px] relative">
+                                {/* ヘッダー */}
+                                <div className="w-full flex items-center justify-between pb-2 mb-2 border-b border-gray-100 text-[11px]">
+                                  <span className="font-extrabold text-indigo-950 flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 fill-indigo-250" />
+                                    <span>概念イメージ</span>
+                                  </span>
+                                  <span className="text-[9px] bg-indigo-100 text-indigo-700 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider font-mono">
+                                    Concept
+                                  </span>
+                                </div>
 
-                              {/* コンテンツ */}
-                              {imageLoading[word.word.trim().toLowerCase()] ? (
-                                <div className="flex flex-col items-center justify-center py-6 space-y-2 h-full">
-                                  <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
-                                  <span className="text-[10px] text-indigo-600 font-extrabold">AIイメージ創出中...</span>
-                                </div>
-                              ) : imageError[word.word.trim().toLowerCase()] ? (
-                                <div className="text-center p-2 flex flex-col items-center justify-center h-full">
-                                  <AlertCircle className="w-5 h-5 text-rose-500 mb-1" />
-                                  <p className="text-[10px] text-gray-500 font-semibold leading-normal">
-                                    画像の生成に失敗しました
-                                  </p>
-                                  <button
-                                    onClick={() => handleFetchWordImage(word.word, word.translation)}
-                                    className="mt-2 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[9px] font-bold rounded transition flex items-center gap-1"
-                                  >
-                                    <RefreshCw className="w-2.5 h-2.5" />
-                                    <span>再試行</span>
-                                  </button>
-                                </div>
-                              ) : wordImages[word.word.trim().toLowerCase()] ? (
+                                {/* コンテンツ: インラインHTMLとしてSVGを埋め込む */}
                                 <div className="w-full flex flex-col items-center justify-center">
-                                  {/* インラインHTMLとしてSVGを埋め込む */}
                                   <div
-                                    className="w-full max-w-[120px] aspect-square shadow-xs rounded-xl overflow-hidden border border-indigo-50 flex items-center justify-center bg-gray-50 hover:scale-105 transition duration-300 select-none cursor-pointer"
+                                    className="w-full max-w-[120px] aspect-square shadow-xs rounded-xl overflow-hidden border border-indigo-50 flex items-center justify-center bg-gray-50 select-none"
                                     dangerouslySetInnerHTML={{ __html: sanitizeSvgForRender(wordImages[word.word.trim().toLowerCase()]) }}
-                                    title="クリックして画像を再生成"
-                                    onClick={() => {
-                                      const key = word.word.trim().toLowerCase();
-                                      setWordImages(prev => {
-                                        const updated = { ...prev };
-                                        delete updated[key];
-                                        return updated;
-                                      });
-                                      handleFetchWordImage(word.word, word.translation);
-                                    }}
                                   />
-                                  <button
-                                    onClick={() => {
-                                      const key = word.word.trim().toLowerCase();
-                                      setWordImages(prev => {
-                                        const updated = { ...prev };
-                                        delete updated[key];
-                                        return updated;
-                                      });
-                                      handleFetchWordImage(word.word, word.translation);
-                                    }}
-                                    className="mt-2 text-[10px] text-indigo-600 hover:text-indigo-800 font-extrabold hover:underline inline-flex items-center gap-1"
-                                  >
-                                    <RefreshCw className="w-2.5 h-2.5" />
-                                    <span>イメージを再生成</span>
-                                  </button>
                                 </div>
-                              ) : (
-                                <div className="text-center py-6">
-                                  <button
-                                    onClick={() => handleFetchWordImage(word.word, word.translation)}
-                                    className="px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-extrabold rounded-lg hover:bg-indigo-100 transition inline-flex items-center gap-1"
-                                  >
-                                    <Sparkles className="w-3.5 h-3.5 text-indigo-500 fill-indigo-250" />
-                                    <span>AIでイメージを自動生成</span>
-                                  </button>
-                                </div>
-                              )}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
 
                         {/* —————————— AI単語使用頻度分析セクション —————————— */}
