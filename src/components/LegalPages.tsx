@@ -1,9 +1,27 @@
 import React from "react";
-import { ArrowLeft, ShieldCheck, FileText } from "lucide-react";
+import { ArrowLeft, ShieldCheck, FileText, ExternalLink } from "lucide-react";
 
-// ▼リリース時に差し替え: 問い合わせ先（公開して問題ないアドレス推奨。個人のメインGmailは非推奨）
-const CONTACT_EMAIL = "your-contact@example.com";
+// ▼リリース時に差し替え: お問い合わせ用 Google フォームの共有URL（https://forms.gle/... など）
+const CONTACT_FORM_URL = "https://forms.gle/XXXXXXXXXXXX";
 const LAST_UPDATED = "2026年8月4日";
+
+// お問い合わせフォームへのボタン（両ページ共通）
+function ContactBlock() {
+  return (
+    <div className="not-prose">
+      <p className="mb-2">お問い合わせは、以下のフォームよりご連絡ください。</p>
+      <a
+        href={CONTACT_FORM_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition !no-underline !text-white"
+      >
+        お問い合わせフォームを開く
+        <ExternalLink className="w-3.5 h-3.5" />
+      </a>
+    </div>
+  );
+}
 
 function Shell({
   title,
@@ -93,9 +111,7 @@ export function PrivacyPolicy({ onBack }: { onBack: () => void }) {
       <p>本ポリシーは予告なく変更されることがあります。重要な変更がある場合は本ページ上で告知します。</p>
 
       <h2>8. お問い合わせ</h2>
-      <p>
-        本ポリシーに関するお問い合わせは <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> までご連絡ください。
-      </p>
+      <ContactBlock />
     </Shell>
   );
 }
@@ -133,7 +149,7 @@ export function TermsOfService({ onBack }: { onBack: () => void }) {
       <p>本規約は予告なく変更されることがあります。変更後に本アプリを利用した場合、変更後の規約に同意したものとみなします。</p>
 
       <h2>7. お問い合わせ</h2>
-      <p>本規約に関するお問い合わせは <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> までご連絡ください。</p>
+      <ContactBlock />
     </Shell>
   );
 }
