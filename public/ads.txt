@@ -1,0 +1,4 @@
+# Google AdSense の広告枠の正当性を証明するファイル（審査・不正配信防止に必要）。
+# 下記の pub-XXXXXXXXXXXXXXXX を、あなたの AdSense パブリッシャーID（数字部分）に置き換えてください。
+# 例: google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

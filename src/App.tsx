@@ -16,6 +16,8 @@ import MapAndPuzzle from "./components/MapAndPuzzle";
 import AIDiary from "./components/AIDiary";
 import DataBackup from "./components/DataBackup";
 import GachaShop from "./components/GachaShop";
+import AdBanner from "./components/AdBanner";
+import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift } from "lucide-react";
 
@@ -294,7 +296,7 @@ export default function App() {
 
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings" | "gacha">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -739,7 +741,18 @@ export default function App() {
             onBackToDashboard={handleBackToDashboard}
           />
         )}
+
+        {currentScreen === "privacy" && (
+          <PrivacyPolicy onBack={handleBackToDashboard} />
+        )}
+
+        {currentScreen === "terms" && (
+          <TermsOfService onBack={handleBackToDashboard} />
+        )}
       </main>
+
+      {/* 広告枠（全コンテンツの下・控えめに1枠。未設定時は非表示） */}
+      <AdBanner />
 
       {/* 謙虚でスタイリッシュなフッター */}
       <footer className="bg-white dark:bg-slate-900 border-t border-gray-150 dark:border-slate-800 py-6 px-4 transition-colors duration-300" id="global_footer">
@@ -753,6 +766,20 @@ export default function App() {
             >
               アプリケーション説明
             </a>
+            <span className="text-gray-200 dark:text-slate-800">|</span>
+            <button
+              onClick={() => setCurrentScreen("privacy")}
+              className="hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+            >
+              プライバシーポリシー
+            </button>
+            <span className="text-gray-200 dark:text-slate-800">|</span>
+            <button
+              onClick={() => setCurrentScreen("terms")}
+              className="hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+            >
+              利用規約
+            </button>
             <span className="text-gray-200 dark:text-slate-800">|</span>
             <div className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
               <span>Powered by Gemini 3.5 Flash</span>
