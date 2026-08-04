@@ -757,7 +757,7 @@ export default function App() {
       {/* 謙虚でスタイリッシュなフッター */}
       <footer className="bg-white dark:bg-slate-900 border-t border-gray-150 dark:border-slate-800 py-6 px-4 transition-colors duration-300" id="global_footer">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 dark:text-slate-500 gap-4 font-semibold font-sans">
-          <p>© 2026 英単語 Quest. Built on Google AI Studio.</p>
+          <p>© 2026 英単語 Quest. Built with Google AI Studio &amp; Claude.</p>
           <div className="flex items-center gap-4">
             <a 
               href="#" 
