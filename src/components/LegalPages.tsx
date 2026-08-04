@@ -1,8 +1,8 @@
 import React from "react";
 import { ArrowLeft, ShieldCheck, FileText, ExternalLink } from "lucide-react";
 
-// ▼リリース時に差し替え: お問い合わせ用 Google フォームの共有URL（https://forms.gle/... など）
-const CONTACT_FORM_URL = "https://forms.gle/XXXXXXXXXXXX";
+// お問い合わせ用 Google フォームの共有URL
+const CONTACT_FORM_URL = "https://forms.gle/ntH2Pgirb1vhgLbh8";
 const LAST_UPDATED = "2026年8月4日";
 
 // お問い合わせフォームへのボタン（両ページ共通）
