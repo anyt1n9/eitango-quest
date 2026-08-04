@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ▼独自ドメイン取得後、下記の <loc> のURLを新しいドメインに置き換えてください。
+    （例: https://eitango-quest.com/）
+    あわせて public/robots.txt と index.html の canonical / og:url も更新します。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://eitango-quest.onrender.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

@@ -2,5 +2,9 @@
 User-agent: *
 Allow: /
 
-# デプロイ後、公開URLに合わせて以下のコメントを外してください
-# Sitemap: https://your-domain.com/sitemap.xml
+# Google AdSense のクローラー（審査・広告配信に必要）
+User-agent: Mediapartners-Google
+Allow: /
+
+# ▼独自ドメイン取得後、下記URLを新しいドメインに置き換えてください
+Sitemap: https://eitango-quest.onrender.com/sitemap.xml
