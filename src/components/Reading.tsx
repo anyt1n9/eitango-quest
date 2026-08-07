@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Level, UserStats, RankingUser } from "../types";
 import { passages, Passage, PassageQuestion } from "../data/passages";
+import { shuffle } from "../shuffle";
+import { readStoredArray } from "../storage";
 import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X } from "lucide-react";
 
 interface ReadingProps {
@@ -16,34 +18,18 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
   const [selectedWordObj, setSelectedWordObj] = useState<{ word: string; translation: string } | null>(null);
   
   // 読了済みの長文IDを管理するローカルステート
-  const [readPassages, setReadPassages] = useState<string[]>(() => {
-    const saved = localStorage.getItem("quest_read_passages");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return [];
-  });
+  const [readPassages, setReadPassages] = useState<string[]>(() =>
+    readStoredArray<string>("quest_read_passages")
+  );
 
   useEffect(() => {
     localStorage.setItem("quest_read_passages", JSON.stringify(readPassages));
   }, [readPassages]);
 
   // AI生成されたカスタム長文（localStorageに永続化）
-  const [customPassages, setCustomPassages] = useState<Passage[]>(() => {
-    const saved = localStorage.getItem("quest_custom_passages");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return [];
-  });
+  const [customPassages, setCustomPassages] = useState<Passage[]>(() =>
+    readStoredArray<Passage>("quest_custom_passages")
+  );
 
   useEffect(() => {
     localStorage.setItem("quest_custom_passages", JSON.stringify(customPassages));
@@ -65,7 +51,7 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
     if (selectedPassage?.questions && selectedPassage.questions.length > 0) {
       const shuffled = selectedPassage.questions.map(q => {
         const correctText = q.options[q.correctIndex];
-        const options = [...q.options].sort(() => Math.random() - 0.5);
+        const options = shuffle(q.options);
         return { question: q.question, options, correctIndex: options.indexOf(correctText) };
       });
       setShuffledQuestions(shuffled);

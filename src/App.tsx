@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Level, Word, UserStats, RankingUser } from "./types";
 import { initialVocabulary } from "./data/vocabulary";
 import Dashboard from "./components/Dashboard";
@@ -19,6 +19,7 @@ import GachaShop from "./components/GachaShop";
 import AdBanner from "./components/AdBanner";
 import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
+import { readStoredArray, readStoredObject } from "./storage";
 import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift } from "lucide-react";
 
 // 初期収録単語のIDセット（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使用）
@@ -40,15 +41,7 @@ const DEFAULT_RANKING: RankingUser[] = [
 export default function App() {
   // 1. 各種永続化ステート
   const [stats, setStats] = useState<UserStats>(() => {
-    const saved = localStorage.getItem("quest_stats");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {
+    const defaults: UserStats = {
       score: 0,
       currentStreak: 0,
       lastLoginDate: null,
@@ -56,71 +49,31 @@ export default function App() {
       correctAnswers: 0,
       unlockedLevels: ["junior"]
     };
+    // 保存済みデータに欠けている項目はデフォルト値で補う
+    return { ...defaults, ...readStoredObject<Partial<UserStats>>("quest_stats", {}) };
   });
 
   const [vocabulary, setVocabulary] = useState<Word[]>(() => {
-    const saved = localStorage.getItem("quest_vocab_custom");
-    let customList: Word[] = [];
-    if (saved) {
-      try {
-        customList = JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
+    const customList = readStoredArray<Word>("quest_vocab_custom");
     return [...initialVocabulary, ...customList];
   });
 
-  const [wrongWords, setWrongWords] = useState<string[]>(() => {
-    const saved = localStorage.getItem("quest_wrong_words");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return [];
-  });
+  const [wrongWords, setWrongWords] = useState<string[]>(() =>
+    readStoredArray<string>("quest_wrong_words")
+  );
 
-  const [solvedHistory, setSolvedHistory] = useState<Record<string, { correctCount: number; attemptCount: number }>>(() => {
-    const saved = localStorage.getItem("quest_solved_history");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {};
-  });
+  const [solvedHistory, setSolvedHistory] = useState<Record<string, { correctCount: number; attemptCount: number }>>(() =>
+    readStoredObject<Record<string, { correctCount: number; attemptCount: number }>>("quest_solved_history", {})
+  );
 
   const [ranking, setRanking] = useState<RankingUser[]>(() => {
-    const saved = localStorage.getItem("quest_ranking_score");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // localStorageに残されたデータがMeを含まない or 古い場合はマージ
-        if (parsed.some((u: any) => u.isMe)) {
-          return parsed;
-        }
-      } catch (e) {
-        // ignore
-      }
+    const saved = readStoredArray<RankingUser>("quest_ranking_score");
+    // localStorageに残されたデータがMeを含まない or 古い場合はマージ
+    if (saved.some(u => u && u.isMe)) {
+      return saved;
     }
     // 初期値に自分のスコアをマッピング
-    const statsScore = (() => {
-      const savedStatsStr = localStorage.getItem("quest_stats");
-      if (savedStatsStr) {
-        try {
-          return JSON.parse(savedStatsStr).score || 0;
-        } catch (e) {
-          // ignore
-        }
-      }
-      return 0;
-    })();
-
+    const statsScore = readStoredObject<{ score?: number }>("quest_stats", {}).score || 0;
     const withMe = DEFAULT_RANKING.map(u => u.isMe ? { ...u, score: statsScore } : u);
     return withMe.sort((a, b) => b.score - a.score);
   });
@@ -131,30 +84,14 @@ export default function App() {
   });
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
-  const [srsData, setSrsData] = useState<Record<string, SrsState>>(() => {
-    const saved = localStorage.getItem("quest_srs");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {};
-  });
+  const [srsData, setSrsData] = useState<Record<string, SrsState>>(() =>
+    readStoredObject<Record<string, SrsState>>("quest_srs", {})
+  );
 
   // デイリー学習目標の進捗（今日の解答数）
-  const [dailyProgress, setDailyProgress] = useState<{ date: string; count: number }>(() => {
-    const saved = localStorage.getItem("quest_daily_progress");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return { date: todayStr(), count: 0 };
-  });
+  const [dailyProgress, setDailyProgress] = useState<{ date: string; count: number }>(() =>
+    readStoredObject<{ date: string; count: number }>("quest_daily_progress", { date: todayStr(), count: 0 })
+  );
 
   // 1日の学習目標（問題数）
   const [dailyGoal, setDailyGoal] = useState<number>(() => {
@@ -163,17 +100,9 @@ export default function App() {
   });
 
   // 学習カレンダー用の日別解答ログ（日付 -> 解答数・正解数）
-  const [dailyLog, setDailyLog] = useState<Record<string, { count: number; correct: number }>>(() => {
-    const saved = localStorage.getItem("quest_daily_log");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {};
-  });
+  const [dailyLog, setDailyLog] = useState<Record<string, { count: number; correct: number }>>(() =>
+    readStoredObject<Record<string, { count: number; correct: number }>>("quest_daily_log", {})
+  );
 
   useEffect(() => {
     if (isDark) {
@@ -252,17 +181,9 @@ export default function App() {
   }, [dailyLog]);
 
   // ごほうびガチャ関連の永続化ステート
-  const [ownedRewardIds, setOwnedRewardIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem("quest_owned_rewards");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return [];
-  });
+  const [ownedRewardIds, setOwnedRewardIds] = useState<string[]>(() =>
+    readStoredArray<string>("quest_owned_rewards")
+  );
 
   // これまでにガチャで消費したポイントの累計（stats.score自体は減算しない）
   const [gachaSpent, setGachaSpent] = useState<number>(() => {
@@ -270,17 +191,9 @@ export default function App() {
     return v > 0 ? v : 0;
   });
 
-  const [equipped, setEquipped] = useState<{ avatar?: string; title?: string }>(() => {
-    const saved = localStorage.getItem("quest_equipped");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {};
-  });
+  const [equipped, setEquipped] = useState<{ avatar?: string; title?: string }>(() =>
+    readStoredObject<{ avatar?: string; title?: string }>("quest_equipped", {})
+  );
 
   useEffect(() => {
     localStorage.setItem("quest_owned_rewards", JSON.stringify(ownedRewardIds));
@@ -362,9 +275,13 @@ export default function App() {
   }, []);
 
   // 今日復習すべき単語（SRSの期日が今日以前のもの）
+  // 収録単語は約7,800語あるため、ID一覧を配列のまま includes で引くと
+  // 毎レンダーで O(単語数 × 復習対象数) の走査になる。Set で定数時間の判定にする。
   const today = todayStr();
-  const dueWordIds = getDueWordIds(srsData, today);
-  const dueWords = vocabulary.filter(w => dueWordIds.includes(w.id));
+  const dueWords: Word[] = useMemo(() => {
+    const dueWordIdSet = new Set(getDueWordIds(srsData, today));
+    return vocabulary.filter(w => dueWordIdSet.has(w.id));
+  }, [srsData, vocabulary, today]);
   // 今日解いた問題数（日付が変わっていたら0）
   const todayCount = dailyProgress.date === today ? dailyProgress.count : 0;
   const goalReached = todayCount >= dailyGoal;

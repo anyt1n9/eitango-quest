@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { PREBAKED_WORD_IMAGES } from "./src/data/wordImages";
+import { sampleArray } from "./src/shuffle";
 
 dotenv.config();
 
@@ -744,8 +745,9 @@ app.post("/api/gemini/weakness-analysis", async (req, res) => {
 
   // プロンプトへ埋め込む各項目を長さ制限付きで正規化する
   // （巨大な文字列や制御文字によるトークン浪費・プロンプト汚染を防ぐ）
-  const sample = wrongWords
-    .slice(0, 60)
+  // 先頭60件を固定で取ると、苦手単語が増えたユーザーほど古い間違いばかりが
+  // 分析対象になり続けるため、全体からランダムに代表を抽出する。
+  const sample = sampleArray(wrongWords, 60)
     .map((w: any) => ({
       word: isValidShortText(w?.word, MAX_WORD_LEN) ? w.word.trim() : "",
       translation: isValidShortText(w?.translation, MAX_MEANING_LEN) ? w.translation.trim() : "",
@@ -1048,11 +1050,15 @@ app.post("/api/gemini/diary", async (req, res) => {
     return res.status(400).json({ error: "習得した英単語リストがありません。" });
   }
   // プロンプトへ埋め込む単語リストを正規化する。
-  // 形式・長さの正当な英単語のみ最大300語まで（巨大配列によるトークン浪費を防ぐ）
-  const words: string[] = rawWords
-    .filter((w: unknown) => isValidShortText(w, MAX_WORD_LEN))
-    .map((w: string) => w.trim())
-    .slice(0, 300);
+  // 形式・長さの正当な英単語のみ最大300語まで（巨大配列によるトークン浪費を防ぐ）。
+  // 先頭から切り出すと習得語数が多いユーザーほど毎回同じ単語しか使われないため、
+  // 全体からランダムに抽出する。
+  const words: string[] = sampleArray(
+    rawWords
+      .filter((w: unknown) => isValidShortText(w, MAX_WORD_LEN))
+      .map((w: string) => w.trim()),
+    300
+  );
 
   const apiKey = process.env.GEMINI_API_KEY;
 

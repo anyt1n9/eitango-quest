@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Brain, Volume2, Trash2, CheckCircle2, ChevronRight, GraduationCap, Trophy, X, Check } from "lucide-react";
 import { Word, Level, UserStats } from "../types";
 import { getAudioContext } from "../sound";
+import { shuffle } from "../shuffle";
 
 // クイズ回答時の効果音（シンセ）
 const playReviewSound = (isCorrect: boolean) => {
@@ -62,7 +63,12 @@ export default function ReviewList({
   recordAnswer
 }: ReviewListProps) {
   // リストアップ対象の間違えた単語実体
-  const wrongWordObjects = vocabulary.filter(w => wrongWords.includes(w.id));
+  // 毎レンダー（不正解時のカウントダウンで毎秒発生する）で全単語を走査するため、
+  // 苦手単語IDは Set にして定数時間で判定する。
+  const wrongWordObjects: Word[] = useMemo(() => {
+    const wrongSet = new Set(wrongWords);
+    return vocabulary.filter(w => wrongSet.has(w.id));
+  }, [vocabulary, wrongWords]);
 
   // 復習モード管理: "list" (カード一覧で自習) | "test" (四択テストで卒業にチャレンジ)
   const [mode, setMode] = useState<"list" | "test">("list");
@@ -119,10 +125,10 @@ export default function ReviewList({
   // 復習テストの開始
   const handleStartReviewTest = () => {
     if (wrongWordObjects.length === 0) return;
-    const prepared = [...wrongWordObjects].sort(() => Math.random() - 0.5).map(q => {
+    const prepared = shuffle(wrongWordObjects).map(q => {
       return {
         ...q,
-        options: q.options ? [...q.options].sort(() => Math.random() - 0.5) : []
+        options: q.options ? shuffle(q.options) : []
       };
     });
     setTestQuestions(prepared);

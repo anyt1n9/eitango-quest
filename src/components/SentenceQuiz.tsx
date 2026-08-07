@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Eye, EyeOff, Loader2, RotateCcw } from "lucide-react";
 import { Level, Word, UserStats } from "../types";
 import { getAudioContext } from "../sound";
+import { shuffle } from "../shuffle";
 
 // クイズ回答時の効果音（シンセ）
 const playSentenceSound = (isCorrect: boolean) => {
@@ -103,12 +104,12 @@ export default function SentenceQuiz({
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
     const levelWords = vocabulary.filter(w => w.level === level);
-    const shuffled = [...levelWords].sort(() => Math.random() - 0.5);
+    const shuffled = shuffle(levelWords);
     const limitNum = Math.min(10, shuffled.length);
     return shuffled.slice(0, limitNum).map(q => {
       return {
         ...q,
-        sentenceOptions: q.sentenceOptions ? [...q.sentenceOptions].sort(() => Math.random() - 0.5) : []
+        sentenceOptions: q.sentenceOptions ? shuffle(q.sentenceOptions) : []
       };
     });
   };
