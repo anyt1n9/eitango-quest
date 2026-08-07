@@ -700,11 +700,11 @@ export default function AIDiary({
 
       {/* すべて削除の確認用モーダル ダイアログ */}
       {showClearAllConfirm && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <motion.div 
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-start justify-center p-4 z-50 overflow-y-auto animate-fade-in">
+          <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center"
+            className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center my-auto"
           >
             <div className="space-y-2">
               <div className="w-12 h-12 bg-rose-550/10 dark:bg-rose-950/40 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl">

@@ -882,7 +882,12 @@ export default function Dashboard({
 
   // 単語追加時に自動的な入力チェック
   const handleWordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewWord(e.target.value.replace(/[^a-zA-Z\s-]/g, "")); // 英語アルファベット、スペース、ハイフンのみ許容
+    // 英字・スペース・ハイフンに加えて、アポストロフィ（don't, o'clock）と
+    // アクセント付きラテン文字（café, naïve）も許容する。
+    // 以前はこれらを黙って削除しており、"don't" が "dont"、"café" が "caf" として
+    // 登録されてしまっていた（サーバー側は制御文字以外を受け付けるため、
+    // 制限していたのはこの入力欄だけだった）。
+    setNewWord(e.target.value.replace(/[^a-zA-ZÀ-ɏ\s'’-]/g, ""));
   };
 
   return (
@@ -2073,10 +2078,14 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* 出題単語数選択モーダル */}
+      {/* 出題単語数選択モーダル。
+          overflow-y-auto + items-start + my-auto にしているのは、画面が低いとき
+          （スマートフォンの横向きなど）にモーダルが縦にはみ出し、スクロールもできず
+          「スタート」ボタンが画面外に出て押せなくなっていたため。
+          余裕があるときは中央に、足りないときは上寄せ＋スクロールで全体に手が届く。 */}
       {selectedWordLimitLevel !== null && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all" id="word_count_modal">
-          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative transform scale-100 transition-transform duration-300">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-start justify-center z-50 p-4 overflow-y-auto transition-all" id="word_count_modal">
+          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative my-auto transform scale-100 transition-transform duration-300">
             <h3 className="text-xl font-black text-gray-900 dark:text-slate-100 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
               <span>一問一答の出題単語数を選択</span>
@@ -2143,8 +2152,8 @@ export default function Dashboard({
 
       {/* CSVテンプレートモーダル */}
       {showCsvTemplateModal && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto" id="csv_template_modal">
-          <div className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative my-8 transform scale-100 transition-all max-h-[90vh] overflow-y-auto flex flex-col justify-between">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-start justify-center z-50 p-4 overflow-y-auto" id="csv_template_modal">
+          <div className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative my-auto transform scale-100 transition-all max-h-[90vh] overflow-y-auto flex flex-col justify-between">
             {/* ヘッダー */}
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
