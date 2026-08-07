@@ -4,6 +4,7 @@ import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Loader2, Rotat
 import { Level, Word, UserStats, QuizHistory } from "../types";
 import Phonetic from "./Phonetic";
 import { getAudioContext } from "../sound";
+import { shuffle } from "../shuffle";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
 const playQuizSound = (isCorrect: boolean) => {
@@ -120,12 +121,12 @@ export default function Quiz({
     const levelWords = (customWords && customWords.length > 0)
       ? customWords
       : vocabulary.filter(w => w.level === level);
-    const shuffled = [...levelWords].sort(() => Math.random() - 0.5);
+    const shuffled = shuffle(levelWords);
     const limitNum = Math.min(questionCount, shuffled.length);
     return shuffled.slice(0, limitNum).map(q => {
       return {
         ...q,
-        options: q.options ? [...q.options].sort(() => Math.random() - 0.5) : []
+        options: q.options ? shuffle(q.options) : []
       };
     });
   };

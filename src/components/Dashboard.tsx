@@ -33,6 +33,7 @@ import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr } from "../srs";
 import { initialVocabulary } from "../data/vocabulary";
 import { getAudioContext } from "../sound";
+import { shuffle } from "../shuffle";
 import { getWordPos } from "../pos";
 import StudyCalendar from "./StudyCalendar";
 
@@ -269,9 +270,7 @@ export default function Dashboard({
     return res;
   };
 
-  const shuffleArray = <T,>(arr: T[]): T[] => {
-    return [...arr].sort(() => Math.random() - 0.5);
-  };
+  const shuffleArray = <T,>(arr: T[]): T[] => shuffle(arr);
 
   // CSVファイルの解析と単語追加
   const handleCsvUpload = (file: File) => {

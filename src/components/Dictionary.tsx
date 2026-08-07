@@ -228,6 +228,10 @@ export default function Dictionary({
     }
   };
 
+  // 苦手単語の判定用セット。配列のまま includes で引くと、収録約7,800語に対して
+  // O(単語数 × 苦手単語数) の走査が毎レンダー発生するため Set にする。
+  const wrongWordSet = useMemo(() => new Set(wrongWords), [wrongWords]);
+
   // 4. データ処理（絞り込み・検索・並べ替え）
   const processedVocabulary = useMemo(() => {
     let result = [...vocabulary];
@@ -237,7 +241,7 @@ export default function Dictionary({
       if (filterLevel === "custom") {
         result = result.filter(w => isCustomWordId(w.id));
       } else if (filterLevel === "weak") {
-        result = result.filter(w => wrongWords.includes(w.id));
+        result = result.filter(w => wrongWordSet.has(w.id));
       } else {
         result = result.filter(w => w.level === filterLevel);
       }
@@ -283,7 +287,28 @@ export default function Dictionary({
     });
 
     return result;
-  }, [vocabulary, filterLevel, searchQuery, sortBy, wrongWords]);
+  }, [vocabulary, filterLevel, searchQuery, sortBy, wrongWordSet]);
+
+  // 各絞り込みタブの件数。以前はタブごとに vocabulary 全体を filter していたため、
+  // 検索欄に1文字入力するたびに全単語の走査が7回発生していた。1パスで集計する。
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: vocabulary.length,
+      junior: 0,
+      senior: 0,
+      senior2: 0,
+      senior3: 0,
+      advanced: 0,
+      custom: 0,
+      weak: 0
+    };
+    for (const w of vocabulary) {
+      if (w.level in counts) counts[w.level]++;
+      if (isCustomWordId(w.id)) counts.custom++;
+      if (wrongWordSet.has(w.id)) counts.weak++;
+    }
+    return counts;
+  }, [vocabulary, wrongWordSet]);
 
   // 5. フィルターや検索が変更されたらページを1に戻す
   React.useEffect(() => {
@@ -442,11 +467,7 @@ export default function Dictionary({
             ] as const
           ).map((tab) => {
             const isActive = filterLevel === tab.value;
-            let count = 0;
-            if (tab.value === "all") count = vocabulary.length;
-            else if (tab.value === "custom") count = vocabulary.filter(w => isCustomWordId(w.id)).length;
-            else if (tab.value === "weak") count = vocabulary.filter(w => wrongWords.includes(w.id)).length;
-            else count = vocabulary.filter(w => w.level === tab.value).length;
+            const count = tabCounts[tab.value] || 0;
 
             return (
               <button
@@ -491,7 +512,7 @@ export default function Dictionary({
             
             // クイズ習熟度状況判定
             const history = solvedHistory[word.id];
-            const isWrong = wrongWords.includes(word.id);
+            const isWrong = wrongWordSet.has(word.id);
             const isCompleted = history && history.correctCount > 0;
             const attemptCount = history ? history.attemptCount : 0;
 
