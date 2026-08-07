@@ -148,6 +148,17 @@ export default function MapAndPuzzle({
         throw new Error(payload.error || "情報の取得に失敗しました。");
       }
 
+      // AIの応答は必ずしもスキーマ通りとは限らない。配列であることを確認せずに
+      // 描画すると data.puzzle.filter で例外が投げられ、アプリ全体が真っ白になる。
+      if (
+        !payload ||
+        !Array.isArray(payload.connections) ||
+        !Array.isArray(payload.puzzle) ||
+        !Array.isArray(payload.distractors)
+      ) {
+        throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
+      }
+
       setData(payload);
     } catch (err: any) {
       console.error(err);

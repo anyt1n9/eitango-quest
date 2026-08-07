@@ -75,6 +75,17 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
       if (!response.ok || data.error) {
         throw new Error(data.error || "AI長文の生成に失敗しました。");
       }
+      // AIの応答がスキーマ通りとは限らないため、描画に必要な形を満たすか確認する。
+      // 不正なデータを保存すると、開くたびに描画時例外が起きる状態が残ってしまう。
+      if (
+        !data ||
+        typeof data.title !== "string" ||
+        !Array.isArray(data.englishParagraphs) ||
+        !Array.isArray(data.japaneseParagraphs)
+      ) {
+        throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
+      }
+
       setCustomPassages(prev => [...prev, data]);
       alert(`✨ AIが新しい長文『${data.title}』を書き下ろしました！\n一覧から開いて読んでみましょう。`);
     } catch (err: any) {
@@ -154,7 +165,13 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
     };
     const colorClass = colorMap[level] || "border-indigo-200 bg-indigo-50 text-indigo-800";
 
-    const wordsToMatch = highlightList.map(h => h.word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+    // ハイライト語は AI生成長文や localStorage 由来のこともあり、word を持たない
+    // 要素が混ざりうる。そのまま .replace すると描画中に例外が投げられて画面が壊れる。
+    // また空文字が混ざると正規表現の選択肢が空になり、あらゆる位置にマッチしてしまう。
+    const safeList = (Array.isArray(highlightList) ? highlightList : []).filter(
+      h => h && typeof h.word === "string" && h.word.trim() !== ""
+    );
+    const wordsToMatch = safeList.map(h => h.word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
     if (wordsToMatch.length === 0) {
       return <span>{text}</span>;
     }
@@ -164,7 +181,7 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
     const parts = text.split(regex);
 
     return parts.map((part, index) => {
-      const matchedWord = highlightList.find(h => h.word.toLowerCase() === part.toLowerCase());
+      const matchedWord = safeList.find(h => h.word.toLowerCase() === part.toLowerCase());
       if (matchedWord) {
         return (
           <span
