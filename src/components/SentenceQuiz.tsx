@@ -101,6 +101,19 @@ export default function SentenceQuiz({
     };
   }, []);
 
+  // 例文を必ず穴埋め形式にする。
+  // 穴埋め記号が無いまま出題すると、答えの単語が本文にそのまま表示され
+  // （読み上げでも答えを言ってしまい）、穴埋め問題として成立しない。
+  const toFillInSentence = (sentence: string, word: string): string => {
+    if (typeof sentence !== "string" || sentence.trim() === "") {
+      return "I want to study [_____] today.";
+    }
+    if (sentence.includes("[_____]")) return sentence;
+    const escaped = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const re = new RegExp(`\\b${escaped}\\b`, "i");
+    return re.test(sentence) ? sentence.replace(re, "[_____]") : `${sentence} [_____]`;
+  };
+
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
     const levelWords = vocabulary.filter(w => w.level === level);
@@ -109,6 +122,7 @@ export default function SentenceQuiz({
     return shuffled.slice(0, limitNum).map(q => {
       return {
         ...q,
+        sentence: toFillInSentence(q.sentence, q.word),
         sentenceOptions: q.sentenceOptions ? shuffle(q.sentenceOptions) : []
       };
     });
