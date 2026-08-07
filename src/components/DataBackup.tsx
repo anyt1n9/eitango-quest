@@ -79,7 +79,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
           return;
         }
         BACKUP_KEYS.forEach((k) => {
-          if (k in data && data[k] !== null && data[k] !== undefined) {
+          if (k in data && typeof data[k] === "string") {
             localStorage.setItem(k, data[k]);
           }
         });

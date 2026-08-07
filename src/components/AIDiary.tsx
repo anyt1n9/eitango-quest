@@ -89,13 +89,22 @@ export default function AIDiary({
 
   // ローカルステート
   const [diary, setDiary] = useState<DiaryEntry | null>(() => {
-    const saved = localStorage.getItem("quest_current_diary_cache");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem("quest_current_diary_cache");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
   });
-  
+
   const [history, setHistory] = useState<DiaryEntry[]>(() => {
-    const saved = localStorage.getItem("quest_diary_history");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("quest_diary_history");
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
   });
 
   const [loading, setLoading] = useState(false);

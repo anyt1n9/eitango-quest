@@ -341,7 +341,8 @@ export default function Dashboard({
             sentenceTranslation = `私は今日、[_____]を勉強したいです。`;
           } else {
             if (!sentence.includes("[_____]")) {
-              const regex = new RegExp(rawWord, "gi");
+              const escapedWord = rawWord.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+              const regex = new RegExp(escapedWord, "gi");
               if (regex.test(sentence)) {
                 sentence = sentence.replace(regex, "[_____]");
               } else {
