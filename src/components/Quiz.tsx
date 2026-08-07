@@ -338,7 +338,11 @@ export default function Quiz({
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="bg-slate-900/95 text-white px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5 pointer-events-auto"
+                  // pointer-events はパネル全体ではなくボタンだけに付ける。
+                  // パネル全体を pointer-events-auto にすると、退場アニメーション中
+                  // (約0.3〜0.4秒。タブ非表示時はさらに長く残留する)にパネルが
+                  // 次の問題の選択肢に重なり、そのタップを吸い取ってしまう。
+                  className="bg-slate-900/95 text-white px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5"
                 >
                   <span className="text-[10px] text-rose-400 font-black tracking-wider uppercase">
                     正解の単語 ＆ 日本語訳
@@ -356,7 +360,7 @@ export default function Quiz({
                     </span>
                     <button
                       onClick={handleForceNext}
-                      className="text-xs bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black px-4.5 py-1.5 rounded-xl transition shadow-md border border-indigo-500/40 cursor-pointer"
+                      className="text-xs bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black px-4.5 py-1.5 rounded-xl transition shadow-md border border-indigo-500/40 cursor-pointer pointer-events-auto"
                     >
                       すぐに次に進む
                     </button>

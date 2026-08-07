@@ -14,10 +14,18 @@ let memCache: Record<string, string | null> | null = null;
 
 function loadCache(): Record<string, string | null> {
   if (!memCache) {
+    // プロトタイプ継承のないオブジェクトを使う。通常の {} だと "constructor" や
+    // "valueOf" のような単語（ユーザーがAI追加・CSVで登録しうる実在の英単語）で
+    // `word in cache` が常に true になり、Object.prototype のメソッドが
+    // 発音記号として返ってしまう。
+    memCache = Object.create(null);
     try {
-      memCache = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+      const parsed = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        Object.assign(memCache as object, parsed);
+      }
     } catch {
-      memCache = {};
+      // 破損データは無視して空のキャッシュから始める
     }
   }
   return memCache as Record<string, string | null>;

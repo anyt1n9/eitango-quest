@@ -272,6 +272,66 @@ export default function Dashboard({
 
   const shuffleArray = <T,>(arr: T[]): T[] => shuffle(arr);
 
+  // AI（単語追加・PDF抽出）が返す単語をアプリが扱える形に整える。
+  // 応答は必ずしもスキーマ通りではなく、そのまま保存すると次の不具合になる:
+  //  - level が "SENIOR" のように不正だと `w.level === level` にどれも一致せず、
+  //    追加した単語がどのレベルのクイズにも一度も出題されない（エラーも出ないので気づけない）
+  //  - options が配列でないと選択肢が0個の問題になり、その問題から先へ進めなくなる
+  // 不正な項目は既存単語から選択肢を作り直すなどして補い、
+  // 単語・訳が欠けているものだけ取り込み対象から外す。
+  const normalizeImportedWord = (raw: any, idPrefix: string, index: number, pool: Word[]): Word | null => {
+    const word = typeof raw?.word === "string" ? raw.word.trim() : "";
+    const translation = typeof raw?.translation === "string" ? raw.translation.trim() : "";
+    if (!word || !translation) return null;
+
+    const validLevels: Level[] = ["junior", "senior", "senior2", "senior3", "advanced"];
+    const level: Level = validLevels.includes(raw?.level) ? raw.level : "senior";
+
+    const strList = (v: any): string[] =>
+      Array.isArray(v) ? v.filter((x: any) => typeof x === "string" && x.trim() !== "") : [];
+
+    // 四択は「正解を必ず含む4件以上」を保証する
+    let options = strList(raw?.options);
+    if (!options.includes(translation)) options = [translation, ...options];
+    if (options.length < 4) {
+      const jpPool = pool.filter(w => w.level === level).map(w => w.translation);
+      options = shuffleArray([translation, ...getCsvDistractors(jpPool, translation, 3)]);
+    }
+
+    let sentenceOptions = strList(raw?.sentenceOptions);
+    if (!sentenceOptions.includes(word)) sentenceOptions = [word, ...sentenceOptions];
+    if (sentenceOptions.length < 4) {
+      const enPool = pool.filter(w => w.level === level).map(w => w.word);
+      sentenceOptions = shuffleArray([word, ...getCsvDistractors(enPool, word, 3)]);
+    }
+
+    let sentence = typeof raw?.sentence === "string" ? raw.sentence.trim() : "";
+    let sentenceTranslation = typeof raw?.sentenceTranslation === "string" ? raw.sentenceTranslation.trim() : "";
+    if (!sentence) {
+      sentence = `I want to study [_____] today.`;
+      sentenceTranslation = `私は今日、[_____]を勉強したいです。`;
+    } else if (!sentence.includes("[_____]")) {
+      sentence = `${sentence} [_____]`;
+    }
+
+    const validPos = ["verb", "noun", "adjective", "adverb", "other"];
+    const id = typeof raw?.id === "string" && raw.id.trim() !== ""
+      ? raw.id
+      : `${idPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`;
+
+    return {
+      id,
+      word,
+      translation,
+      level,
+      options,
+      sentence,
+      sentenceTranslation,
+      sentenceOptions,
+      ...(validPos.includes(raw?.pos) ? { pos: raw.pos } : {})
+    };
+  };
+
   // CSVファイルの解析と単語追加
   const handleCsvUpload = (file: File) => {
     setCsvError("");
@@ -489,7 +549,11 @@ export default function Dashboard({
             throw new Error(data.error);
           }
 
-          const words: Word[] = data.words || [];
+          const rawWords: any[] = Array.isArray(data.words) ? data.words : [];
+          // AIの抽出結果を保存できる形に整える（不正なレベルや選択肢を補正する）
+          const words: Word[] = rawWords
+            .map((w, i) => normalizeImportedWord(w, "pdf", i, vocabulary))
+            .filter((w): w is Word => w !== null);
           if (words.length === 0) {
             throw new Error("PDFから学習用英単語をうまく抽出できませんでした。テキストが読み取れるドキュメントかご確認ください。");
           }
@@ -687,15 +751,21 @@ export default function Dashboard({
         throw new Error(data.error || "単語の追加に失敗しました。");
       }
       
+      // AIの応答を保存できる形に整える（不正なレベルや選択肢を補正する）
+      const newWordObject = normalizeImportedWord(data, "ai", 0, vocabulary);
+      if (!newWordObject) {
+        throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
+      }
+
       // 既存の単語と同じ英単語があれば重複追加を防ぐ
-      const isDuplicate = vocabulary.some(w => w.word.toLowerCase() === data.word.toLowerCase());
+      const isDuplicate = vocabulary.some(w => w.word.toLowerCase() === newWordObject.word.toLowerCase());
       if (isDuplicate) {
-        setAddingError(`「${data.word}」は既に登録されています！`);
+        setAddingError(`「${newWordObject.word}」は既に登録されています！`);
         setIsAdding(false);
         return;
       }
 
-      setVocabulary(prev => [...prev, data]);
+      setVocabulary(prev => [...prev, newWordObject]);
       setNewWord("");
       playAudio("bonus");
       
@@ -748,6 +818,10 @@ export default function Dashboard({
       if (!response.ok || data.error) {
         throw new Error(data.error || "アドバイスの取得に失敗しました。");
       }
+      // SimpleMarkdown は text.split() を呼ぶため、文字列でないと描画時に例外になる
+      if (typeof data.advice !== "string") {
+        throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
+      }
       setAdvice(data.advice);
       playAudio("bonus");
     } catch (err: any) {
@@ -782,7 +856,21 @@ export default function Dashboard({
       if (!response.ok || data.error) {
         throw new Error(data.error || "弱点分析の取得に失敗しました。");
       }
-      setWeaknessAnalysis(data);
+      // 描画側は partOfSpeechStats / topicStats / recommendations を無条件に map するため、
+      // AIの応答がスキーマ通りでないと描画中に例外が投げられ、画面が失われる。
+      // 足りない配列は空配列で補い、描画が壊れないようにする。
+      const toStats = (v: any): WeaknessStat[] =>
+        Array.isArray(v) ? v.filter(s => s && typeof s === "object") : [];
+      setWeaknessAnalysis({
+        summary: typeof data?.summary === "string" ? data.summary : "",
+        partOfSpeechStats: toStats(data?.partOfSpeechStats),
+        topicStats: toStats(data?.topicStats),
+        // 文字列以外が混ざると React が「Objects are not valid as a React child」で落ちる
+        recommendations: Array.isArray(data?.recommendations)
+          ? data.recommendations.filter((r: any) => typeof r === "string")
+          : [],
+        isFallback: !!data?.isFallback
+      });
       playAudio("bonus");
     } catch (err: any) {
       console.error(err);

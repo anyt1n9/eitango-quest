@@ -171,13 +171,21 @@ export default function AIDiary({
         throw new Error(payload.error || "日記を構築できませんでした。");
       }
 
+      // 描画側は diaryText.length や usedWords.map を無条件に呼ぶため、
+      // AIの応答がスキーマ通りでないと描画中に例外が投げられ、画面が失われる。
+      if (typeof payload.diaryText !== "string" || payload.diaryText.trim() === "") {
+        throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
+      }
+
       const newEntry: DiaryEntry = {
         id: "diary_" + Date.now(),
         date: new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" }),
-        title: payload.title || "My customized diary",
+        title: typeof payload.title === "string" ? payload.title : "My customized diary",
         diaryText: payload.diaryText,
-        diaryTranslation: payload.diaryTranslation,
-        usedWords: payload.usedWords || [],
+        diaryTranslation: typeof payload.diaryTranslation === "string" ? payload.diaryTranslation : "",
+        usedWords: Array.isArray(payload.usedWords)
+          ? payload.usedWords.filter((w: any) => typeof w === "string")
+          : [],
         isFallback: !!payload.isFallback
       };
 

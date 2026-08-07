@@ -36,6 +36,14 @@ type SortOption = "alphabetical-asc" | "alphabetical-desc" | "level-asc" | "leve
 // ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出）の判定
 const isCustomWordId = (id: string) => /^(ai_|csv_|pdf_)/.test(id);
 
+// AI分析結果のキャッシュ用キー。
+// 単語をそのままオブジェクトのキーにすると、"constructor" や "valueOf" のような
+// Object.prototype のプロパティ名と一致する実在の英単語（ユーザーがAI追加・CSV・PDFで
+// 登録しうる）で `cache[word]` が常に真を返してしまう。
+// その結果、取得処理が早期リターンして走らず、画面は「AIが展開中...」のまま
+// 永久に止まる。接頭辞を付けて衝突を避ける。
+const cacheKey = (word: string) => "w:" + word.trim().toLowerCase();
+
 // AIが生成したSVGを dangerouslySetInnerHTML で描画する前に必ず通す安全化フィルタ。
 // サーバー側でも無害化済みだが、フィックス以前に localStorage へ保存された古いデータや
 // キャッシュ改ざんに備えて、描画直前にもDOMベースで再度除去する（多層防御）。
@@ -100,7 +108,7 @@ export default function Dictionary({
 
   const handleFetchWordRelations = async (wordText: string, translationText?: string) => {
     const trimmed = wordText.trim();
-    const key = trimmed.toLowerCase();
+    const key = cacheKey(wordText);
     if (wordRelations[key] || relationsLoading[key]) return;
 
     setRelationsLoading(prev => ({ ...prev, [key]: true }));
@@ -118,7 +126,18 @@ export default function Dictionary({
         throw new Error(payload.error || "類義語・反意語を取得できませんでした。");
       }
 
-      setWordRelations(prev => ({ ...prev, [key]: payload }));
+      // 描画側は synonyms などを `xxx && xxx.length > 0` で確認してから map する。
+      // 文字列が入っていると length は通るが map で例外になり、画面が失われる。
+      const toList = (v: any) => (Array.isArray(v) ? v.filter(x => x != null) : []);
+      setWordRelations(prev => ({
+        ...prev,
+        [key]: {
+          ...payload,
+          synonyms: toList(payload?.synonyms),
+          antonyms: toList(payload?.antonyms),
+          collocations: toList(payload?.collocations)
+        }
+      }));
     } catch (err: any) {
       console.error(err);
       setRelationsError(prev => ({ ...prev, [key]: err.message || "通信または解析エラーが発生しました。" }));
@@ -129,7 +148,7 @@ export default function Dictionary({
 
   const handleFetchWordFrequency = async (wordText: string) => {
     const trimmed = wordText.trim();
-    const key = trimmed.toLowerCase();
+    const key = cacheKey(wordText);
     if (wordFrequencies[key] || frequencyLoading[key]) return;
 
     setFrequencyLoading(prev => ({ ...prev, [key]: true }));
@@ -160,7 +179,7 @@ export default function Dictionary({
   // 画像が存在しない単語は何も表示しない。
   const handleFetchWordImage = async (wordText: string) => {
     const trimmed = wordText.trim();
-    const key = trimmed.toLowerCase();
+    const key = cacheKey(wordText);
     if (wordImages[key] || imageLoading[key]) return;
 
     setImageLoading(prev => ({ ...prev, [key]: true }));
@@ -646,7 +665,7 @@ export default function Dictionary({
                           </div>
 
                           {/* 右側: 概念ビジュアルイメージ（手作り画像がある単語のみ表示。AI生成・再生成なし） */}
-                          {wordImages[word.word.trim().toLowerCase()] && (
+                          {wordImages[cacheKey(word.word)] && (
                             <div className="md:col-span-4 flex flex-col justify-between">
                               <div className="border border-indigo-100 rounded-2xl overflow-hidden bg-white shadow-3xs p-3.5 flex flex-col h-full items-center justify-center min-h-[165px] relative">
                                 {/* ヘッダー */}
@@ -664,7 +683,7 @@ export default function Dictionary({
                                 <div className="w-full flex flex-col items-center justify-center">
                                   <div
                                     className="w-full max-w-[120px] aspect-square shadow-xs rounded-xl overflow-hidden border border-indigo-50 flex items-center justify-center bg-gray-50 select-none"
-                                    dangerouslySetInnerHTML={{ __html: sanitizeSvgForRender(wordImages[word.word.trim().toLowerCase()]) }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeSvgForRender(wordImages[cacheKey(word.word)]) }}
                                   />
                                 </div>
                               </div>
@@ -687,19 +706,19 @@ export default function Dictionary({
 
                           {/* コンテンツエリア */}
                           <div className="p-4 space-y-4">
-                            {frequencyLoading[word.word.trim().toLowerCase()] ? (
+                            {frequencyLoading[cacheKey(word.word)] ? (
                               <div className="flex flex-col items-center justify-center py-6 space-y-2">
                                 <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
                                 <p className="text-[11px] font-black text-indigo-600">AIが使われ方の統計情報を展開中...</p>
                               </div>
-                            ) : frequencyError[word.word.trim().toLowerCase()] ? (
+                            ) : frequencyError[cacheKey(word.word)] ? (
                               <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-2.5">
                                 <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                                 <div className="space-y-1">
                                   <p className="text-[11px] font-extrabold text-rose-800">
                                     頻度データの取得に失敗しました。
                                   </p>
-                                  <p className="text-[10px] text-rose-600 font-semibold">{frequencyError[word.word.trim().toLowerCase()]}</p>
+                                  <p className="text-[10px] text-rose-600 font-semibold">{frequencyError[cacheKey(word.word)]}</p>
                                   <button
                                     onClick={() => handleFetchWordFrequency(word.word)}
                                     className="px-2.5 py-1 bg-white hover:bg-rose-100 border border-rose-250 text-rose-700 text-[10px] font-bold rounded-lg transition"
@@ -708,9 +727,9 @@ export default function Dictionary({
                                   </button>
                                 </div>
                               </div>
-                            ) : wordFrequencies[word.word.trim().toLowerCase()] ? (
+                            ) : wordFrequencies[cacheKey(word.word)] ? (
                               (() => {
-                                const freqData = wordFrequencies[word.word.trim().toLowerCase()];
+                                const freqData = wordFrequencies[cacheKey(word.word)];
                                 const { frequencies, overallComment, usageExamples } = freqData;
 
                                 return (
@@ -896,7 +915,7 @@ export default function Dictionary({
                           </div>
                           <div className="p-4">
                             {(() => {
-                              const relKey = word.word.trim().toLowerCase();
+                              const relKey = cacheKey(word.word);
                               const relData = wordRelations[relKey];
                               if (relationsLoading[relKey]) {
                                 return (
