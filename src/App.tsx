@@ -9,6 +9,7 @@ import { initialVocabulary } from "./data/vocabulary";
 import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
 import SentenceQuiz from "./components/SentenceQuiz";
+import SpellingQuiz from "./components/SpellingQuiz";
 import ReviewList from "./components/ReviewList";
 import Dictionary from "./components/Dictionary";
 import Reading from "./components/Reading";
@@ -209,7 +210,7 @@ export default function App() {
 
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -226,10 +227,19 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [currentScreen]);
 
-  const handleStartQuiz = (level: Level, type: "word" | "sentence" | "listening", count: number = 10) => {
+  const handleStartQuiz = (
+    level: Level,
+    type: "word" | "sentence" | "listening" | "spelling",
+    count: number = 10
+  ) => {
     setSelectedLevel(level);
     setQuizQuestionCount(count);
-    setCurrentScreen(type === "word" ? "quiz" : type === "listening" ? "listening_quiz" : "sentence_quiz");
+    setCurrentScreen(
+      type === "word" ? "quiz"
+        : type === "listening" ? "listening_quiz"
+        : type === "spelling" ? "spelling_quiz"
+        : "sentence_quiz"
+    );
   };
 
   const handleBackToDashboard = () => {
@@ -290,6 +300,7 @@ export default function App() {
     currentScreen === "quiz" ||
     currentScreen === "sentence_quiz" ||
     currentScreen === "listening_quiz" ||
+    currentScreen === "spelling_quiz" ||
     currentScreen === "review" ||
     currentScreen === "srs_review";
 
@@ -487,6 +498,7 @@ export default function App() {
             vocabulary={vocabulary}
             setVocabulary={setVocabulary}
             solvedHistory={solvedHistory}
+            srsData={srsData}
             wrongWords={wrongWords}
             onStartQuiz={handleStartQuiz}
             onStartReview={() => setCurrentScreen("review")}
@@ -513,6 +525,7 @@ export default function App() {
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
+            srsData={srsData}
             recordAnswer={recordAnswer}
           />
         )}
@@ -530,6 +543,7 @@ export default function App() {
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             listeningMode={true}
+            srsData={srsData}
             recordAnswer={recordAnswer}
           />
         )}
@@ -545,6 +559,24 @@ export default function App() {
             setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
+            srsData={srsData}
+            recordAnswer={recordAnswer}
+          />
+        )}
+
+        {currentScreen === "spelling_quiz" && (
+          <SpellingQuiz
+            level={selectedLevel}
+            vocabulary={vocabulary}
+            wrongWords={wrongWords}
+            setWrongWords={setWrongWords}
+            solvedHistory={solvedHistory}
+            setSolvedHistory={setSolvedHistory}
+            setStats={setStats}
+            onBackToDashboard={handleBackToDashboard}
+            updateRankingScore={updateRankingScore}
+            questionCount={quizQuestionCount}
+            srsData={srsData}
             recordAnswer={recordAnswer}
           />
         )}
@@ -568,6 +600,7 @@ export default function App() {
             vocabulary={vocabulary}
             wrongWords={wrongWords}
             solvedHistory={solvedHistory}
+            srsData={srsData}
             onBackToDashboard={handleBackToDashboard}
           />
         )}
@@ -594,6 +627,7 @@ export default function App() {
           <AIDiary
             vocabulary={vocabulary}
             solvedHistory={solvedHistory}
+            srsData={srsData}
             setSolvedHistory={setSolvedHistory}
             onBackToDashboard={handleBackToDashboard}
           />

@@ -30,7 +30,8 @@ import {
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
 import SimpleMarkdown from "./SimpleMarkdown";
-import { todayStr } from "../srs";
+import { todayStr, SrsState } from "../srs";
+import { isMastered, countMastered } from "../mastery";
 import { initialVocabulary } from "../data/vocabulary";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
@@ -127,8 +128,9 @@ interface DashboardProps {
   vocabulary: Word[];
   setVocabulary: React.Dispatch<React.SetStateAction<Word[]>>;
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
+  srsData: Record<string, SrsState>;
   wrongWords: string[];
-  onStartQuiz: (level: Level, type: "word" | "sentence" | "listening", count?: number) => void;
+  onStartQuiz: (level: Level, type: "word" | "sentence" | "listening" | "spelling", count?: number) => void;
   onStartReview: () => void;
   onOpenDictionary: () => void;
   onStartReading: () => void;
@@ -146,6 +148,7 @@ export default function Dashboard({
   vocabulary,
   setVocabulary,
   solvedHistory,
+  srsData,
   wrongWords,
   onStartQuiz,
   onStartReview,
@@ -674,11 +677,15 @@ export default function Dashboard({
     const levelWords = vocabulary.filter(w => w.level === level);
     const total = levelWords.length;
     const completed = levelWords.filter(w => solvedHistory[w.id] && solvedHistory[w.id].attemptCount > 0).length;
-    const correct = levelWords.filter(w => solvedHistory[w.id] && solvedHistory[w.id].correctCount > 0).length;
+    // 習得済み＝間隔反復のボックス2以上（1回の偶然の正解では到達しない）
+    const correct = levelWords.filter(w => isMastered(w.id, solvedHistory, srsData)).length;
     const masterRate = total > 0 ? Math.round((correct / total) * 100) : 0;
     
     return { total, completed, correct, masterRate };
   };
+
+  // AI英語日記の解放判定に使う習得語数
+  const masteredTotal = countMastered(vocabulary.map(w => w.id), solvedHistory, srsData);
 
   const juniorStats = getLevelCounts("junior");
   const seniorStats = getLevelCounts("senior");
@@ -1058,7 +1065,7 @@ export default function Dashboard({
               <div>
                 <h3 className="font-extrabold text-base flex items-center gap-2">
                   <span>AI 英語日記 (AI English Journal)</span>
-                  {Object.values(solvedHistory).filter(h => h.correctCount > 0).length >= 200 ? (
+                  {masteredTotal >= 200 ? (
                     <span className="bg-emerald-400 text-slate-900 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-bounce">解放済み (Unlocked)</span>
                   ) : (
                     <span className="bg-white/20 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">習得200語で解放</span>
@@ -1066,7 +1073,7 @@ export default function Dashboard({
                 </h3>
                 <p className="text-amber-50 text-xs mt-1 max-w-xl font-medium leading-relaxed leading-normal">
                   あなたが単語テストや穴埋め問題で完璧に覚えた英単語をふんだんに使用して、AIがオシャレな200〜400文字の「英語日記」を全自動で書き下ろします。実践的なアウトプット学習に最適です！
-                  <span className="block mt-1 font-mono text-[10px] text-amber-200 font-extrabold">現在の習得数: {Object.values(solvedHistory).filter(h => h.correctCount > 0).length} / 200 単語</span>
+                  <span className="block mt-1 font-mono text-[10px] text-amber-200 font-extrabold">現在の習得数: {masteredTotal} / 200 単語</span>
                 </p>
               </div>
             </div>
@@ -1080,7 +1087,7 @@ export default function Dashboard({
               className="bg-[#ffffff] hover:bg-[#f3f4f6] text-[#0f172a] text-xs font-black px-4.5 py-2.5 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
               id="dashboard_open_diary_btn"
             >
-              <span>{Object.values(solvedHistory).filter(h => h.correctCount > 0).length >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}</span>
+              <span>{masteredTotal >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}</span>
             </button>
           </div>
 
@@ -1168,6 +1175,13 @@ export default function Dashboard({
                 >
                   🎧 リスニングを解く
                 </button>
+                <button
+                  onClick={() => onStartQuiz("junior", "spelling")}
+                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  id="btn_junior_spelling"
+                >
+                  ✏️ 綴りを書く
+                </button>
               </div>
             </div>
 
@@ -1227,6 +1241,13 @@ export default function Dashboard({
                   id="btn_senior_listening"
                 >
                   🎧 リスニングを解く
+                </button>
+                <button
+                  onClick={() => onStartQuiz("senior", "spelling")}
+                  className="w-full bg-emerald-50 text-emerald-700 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
+                  id="btn_senior_spelling"
+                >
+                  ✏️ 綴りを書く
                 </button>
               </div>
             </div>
@@ -1288,6 +1309,13 @@ export default function Dashboard({
                 >
                   🎧 リスニングを解く
                 </button>
+                <button
+                  onClick={() => onStartQuiz("senior2", "spelling")}
+                  className="w-full bg-purple-50 text-purple-700 font-bold py-2.5 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
+                  id="btn_senior2_spelling"
+                >
+                  ✏️ 綴りを書く
+                </button>
               </div>
             </div>
 
@@ -1348,6 +1376,13 @@ export default function Dashboard({
                 >
                   🎧 リスニングを解く
                 </button>
+                <button
+                  onClick={() => onStartQuiz("senior3", "spelling")}
+                  className="w-full bg-pink-50 text-pink-700 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
+                  id="btn_senior3_spelling"
+                >
+                  ✏️ 綴りを書く
+                </button>
               </div>
             </div>
 
@@ -1407,6 +1442,13 @@ export default function Dashboard({
                   id="btn_advanced_listening"
                 >
                   🎧 リスニングを解く
+                </button>
+                <button
+                  onClick={() => onStartQuiz("advanced", "spelling")}
+                  className="w-full bg-amber-50 text-amber-700 font-bold py-2.5 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
+                  id="btn_advanced_spelling"
+                >
+                  ✏️ 綴りを書く
                 </button>
               </div>
             </div>

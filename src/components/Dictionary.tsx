@@ -22,11 +22,14 @@ import {
 import { Word, Level } from "../types";
 import Phonetic from "./Phonetic";
 import { getWordPosLabel } from "../pos";
+import { SrsState } from "../srs";
+import { isMastered } from "../mastery";
 
 interface DictionaryProps {
   vocabulary: Word[];
   wrongWords: string[];
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
+  srsData: Record<string, SrsState>;
   onBackToDashboard: () => void;
 }
 
@@ -90,6 +93,7 @@ export default function Dictionary({
   vocabulary,
   wrongWords,
   solvedHistory,
+  srsData,
   onBackToDashboard
 }: DictionaryProps) {
   // AI単語使用頻度の情報キャッシュ
@@ -251,6 +255,12 @@ export default function Dictionary({
   // O(単語数 × 苦手単語数) の走査が毎レンダー発生するため Set にする。
   const wrongWordSet = useMemo(() => new Set(wrongWords), [wrongWords]);
 
+  // 習得済み語数（間隔反復のボックス2以上）
+  const masteredCount = useMemo(
+    () => vocabulary.filter(w => isMastered(w.id, solvedHistory, srsData)).length,
+    [vocabulary, solvedHistory, srsData]
+  );
+
   // 4. データ処理（絞り込み・検索・並べ替え）
   const processedVocabulary = useMemo(() => {
     let result = [...vocabulary];
@@ -399,7 +409,7 @@ export default function Dictionary({
           <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 px-4 shadow-2xs">
             <span className="text-[10px] text-emerald-400 font-black tracking-wider block uppercase">習得済み単語</span>
             <span className="font-black text-xl text-emerald-950 font-mono">
-              {vocabulary.filter(w => solvedHistory[w.id] && solvedHistory[w.id].correctCount > 0).length}
+              {masteredCount}
             </span>
             <span className="text-xs text-emerald-400 font-bold ml-1">語</span>
           </div>
@@ -532,7 +542,7 @@ export default function Dictionary({
             // クイズ習熟度状況判定
             const history = solvedHistory[word.id];
             const isWrong = wrongWordSet.has(word.id);
-            const isCompleted = history && history.correctCount > 0;
+            const isCompleted = isMastered(word.id, solvedHistory, srsData);
             const attemptCount = history ? history.attemptCount : 0;
 
             let statusBadge = null;

@@ -5,6 +5,8 @@ import { Level, Word, UserStats, QuizHistory } from "../types";
 import Phonetic from "./Phonetic";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
+import { SrsState } from "../srs";
+import { selectQuizWords } from "../selectQuestions";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
 const playQuizSound = (isCorrect: boolean) => {
@@ -58,6 +60,8 @@ interface QuizProps {
   reviewMode?: boolean;
   // リスニングモード: 単語の綴りを隠し、音声だけを聞いて意味を答える
   listeningMode?: boolean;
+  // 出題の重み付け（復習期日超過・未習を優先）に使う
+  srsData?: Record<string, SrsState>;
   // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
   recordAnswer?: (wordId: string, isCorrect: boolean) => void;
 }
@@ -76,6 +80,7 @@ export default function Quiz({
   customWords,
   reviewMode = false,
   listeningMode = false,
+  srsData = {},
   recordAnswer
 }: QuizProps) {
   // レベルに合致する単語プールをシャッフルして10問抽出 (10問未満ならすべて)
@@ -121,9 +126,12 @@ export default function Quiz({
     const levelWords = (customWords && customWords.length > 0)
       ? customWords
       : vocabulary.filter(w => w.level === level);
-    const shuffled = shuffle(levelWords);
-    const limitNum = Math.min(questionCount, shuffled.length);
-    return shuffled.slice(0, limitNum).map(q => {
+    // 復習期日を過ぎた語・まだ解いていない語を優先して選ぶ
+    // （SRS復習セッションは既に対象が絞られているのでそのまま使う）
+    const picked = (customWords && customWords.length > 0)
+      ? shuffle(levelWords).slice(0, Math.min(questionCount, levelWords.length))
+      : selectQuizWords({ pool: levelWords, count: questionCount, solvedHistory, srsData });
+    return picked.map(q => {
       return {
         ...q,
         options: q.options ? shuffle(q.options) : []
