@@ -42,6 +42,16 @@ const FUNCTION_WORDS = new Set(words(`the a an and or but if because although th
   amidst notwithstanding aboard worth someone anyone everyone nobody something anything everything
   nothing whenever wherever whoever whatever nonetheless hence`));
 
+// 前置詞句・接続表現の見出し語の先頭に立つ語。
+// "in fact" "for example" "according to" のような見出しは、名詞や形容詞のスロットに
+// 差し込める語ではないため other として扱う（そうしないと訳語の語尾だけを見て
+// 「in addition = 追加として → 形容詞」と誤判定し、
+// "She looked in addition when she heard the news." のような非文の例文が作られる）。
+const PHRASE_HEADS = new Set(words(`in on at by for with of to from into onto upon about above across after
+  against along among around before behind below beneath beside between beyond during except inside outside
+  over since through throughout till toward towards under underneath until up within without out off
+  as such no not all according due thanks instead regardless apart aside because ahead`));
+
 // -ly で終わるが副詞ではない語。
 // これらは -ly の規則を適用せず、日本語訳から判定させる
 // （chilly=肌寒い→形容詞、butterfly=チョウ→名詞、multiply=掛ける→動詞）。
@@ -78,28 +88,42 @@ const U_DAN = /[うくぐすずつづぬふぶむる]$/;   // 日本語の動詞
 const NOMINALIZED = /(合い|戦い|行い|扱い|払い|思い|狙い|願い|争い|違い|使い|習い|誘い)$/;
 const HAS_KANJI = /[一-鿿]/;
 const ADJ_SUFFIX = /(ful|ous|ive|less|able|ible|ical)$/;
+const TEKI_NOUN = /(目的|標的|の的)$/;         // 「〜的」でも名詞になるもの
 
 /** 日本語訳と英語の綴りから品詞を推定する */
 export function inferPartOfSpeech(word: string, translation: string): PartOfSpeech {
   const lw = (word || "").trim().toLowerCase();
   if (FUNCTION_WORDS.has(lw)) return "other";
   // 「between A and B」のような文法パターンの見出し
-  if (/\b[AB]\b/.test(word || "") || lw.split(/\s+/).length >= 3) return "other";
+  const tokens = lw.split(/\s+/).filter(Boolean);
+  if (/\b[AB]\b/.test(word || "") || tokens.length >= 3) return "other";
+  // "in fact" "due to" のような前置詞句・接続表現（"give up" のような句動詞は先頭が
+  // 機能語ではないため、ここには当たらず動詞のまま残る）
+  if (tokens.length === 2 && PHRASE_HEADS.has(tokens[0])) return "other";
   if (/ly$/.test(lw) && lw.length > 4 && !NOT_ADVERB_LY.has(lw)) return "adverb";
 
-  // 括弧書きと先頭の「〜」「を」を取り除いてから判定する。
+  // 括弧書きと先頭の「〜」を取り除いてから判定する。
   // 「〜しよう（Let's 〜）」のように括弧で終わる語義をそのまま見ると、
   // ひらがな以外で終わるため名詞と誤判定してしまう。
+  // 先頭の「を」は他動詞の目印なので、落とす前に覚えておく。
   const senses = (translation || "")
     .split(/[、,，/／;；]/)
-    .map(s => s.replace(/[（(][^）)]*[）)]/g, "").replace(/^[〜～]/, "").replace(/^を/, "").trim())
+    .map(s => s.replace(/[（(][^）)]*[）)]/g, "").replace(/^[〜～]/, "").trim())
     .filter(Boolean);
 
-  const fromJapanese = (s: string): PartOfSpeech | null => {
+  const fromJapanese = (raw: string): PartOfSpeech | null => {
+    const isTransitive = /^を/.test(raw);
+    const s = raw.replace(/^を/, "").trim();
     if (!s) return null;
     if (/(すること|なこと)$/.test(s)) return "noun";
     if (/(する|される|させる)$/.test(s)) return "verb";
-    if (/的$/.test(s)) return "adjective";
+    // 「結果として」「前もって」は副詞句。下の「〜して」の規則より先に判定する
+    if (/(として|もって)$/.test(s)) return "adverb";
+    // 「を〜」で始まりう段で終わる語義は他動詞。
+    // 綴りの接尾辞より優先する（deceive「を欺く」を -ive だけ見て形容詞にしないため）
+    if (isTransitive && U_DAN.test(s)) return "verb";
+    // 「目的」「標的」「あこがれの的」は名詞。それ以外の「〜的」は形容詞
+    if (/的$/.test(s)) return TEKI_NOUN.test(s) ? "noun" : "adjective";
     // ひらがなで終わらない語義（漢字・カタカナ止め）は名詞: 図書館・企業・行為・スイカ
     if (!/[ぁ-ん]$/.test(s)) return "noun";
     if (NOMINALIZED.test(s)) return "noun";              // 行い・戦い（動詞の名詞化）

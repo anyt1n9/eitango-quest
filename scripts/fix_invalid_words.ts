@@ -6,8 +6,9 @@
  *   - 語尾の欠落: definit / distribut / implicat / diminut
  *   - 接尾辞の重複付与: disturbingal / ebullienceal / enervateal / disparateize / distantical
  *   - 単純な誤記: occation / abberation / dogmaticism / condiscent / coindex / validatement
+ *   - 制御文字の混入: `false（先頭にバッククォート）
  *
- * このうち9語は、正しい綴りの語がすでに収録されているため削除する。
+ * このうち10語は、正しい綴りの語がすでに収録されているため削除する。
  * 残り6語は正しい綴りへ直す（condiscent は訳も誤っていたため合わせて修正）。
  *
  * 実行: npx tsx scripts/fix_invalid_words.ts
@@ -26,6 +27,7 @@ const REMOVE = [
   "ebullienceal",  // ebullient が収録済み
   "coindex",       // coincide が収録済み
   "implicat",      // implication が収録済み
+  "`false",        // 先頭にバッククォートが混入した壊れた見出し。false が収録済み
 ];
 
 /** 正しい綴りが未収録のため、綴りを直して残す */
