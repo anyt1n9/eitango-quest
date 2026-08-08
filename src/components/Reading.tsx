@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Level, UserStats, RankingUser } from "../types";
 import { passages, Passage, PassageQuestion } from "../data/passages";
-import { shuffle } from "../shuffle";
+import { shuffleQuestion } from "../readingQuiz";
 import { readStoredArray } from "../storage";
 import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X } from "lucide-react";
 
@@ -49,12 +49,7 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
   // 長文を開いたとき、設問の選択肢をシャッフルして回答状態をリセットする
   useEffect(() => {
     if (selectedPassage?.questions && selectedPassage.questions.length > 0) {
-      const shuffled = selectedPassage.questions.map(q => {
-        const correctText = q.options[q.correctIndex];
-        const options = shuffle(q.options);
-        return { question: q.question, options, correctIndex: options.indexOf(correctText) };
-      });
-      setShuffledQuestions(shuffled);
+      setShuffledQuestions(selectedPassage.questions.map(shuffleQuestion));
     } else {
       setShuffledQuestions([]);
     }

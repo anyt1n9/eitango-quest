@@ -5,6 +5,7 @@ import { Level, Word, UserStats } from "../types";
 import { getAudioContext } from "../sound";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
+import { isSpellingCorrect, diffChars } from "../spelling";
 
 /**
  * 綴り入力クイズ。
@@ -41,20 +42,8 @@ const playSpellSound = (isCorrect: boolean) => {
   }
 };
 
-/** 綴りの一致判定。大文字小文字・前後の空白・複数スペースの違いは許容する */
-export function isSpellingCorrect(input: string, answer: string): boolean {
-  const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ").replace(/[’]/g, "'");
-  return norm(input) === norm(answer);
-}
-
-/** 入力と正解を1文字ずつ比べ、どこまで合っているかを返す（間違い箇所の可視化用） */
-export function diffChars(input: string, answer: string): { ch: string; ok: boolean }[] {
-  const a = input.trim();
-  return a.split("").map((ch, i) => ({
-    ch,
-    ok: (answer[i] || "").toLowerCase() === ch.toLowerCase()
-  }));
-}
+// 判定ロジックは src/spelling.ts に置いてある（テストから画面を読み込まずに検証するため）
+export { isSpellingCorrect, diffChars };
 
 interface SpellingQuizProps {
   level: Level;

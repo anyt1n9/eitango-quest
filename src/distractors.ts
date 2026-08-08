@@ -50,6 +50,15 @@ function lengthCloseness(a: string, b: string): number {
   return 1 / (1 + d);
 }
 
+/** 訳語を語義ごとに分解する（「風景，眺め」→ ["風景", "眺め"]） */
+function senses(translation: string): string[] {
+  return (translation || "")
+    .replace(/[（(][^）)]*[）)]/g, "")
+    .split(/[、,，/／;；]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 /**
  * 候補から誤答を選ぶ。
  * `mode` が "translation" なら日本語訳の四択、"word" なら英単語の四択。
@@ -66,15 +75,26 @@ export function pickDistractors(
   const correct = valueOf(target);
   const correctLower = correct.toLowerCase();
 
+  // 正解と語義が重なる語は誤答にできない（どちらも正解になってしまう）。
+  // 例: class「授業」に対する「授業、レッスン、教訓」、permit「を許可する」に対する
+  // 「を許可する，許す」など。紛らわしさを上げる過程で入り込みやすいため明示的に除く。
+  const correctSenses = new Set(senses(target.translation));
+  const sharesMeaning = (c: Candidate) => senses(c.translation).some(s => correctSenses.has(s));
+
   // 同じ品詞の語だけを候補にする（品詞での消去法を封じる）
   const samePos = candidates.filter(
-    c => c.pos === target.pos && valueOf(c).toLowerCase() !== correctLower && valueOf(c).trim() !== ""
+    c =>
+      c.pos === target.pos &&
+      valueOf(c).toLowerCase() !== correctLower &&
+      valueOf(c).trim() !== "" &&
+      !sharesMeaning(c)
   );
   // 同じレベルを優先し、足りなければ品詞のみ一致の語で補う
   const sameLevel = samePos.filter(c => c.level === target.level);
   const primary = sameLevel.length >= count * 4 ? sameLevel : samePos;
+  // 品詞が一致する候補が足りないときの最終手段。ここでも語義の重複だけは避ける
   const pool = primary.length >= count ? primary : candidates.filter(
-    c => valueOf(c).toLowerCase() !== correctLower && valueOf(c).trim() !== ""
+    c => valueOf(c).toLowerCase() !== correctLower && valueOf(c).trim() !== "" && !sharesMeaning(c)
   );
   if (pool.length === 0) return [];
 
