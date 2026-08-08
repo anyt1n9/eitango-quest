@@ -12,6 +12,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 検証しかしないジョブなので、GITHUB_TOKEN は読み取りだけに絞る
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: 型検査・テスト・ビルド
