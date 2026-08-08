@@ -21,6 +21,7 @@ import AdBanner from "./components/AdBanner";
 import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject } from "./storage";
+import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift } from "lucide-react";
 
 // 初期収録単語のIDセット（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使用）
@@ -78,6 +79,27 @@ export default function App() {
     const withMe = DEFAULT_RANKING.map(u => u.isMe ? { ...u, score: statsScore } : u);
     return withMe.sort((a, b) => b.score - a.score);
   });
+
+  // ランキングのCPUを最後に成長させた日（YYYY-MM-DD）
+  const [rivalGrowthDate, setRivalGrowthDate] = useState<string>(
+    () => localStorage.getItem("quest_rival_growth_date") || todayStr()
+  );
+
+  // 起動時に、前回からの経過日数ぶんCPUのスコアを伸ばす。
+  // 固定値のままだと、一度追い抜いた後は順位が永久に動かなくなるため。
+  useEffect(() => {
+    const today = todayStr();
+    if (rivalGrowthDate === today) return;
+    setRanking(prev => {
+      const { ranking: grown, updated } = growRivals(prev, rivalGrowthDate, today);
+      return updated ? grown : prev;
+    });
+    setRivalGrowthDate(today);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("quest_rival_growth_date", rivalGrowthDate);
+  }, [rivalGrowthDate]);
 
   // テーマ切り替え (ダークモード用)
   const [isDark, setIsDark] = useState<boolean>(() => {

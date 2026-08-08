@@ -42,10 +42,14 @@ const FUNCTION_WORDS = new Set(words(`the a an and or but if because although th
   amidst notwithstanding aboard worth someone anyone everyone nobody something anything everything
   nothing whenever wherever whoever whatever nonetheless hence`));
 
-// -ly で終わるが副詞ではない語
+// -ly で終わるが副詞ではない語。
+// これらは -ly の規則を適用せず、日本語訳から判定させる
+// （chilly=肌寒い→形容詞、butterfly=チョウ→名詞、multiply=掛ける→動詞）。
 const NOT_ADVERB_LY = new Set(words(`family reply supply apply july italy assembly ally monopoly belly jelly
   rally folly bully holly anomaly friendly lovely lonely likely unlikely ugly silly daily weekly monthly
-  yearly early elderly costly deadly lively orderly timely leisurely`));
+  yearly early elderly costly deadly lively orderly timely leisurely
+  comply imply rely multiply biweekly chilly butterfly dragonfly firefly curly heavenly ghostly
+  melancholy scholarly stately homely burly surly wobbly cuddly prickly crumbly`));
 
 // 訳語では判定できない語の補助辞書
 const HINT: Record<string, PartOfSpeech> = {};
