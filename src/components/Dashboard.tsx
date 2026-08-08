@@ -28,14 +28,15 @@ import {
   Check,
   HelpCircle
 } from "lucide-react";
-import { Level, Word, UserStats, RankingUser } from "../types";
+import { Level, Word, UserStats, RankingUser, PartOfSpeech } from "../types";
 import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr, SrsState } from "../srs";
 import { isMastered, countMastered } from "../mastery";
+import { pickDistractors, Candidate } from "../distractors";
 import { initialVocabulary } from "../data/vocabulary";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
-import { getWordPos } from "../pos";
+import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
 
 interface WeaknessStat {
@@ -247,30 +248,24 @@ export default function Dashboard({
     return lines.filter(r => r.length > 0 && r.some(c => c !== ''));
   };
 
-  // 誤選択肢用のダミーワード抽出
-  const getCsvDistractors = (pool: string[], correct: string, count = 3): string[] => {
-    const res: string[] = [];
-    const filteredPool = pool.filter(x => x && x.toLowerCase() !== correct.toLowerCase());
-    const uniquePool = Array.from(new Set(filteredPool));
-    
-    const size = uniquePool.length;
-    if (size === 0) {
-      return [correct, correct, correct];
-    }
-
-    const seen = new Set<string>();
-    while (res.length < count && seen.size < size) {
-      const idx = Math.floor(Math.random() * size);
-      const val = uniquePool[idx];
-      if (!seen.has(val)) {
-        seen.add(val);
-        res.push(val);
-      }
-    }
-    while (res.length < count) {
-      res.push(uniquePool[Math.floor(Math.random() * size)] || correct);
-    }
-    return res;
+  // 誤選択肢（ディストラクター）の抽出。
+  // 収録語と同じく「同じ品詞・同じレベルで、表記の近い語」から選ぶ。
+  // 以前は同レベルからのランダム抽出で、品詞すら揃っていなかったため
+  // 意味を知らなくても消去法で正解できてしまっていた。
+  const buildDistractors = (
+    target: { word: string; translation: string; level: Level; pos: PartOfSpeech },
+    mode: "translation" | "word",
+    count = 3
+  ): string[] => {
+    const candidates: Candidate[] = vocabulary.map(w => ({
+      word: w.word,
+      translation: w.translation,
+      level: w.level,
+      pos: getWordPos(w)
+    }));
+    const picked = pickDistractors(target as Candidate, candidates, count, mode);
+    // 候補が足りない場合は正解で埋めず、取れた分だけ返す（呼び出し側で長さを確認する）
+    return picked;
   };
 
   const shuffleArray = <T,>(arr: T[]): T[] => shuffle(arr);
@@ -293,19 +288,25 @@ export default function Dashboard({
     const strList = (v: any): string[] =>
       Array.isArray(v) ? v.filter((x: any) => typeof x === "string" && x.trim() !== "") : [];
 
+    const validPos = ["verb", "noun", "adjective", "adverb", "other"];
+    // 誤選択肢を同じ品詞から選ぶために品詞を確定させる
+    const pos: PartOfSpeech = validPos.includes(raw?.pos)
+      ? raw.pos
+      : inferPartOfSpeech(word, translation);
+
     // 四択は「正解を必ず含む4件以上」を保証する
     let options = strList(raw?.options);
     if (!options.includes(translation)) options = [translation, ...options];
     if (options.length < 4) {
-      const jpPool = pool.filter(w => w.level === level).map(w => w.translation);
-      options = shuffleArray([translation, ...getCsvDistractors(jpPool, translation, 3)]);
+      const d = buildDistractors({ word, translation, level, pos }, "translation", 3);
+      options = shuffleArray([translation, ...d]);
     }
 
     let sentenceOptions = strList(raw?.sentenceOptions);
     if (!sentenceOptions.includes(word)) sentenceOptions = [word, ...sentenceOptions];
     if (sentenceOptions.length < 4) {
-      const enPool = pool.filter(w => w.level === level).map(w => w.word);
-      sentenceOptions = shuffleArray([word, ...getCsvDistractors(enPool, word, 3)]);
+      const d = buildDistractors({ word, translation, level, pos }, "word", 3);
+      sentenceOptions = shuffleArray([word, ...d]);
     }
 
     let sentence = typeof raw?.sentence === "string" ? raw.sentence.trim() : "";
@@ -317,7 +318,6 @@ export default function Dashboard({
       sentence = `${sentence} [_____]`;
     }
 
-    const validPos = ["verb", "noun", "adjective", "adverb", "other"];
     const id = typeof raw?.id === "string" && raw.id.trim() !== ""
       ? raw.id
       : `${idPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`;
@@ -331,7 +331,7 @@ export default function Dashboard({
       sentence,
       sentenceTranslation,
       sentenceOptions,
-      ...(validPos.includes(raw?.pos) ? { pos: raw.pos } : {})
+      pos
     };
   };
 
@@ -413,13 +413,15 @@ export default function Dashboard({
             }
           }
 
-          const jpPool = tempVocabulary.filter(w => w.level === level).map(w => w.translation);
-          const jpDistractors = getCsvDistractors(jpPool, rawTranslation, 3);
-          const options = shuffleArray([rawTranslation, ...jpDistractors]);
-
-          const enPool = tempVocabulary.filter(w => w.level === level).map(w => w.word);
-          const enDistractors = getCsvDistractors(enPool, rawWord, 3);
-          const sentenceOptions = shuffleArray([rawWord, ...enDistractors]);
+          const csvPos = inferPartOfSpeech(rawWord, rawTranslation);
+          const options = shuffleArray([
+            rawTranslation,
+            ...buildDistractors({ word: rawWord, translation: rawTranslation, level, pos: csvPos }, "translation", 3)
+          ]);
+          const sentenceOptions = shuffleArray([
+            rawWord,
+            ...buildDistractors({ word: rawWord, translation: rawTranslation, level, pos: csvPos }, "word", 3)
+          ]);
 
           const wordObject: Word = {
             id: `csv_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${i}`,

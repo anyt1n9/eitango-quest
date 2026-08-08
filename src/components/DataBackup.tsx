@@ -8,6 +8,7 @@ const BACKUP_KEYS = [
   "quest_wrong_words",
   "quest_solved_history",
   "quest_ranking_score",
+  "quest_rival_growth_date",
   "quest_srs",
   "quest_daily_progress",
   "quest_daily_goal",
