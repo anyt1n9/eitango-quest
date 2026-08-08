@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Word } from "../types";
 import { getAudioContext } from "../sound";
+import { SrsState } from "../srs";
+import { isMastered } from "../mastery";
 
 // 簡単なクリック/ファンファーレ音効果
 const playLocalSound = (type: "unlock" | "sparkle") => {
@@ -69,6 +71,7 @@ interface DiaryEntry {
 interface AIDiaryProps {
   vocabulary: Word[];
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
+  srsData: Record<string, SrsState>;
   setSolvedHistory: React.Dispatch<React.SetStateAction<Record<string, { correctCount: number; attemptCount: number }>>>;
   onBackToDashboard: () => void;
 }
@@ -76,13 +79,12 @@ interface AIDiaryProps {
 export default function AIDiary({
   vocabulary,
   solvedHistory,
+  srsData,
   setSolvedHistory,
   onBackToDashboard
 }: AIDiaryProps) {
-  // 現在マスターした単語の全オブジェクト
-  const masteredWords = vocabulary.filter(
-    w => solvedHistory[w.id] && solvedHistory[w.id].correctCount > 0
-  );
+  // 現在マスターした単語の全オブジェクト（間隔反復のボックス2以上を習得済みとする）
+  const masteredWords = vocabulary.filter(w => isMastered(w.id, solvedHistory, srsData));
 
   const masteredCount = masteredWords.length;
   const isUnlocked = masteredCount >= 200;

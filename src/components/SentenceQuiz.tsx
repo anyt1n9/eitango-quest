@@ -4,6 +4,8 @@ import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Eye, EyeOff, L
 import { Level, Word, UserStats } from "../types";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
+import { SrsState } from "../srs";
+import { selectQuizWords } from "../selectQuestions";
 
 // クイズ回答時の効果音（シンセ）
 const playSentenceSound = (isCorrect: boolean) => {
@@ -48,6 +50,8 @@ interface SentenceQuizProps {
   setStats: React.Dispatch<React.SetStateAction<UserStats>>;
   onBackToDashboard: () => void;
   updateRankingScore: (points: number) => void;
+  // 出題の重み付け（復習期日超過・未習を優先）に使う
+  srsData?: Record<string, SrsState>;
   // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
   recordAnswer?: (wordId: string, isCorrect: boolean) => void;
 }
@@ -62,6 +66,7 @@ export default function SentenceQuiz({
   setStats,
   onBackToDashboard,
   updateRankingScore,
+  srsData = {},
   recordAnswer
 }: SentenceQuizProps) {
   const [questions, setQuestions] = useState<Word[]>([]);
@@ -117,9 +122,9 @@ export default function SentenceQuiz({
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
     const levelWords = vocabulary.filter(w => w.level === level);
-    const shuffled = shuffle(levelWords);
-    const limitNum = Math.min(10, shuffled.length);
-    return shuffled.slice(0, limitNum).map(q => {
+    // 復習期日を過ぎた語・まだ解いていない語を優先して選ぶ
+    const picked = selectQuizWords({ pool: levelWords, count: 10, solvedHistory, srsData });
+    return picked.map(q => {
       return {
         ...q,
         sentence: toFillInSentence(q.sentence, q.word),
