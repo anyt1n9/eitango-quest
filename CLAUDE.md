@@ -11,6 +11,8 @@ npm run build   # vite build + server.ts のバンドル
 ```
 
 コードを変更したら、コミット前に上記3つを通すこと。
+同じ3つをプルリクエストと main への push で GitHub Actions が実行する
+（`.github/workflows/ci.yml`）。
 
 ## テスト
 
