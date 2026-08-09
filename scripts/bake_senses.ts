@@ -151,6 +151,7 @@ export function parseSenses(body: string): RawSense[] {
     const important = /『/.test(raw);
     const meaning = raw
       .replace(/《[^》]*》/g, "")            // 用法注記（+『up』+『名』など）
+      .replace(/\[[^\]]*\]/g, "")            // 出典・語源の注記（[photographの短縮形] など）
       .replace(/〈[CU]〉/g, "")              // 可算・不可算の印
       .replace(/[『』]/g, "")                // 重要語義の囲み
       .replace(/\([a-zA-Z][^)]*\)/g, "")     // 英語の言い換え (brightness) など
@@ -158,13 +159,69 @@ export function parseSenses(body: string): RawSense[] {
       .replace(/^[;,、，･・]+|[;,、，･・]+$/g, "")
       .trim();
     if (!meaning) return;
-    // 「leaveの過去・過去分詞」のような活用の相互参照は語義ではないので除く
-    if (/(の(過去|過去分詞|複数形|比較級|最上級|現在分詞|三人称)|の別形|の短縮形)/.test(meaning)) return;
+    // 「leaveの過去・過去分詞」のように、語義ではなく活用を指しているだけの項目は除く。
+    // 注記を落とした後の全体がその形になっているものだけが対象で、
+    // 「写真[photographの短縮形]」のように意味を持つものは残す
+    // 「bear(実をつける)の過去形」のように語義の補足が挟まる形もある
+    if (/^[a-zA-Z]+([（(][^）)]*[）)])?の(過去|過去分詞|複数形|比較級|最上級|現在分詞|三人称|別形|短縮形)/.test(meaning)) return;
     // 「=enshrine」のような別見出しへの参照や、日本語を含まない項目も語義ではない
     if (/^=/.test(meaning) || !/[ぁ-んァ-ヶ一-鿿]/.test(meaning)) return;
     out.push({ meaning, important, order });
   });
   return out;
+}
+
+/**
+ * 「=bicycle」のように別の見出しを指しているだけの項目から、参照先を取り出す。
+ * bike / meanwhile / anyway などがこの形で、そのままでは語義が1つも取れない。
+ */
+export function referencedWords(body: string): string[] {
+  const out: string[] = [];
+  for (const raw of body.split(" / ")) {
+    const m = raw.trim().replace(/[『』]/g, "").match(/^=\s*([a-zA-Z][a-zA-Z' -]*)/);
+    if (m) out.push(m[1].trim().toLowerCase());
+  }
+  return out;
+}
+
+/**
+ * 派生語から基本形の候補を作る。
+ *
+ * politely / environmentally / scared / sustainable のような語は辞書に見出しが無く、
+ * そのままでは語義を出せない。基本形（polite / environmental / scare / sustain）を
+ * 引ければ「その語がどこから来たか」を示せる。
+ * 綴りの戻し方は一意に決まらないため候補を並べ、辞書に載っている最初のものを使う。
+ */
+export function baseFormCandidates(word: string): string[] {
+  const w = word.trim().toLowerCase();
+  const out: string[] = [];
+  const push = (...xs: string[]) => xs.forEach(x => { if (x.length >= 3 && x !== w) out.push(x); });
+
+  if (/ally$/.test(w)) push(w.slice(0, -2), w.slice(0, -4));          // environmentally → environmental / environment
+  if (/ily$/.test(w)) push(w.slice(0, -3) + "y");                     // happily → happy
+  if (/ly$/.test(w)) push(w.slice(0, -2));                            // politely → polite
+  if (/ied$/.test(w)) push(w.slice(0, -3) + "y");                     // studied → study
+  if (/ed$/.test(w)) push(w.slice(0, -1), w.slice(0, -2));            // scared → scare / scar
+  if (/ing$/.test(w)) push(w.slice(0, -3) + "e", w.slice(0, -3));     // caring → care / cook
+  if (/(ed|ing)$/.test(w)) {
+    // stopped → stop、running → run（子音を重ねた形を戻す）
+    const stem = w.replace(/(ed|ing)$/, "");
+    if (stem.length >= 4 && stem[stem.length - 1] === stem[stem.length - 2]) push(stem.slice(0, -1));
+  }
+  if (/ies$/.test(w)) push(w.slice(0, -3) + "y");                     // stories → story
+  if (/(ses|xes|zes|ches|shes)$/.test(w)) push(w.slice(0, -2));       // glasses → glass
+  if (/s$/.test(w) && !/ss$/.test(w)) push(w.slice(0, -1));           // terms → term
+  if (/ness$/.test(w)) push(w.slice(0, -4));                          // politeness → polite
+  if (/ment$/.test(w)) push(w.slice(0, -4), w.slice(0, -4) + "e");    // arrangement → arrange
+  if (/able$/.test(w)) push(w.slice(0, -4), w.slice(0, -4) + "e");    // affordable → afford
+  if (/ible$/.test(w)) push(w.slice(0, -4), w.slice(0, -4) + "e");
+  if (/ative$/.test(w)) push(w.slice(0, -5) + "e");                   // creative → create
+  if (/(un|non|in|im|dis)/.test(w)) {
+    for (const p of ["un", "non", "in", "im", "dis"]) {
+      if (w.startsWith(p)) push(w.slice(p.length), w.slice(p.length + 1));
+    }
+  }
+  return [...new Set(out)];
 }
 
 /**
@@ -262,10 +319,89 @@ export function rankSenses(
   });
 }
 
+/**
+ * 品詞ごとの「使い方の例」を WordNet から集める。
+ *
+ * 単語データが持つ例文は「教材が教えている語義」のものだけで、
+ * 別の語義（多くは別の品詞）については使い方が分からなかった。
+ *   watch 例文: My father bought me a new watch ...  ← 名詞（9%）
+ *         語義: 動詞「じっと見つめる」91%           ← 使い方の手がかりが無い
+ *
+ * 最初は品詞別の文枠へ語を入れて例文を作ろうとしたが、汎用の枠に任意の語義を
+ * 流し込むと "The kind disappeared during the night."（種類が夜のうちに消えた）
+ * のような無意味な文になった。文法は正しくても意味が通らない例文は害になるため、
+ * 生成はやめて WordNet に収録されている実際の用例を使う。
+ *
+ * WordNet の用例は語義の集合（synset）に付いており、その集合の代表語が
+ * 対象語とは限らない。kind の用例に "sculpture is a form of art" が入っていたりする。
+ * そのため「対象語（またはその活用形）を含む用例」だけを採る。
+ *
+ * 用例は英語のみで訳は付かない。日本語訳を機械で付けると誤訳が混ざるため、
+ * 画面には英語のまま「使い方の例」として出す。
+ */
+async function loadUsageExamples(): Promise<Map<string, string>> {
+  const files: [suffix: string, pos: PartOfSpeech][] = [
+    ["verb", "verb"], ["noun", "noun"], ["adj", "adjective"], ["adv", "adverb"]
+  ];
+  const out = new Map<string, string>();
+
+  for (const [suffix, pos] of files) {
+    const dataPath = path.join(CACHE_DIR, `data.${suffix}`);
+    const indexPath = path.join(CACHE_DIR, `index.${suffix}`);
+    if (!fs.existsSync(dataPath) || !fs.existsSync(indexPath)) {
+      throw new Error(
+        `${dataPath} がありません。WordNet の展開時に data/index も取り出してください。`
+      );
+    }
+
+    // 語義集合の番号 → 説明文（用例は説明文の中に " " で囲まれて入っている）
+    const glosses = new Map<string, string>();
+    for (const line of fs.readFileSync(dataPath, "utf8").split("\n")) {
+      if (line.startsWith("  ") || !line.trim()) continue;
+      const bar = line.indexOf("| ");
+      if (bar < 0) continue;
+      glosses.set(line.slice(0, 8), line.slice(bar + 2));
+    }
+
+    for (const line of fs.readFileSync(indexPath, "utf8").split("\n")) {
+      if (line.startsWith("  ") || !line.trim()) continue;
+      const parts = line.trim().split(/\s+/);
+      const lemma = parts[0].replace(/_/g, " ");
+      if (!/^[a-z][a-z' -]*$/.test(lemma)) continue;
+      const key = `${lemma}|${pos}`;
+      if (out.has(key)) continue;
+
+      // index の末尾は語義集合の番号が「よく使われる順」に並んでいる
+      const offsets = parts.slice(parts.length - Number(parts[2]));
+      for (const off of offsets) {
+        const gloss = glosses.get(off);
+        if (!gloss) continue;
+        const found = [...gloss.matchAll(/"([^"]{6,110})"/g)]
+          .map(m => m[1])
+          .find(s => containsWord(s, lemma));
+        if (found) { out.set(key, found); break; }
+      }
+    }
+  }
+  return out;
+}
+
+/** 用例がその語（またはよくある活用形）を含んでいるか */
+export function containsWord(sentence: string, word: string): boolean {
+  const w = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const stem = word.length > 3 ? word.replace(/e$/, "") : word;
+  const s = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // 原形・複数形/三人称・過去形・ing形まで許す。
+  // 前方一致だけにすると light が lightens に当たってしまうので、末尾も境界で止める
+  const re = new RegExp(`\\b(${w}|${s}(s|es|ed|d|ing|ied)?)\\b`, "i");
+  return re.test(sentence);
+}
+
 async function main() {
   console.log("辞書データを取得しています…");
   const [dict, shares] = await Promise.all([loadEjdict(), loadPosShares()]);
-  console.log(`EJDict: ${dict.exact.size}語 / WordNet頻度: ${shares.size}語`);
+  const usages = await loadUsageExamples();
+  console.log(`EJDict: ${dict.exact.size}語 / WordNet頻度: ${shares.size}語 / 用例: ${usages.size}件`);
 
   const vocabFile = path.join(process.cwd(), "src/data/vocabulary.ts");
   const src = fs.readFileSync(vocabFile, "utf8");
@@ -283,18 +419,61 @@ async function main() {
   const arr: any[] = JSON.parse(src.slice(arrStart, arrEnd + 1));
 
   const table: Record<string, any[]> = {};
-  let multi = 0, withShare = 0, minority = 0;
+  let multi = 0, withShare = 0, minority = 0, examples = 0;
   for (const w of arr) {
     // 語義は別ファイルに置くため、単語データ側には残さない
     delete w.senses;
     const key = String(w.word).trim().toLowerCase();
-    const body = lookup(dict, String(w.word));
+    let body = lookup(dict, String(w.word));
+    let from: string | undefined;
+
+    // 「=bicycle」のように参照だけの項目は、参照先の語義を借りる
+    if (body && parseSenses(body).length === 0) {
+      for (const ref of referencedWords(body)) {
+        const refBody = lookup(dict, ref);
+        if (refBody && parseSenses(refBody).length > 0) { body = refBody; from = ref; break; }
+      }
+    }
+
+    // 辞書に見出しが無い派生語は、基本形の語義を借りて由来を示す
+    if (!body || parseSenses(body).length === 0) {
+      for (const cand of baseFormCandidates(String(w.word))) {
+        const candBody = lookup(dict, cand);
+        if (candBody && parseSenses(candBody).length > 0) { body = candBody; from = cand; break; }
+      }
+    }
     if (!body) continue;
 
-    const ranked = rankSenses(w.word, parseSenses(body), shares.get(key), w.pos, w.translation);
+    const senses = parseSenses(body);
+    if (senses.length === 0) continue;
+
+    // 借りてきた語義は「基本形の意味」なので、品詞も基本形から判定する。
+    // 派生語の綴りで判定すると politely の語義がすべて副詞になり、
+    // 「副詞 礼儀正しい」のように中身と食い違う。
+    // 使用割合もその語自身のものではないので付けない。
+    const ranked = from
+      ? rankSenses(from, senses, undefined, undefined, w.translation)
+      : rankSenses(w.word, senses, shares.get(key), w.pos, w.translation);
     if (ranked.length === 0) continue;
 
-    table[w.id] = ranked;
+    // 教材が教えている品詞と違う語義には、その品詞での使い方の例を添える。
+    // 教材と同じ品詞の語義は単語データ側の例文でまかなえるので付けない。
+    // 借りてきた語義は、その語自身の使い方ではないので付けない。
+    // 同じ品詞の語義が複数あるときは、最初の1つにだけ付ける（同じ用例の繰り返しを避ける）。
+    let withExamples = ranked;
+    if (!from) {
+      const usedPos = new Set<string>();
+      withExamples = ranked.map(s => {
+        if (s.pos === w.pos || usedPos.has(s.pos)) return s;
+        const usage = usages.get(`${String(w.word).trim().toLowerCase()}|${s.pos}`);
+        if (!usage) return s;
+        usedPos.add(s.pos);
+        examples++;
+        return { ...s, usage };
+      });
+    }
+
+    table[w.id] = from ? withExamples.map(s => ({ ...s, from })) : withExamples;
     if (ranked.length >= 2) multi++;
     if (ranked.some(s => s.share !== undefined)) withShare++;
     if (ranked[0].share !== undefined && ranked[0].pos !== w.pos) minority++;
@@ -325,6 +504,7 @@ export const wordSenses: Record<string, WordSense[]> = ${JSON.stringify(table)};
   console.log(`  うち語義が2つ以上: ${multi}`);
   console.log(`  うち使用割合のデータあり: ${withShare}`);
   console.log(`  教材の品詞が最頻でない語: ${minority}`);
+  console.log(`  使い方の例を付けた語義: ${examples}件`);
   console.log(`src/data/senses.ts: ${kb("src/data/senses.ts")} KB / vocabulary.ts: ${kb("src/data/vocabulary.ts")} KB`);
 }
 

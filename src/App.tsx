@@ -234,7 +234,7 @@ export default function App() {
 
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "reverse_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -253,7 +253,7 @@ export default function App() {
 
   const handleStartQuiz = (
     level: Level,
-    type: "word" | "sentence" | "listening" | "spelling",
+    type: "word" | "sentence" | "listening" | "spelling" | "reverse",
     count: number = 10
   ) => {
     setSelectedLevel(level);
@@ -262,6 +262,7 @@ export default function App() {
       type === "word" ? "quiz"
         : type === "listening" ? "listening_quiz"
         : type === "spelling" ? "spelling_quiz"
+        : type === "reverse" ? "reverse_quiz"
         : "sentence_quiz"
     );
   };
@@ -324,6 +325,7 @@ export default function App() {
     currentScreen === "quiz" ||
     currentScreen === "sentence_quiz" ||
     currentScreen === "listening_quiz" ||
+    currentScreen === "reverse_quiz" ||
     currentScreen === "spelling_quiz" ||
     currentScreen === "review" ||
     currentScreen === "srs_review";
@@ -581,6 +583,24 @@ export default function App() {
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             listeningMode={true}
+            srsData={srsData}
+            recordAnswer={recordAnswer}
+          />
+        )}
+
+        {currentScreen === "reverse_quiz" && (
+          <Quiz
+            level={selectedLevel}
+            vocabulary={vocabulary}
+            wrongWords={wrongWords}
+            setWrongWords={setWrongWords}
+            solvedHistory={solvedHistory}
+            setSolvedHistory={setSolvedHistory}
+            setStats={setStats}
+            onBackToDashboard={handleBackToDashboard}
+            updateRankingScore={updateRankingScore}
+            questionCount={quizQuestionCount}
+            reverseMode={true}
             srsData={srsData}
             recordAnswer={recordAnswer}
           />
