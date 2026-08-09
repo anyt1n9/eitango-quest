@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, Download, Upload, Target, Database, ShieldCheck, AlertTriangle } from "lucide-react";
+import { writeStored } from "../storage";
 
 // バックアップ対象の localStorage キー一覧
 const BACKUP_KEYS = [
@@ -81,7 +82,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
         }
         BACKUP_KEYS.forEach((k) => {
           if (k in data && typeof data[k] === "string") {
-            localStorage.setItem(k, data[k]);
+            writeStored(k, data[k]);
           }
         });
         // 状態を確実に反映させるためリロード
@@ -143,6 +144,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
           <div className="flex items-center gap-2">
             <input
               type="number"
+              aria-label="1日の学習目標（問題数）"
               min={1}
               max={500}
               value={goalInput}
@@ -190,6 +192,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
           <input
             ref={fileInputRef}
             type="file"
+            aria-label="バックアップファイル（JSON）を選ぶ"
             accept="application/json,.json"
             onChange={handleImportFile}
             className="hidden"

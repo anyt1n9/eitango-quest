@@ -8,6 +8,8 @@
  * 同一単語の重複リクエスト排除(in-flight共有)を備える。
  */
 
+import { writeStored } from "./storage";
+
 const LS_KEY = "quest_phonetics_cache";
 
 let memCache: Record<string, string | null> | null = null;
@@ -32,11 +34,8 @@ function loadCache(): Record<string, string | null> {
 }
 
 function saveCache() {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(memCache));
-  } catch {
-    // 容量超過などは無視
-  }
+  // 容量超過などは writeStored 側で握る（キャッシュなので保存できなくても支障はない）
+  writeStored(LS_KEY, memCache);
 }
 
 // —— 同時実行リミッター（最大4並列、残りは順番待ち） ——

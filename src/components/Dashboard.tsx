@@ -1614,6 +1614,7 @@ export default function Dashboard({
                           <input
                             type="file"
                             id="csv_file_input"
+                            aria-label="単語リスト（CSV）を選ぶ"
                             accept=".csv"
                             onChange={handleFileChange}
                             className="hidden"
