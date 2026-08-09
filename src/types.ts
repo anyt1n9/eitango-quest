@@ -15,6 +15,19 @@ export interface WordSense {
   meaning: string;      // 日本語の語義
   pos: PartOfSpeech;    // その語義の品詞
   share?: number;       // その品詞が使われる割合(%)
+  /**
+   * 別の見出し語から借りてきた語義であることを示す（その語）。
+   * politely は辞書に見出しが無いため polite の語義を借りる。
+   * 借り物なので使用割合は付けない。
+   */
+  from?: string;
+  /**
+   * その品詞で使ったときの用例（英語のみ）。
+   * 単語データ側の例文は「教材が教えている語義」のものしか無いため、
+   * 別の品詞の語義には WordNet に収録されている実際の用例を添える。
+   * 機械訳を付けると誤訳が混ざるため、訳は付けない。
+   */
+  usage?: string;
 }
 
 export interface Word {

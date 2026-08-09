@@ -32,7 +32,11 @@ npm run build   # vite build + server.ts のバンドル
   規則変化は米つづりに揃える（travel→traveled）。
 - **語義のテスト** — `tests/senses.test.ts`。`src/data/senses.ts`（多義語の語義と
   品詞ごとの使用割合）を検査する。生成は `scripts/bake_senses.ts`（通信が必要。
-  取得結果は `.cache/` に置かれる）。語義は起動時には要らないため
+  取得結果は `.cache/` に置かれる。WordNet は `cntlist.rev` に加えて
+  `data.*` / `index.*` も使うので、展開時にそれらも取り出すこと）。
+  辞書に見出しが無い派生語は基本形の語義を借り、`from` に由来の語を入れる。
+  「使い方の例」(`usage`) は WordNet の用例をそのまま使う（機械訳は付けない）。
+  語義は起動時には要らないため
   `src/senses.ts` の `loadSenses()` で遅延読み込みしており、
   単語データ（`vocabulary.ts`）には混ぜない。
 - **サーバーのテスト** — `tests/serverGuards.test.ts`。`server/guards.ts` の入力検証・

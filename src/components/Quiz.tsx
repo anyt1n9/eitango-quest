@@ -61,6 +61,8 @@ interface QuizProps {
   reviewMode?: boolean;
   // リスニングモード: 単語の綴りを隠し、音声だけを聞いて意味を答える
   listeningMode?: boolean;
+  // 日→英モード: 日本語訳を見て英単語を選ぶ（産出寄りの練習）
+  reverseMode?: boolean;
   // 出題の重み付け（復習期日超過・未習を優先）に使う
   srsData?: Record<string, SrsState>;
   // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
@@ -81,6 +83,7 @@ export default function Quiz({
   customWords,
   reviewMode = false,
   listeningMode = false,
+  reverseMode = false,
   srsData = {},
   recordAnswer
 }: QuizProps) {
@@ -133,16 +136,20 @@ export default function Quiz({
       ? shuffle(levelWords).slice(0, Math.min(questionCount, levelWords.length))
       : selectQuizWords({ pool: levelWords, count: questionCount, solvedHistory, srsData });
     return picked.map(q => {
+      // 日→英モードでは英単語が選択肢になる。
+      // 例文穴埋め用に用意した sentenceOptions は、同じ品詞・似た綴りの語で
+      // できているのでそのまま使える。
+      const source = reverseMode ? q.sentenceOptions : q.options;
       return {
         ...q,
-        options: q.options ? shuffle(q.options) : []
+        options: source ? shuffle(source) : []
       };
     });
   };
 
   useEffect(() => {
     setQuestions(prepareQuestions());
-  }, [level, vocabulary, questionCount, customWords]);
+  }, [level, vocabulary, questionCount, customWords, reverseMode]);
 
   // リザルト画面から同じ設定でもう一度挑戦する（新しい出題セットを再抽選）
   const handleRetry = () => {
@@ -165,7 +172,8 @@ export default function Quiz({
 
   // 新しい問題に遷移した際、自動で英単語を1回だけ発音する
   useEffect(() => {
-    if (currentQuestion && !isFinished) {
+    // 日→英モードでは英単語が答えなので、出題時に読み上げない
+    if (currentQuestion && !isFinished && !reverseMode) {
       try {
         if ("speechSynthesis" in window) {
           window.speechSynthesis.cancel();
@@ -178,13 +186,13 @@ export default function Quiz({
         console.warn("Speak on start error:", err);
       }
     }
-  }, [currentIndex, currentQuestion, isFinished]);
+  }, [currentIndex, currentQuestion, isFinished, reverseMode]);
 
   const handleSelectOption = (option: string) => {
     if (selectedOption !== null || showFeedback !== null) return;
     
     setSelectedOption(option);
-    const isCorrect = option === currentQuestion.translation;
+    const isCorrect = option === (reverseMode ? currentQuestion.word : currentQuestion.translation);
     
     playQuizSound(isCorrect);
     setShowFeedback(isCorrect ? "correct" : "incorrect");
@@ -413,10 +421,17 @@ export default function Quiz({
           {/* 英単語の出題表示 */}
           <div className="text-center space-y-4 my-8 relative">
             <span className="text-xs font-black uppercase tracking-wider text-indigo-500 font-mono">
-              {listeningMode ? "🎧 音声を聞いて意味を選択" : "英単語の意味を選択"}
+              {listeningMode ? "🎧 音声を聞いて意味を選択"
+                : reverseMode ? "日本語に合う英単語を選択"
+                : "英単語の意味を選択"}
             </span>
 
-            {listeningMode && selectedOption === null ? (
+            {reverseMode && selectedOption === null ? (
+              /* 日→英モードでは、綴りも発音も答えそのものなので出さない */
+              <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-slate-100 leading-snug px-2">
+                {currentQuestion.translation}
+              </h2>
+            ) : listeningMode && selectedOption === null ? (
               /* リスニングモード中は綴りを隠し、大きな再生ボタンだけを見せる */
               <div className="flex flex-col items-center gap-3">
                 <button
@@ -433,6 +448,11 @@ export default function Quiz({
               </div>
             ) : (
               <>
+                {reverseMode && (
+                  <p className="text-sm font-bold text-gray-500 dark:text-slate-400">
+                    {currentQuestion.translation}
+                  </p>
+                )}
                 <div className="flex items-center justify-center gap-3">
                   <h2 className="text-4xl font-black text-gray-900 tracking-tight select-all">
                     {currentQuestion.word}
@@ -462,7 +482,7 @@ export default function Quiz({
           <div className="grid grid-cols-1 gap-3.5 mt-8" id="quiz_options_container">
             {currentQuestion.options.map((option, idx) => {
               const isSelected = selectedOption === option;
-              const isCorrectAnswer = option === currentQuestion.translation;
+              const isCorrectAnswer = option === (reverseMode ? currentQuestion.word : currentQuestion.translation);
               
               let btnClass = "bg-gray-50 border-gray-200 text-gray-800 hover:bg-gray-100 hover:border-gray-300";
               if (selectedOption !== null) {
@@ -485,7 +505,7 @@ export default function Quiz({
                   className={`border rounded-2xl p-4.5 text-left text-sm font-semibold transition-all flex items-center justify-between cursor-pointer group ${btnClass}`}
                   id={`option_btn_${idx}`}
                 >
-                  <span className="flex-1 pr-4">{option}</span>
+                  <span className={`flex-1 pr-4 ${reverseMode ? "font-mono" : ""}`}>{option}</span>
                   <div className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center group-hover:border-indigo-500/40 relative">
                     {selectedOption !== null && isCorrectAnswer && (
                       <Check className="w-3.5 h-3.5 text-emerald-600 stroke-3 absolute" />

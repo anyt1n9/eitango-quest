@@ -131,7 +131,7 @@ interface DashboardProps {
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
   srsData: Record<string, SrsState>;
   wrongWords: string[];
-  onStartQuiz: (level: Level, type: "word" | "sentence" | "listening" | "spelling", count?: number) => void;
+  onStartQuiz: (level: Level, type: "word" | "sentence" | "listening" | "spelling" | "reverse", count?: number) => void;
   onStartReview: () => void;
   onOpenDictionary: () => void;
   onStartReading: () => void;
@@ -1178,6 +1178,13 @@ export default function Dashboard({
                   🎧 リスニングを解く
                 </button>
                 <button
+                  onClick={() => onStartQuiz("junior", "reverse")}
+                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  id="btn_junior_reverse"
+                >
+                  🇯🇵 日本語→英単語
+                </button>
+                <button
                   onClick={() => onStartQuiz("junior", "spelling")}
                   className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_junior_spelling"
@@ -1243,6 +1250,13 @@ export default function Dashboard({
                   id="btn_senior_listening"
                 >
                   🎧 リスニングを解く
+                </button>
+                <button
+                  onClick={() => onStartQuiz("senior", "reverse")}
+                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  id="btn_senior_reverse"
+                >
+                  🇯🇵 日本語→英単語
                 </button>
                 <button
                   onClick={() => onStartQuiz("senior", "spelling")}
@@ -1312,6 +1326,13 @@ export default function Dashboard({
                   🎧 リスニングを解く
                 </button>
                 <button
+                  onClick={() => onStartQuiz("senior2", "reverse")}
+                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  id="btn_senior2_reverse"
+                >
+                  🇯🇵 日本語→英単語
+                </button>
+                <button
                   onClick={() => onStartQuiz("senior2", "spelling")}
                   className="w-full bg-purple-50 text-purple-700 font-bold py-2.5 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
                   id="btn_senior2_spelling"
@@ -1379,6 +1400,13 @@ export default function Dashboard({
                   🎧 リスニングを解く
                 </button>
                 <button
+                  onClick={() => onStartQuiz("senior3", "reverse")}
+                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  id="btn_senior3_reverse"
+                >
+                  🇯🇵 日本語→英単語
+                </button>
+                <button
                   onClick={() => onStartQuiz("senior3", "spelling")}
                   className="w-full bg-pink-50 text-pink-700 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
                   id="btn_senior3_spelling"
@@ -1444,6 +1472,13 @@ export default function Dashboard({
                   id="btn_advanced_listening"
                 >
                   🎧 リスニングを解く
+                </button>
+                <button
+                  onClick={() => onStartQuiz("advanced", "reverse")}
+                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  id="btn_advanced_reverse"
+                >
+                  🇯🇵 日本語→英単語
                 </button>
                 <button
                   onClick={() => onStartQuiz("advanced", "spelling")}

@@ -63,6 +63,9 @@ export default function WordSenses({ wordId, ownTranslation, className = "" }: P
   if (!senses || senses.length < 2) return null;
 
   const hasShare = senses.some(s => typeof s.share === "number");
+  const hasUsage = senses.some(s => s.usage);
+  // politely のように辞書に見出しが無い派生語は、基本形の意味を借りて出している
+  const borrowedFrom = senses[0]?.from;
 
   return (
     <div className={`bg-amber-50/50 border border-amber-200/70 dark:bg-slate-800/40 dark:border-slate-700 p-3.5 rounded-xl space-y-2 ${className}`}>
@@ -70,6 +73,11 @@ export default function WordSenses({ wordId, ownTranslation, className = "" }: P
         <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         <p className="font-extrabold text-amber-700 dark:text-amber-400 text-xs">
           この単語の他の意味（{senses.length}件）
+          {borrowedFrom && (
+            <span className="ml-1 font-bold text-amber-600/80 dark:text-amber-500">
+              — 基本形 <span className="font-mono">{borrowedFrom}</span> の意味
+            </span>
+          )}
         </p>
       </div>
 
@@ -97,17 +105,34 @@ export default function WordSenses({ wordId, ownTranslation, className = "" }: P
                     ← 学習中
                   </span>
                 )}
+                {/* その品詞で実際に使われている例（英英辞典の用例。訳は付かない） */}
+                {s.usage && (
+                  <span className="block mt-1 font-mono text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900 rounded-lg px-2 py-1">
+                    {s.usage}
+                  </span>
+                )}
               </span>
             </li>
           );
         })}
       </ul>
 
-      {hasShare && (
-        <p className="text-[10px] text-gray-500 dark:text-slate-400 leading-relaxed pt-1 border-t border-amber-200/70 dark:border-slate-700">
-          ％は、その品詞が実際の英文で使われる割合です（WordNet の SemCor 頻度による）。
-          意味ごとの頻度ではなく、品詞のまとまりごとの割合です。
-        </p>
+      {(hasShare || hasUsage) && (
+        <div className="text-[10px] text-gray-500 dark:text-slate-400 leading-relaxed pt-1 border-t border-amber-200/70 dark:border-slate-700 space-y-0.5">
+          {hasShare && (
+            <p>
+              ％は、その品詞が実際の英文で使われる割合です（WordNet の SemCor 頻度による）。
+              意味ごとの頻度ではなく、品詞のまとまりごとの割合です。
+            </p>
+          )}
+          {hasUsage && (
+            <p>
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold">緑の行</span>
+              は、その品詞で実際に使われている用例です（英英辞典 WordNet より）。
+              意味ごとではなく品詞ごとに選んでいるため、上の語義と細かくは対応しないことがあります。
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

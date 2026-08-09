@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { wordSenses } from "../src/data/senses";
 import { findDominantSense, POS_SHARE_LABELS } from "../src/senses";
 import { initialVocabulary } from "../src/data/vocabulary";
-import { parseSenses, rankSenses } from "../scripts/bake_senses";
+import { parseSenses, rankSenses, containsWord, baseFormCandidates, referencedWords } from "../scripts/bake_senses";
 import { PartOfSpeech } from "../src/types";
 
 /**
@@ -267,5 +267,123 @@ describe("rankSenses", () => {
 describe("品詞ラベル", () => {
   it("すべての品詞に日本語ラベルがある", () => {
     for (const p of POS) expect(POS_SHARE_LABELS[p]).toBeTruthy();
+  });
+});
+
+describe("基本形から借りた語義", () => {
+  it("辞書に見出しが無い派生語にも意味が付く", () => {
+    // politely / sustainable / scared のような語は辞書に見出しが無い
+    for (const word of ["politely", "sustainable", "scared", "politeness", "environmentally"]) {
+      const w = V.find(x => x.word.toLowerCase() === word);
+      if (!w) continue;
+      expect(wordSenses[w.id], `${word} に語義が無い`).toBeTruthy();
+    }
+  });
+
+  it("借りた語義には由来の語が入る", () => {
+    const w = V.find(x => x.word.toLowerCase() === "politely")!;
+    expect(wordSenses[w.id][0].from).toBe("polite");
+  });
+
+  it("借りた語義には使用割合を付けない（その語自身の割合ではないため）", () => {
+    const borrowed = Object.values(wordSenses).filter(list => list[0].from);
+    expect(borrowed.length).toBeGreaterThan(100);
+    const withShare = borrowed.filter(list => list.some(s => s.share !== undefined));
+    expect(withShare).toEqual([]);
+  });
+
+  it("借りた語義の品詞は基本形から判定する", () => {
+    // politely の綴りで判定すると語義がすべて副詞になり、
+    // 「副詞 礼儀正しい」のように中身と食い違う
+    const w = V.find(x => x.word.toLowerCase() === "politely")!;
+    expect(wordSenses[w.id].every(s => s.pos === "adjective")).toBe(true);
+  });
+
+  it("参照だけの見出しは参照先の意味を借りる", () => {
+    // bike は辞書では「=bicycle」としか書かれていない
+    const w = V.find(x => x.word.toLowerCase() === "bike")!;
+    expect(wordSenses[w.id][0].from).toBe("bicycle");
+    expect(wordSenses[w.id].some(s => s.meaning.includes("自転車"))).toBe(true);
+  });
+
+  it("由来の語は元の語と違う", () => {
+    const same = Object.entries(wordSenses)
+      .filter(([id, list]) => list[0].from && list[0].from === byId.get(id)?.word.toLowerCase())
+      .map(([id]) => id);
+    expect(same).toEqual([]);
+  });
+});
+
+describe("使い方の例（用例）", () => {
+  it("十分な数の語義に用例が付いている", () => {
+    const withUsage = Object.values(wordSenses).flat().filter(s => s.usage);
+    expect(withUsage.length).toBeGreaterThan(1000);
+  });
+
+  it("用例はその語（またはその活用形）を含む", () => {
+    const bad: string[] = [];
+    for (const [id, list] of Object.entries(wordSenses)) {
+      const word = byId.get(id)!.word.toLowerCase();
+      for (const s of list) {
+        if (!s.usage) continue;
+        if (!containsWord(s.usage, word)) bad.push(`${word}: ${s.usage}`);
+      }
+    }
+    expect(bad.slice(0, 10)).toEqual([]);
+  });
+
+  it("教材が教えている品詞の語義には用例を付けない（単語データ側の例文があるため）", () => {
+    const bad: string[] = [];
+    for (const [id, list] of Object.entries(wordSenses)) {
+      const w = byId.get(id)!;
+      for (const s of list) if (s.usage && s.pos === w.pos) bad.push(w.word);
+    }
+    expect(bad.slice(0, 10)).toEqual([]);
+  });
+
+  it("同じ品詞に用例を重複して付けない", () => {
+    const bad: string[] = [];
+    for (const [id, list] of Object.entries(wordSenses)) {
+      const seen = new Set<string>();
+      for (const s of list) {
+        if (!s.usage) continue;
+        if (seen.has(s.pos)) bad.push(byId.get(id)!.word);
+        seen.add(s.pos);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("借りた語義には用例を付けない（その語自身の使い方ではないため）", () => {
+    const bad = Object.entries(wordSenses)
+      .filter(([, list]) => list[0].from && list.some(s => s.usage))
+      .map(([id]) => id);
+    expect(bad).toEqual([]);
+  });
+
+  it("代表的な多義語に、教材が教えていない品詞の用例が付く", () => {
+    const watch = V.find(x => x.word.toLowerCase() === "watch")!;
+    const verbSense = wordSenses[watch.id].find(s => s.pos === "verb");
+    expect(verbSense?.usage).toBeTruthy();
+    expect(verbSense!.usage!.toLowerCase()).toContain("watch");
+  });
+});
+
+describe("containsWord", () => {
+  it("原形をそのまま含む場合", () => {
+    expect(containsWord("watch a basketball game", "watch")).toBe(true);
+  });
+  it("複数形・三人称・過去形・ing形も認める", () => {
+    expect(containsWord("what kinds of desserts are there?", "kind")).toBe(true);
+    expect(containsWord("She ordered him to do the shopping", "order")).toBe(true);
+    expect(containsWord("Tears well in her eyes", "well")).toBe(true);
+  });
+  it("別の語に前方一致しただけのものは認めない", () => {
+    // light が lightens に当たると、別の単語の用例を載せてしまう
+    expect(containsWord("This lamp lightens the room", "light")).toBe(false);
+    expect(containsWord("sculpture is a form of art", "kind")).toBe(false);
+  });
+  it("語を含まない文は false", () => {
+    expect(containsWord("I said to him to go home", "order")).toBe(false);
   });
 });
