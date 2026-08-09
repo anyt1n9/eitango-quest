@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { WordSense } from "../types";
-import { loadSenses, POS_SHARE_LABELS, findDominantSense } from "../senses";
-import { Layers } from "lucide-react";
+import { PartOfSpeech, WordSense } from "../types";
+import { loadSenses, POS_SHARE_LABELS, findDominantSense, groupSensesByPos } from "../senses";
+import { Layers, Star } from "lucide-react";
 
 /**
  * 1つの単語が持つ複数の意味を並べて見せる。
@@ -11,13 +11,25 @@ import { Layers } from "lucide-react";
  * 出会っても手がかりが無かった（収録している長文15本には、教材に無い語義で
  * 使われている語が8語ある）。
  *
- * 割合(%)は、その品詞が実際の英文でどれくらい使われるかを WordNet の SemCor 頻度から
- * 求めたもの。語義そのものの頻度ではなく品詞単位である点は画面にも明記する。
+ * 割合(%)は「その品詞が使われる割合」であって、語義ごとの頻度ではない。
+ * 以前は語義1行ごとに同じ数字を並べていたため、
+ * 「美しい 100% / みごとな 100%」のように、意味ごとの頻度に見えてしまっていた。
+ * いまは品詞でまとめ、割合はまとまりの見出しに1回だけ出す。
+ *
+ * 語義ごとの手がかりとしては、辞書が重要と示している語義（EJDict の『』）に
+ * 印を付ける。実測の頻度ではなく辞書編纂者の判断なので、割合とは別の見せ方にする。
  */
 interface Props {
   wordId: string;
   /** 教材が教えている訳語。これと重なる語義には印を付ける */
   ownTranslation: string;
+  /**
+   * 教材が教えている語義の品詞。
+   * 訳語の文字列だけで照合すると、beautiful の名詞「美しい人たち」が
+   * 形容詞「美しい」と重なって「学習中」になってしまう。
+   * 品詞が分かっているときは、同じ品詞のまとまりの中だけで照合する。
+   */
+  ownPos?: PartOfSpeech;
   className?: string;
 }
 
@@ -41,7 +53,19 @@ function isTaught(meaning: string, ownTranslation: string): boolean {
   return own.some(o => here.some(h => h.includes(o) || o.includes(h)));
 }
 
-export default function WordSenses({ wordId, ownTranslation, className = "" }: Props) {
+/**
+ * 品詞のまとまりに添える割合の表示。
+ *
+ * 実測データが無い語と、実測はあるがその品詞では見つからなかった語を区別する。
+ * どちらも空欄にしていた頃は、0% なのか未計測なのか読み取れなかった。
+ */
+function shareLabel(share: number | undefined): { text: string; muted: boolean } {
+  if (share === undefined) return { text: "割合の実測なし", muted: true };
+  if (share === 0) return { text: "0%", muted: true };
+  return { text: `${share}%`, muted: false };
+}
+
+export default function WordSenses({ wordId, ownTranslation, ownPos, className = "" }: Props) {
   const [senses, setSenses] = useState<WordSense[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,13 +86,15 @@ export default function WordSenses({ wordId, ownTranslation, className = "" }: P
   // 語義が1つしか無い語は、上の「正しい日本語訳」と同じ情報になるので出さない
   if (!senses || senses.length < 2) return null;
 
+  const groups = groupSensesByPos(senses);
   const hasShare = senses.some(s => typeof s.share === "number");
   const hasUsage = senses.some(s => s.usage);
+  const hasImportant = senses.some(s => s.important);
   // politely のように辞書に見出しが無い派生語は、基本形の意味を借りて出している
   const borrowedFrom = senses[0]?.from;
 
   return (
-    <div className={`bg-amber-50/50 border border-amber-200/70 dark:bg-slate-800/40 dark:border-slate-700 p-3.5 rounded-xl space-y-2 ${className}`}>
+    <div className={`bg-amber-50/50 border border-amber-200/70 dark:bg-slate-800/40 dark:border-slate-700 p-3.5 rounded-xl space-y-2.5 ${className}`}>
       <div className="flex items-center gap-1.5">
         <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         <p className="font-extrabold text-amber-700 dark:text-amber-400 text-xs">
@@ -81,55 +107,85 @@ export default function WordSenses({ wordId, ownTranslation, className = "" }: P
         </p>
       </div>
 
-      <ul className="space-y-1.5">
-        {senses.map((s, i) => {
-          const taught = isTaught(s.meaning, ownTranslation);
+      <div className="space-y-2.5" data-testid="sense_groups">
+        {groups.map(group => {
+          const label = shareLabel(group.share);
           return (
-            <li key={i} className="flex items-start gap-2 text-sm">
-              <span className="shrink-0 mt-0.5 flex items-center gap-1">
+            <div key={group.pos} data-testid={`sense_group_${group.pos}`}>
+              {/* 割合は品詞のまとまりに1回だけ。語義ごとに繰り返すと意味別の頻度に見える */}
+              <div className="flex items-center gap-1.5 pb-1 border-b border-amber-200/70 dark:border-slate-700">
                 <span className="inline-block px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 text-[10px] font-black text-amber-700 dark:text-amber-300">
-                  {POS_SHARE_LABELS[s.pos] || s.pos}
+                  {POS_SHARE_LABELS[group.pos] || group.pos}
                 </span>
-                {typeof s.share === "number" && (
-                  <span className="inline-block w-9 text-right text-[10px] font-mono font-bold text-gray-500 dark:text-slate-400">
-                    {s.share}%
-                  </span>
-                )}
-              </span>
-              <span className={`flex-1 leading-snug ${taught
-                ? "font-black text-indigo-800 dark:text-indigo-300"
-                : "font-semibold text-gray-700 dark:text-slate-300"}`}>
-                {s.meaning}
-                {taught && (
-                  <span className="ml-1.5 text-[10px] font-black text-indigo-500 dark:text-indigo-400">
-                    ← 学習中
-                  </span>
-                )}
-                {/* その品詞で実際に使われている例（英英辞典の用例。訳は付かない） */}
-                {s.usage && (
-                  <span className="block mt-1 font-mono text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900 rounded-lg px-2 py-1">
-                    {s.usage}
-                  </span>
-                )}
-              </span>
-            </li>
+                <span className={`text-[10px] font-mono font-bold ${label.muted
+                  ? "text-gray-400 dark:text-slate-500"
+                  : "text-gray-600 dark:text-slate-300"}`}>
+                  {label.text}
+                </span>
+                <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500">
+                  {group.senses.length}件
+                </span>
+              </div>
+
+              <ul className="mt-1.5 space-y-1">
+                {group.senses.map((s, i) => {
+                  const taught = (!ownPos || group.pos === ownPos)
+                    && isTaught(s.meaning, ownTranslation);
+                  return (
+                    <li key={i} className="flex items-start gap-1.5 text-sm leading-snug">
+                      <span className="text-amber-400 dark:text-amber-600 mt-0.5 text-[10px]">●</span>
+                      <span className={`flex-1 ${taught
+                        ? "font-black text-indigo-800 dark:text-indigo-300"
+                        : "font-semibold text-gray-700 dark:text-slate-300"}`}>
+                        {s.meaning}
+                        {s.important && (
+                          <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[10px] font-black text-rose-600 dark:text-rose-400">
+                            <Star className="w-2.5 h-2.5 fill-current" />重要
+                          </span>
+                        )}
+                        {taught && (
+                          <span className="ml-1.5 text-[10px] font-black text-indigo-500 dark:text-indigo-400">
+                            ← 学習中
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {/* その品詞で実際に使われている例（英英辞典の用例。訳は付かない） */}
+              {group.usage && (
+                <p className="mt-1.5 ml-4 font-mono text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900 rounded-lg px-2 py-1">
+                  {group.usage}
+                </p>
+              )}
+            </div>
           );
         })}
-      </ul>
+      </div>
 
-      {(hasShare || hasUsage) && (
-        <div className="text-[10px] text-gray-500 dark:text-slate-400 leading-relaxed pt-1 border-t border-amber-200/70 dark:border-slate-700 space-y-0.5">
+      {(hasShare || hasUsage || hasImportant) && (
+        <div className="text-[10px] text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-amber-200/70 dark:border-slate-700 space-y-0.5">
           {hasShare && (
             <p>
               ％は、その品詞が実際の英文で使われる割合です（WordNet の SemCor 頻度による）。
-              意味ごとの頻度ではなく、品詞のまとまりごとの割合です。
+              品詞のまとまりごとの割合で、意味ごとの頻度ではありません。
+              0% は、その語がその品詞で使われているところが実測で見つからなかったことを表します。
+            </p>
+          )}
+          {hasImportant && (
+            <p>
+              <span className="text-rose-600 dark:text-rose-400 font-bold">重要</span>
+              は、英和辞書がとくに覚えるべきとしている意味です（EJDict による）。
+              実測の頻度ではなく辞書編纂者の判断です。
             </p>
           )}
           {hasUsage && (
             <p>
               <span className="text-emerald-700 dark:text-emerald-400 font-bold">緑の行</span>
               は、その品詞で実際に使われている用例です（英英辞典 WordNet より）。
-              意味ごとではなく品詞ごとに選んでいるため、上の語義と細かくは対応しないことがあります。
+              意味ごとではなく品詞ごとに選んでいます。
             </p>
           )}
         </div>
@@ -165,7 +221,7 @@ export function DominantSenseHint({ wordId, ownPos }: { wordId: string; ownPos?:
         よく使われるのはこちら
       </span>
       <p className="text-xs text-slate-200 font-bold leading-snug">
-        <span className="text-amber-300">{POS_SHARE_LABELS[hint.pos] || hint.pos}</span>
+        <span className="text-amber-300">{POS_SHARE_LABELS[hint.pos as PartOfSpeech] || hint.pos}</span>
         <span className="font-mono text-amber-400 mx-1">{hint.share}%</span>
         {hint.meaning}
       </p>

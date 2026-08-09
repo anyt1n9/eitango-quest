@@ -36,18 +36,60 @@ npm run build   # vite build + server.ts のバンドル
   `data.*` / `index.*` も使うので、展開時にそれらも取り出すこと）。
   辞書に見出しが無い派生語は基本形の語義を借り、`from` に由来の語を入れる。
   「使い方の例」(`usage`) は WordNet の用例をそのまま使う（機械訳は付けない）。
+  使用割合(`share`)は**品詞単位**の値で、語義ごとの頻度ではない。画面では品詞で
+  まとめて見出しに1回だけ出す（`groupSensesByPos`）。語義1行ごとに並べると
+  「美しい 100% ／ みごとな 100%」のように意味別の頻度に見えてしまうため。
+  語義ごとの手がかりは辞書の重要印(`important`、EJDict の『』)だけで、
+  これは実測ではなく辞書編纂者の判断なので割合とは別の見せ方にする。
+  `share` の欠落と `0` は意味が違う。欠落は「実測データが無い」、`0` は
+  「実測したがその品詞では見つからなかった」。1語の中で片方だけ欠けることはない。
+  WordNet が扱わない品詞（`other`）と、全語義が 0% になる語（品詞判定と実測の
+  食い違い。never は SemCor では副詞100%だが訳語からは形容詞と判定される）には
+  割合を付けない。
   語義は起動時には要らないため
   `src/senses.ts` の `loadSenses()` で遅延読み込みしており、
   単語データ（`vocabulary.ts`）には混ぜない。
-- **サーバーのテスト** — `tests/serverGuards.test.ts`。`server/guards.ts` の入力検証・
-  レート制限・呼び出し予算を対象にする。画面には現れないがAIの利用料に直結するため、
-  時刻を `now` で差し替えて窓の経過を待たずに検証する。
+- **レベル配分のテスト** — `tests/levels.data.test.ts`。レベルが上がるほど実際の英文に
+  出てくる頻度が下がることと、上位語が上級に埋もれていないことを検査する。
+  裏取りに使う頻度順位は `tests/data/semcorRank.ts`（`scripts/fix_levels.ts` が
+  `.cache/cntlist.rev` から生成する。`.cache/` は git に入れないため書き出している）。
+  頻度は難易度そのものではない。SemCor は古い英文のコーパスなので war / wage /
+  federal が上位に来るし、the / you のような機能語や onion / carrot のような
+  日常語は内容語しか数えない集計に出てこない。だから「順位どおりに並べる」ことは
+  せず、外れ値だけを1語ずつ見て直す（一覧は `scripts/fix_levels.ts` の `LEVEL_FIXES`）。
+- **語法のテスト** — `tests/usage.test.ts`。`src/data/wordUsage.ts`（動詞の文型・
+  コロケーション・語族）と `src/usage.ts` のラベルを検査する。生成は
+  `scripts/bake_usage.ts`（`.cache/` の WordNet と EJDict を bake_senses と共用）。
+  文型は WordNet の sentence frame 番号（1〜35）だけを焼き、日本語のラベルは
+  `src/usage.ts` に置く（データを小さく保つため）。文型は**その語のすべての語義を
+  まとめた一覧**で、語義ごとの区別は付かない。画面にもその旨を明記する。
+  コロケーションと語族は、EJDict に和訳がある語だけを採る
+  （英語だけの句を出しても読めないため）。
+- **サーバーのテスト** — `tests/serverGuards.test.ts` と `tests/serverRoutes.test.ts`。
+  前者は `server/guards.ts` の入力検証・レート制限・呼び出し予算という「規則そのもの」を
+  対象にし、時刻を `now` で差し替えて窓の経過を待たずに検証する。
+  後者はその規則が各エンドポイントに配線されているかを supertest で実際にHTTPを叩いて
+  確かめる。`server.ts` は `app` を公開しており、直接実行されたときだけ listen する。
+  APIキーが無いときの応答は2種類あり、どちらもテストで固定している
+  （長文生成・頻度分析・類義語は 503。機械で代用すると「AIの分析結果」を騙るため。
+  苦手分析など集計で作れるものは 200 でフォールバックする）。
 - **文枠のテスト** — `tests/sentenceFrames.test.ts`。例文の材料である
   `scripts/rewrite_template_sentences.ts` の文枠を検査する。枠を足すときは
   「穴埋め記号はちょうど1つ」「a/an の直後に穴埋めを置かない」「連体専用の枠は
   穴埋めの直後に名詞が来る」といった決まりをここで確認する。
 
-画面の描画テストは未導入。UI は Playwright で手動確認している。
+- **画面の描画テスト** — `tests/*.test.tsx`（`quiz.render` / `verbForms.render` /
+  `wordSenses.render` / `wordUsage.render`）。React Testing Library + jsdom で、学習者が実際に目にする部分を
+  対象にする。「関数は正しいが画面に出ていない」「日→英モードで答えの綴りが見えている」
+  「活用表の過去形と過去分詞の列がずれている」といった不具合は、型検査もビルドも
+  ロジックのテストもすり抜けるため、この層でしか見つからない。
+  読み上げ・`matchMedia`・`ResizeObserver` など jsdom に無いブラウザAPIは
+  `tests/setupDom.ts` で最小限だけ埋める。単語は `tests/fixtures.ts` で作り、
+  収録データには依存させない（どの語が出題されるかで結果が変わってしまうため）。
+
+`tests/*.test.ts` は node 環境、`tests/*.test.tsx` は jsdom 環境で走る
+（`vitest.config.ts` の `projects`）。どちらも `npm test` でまとめて実行される。
+画面全体の操作は引き続き Playwright で手動確認している。
 
 ## issue 修正時のワークフロー
 

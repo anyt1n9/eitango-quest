@@ -124,13 +124,16 @@ async function loadPosShares(): Promise<Map<string, Record<string, number>>> {
     counts.set(lemma, rec);
   }
 
-  // 回数を割合(%)に直す
+  // 回数を割合(%)に直す。
+  // 一度でも現れた品詞は 0% にしない（四捨五入で消すと「使われない」と読めてしまう）。
+  // 逆に、その語のデータはあるのに現れなかった品詞は 0 を明示する。
+  // こうしておくと利用側で「実測が無い語」と「実測で見つからなかった品詞」を区別できる。
   const shares = new Map<string, Record<string, number>>();
   for (const [lemma, rec] of counts) {
     const total = Object.values(rec).reduce((a, b) => a + b, 0);
     if (total === 0) continue;
     const s: Record<string, number> = {};
-    for (const [pos, c] of Object.entries(rec)) s[pos] = Math.round((100 * c) / total);
+    for (const [pos, c] of Object.entries(rec)) s[pos] = Math.max(1, Math.round((100 * c) / total));
     shares.set(lemma, s);
   }
   return shares;
@@ -253,7 +256,7 @@ export function rankSenses(
   shares: Record<string, number> | undefined,
   ownPos?: PartOfSpeech,
   ownTranslation?: string
-): { meaning: string; pos: PartOfSpeech; share?: number }[] {
+): { meaning: string; pos: PartOfSpeech; share?: number; important?: boolean }[] {
   // 教材が教えている訳語の見出し（「銀行」「春」など）。
   // 辞書の掲載順は頻度順ではないため（bank は 土手 → 銀行 の順）、
   // これを手がかりに「学習者が覚えている意味」を各品詞の先頭へ引き上げる
@@ -269,7 +272,12 @@ export function rankSenses(
     .filter(s => (seen.has(s.meaning) ? false : (seen.add(s.meaning), true)))
     .map(s => {
       const pos = inferPartOfSpeech(word, forPosInference(s.meaning));
-      return { ...s, pos, share: shares?.[pos] };
+      // その語の実測データがあるなら、現れなかった品詞は 0% として持たせる。
+      // 空欄のままだと「実測が無い」のか「実測で使われていない」のか区別できない。
+      // ただし「その他」（前置詞・接続詞・助動詞など）は WordNet が扱わない品詞で、
+      // データが無いだけなので 0% にはしない（must を「その他 0%」と出すのは誤解を生む）。
+      const share = shares && pos !== "other" ? (shares[pos] ?? 0) : undefined;
+      return { ...s, pos, share };
     });
 
   // 品詞ごとにまとめ、各群の中は「辞書が重要とする語義」→「掲載順」
@@ -309,13 +317,24 @@ export function rankSenses(
     if (!added) break;
   }
 
+  // 残った語義がすべて 0% なら、割合そのものを落とす。
+  // never は SemCor では副詞100%だが、日本語の語義からは形容詞と判定される。
+  // そのまま出すと「形容詞 0%」だけが並び、この語は使われないと読めてしまう。
+  // 品詞の判定と実測が食い違っているだけなので、割合は示さない。
+  const allZero = picked.every(s => s.share === 0);
+
   return picked.map(s => {
+    if (allZero) s = { ...s, share: undefined };
     const meaning = s.meaning.length > MAX_SENSE_LEN
       ? s.meaning.slice(0, MAX_SENSE_LEN) + "…"
       : s.meaning;
-    return s.share === undefined
-      ? { meaning, pos: s.pos }
-      : { meaning, pos: s.pos, share: s.share };
+    // 割合(%)は品詞単位なので、語義ごとに違う情報は辞書の重要印しか無い。
+    // false は容量の無駄なので、印が付いている語義にだけ持たせる
+    const out: { meaning: string; pos: PartOfSpeech; share?: number; important?: boolean } =
+      { meaning, pos: s.pos };
+    if (s.share !== undefined) out.share = s.share;
+    if (s.important) out.important = true;
+    return out;
   });
 }
 
@@ -419,7 +438,7 @@ async function main() {
   const arr: any[] = JSON.parse(src.slice(arrStart, arrEnd + 1));
 
   const table: Record<string, any[]> = {};
-  let multi = 0, withShare = 0, minority = 0, examples = 0;
+  let multi = 0, withShare = 0, minority = 0, examples = 0, important = 0;
   for (const w of arr) {
     // 語義は別ファイルに置くため、単語データ側には残さない
     delete w.senses;
@@ -476,6 +495,7 @@ async function main() {
     table[w.id] = from ? withExamples.map(s => ({ ...s, from })) : withExamples;
     if (ranked.length >= 2) multi++;
     if (ranked.some(s => s.share !== undefined)) withShare++;
+    important += ranked.filter(s => s.important).length;
     if (ranked[0].share !== undefined && ranked[0].pos !== w.pos) minority++;
   }
 
@@ -494,6 +514,7 @@ async function main() {
  * 出典:
  *   - 語義: EJDict（パブリックドメインの英和辞書）https://github.com/kujirahand/EJDict
  *   - 品詞ごとの使用割合: WordNet の SemCor 頻度（cntlist.rev）
+ *   - 語義ごとの重要印: EJDict が『』で囲んでいる語義
  */
 export const wordSenses: Record<string, WordSense[]> = ${JSON.stringify(table)};
 `;
@@ -505,6 +526,7 @@ export const wordSenses: Record<string, WordSense[]> = ${JSON.stringify(table)};
   console.log(`  うち使用割合のデータあり: ${withShare}`);
   console.log(`  教材の品詞が最頻でない語: ${minority}`);
   console.log(`  使い方の例を付けた語義: ${examples}件`);
+  console.log(`  辞書が重要と示す語義: ${important}件`);
   console.log(`src/data/senses.ts: ${kb("src/data/senses.ts")} KB / vocabulary.ts: ${kb("src/data/vocabulary.ts")} KB`);
 }
 

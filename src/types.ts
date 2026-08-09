@@ -16,6 +16,12 @@ export interface WordSense {
   pos: PartOfSpeech;    // その語義の品詞
   share?: number;       // その品詞が使われる割合(%)
   /**
+   * 辞書がこの語義を重要と示していたか（EJDict の『』）。
+   * 使用割合は品詞単位でしか出せないため、語義ごとの手がかりはこれだけ。
+   * 実測の頻度ではなく辞書編纂者の判断なので、割合(%)とは別物として見せる。
+   */
+  important?: boolean;
+  /**
    * 別の見出し語から借りてきた語義であることを示す（その語）。
    * politely は辞書に見出しが無いため polite の語義を借りる。
    * 借り物なので使用割合は付けない。
@@ -28,6 +34,20 @@ export interface WordSense {
    * 機械訳を付けると誤訳が混ざるため、訳は付けない。
    */
   usage?: string;
+}
+
+/**
+ * 単語の使い方。訳語だけでは英文が組み立てられないため、
+ * 「どんな形をとるか」「どんな語と組むか」「どんな語族に属するか」を補う。
+ * 生成は scripts/bake_usage.ts（出典はすべて WordNet と EJDict）。
+ */
+export interface WordUsage {
+  /** 語源を同じくする語（decide → decision / decisive） */
+  family?: { word: string; meaning: string; pos: PartOfSpeech }[];
+  /** 動詞の文型。WordNet の sentence frame 番号（1〜35）。ラベルは src/usage.ts */
+  patterns?: number[];
+  /** よく組んで使われる複合語（gas station / weather forecast） */
+  collocations?: { phrase: string; meaning: string }[];
 }
 
 export interface Word {
