@@ -39,15 +39,31 @@ npm run build   # vite build + server.ts のバンドル
   語義は起動時には要らないため
   `src/senses.ts` の `loadSenses()` で遅延読み込みしており、
   単語データ（`vocabulary.ts`）には混ぜない。
-- **サーバーのテスト** — `tests/serverGuards.test.ts`。`server/guards.ts` の入力検証・
-  レート制限・呼び出し予算を対象にする。画面には現れないがAIの利用料に直結するため、
-  時刻を `now` で差し替えて窓の経過を待たずに検証する。
+- **サーバーのテスト** — `tests/serverGuards.test.ts` と `tests/serverRoutes.test.ts`。
+  前者は `server/guards.ts` の入力検証・レート制限・呼び出し予算という「規則そのもの」を
+  対象にし、時刻を `now` で差し替えて窓の経過を待たずに検証する。
+  後者はその規則が各エンドポイントに配線されているかを supertest で実際にHTTPを叩いて
+  確かめる。`server.ts` は `app` を公開しており、直接実行されたときだけ listen する。
+  APIキーが無いときの応答は2種類あり、どちらもテストで固定している
+  （長文生成・頻度分析・類義語は 503。機械で代用すると「AIの分析結果」を騙るため。
+  苦手分析など集計で作れるものは 200 でフォールバックする）。
 - **文枠のテスト** — `tests/sentenceFrames.test.ts`。例文の材料である
   `scripts/rewrite_template_sentences.ts` の文枠を検査する。枠を足すときは
   「穴埋め記号はちょうど1つ」「a/an の直後に穴埋めを置かない」「連体専用の枠は
   穴埋めの直後に名詞が来る」といった決まりをここで確認する。
 
-画面の描画テストは未導入。UI は Playwright で手動確認している。
+- **画面の描画テスト** — `tests/*.test.tsx`（`quiz.render` / `verbForms.render` /
+  `wordSenses.render`）。React Testing Library + jsdom で、学習者が実際に目にする部分を
+  対象にする。「関数は正しいが画面に出ていない」「日→英モードで答えの綴りが見えている」
+  「活用表の過去形と過去分詞の列がずれている」といった不具合は、型検査もビルドも
+  ロジックのテストもすり抜けるため、この層でしか見つからない。
+  読み上げ・`matchMedia`・`ResizeObserver` など jsdom に無いブラウザAPIは
+  `tests/setupDom.ts` で最小限だけ埋める。単語は `tests/fixtures.ts` で作り、
+  収録データには依存させない（どの語が出題されるかで結果が変わってしまうため）。
+
+`tests/*.test.ts` は node 環境、`tests/*.test.tsx` は jsdom 環境で走る
+（`vitest.config.ts` の `projects`）。どちらも `npm test` でまとめて実行される。
+画面全体の操作は引き続き Playwright で手動確認している。
 
 ## issue 修正時のワークフロー
 
