@@ -7,6 +7,7 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
+import { DominantSenseHint } from "./WordSenses";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
 const playQuizSound = (isCorrect: boolean) => {
@@ -361,6 +362,9 @@ export default function Quiz({
                   <p className="text-sm text-emerald-400 font-bold border-t border-slate-800 w-full pt-1.5 mt-1">
                     {currentQuestion.translation}
                   </p>
+
+                  {/* 覚えている語義より、よく使われる語義が別にある場合だけ補足する */}
+                  <DominantSenseHint wordId={currentQuestion.id} ownPos={currentQuestion.pos} />
 
                   <div className="border-t border-slate-800 w-full pt-2.5 mt-1 flex flex-col items-center gap-2">
                     <span className="text-xs text-slate-300 font-semibold">

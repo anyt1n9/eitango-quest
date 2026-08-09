@@ -2,6 +2,21 @@ export type Level = "junior" | "senior" | "senior2" | "senior3" | "advanced";
 
 export type PartOfSpeech = "verb" | "noun" | "adjective" | "adverb" | "other";
 
+/**
+ * 単語の語義。1語につき複数の意味を持たせるためのもの。
+ *
+ * `share` はその品詞が実際の英文でどれくらいの割合を占めるかで、
+ * WordNet の SemCor 頻度から求めている（データのある語だけ付く）。
+ * 語義そのものの頻度ではなく品詞単位の割合である点に注意。
+ * 日本語の語義と英語の語義を1対1で対応づけるのは信頼できないため、
+ * 品詞という粗い単位でのみ実測値を使っている。
+ */
+export interface WordSense {
+  meaning: string;      // 日本語の語義
+  pos: PartOfSpeech;    // その語義の品詞
+  share?: number;       // その品詞が使われる割合(%)
+}
+
 export interface Word {
   id: string; // 識別用
   word: string; // 英単語
