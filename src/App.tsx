@@ -15,6 +15,7 @@ import Dictionary from "./components/Dictionary";
 import Reading from "./components/Reading";
 import MapAndPuzzle from "./components/MapAndPuzzle";
 import AIDiary from "./components/AIDiary";
+import VerbFormsScreen from "./components/VerbForms";
 import DataBackup from "./components/DataBackup";
 import GachaShop from "./components/GachaShop";
 import AdBanner from "./components/AdBanner";
@@ -22,7 +23,7 @@ import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift } from "lucide-react";
+import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat } from "lucide-react";
 
 // 初期収録単語のIDセット（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使用）
 const INITIAL_VOCAB_IDS = new Set(initialVocabulary.map(w => w.id));
@@ -233,7 +234,7 @@ export default function App() {
 
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -410,6 +411,20 @@ export default function App() {
                 <span>AI英語日記</span>
                 <span className="bg-amber-500 text-slate-900 text-[8px] px-1 rounded font-black tracking-tight scale-90">VIP</span>
               </span>
+            </button>
+
+            {/* 動詞の活用表ボタン */}
+            <button
+              onClick={() => setCurrentScreen(currentScreen === "verb_forms" ? "dashboard" : "verb_forms")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+                currentScreen === "verb_forms"
+                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
+                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
+              }`}
+              id="nav_verb_forms_toggle_btn"
+            >
+              <Repeat className="w-3.5 h-3.5" />
+              <span>動詞の活用表</span>
             </button>
 
             {/* 今日の復習(SRS)ボタン */}
@@ -643,6 +658,13 @@ export default function App() {
             setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
+          />
+        )}
+
+        {currentScreen === "verb_forms" && (
+          <VerbFormsScreen
+            vocabulary={vocabulary}
+            onBackToDashboard={handleBackToDashboard}
           />
         )}
 

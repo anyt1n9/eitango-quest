@@ -26,6 +26,10 @@ npm run build   # vite build + server.ts のバンドル
   収録語 7,700 語超と長文15本を全件検査する。型検査もビルドも通り抜ける不具合
   （四択に正解が2つある、例文に答えが露出している、実在しない綴りが混ざる、など）は
   この層でしか見つからない。`scripts/` の生成スクリプトを回したあとは必ず実行する。
+- **動詞の活用のテスト** — `tests/verbForms.test.ts`。`src/verbForms.ts` の不規則動詞表と
+  規則変化の綴りを検査する。語末の子音を重ねるかは強勢の位置で決まり綴りからは分からないため
+  （prefer→preferred だが offer→offered）、`DOUBLE_FINAL` の一覧で持っている。
+  規則変化は米つづりに揃える（travel→traveled）。
 - **語義のテスト** — `tests/senses.test.ts`。`src/data/senses.ts`（多義語の語義と
   品詞ごとの使用割合）を検査する。生成は `scripts/bake_senses.ts`（通信が必要。
   取得結果は `.cache/` に置かれる）。語義は起動時には要らないため
