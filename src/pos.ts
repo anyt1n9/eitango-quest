@@ -52,6 +52,20 @@ const PHRASE_HEADS = new Set(words(`in on at by for with of to from into onto up
   over since through throughout till toward towards under underneath until up within without out off
   as such no not all according due thanks instead regardless apart aside because ahead`));
 
+// 前置詞・接続詞で終わる見出し語の末尾に立つ語。
+// "capable of" "relevant to" "plenty of" は目的語を伴って初めて使えるため、
+// 形容詞や名詞のスロットに単独で差し込むと "I think his idea is quite capable of." のように
+// 目的語の欠けた非文になる。
+// ただし "give up" "look after" のような句動詞は動詞として正しく機能するので、
+// 訳語から動詞と判定できた場合はこの規則を適用しない。
+const PHRASE_TAILS = new Set(words(`of to in on at by for with from than up off out about into over as
+  under through against between within without`));
+
+// 代名詞句。名詞や形容詞のスロットには入らない
+const PRONOUN_PHRASES = new Set([
+  "each other", "one another", "the other", "the others", "the rest", "one's own"
+]);
+
 // -ly で終わるが副詞ではない語。
 // これらは -ly の規則を適用せず、日本語訳から判定させる
 // （chilly=肌寒い→形容詞、butterfly=チョウ→名詞、multiply=掛ける→動詞）。
@@ -61,8 +75,11 @@ const NOT_ADVERB_LY = new Set(words(`family reply supply apply july italy assemb
   comply imply rely multiply biweekly chilly butterfly dragonfly firefly curly heavenly ghostly
   melancholy scholarly stately homely burly surly wobbly cuddly prickly crumbly`));
 
-// 訳語では判定できない語の補助辞書
-const HINT: Record<string, PartOfSpeech> = {};
+// 訳語では判定できない語の補助辞書。
+// プロトタイプを持たないオブジェクトにしているのは、"constructor" や "toString" という
+// 見出し語（利用者がCSV・PDF・AIで追加しうる）で HINT[lw] が Object.prototype の
+// メンバーを拾い、品詞として関数が返ってしまうのを防ぐため。
+const HINT: Record<string, PartOfSpeech> = Object.create(null);
 const hint = (p: PartOfSpeech, s: string) => words(s).forEach(w => (HINT[w] = p));
 
 hint("verb", `run put keep leave meet let go come get take make see know think say tell give find become
@@ -93,9 +110,23 @@ const TEKI_NOUN = /(目的|標的|の的)$/;         // 「〜的」でも名詞
 /** 日本語訳と英語の綴りから品詞を推定する */
 export function inferPartOfSpeech(word: string, translation: string): PartOfSpeech {
   const lw = (word || "").trim().toLowerCase();
-  if (FUNCTION_WORDS.has(lw)) return "other";
-  // 「between A and B」のような文法パターンの見出し
   const tokens = lw.split(/\s+/).filter(Boolean);
+  const guess = inferCore(lw, word, translation, tokens);
+
+  // 前置詞で終わる句は、動詞と判定できたとき（＝句動詞）以外は other にする。
+  // "capable of" を形容詞のまま扱うと目的語の欠けた例文が作られる。
+  if (tokens.length === 2 && PHRASE_TAILS.has(tokens[1]) && guess !== "verb") return "other";
+  return guess;
+}
+
+function inferCore(
+  lw: string,
+  word: string,
+  translation: string,
+  tokens: string[]
+): PartOfSpeech {
+  if (FUNCTION_WORDS.has(lw) || PRONOUN_PHRASES.has(lw)) return "other";
+  // 「between A and B」のような文法パターンの見出し
   if (/\b[AB]\b/.test(word || "") || tokens.length >= 3) return "other";
   // "in fact" "due to" のような前置詞句・接続表現（"give up" のような句動詞は先頭が
   // 機能語ではないため、ここには当たらず動詞のまま残る）
@@ -146,6 +177,11 @@ export function inferPartOfSpeech(word: string, translation: string): PartOfSpee
     if (r) return r;
   }
 
+  // "do well"（うまくやる）のように、訳語が漢字も「を」も含まず判定できない2語の句は、
+  // 先頭が動詞であることを手がかりにする。
+  // 訳語による判定より後に置くのは、"catch up"（追いつくこと）のような名詞句で
+  // 訳語の示す品詞を上書きしないため（このファイルの方針: 訳語 > 補助辞書）。
+  if (tokens.length === 2 && HINT[tokens[0]] === "verb") return "verb";
   if (HINT[lw]) return HINT[lw];
   if (/(ing|ed)$/.test(lw) && lw.length > 5) return "adjective";
   if (/(tion|sion|ment|ness|ity|ance|ence|ship|hood|ism|ure|age|cy|ist|ian|or|er|ee)$/.test(lw)) return "noun";
