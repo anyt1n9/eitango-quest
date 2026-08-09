@@ -159,6 +159,9 @@ function inferCore(
     if (!/[ぁ-ん]$/.test(s)) return "noun";
     if (NOMINALIZED.test(s)) return "noun";              // 行い・戦い（動詞の名詞化）
     if (/(しい|らしい|っぽい)$/.test(s)) return "adjective";
+    // 「もの」「こと」などの名詞化語尾は、下の「〜な/〜の」より先に判定する。
+    // そうしないと「長く盛り上がったもの」が「〜の」で終わる形容詞と誤判定される
+    if (/(こと|もの|事|物|者|人|方)$/.test(s)) return "noun";
     if (/い$/.test(s) && s.length >= 2) return "adjective";
     if (/[なの]$/.test(s) && s.length >= 2) return "adjective";
     if (/[しっ]て$/.test(s)) return "adjective";         // 確信して・優れて

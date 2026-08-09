@@ -26,6 +26,14 @@ npm run build   # vite build + server.ts のバンドル
   収録語 7,700 語超と長文15本を全件検査する。型検査もビルドも通り抜ける不具合
   （四択に正解が2つある、例文に答えが露出している、実在しない綴りが混ざる、など）は
   この層でしか見つからない。`scripts/` の生成スクリプトを回したあとは必ず実行する。
+- **語義のテスト** — `tests/senses.test.ts`。`src/data/senses.ts`（多義語の語義と
+  品詞ごとの使用割合）を検査する。生成は `scripts/bake_senses.ts`（通信が必要。
+  取得結果は `.cache/` に置かれる）。語義は起動時には要らないため
+  `src/senses.ts` の `loadSenses()` で遅延読み込みしており、
+  単語データ（`vocabulary.ts`）には混ぜない。
+- **サーバーのテスト** — `tests/serverGuards.test.ts`。`server/guards.ts` の入力検証・
+  レート制限・呼び出し予算を対象にする。画面には現れないがAIの利用料に直結するため、
+  時刻を `now` で差し替えて窓の経過を待たずに検証する。
 - **文枠のテスト** — `tests/sentenceFrames.test.ts`。例文の材料である
   `scripts/rewrite_template_sentences.ts` の文枠を検査する。枠を足すときは
   「穴埋め記号はちょうど1つ」「a/an の直後に穴埋めを置かない」「連体専用の枠は

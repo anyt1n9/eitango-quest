@@ -56,3 +56,6 @@ anaconda3/
 .DS_Store
 Thumbs.db
 *.swp
+
+# 辞書データの取得キャッシュ（scripts/bake_senses.ts）
+.cache/

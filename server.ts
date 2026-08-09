@@ -1,10 +1,13 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { PREBAKED_WORD_IMAGES } from "./src/data/wordImages";
 import { sampleArray } from "./src/shuffle";
+import {
+  MAX_WORD_LEN, MAX_MEANING_LEN, isValidShortText, escapeHtml, safeSvgIdSegment,
+  createRateLimiter, createBudget
+} from "./server/guards";
 
 dotenv.config();
 
@@ -43,33 +46,8 @@ app.use("/api/gemini/parse-pdf", express.json({ limit: "15mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "100kb", extended: true }));
 
-// ───────────────────────────────────────────────────────────
-// 入力バリデーションヘルパー
-// AIプロンプトへ埋め込まれる文字列に上限を設けることで、
-// 1リクエストでの大量トークン消費(コスト攻撃)とプロンプト汚染を防ぐ。
-// ───────────────────────────────────────────────────────────
-const MAX_WORD_LEN = 64;      // 英単語・フレーズ
-const MAX_MEANING_LEN = 200;  // 日本語訳・意味
-
-// 制御文字を含まない、上限以内の非空文字列であることを検証
-const isValidShortText = (value: unknown, maxLen: number): value is string =>
-  typeof value === "string" &&
-  value.trim().length > 0 &&
-  value.length <= maxLen &&
-  !/[\u0000-\u001F\u007F]/.test(value);
-
-const escapeHtml = (value: string): string =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-const safeSvgIdSegment = (value: string): string => {
-  const safe = value.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48);
-  return safe || "word";
-};
+// 入力バリデーション・レート制限・予算上限は server/guards.ts に切り出してある
+// （AIの利用料に直結するため、画面や外部通信から独立してテストできる形にした）。
 
 // フォールバック画像は自前テンプレートから組み立てる。ユーザー入力（単語）は
 // escapeHtml / safeSvgIdSegment を通してからしか埋め込まないため、そのまま返して安全。
@@ -86,43 +64,26 @@ const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1分
 // 1分あたり最大40リクエスト/IP。辞書で単語を開くと画像・頻度分析で2回発火するため、
 // 通常の辞書学習(1語ごとに2回×十数語)を妨げない一方、悪用(毎分数百回)は確実に弾く水準。
 const RATE_LIMIT_MAX = 40;
-const rateLimitBuckets = new Map<string, number[]>();
+const rateLimiter = createRateLimiter({ windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX });
 
-// メモリ肥大を防ぐため、古いバケットを定期的に掃除する
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, timestamps] of rateLimitBuckets) {
-    const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-    if (recent.length === 0) {
-      rateLimitBuckets.delete(ip);
-    } else {
-      rateLimitBuckets.set(ip, recent);
-    }
-  }
-}, RATE_LIMIT_WINDOW_MS).unref();
+// メモリ肥大を防ぐため、古い記録を定期的に掃除する
+setInterval(() => rateLimiter.sweep(), RATE_LIMIT_WINDOW_MS).unref();
 
 function aiRateLimiter(
   req: express.Request,
   res: express.Response,
   next: express.NextFunction
 ) {
-  const now = Date.now();
   const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const timestamps = (rateLimitBuckets.get(ip) || []).filter(
-    (t) => now - t < RATE_LIMIT_WINDOW_MS
-  );
+  const { allowed, retryAfterSec } = rateLimiter.check(ip);
 
-  if (timestamps.length >= RATE_LIMIT_MAX) {
-    const oldest = timestamps[0];
-    const retryAfterSec = Math.max(1, Math.ceil((RATE_LIMIT_WINDOW_MS - (now - oldest)) / 1000));
+  if (!allowed) {
     res.setHeader("Retry-After", String(retryAfterSec));
     return res.status(429).json({
       error: `リクエストが多すぎます。${retryAfterSec}秒ほど待ってから再度お試しください。`
     });
   }
 
-  timestamps.push(now);
-  rateLimitBuckets.set(ip, timestamps);
   next();
 }
 
@@ -139,21 +100,10 @@ app.use("/api/gemini", aiRateLimiter);
 // ───────────────────────────────────────────────────────────
 const GEMINI_BUDGET_WINDOW_MS = 60 * 60 * 1000; // 1時間
 const GEMINI_HOURLY_BUDGET = Math.max(1, Number(process.env.GEMINI_HOURLY_BUDGET) || 600);
-let geminiCallCount = 0;
-let geminiWindowStart = Date.now();
+const geminiBudget = createBudget({ windowMs: GEMINI_BUDGET_WINDOW_MS, limit: GEMINI_HOURLY_BUDGET });
 
 function consumeGeminiBudget(): void {
-  const now = Date.now();
-  if (now - geminiWindowStart >= GEMINI_BUDGET_WINDOW_MS) {
-    geminiWindowStart = now;
-    geminiCallCount = 0;
-  }
-  if (geminiCallCount >= GEMINI_HOURLY_BUDGET) {
-    throw new Error(
-      `Gemini hourly budget exceeded (${GEMINI_HOURLY_BUDGET} calls/hour). Falling back to local responses.`
-    );
-  }
-  geminiCallCount++;
+  geminiBudget.consume();
 }
 
 // Gemini API の安全な初期化
@@ -1372,6 +1322,10 @@ app.post("/api/gemini/parse-pdf", async (req, res) => {
 // ExpressサーバーでViteミドルウェア（開発時）の設定、または静的なビルドファイルの配信
 async function main() {
   if (process.env.NODE_ENV !== "production") {
+    // Vite は開発時のミドルウェアにしか使わないため、ここで動的に読み込む。
+    // 静的 import にすると本番のバンドルでも require("vite") が走るので、
+    // 実行時には使わない開発用パッケージを本番環境へ入れる必要が出てしまう。
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

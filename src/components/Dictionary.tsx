@@ -22,6 +22,7 @@ import {
 import { Word, Level } from "../types";
 import Phonetic from "./Phonetic";
 import { getWordPosLabel } from "../pos";
+import WordSenses from "./WordSenses";
 import { SrsState } from "../srs";
 import { isMastered } from "../mastery";
 
@@ -646,6 +647,9 @@ export default function Dictionary({
                                 {word.translation}
                               </div>
                             </div>
+
+                            {/* 複数の意味を持つ語では、他の意味と品詞ごとの使用割合も見せる */}
+                            <WordSenses wordId={word.id} ownTranslation={word.translation} />
 
                             {/* 例文セクション */}
                             <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-2">

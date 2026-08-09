@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Level, UserStats, RankingUser } from "../types";
 import { passages, Passage, PassageQuestion } from "../data/passages";
 import { shuffleQuestion } from "../readingQuiz";
-import { readStoredArray } from "../storage";
+import { readStoredArray, writeStored } from "../storage";
+import { sanitizePassage, sanitizePassages } from "../passageValidation";
 import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X } from "lucide-react";
 
 interface ReadingProps {
@@ -23,16 +24,17 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
   );
 
   useEffect(() => {
-    localStorage.setItem("quest_read_passages", JSON.stringify(readPassages));
+    writeStored("quest_read_passages", readPassages);
   }, [readPassages]);
 
-  // AI生成されたカスタム長文（localStorageに永続化）
+  // AI生成されたカスタム長文（localStorageに永続化）。
+  // 保存された内容が壊れていても描画できるよう、読み込み時に形を整える
   const [customPassages, setCustomPassages] = useState<Passage[]>(() =>
-    readStoredArray<Passage>("quest_custom_passages")
+    sanitizePassages(readStoredArray<unknown>("quest_custom_passages"))
   );
 
   useEffect(() => {
-    localStorage.setItem("quest_custom_passages", JSON.stringify(customPassages));
+    writeStored("quest_custom_passages", customPassages);
   }, [customPassages]);
 
   const allPassages = [...passages, ...customPassages];
@@ -70,19 +72,15 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
       if (!response.ok || data.error) {
         throw new Error(data.error || "AI長文の生成に失敗しました。");
       }
-      // AIの応答がスキーマ通りとは限らないため、描画に必要な形を満たすか確認する。
+      // AIの応答がスキーマ通りとは限らないため、描画に必要な形へ整えてから保存する。
       // 不正なデータを保存すると、開くたびに描画時例外が起きる状態が残ってしまう。
-      if (
-        !data ||
-        typeof data.title !== "string" ||
-        !Array.isArray(data.englishParagraphs) ||
-        !Array.isArray(data.japaneseParagraphs)
-      ) {
+      const passage = sanitizePassage(data);
+      if (!passage) {
         throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
       }
 
-      setCustomPassages(prev => [...prev, data]);
-      alert(`✨ AIが新しい長文『${data.title}』を書き下ろしました！\n一覧から開いて読んでみましょう。`);
+      setCustomPassages(prev => [...prev, passage]);
+      alert(`✨ AIが新しい長文『${passage.title}』を書き下ろしました！\n一覧から開いて読んでみましょう。`);
     } catch (err: any) {
       console.error(err);
       setGenError(err.message || "AI長文の生成に失敗しました。");

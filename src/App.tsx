@@ -20,7 +20,7 @@ import GachaShop from "./components/GachaShop";
 import AdBanner from "./components/AdBanner";
 import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
-import { readStoredArray, readStoredObject } from "./storage";
+import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift } from "lucide-react";
 
@@ -98,13 +98,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("quest_rival_growth_date", rivalGrowthDate);
+    writeStored("quest_rival_growth_date", rivalGrowthDate);
   }, [rivalGrowthDate]);
 
-  // テーマ切り替え (ダークモード用)
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    return localStorage.getItem("quest_theme") === "dark";
-  });
+  // テーマ切り替え (ダークモード用)。
+  // 一度も切り替えていない利用者には端末の設定に合わせる。
+  // 以前は保存値が "dark" かどうかだけを見ていたため、OSをダークにしている人でも
+  // 初回は必ずライトで開いていた。
+  const [isDark, setIsDark] = useState<boolean>(() => prefersDarkTheme());
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
   const [srsData, setSrsData] = useState<Record<string, SrsState>>(() =>
@@ -133,7 +134,7 @@ export default function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
-    localStorage.setItem("quest_theme", isDark ? "dark" : "light");
+    writeStored("quest_theme", isDark ? "dark" : "light");
   }, [isDark]);
 
   // ログインスタンプ起動時処理（1日のログイン連続日数の自動更新など）
@@ -165,42 +166,42 @@ export default function App() {
 
   // 2. 変更時の各LocalStorageへ同期保存
   useEffect(() => {
-    localStorage.setItem("quest_stats", JSON.stringify(stats));
+    writeStored("quest_stats", stats);
   }, [stats]);
 
   useEffect(() => {
-    localStorage.setItem("quest_wrong_words", JSON.stringify(wrongWords));
+    writeStored("quest_wrong_words", wrongWords);
   }, [wrongWords]);
 
   useEffect(() => {
-    localStorage.setItem("quest_solved_history", JSON.stringify(solvedHistory));
+    writeStored("quest_solved_history", solvedHistory);
   }, [solvedHistory]);
 
   useEffect(() => {
-    localStorage.setItem("quest_ranking_score", JSON.stringify(ranking));
+    writeStored("quest_ranking_score", ranking);
   }, [ranking]);
 
   useEffect(() => {
     // ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出など、初期収録以外すべて）を保存
     // ※以前は "ai_" で始まるIDのみ保存していたため、CSV/PDF由来の単語がリロードで消える不具合があった
     const customOnly = vocabulary.filter(w => !INITIAL_VOCAB_IDS.has(w.id));
-    localStorage.setItem("quest_vocab_custom", JSON.stringify(customOnly));
+    writeStored("quest_vocab_custom", customOnly);
   }, [vocabulary]);
 
   useEffect(() => {
-    localStorage.setItem("quest_srs", JSON.stringify(srsData));
+    writeStored("quest_srs", srsData);
   }, [srsData]);
 
   useEffect(() => {
-    localStorage.setItem("quest_daily_progress", JSON.stringify(dailyProgress));
+    writeStored("quest_daily_progress", dailyProgress);
   }, [dailyProgress]);
 
   useEffect(() => {
-    localStorage.setItem("quest_daily_goal", String(dailyGoal));
+    writeStored("quest_daily_goal", String(dailyGoal));
   }, [dailyGoal]);
 
   useEffect(() => {
-    localStorage.setItem("quest_daily_log", JSON.stringify(dailyLog));
+    writeStored("quest_daily_log", dailyLog);
   }, [dailyLog]);
 
   // ごほうびガチャ関連の永続化ステート
@@ -219,15 +220,15 @@ export default function App() {
   );
 
   useEffect(() => {
-    localStorage.setItem("quest_owned_rewards", JSON.stringify(ownedRewardIds));
+    writeStored("quest_owned_rewards", ownedRewardIds);
   }, [ownedRewardIds]);
 
   useEffect(() => {
-    localStorage.setItem("quest_gacha_spent", String(gachaSpent));
+    writeStored("quest_gacha_spent", String(gachaSpent));
   }, [gachaSpent]);
 
   useEffect(() => {
-    localStorage.setItem("quest_equipped", JSON.stringify(equipped));
+    writeStored("quest_equipped", equipped);
   }, [equipped]);
 
 

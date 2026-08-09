@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { writeStored } from "../storage";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   ArrowLeft, 
@@ -117,14 +118,14 @@ export default function AIDiary({
   // キャッシュおよび履歴同期
   useEffect(() => {
     if (diary) {
-      localStorage.setItem("quest_current_diary_cache", JSON.stringify(diary));
+      writeStored("quest_current_diary_cache", diary);
     } else {
       localStorage.removeItem("quest_current_diary_cache");
     }
   }, [diary]);
 
   useEffect(() => {
-    localStorage.setItem("quest_diary_history", JSON.stringify(history));
+    writeStored("quest_diary_history", history);
   }, [history]);
 
   // 日記のTTS読み上げ機能
