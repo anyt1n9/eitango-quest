@@ -16,6 +16,8 @@ import Reading from "./components/Reading";
 import MapAndPuzzle from "./components/MapAndPuzzle";
 import AIDiary from "./components/AIDiary";
 import VerbFormsScreen from "./components/VerbForms";
+import QuizFormatPicker from "./components/QuizFormatPicker";
+import { QuizFormat, QUIZ_FORMAT_LABELS, wordsForFormat } from "./quizFormats";
 import DataBackup from "./components/DataBackup";
 import GachaShop from "./components/GachaShop";
 import AdBanner from "./components/AdBanner";
@@ -23,7 +25,10 @@ import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat } from "lucide-react";
+import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft } from "lucide-react";
+
+// 苦手単語を1語卒業したときのボーナス点
+const GRADUATION_BONUS = 50;
 
 // 初期収録単語のIDセット（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使用）
 const INITIAL_VOCAB_IDS = new Set(initialVocabulary.map(w => w.id));
@@ -234,7 +239,7 @@ export default function App() {
 
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "reverse_quiz" | "review" | "dictionary" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "reverse_quiz" | "review" | "review_quiz" | "dictionary" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -243,6 +248,17 @@ export default function App() {
   // SRSデータが更新されて配列の中身・参照が変わり、セッション途中で問題が再生成されて
   // 崩壊する不具合があったため、復習開始時点のリストを固定して渡す。
   const [srsSessionWords, setSrsSessionWords] = useState<Word[]>([]);
+
+  /**
+   * 復習セッションの出題形式。
+   *
+   * 復習はどちらの入口も四択に固定されていたため、文穴埋めや綴りで覚えた語も
+   * 四択でしか出し直せなかった。形式を選んでから始める形にする。
+   * null のあいだは形式の選択画面を出す。
+   */
+  const [reviewFormat, setReviewFormat] = useState<QuizFormat | null>(null);
+  /** 苦手単語の復習を「一覧」ではなくクイズとして解いているときの出題対象 */
+  const [wrongSessionWords, setWrongSessionWords] = useState<Word[]>([]);
 
   // 画面切り替え時にスクロールを先頭に戻す。
   // ダッシュボード下部のボタンから遷移した際、前画面のスクロール位置が
@@ -269,6 +285,8 @@ export default function App() {
 
   const handleBackToDashboard = () => {
     setSrsSessionWords([]);
+    setWrongSessionWords([]);
+    setReviewFormat(null);
     setCurrentScreen("dashboard");
   };
 
@@ -309,6 +327,114 @@ export default function App() {
     });
   }, []);
 
+  /**
+   * 復習セッションの1問ぶんの後始末。
+   *
+   * 苦手単語の復習で正解したら、その語を苦手リストから外す（卒業）。
+   * 四択の復習テスト（ReviewList）だけが持っていた振る舞いだが、
+   * 形式を選べるようにした以上、どの形式で解いても同じでなければならない。
+   */
+  const recordReviewAnswer = useCallback((wordId: string, isCorrect: boolean) => {
+    recordAnswer(wordId, isCorrect);
+    if (!isCorrect || !wrongWords.includes(wordId)) return;
+    setWrongWords(prev => prev.filter(id => id !== wordId));
+    // 卒業ボーナス（1語につき50ポイント）。四択の復習テストが持っていた報酬を引き継ぐ
+    updateRankingScore(GRADUATION_BONUS);
+    setStats(prev => ({ ...prev, score: prev.score + GRADUATION_BONUS }));
+  }, [recordAnswer, wrongWords]);
+
+  /**
+   * 復習セッションを、選ばれた形式のクイズとして描画する。
+   *
+   * 形式ごとにコンポーネントが違うだけで、渡すものは同じ。
+   * 出題対象はその形式で出せる語に絞る（綴りはイディオムを出せない、
+   * 文穴埋めは例文が要る）。
+   */
+  const renderReviewQuiz = (picked: Word[], onAnswer: (wordId: string, isCorrect: boolean) => void) => {
+    if (!reviewFormat) return null;
+    // 形式選択の画面では0語の形式を選べなくしてあるが、
+    // 直接この画面に来たときに読み込み中のまま止まらないようにする
+    if (picked.length === 0) {
+      return (
+        <div className="max-w-xl mx-auto">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-8 shadow-sm text-center space-y-4">
+            <h2 className="text-lg font-black text-gray-900 dark:text-slate-100">
+              {QUIZ_FORMAT_LABELS[reviewFormat]}で出せる単語がありません
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
+              綴りはイディオムを、文穴埋めは例文の無い単語を出題できません。別の形式を選んでください。
+            </p>
+            <button
+              onClick={() => setReviewFormat(null)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
+            >
+              形式を選び直す
+            </button>
+          </div>
+        </div>
+      );
+    }
+    const common = {
+      level: selectedLevel,
+      vocabulary,
+      wrongWords,
+      setWrongWords,
+      solvedHistory,
+      setSolvedHistory,
+      setStats,
+      onBackToDashboard: handleBackToDashboard,
+      updateRankingScore,
+      questionCount: Math.min(picked.length, 30),
+      customWords: picked,
+      reviewMode: true,
+      recordAnswer: onAnswer
+    };
+    if (reviewFormat === "sentence") return <SentenceQuiz {...common} />;
+    if (reviewFormat === "spelling") return <SpellingQuiz {...common} />;
+    return (
+      <Quiz
+        {...common}
+        listeningMode={reviewFormat === "listening"}
+        reverseMode={reviewFormat === "reverse"}
+      />
+    );
+  };
+
+  /**
+   * 選んだ形式で出題できる語。
+   *
+   * 毎レンダーで作り直すと配列の同一性が変わり、
+   * クイズ側が出題をやり直して解答の途中で問題が入れ替わる。
+   */
+  const srsReviewWords = useMemo(
+    () => (reviewFormat ? wordsForFormat(srsSessionWords, reviewFormat) : []),
+    [srsSessionWords, reviewFormat]
+  );
+  const wrongReviewWords = useMemo(
+    () => (reviewFormat ? wordsForFormat(wrongSessionWords, reviewFormat) : []),
+    [wrongSessionWords, reviewFormat]
+  );
+
+  /** 復習の形式を選ぶ画面。出題対象と説明を添える */
+  const renderReviewFormatPicker = (words: Word[], title: string, note: string) => (
+    <div className="max-w-xl mx-auto">
+      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+        <button
+          onClick={handleBackToDashboard}
+          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>ダッシュボードに戻る</span>
+        </button>
+        <div>
+          <h2 className="text-lg font-black text-gray-900 dark:text-slate-100">{title}</h2>
+          <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mt-1">{note}</p>
+        </div>
+        <QuizFormatPicker words={words} onSelect={setReviewFormat} />
+      </div>
+    </div>
+  );
+
   // 今日復習すべき単語（SRSの期日が今日以前のもの）
   // 収録単語は約7,800語あるため、ID一覧を配列のまま includes で引くと
   // 毎レンダーで O(単語数 × 復習対象数) の走査になる。Set で定数時間の判定にする。
@@ -328,6 +454,7 @@ export default function App() {
     currentScreen === "reverse_quiz" ||
     currentScreen === "spelling_quiz" ||
     currentScreen === "review" ||
+    currentScreen === "review_quiz" ||
     currentScreen === "srs_review";
 
   return (
@@ -644,12 +771,15 @@ export default function App() {
             vocabulary={vocabulary}
             wrongWords={wrongWords}
             setWrongWords={setWrongWords}
-            solvedHistory={solvedHistory}
-            setSolvedHistory={setSolvedHistory}
-            setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
-            updateRankingScore={updateRankingScore}
-            recordAnswer={recordAnswer}
+            onStartReviewQuiz={(format) => {
+              // セッション開始時点の苦手単語を固定する。
+              // 正解のたびに wrongWords が変わるため、途中で出題対象が入れ替わってしまう
+              const wrongSet = new Set(wrongWords);
+              setWrongSessionWords(vocabulary.filter(w => wrongSet.has(w.id)));
+              setReviewFormat(format);
+              setCurrentScreen("review_quiz");
+            }}
           />
         )}
 
@@ -698,23 +828,26 @@ export default function App() {
           />
         )}
 
+        {/* 苦手単語の復習を、選んだ形式のクイズとして解く */}
+        {currentScreen === "review_quiz" && (
+          reviewFormat === null
+            ? renderReviewFormatPicker(
+                wrongSessionWords,
+                `苦手克服テスト — ${wrongSessionWords.length}語`,
+                "正解した単語は苦手リストから卒業します。どの形式で確かめるか選んでください。"
+              )
+            : renderReviewQuiz(wrongReviewWords, recordReviewAnswer)
+        )}
+
         {currentScreen === "srs_review" && (
           srsSessionWords.length > 0 ? (
-            <Quiz
-              level={selectedLevel}
-              vocabulary={vocabulary}
-              wrongWords={wrongWords}
-              setWrongWords={setWrongWords}
-              solvedHistory={solvedHistory}
-              setSolvedHistory={setSolvedHistory}
-              setStats={setStats}
-              onBackToDashboard={handleBackToDashboard}
-              updateRankingScore={updateRankingScore}
-              questionCount={Math.min(srsSessionWords.length, 30)}
-              customWords={srsSessionWords}
-              reviewMode={true}
-              recordAnswer={recordAnswer}
-            />
+            reviewFormat === null
+              ? renderReviewFormatPicker(
+                  srsSessionWords,
+                  `今日の復習 — ${srsSessionWords.length}語`,
+                  "忘却曲線にもとづく今日の対象です。どの形式で解き直すか選んでください。覚えたときと同じ形式で確かめると、身についているかがはっきりします。"
+                )
+              : renderReviewQuiz(srsReviewWords, recordAnswer)
           ) : (
             <div className="max-w-xl mx-auto">
               <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-8 shadow-sm text-center space-y-4">

@@ -50,6 +50,11 @@ interface SentenceQuizProps {
   setStats: React.Dispatch<React.SetStateAction<UserStats>>;
   onBackToDashboard: () => void;
   updateRankingScore: (points: number) => void;
+  questionCount?: number;
+  // 復習セッション用: 指定された単語のみを出題する（レベルフィルタを上書きする）
+  customWords?: Word[];
+  // 復習セッションかどうか（表示文言の切り替え用）
+  reviewMode?: boolean;
   // 出題の重み付け（復習期日超過・未習を優先）に使う
   srsData?: Record<string, SrsState>;
   // 解答1件ごとに呼ばれるコールバック（間隔反復・デイリー目標の更新用）
@@ -66,6 +71,9 @@ export default function SentenceQuiz({
   setStats,
   onBackToDashboard,
   updateRankingScore,
+  questionCount = 10,
+  customWords,
+  reviewMode = false,
   srsData = {},
   recordAnswer
 }: SentenceQuizProps) {
@@ -121,9 +129,15 @@ export default function SentenceQuiz({
 
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
-    const levelWords = vocabulary.filter(w => w.level === level);
+    // customWords が渡された場合（復習）はそれを出題プールにする
+    const levelWords = (customWords && customWords.length > 0)
+      ? customWords
+      : vocabulary.filter(w => w.level === level);
     // 復習期日を過ぎた語・まだ解いていない語を優先して選ぶ
-    const picked = selectQuizWords({ pool: levelWords, count: 10, solvedHistory, srsData });
+    // （復習セッションは既に対象が絞られているのでそのまま使う）
+    const picked = (customWords && customWords.length > 0)
+      ? shuffle(levelWords).slice(0, Math.min(questionCount, levelWords.length))
+      : selectQuizWords({ pool: levelWords, count: questionCount, solvedHistory, srsData });
     return picked.map(q => {
       return {
         ...q,
@@ -133,9 +147,13 @@ export default function SentenceQuiz({
     });
   };
 
+  // 出題対象は「中身」で見る。配列の同一性で見ると、呼び出し側が毎回
+  // 新しい配列を作るだけで出題し直しになり、解答の途中で問題が入れ替わる
+  const customWordsKey = (customWords || []).map(w => w.id).join(",");
+
   useEffect(() => {
     setQuestions(prepareQuestions());
-  }, [level, vocabulary]);
+  }, [level, vocabulary, questionCount, customWordsKey]);
 
   // リザルト画面から同じ設定でもう一度挑戦する（新しい出題セットを再抽選）
   const handleRetry = () => {
@@ -493,7 +511,9 @@ export default function SentenceQuiz({
             </div>
             <h2 className="text-2xl font-black text-gray-900">例文穴埋め完了！</h2>
             <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
-              {level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・例文クイズリザルト
+              {reviewMode
+                ? "復習・例文クイズリザルト"
+                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・例文クイズリザルト`}
             </p>
           </div>
 
