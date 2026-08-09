@@ -48,6 +48,37 @@ describe("sanitizePassage", () => {
     expect(p.japaneseParagraphs[1]).toBe("");
   });
 
+  it("和訳の途中が空でも、以降の段落の対応がずれない", () => {
+    // 空要素を取り除くと後続が前へ詰まるため、独立にフィルタすると対応が崩れる
+    const p = sanitizePassage({
+      ...valid,
+      englishParagraphs: ["EN1", "EN2", "EN3"],
+      japaneseParagraphs: ["和訳1", "", "和訳3"]
+    })!;
+    expect(p.englishParagraphs).toEqual(["EN1", "EN2", "EN3"]);
+    expect(p.japaneseParagraphs).toEqual(["和訳1", "", "和訳3"]);
+  });
+
+  it("英文の途中が空でも、残った段落の訳が正しく対応する", () => {
+    const p = sanitizePassage({
+      ...valid,
+      englishParagraphs: ["EN1", "", "EN3"],
+      japaneseParagraphs: ["和訳1", "和訳2", "和訳3"]
+    })!;
+    expect(p.englishParagraphs).toEqual(["EN1", "EN3"]);
+    // EN3 に対応するのは 和訳3（和訳2 ではない）
+    expect(p.japaneseParagraphs).toEqual(["和訳1", "和訳3"]);
+  });
+
+  it("和訳が文字列でない要素は空文字にする", () => {
+    const p = sanitizePassage({
+      ...valid,
+      englishParagraphs: ["EN1", "EN2"],
+      japaneseParagraphs: ["和訳1", 42]
+    })!;
+    expect(p.japaneseParagraphs).toEqual(["和訳1", ""]);
+  });
+
   it("和訳が丸ごと欠けていても落ちない", () => {
     const p = sanitizePassage({ ...valid, japaneseParagraphs: undefined })!;
     expect(p.japaneseParagraphs).toEqual(["", ""]);
@@ -109,6 +140,47 @@ describe("sanitizePassage", () => {
     })!;
     expect(p.questions).toHaveLength(1);
     expect(p.questions![0].question).toBe("正しい設問");
+  });
+
+  it("空の選択肢を取り除いても正解が同じ文言を指し続ける", () => {
+    // 空要素を落とすと位置が前へ詰まるため、correctIndex を数字のまま持ち回ると
+    // 別の選択肢が正解になってしまう
+    const p = sanitizePassage({
+      ...valid,
+      questions: [{ question: "設問", options: ["", "正解", "誤り"], correctIndex: 1 }]
+    })!;
+    expect(p.questions).toHaveLength(1);
+    const q = p.questions![0];
+    expect(q.options).toEqual(["正解", "誤り"]);
+    expect(q.options[q.correctIndex]).toBe("正解");
+  });
+
+  it("空の選択肢が複数あってもずれない", () => {
+    const p = sanitizePassage({
+      ...valid,
+      questions: [{ question: "設問", options: ["", "A", "", "本当の正解", "B"], correctIndex: 3 }]
+    })!;
+    const q = p.questions![0];
+    expect(q.options[q.correctIndex]).toBe("本当の正解");
+  });
+
+  it("正解そのものが空文字なら設問ごと捨てる", () => {
+    // 答えを復元できないため、間違った正解を提示するより出題しない方がよい
+    const p = sanitizePassage({
+      ...valid,
+      questions: [{ question: "設問", options: ["", "A", "B"], correctIndex: 0 }]
+    })!;
+    expect(p.questions).toEqual([]);
+  });
+
+  it("収録済みの設問は正解の文言が変わらない", () => {
+    for (const original of passages) {
+      const p = sanitizePassage(original)!;
+      original.questions!.forEach((q, i) => {
+        expect(p.questions![i].options[p.questions![i].correctIndex])
+          .toBe(q.options[q.correctIndex]);
+      });
+    }
   });
 
   it("設問が配列でなくても空配列にする", () => {

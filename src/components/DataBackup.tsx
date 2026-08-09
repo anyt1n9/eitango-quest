@@ -80,11 +80,23 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
+        // 保存に失敗しても writeStored は例外を投げないため、戻り値で確かめる。
+        // 確かめずにリロードすると、一部しか復元されていないのに
+        // 「復元できた」ように見える画面だけが残ってしまう。
+        const failed: string[] = [];
         BACKUP_KEYS.forEach((k) => {
           if (k in data && typeof data[k] === "string") {
-            writeStored(k, data[k]);
+            if (!writeStored(k, data[k])) failed.push(k);
           }
         });
+        if (failed.length > 0) {
+          setMessage({
+            type: "error",
+            text: `一部のデータを復元できませんでした（${failed.length}件）。保存容量が足りない可能性があります。不要な単語や長文を削除してから、もう一度お試しください。`
+          });
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
         // 状態を確実に反映させるためリロード
         window.location.reload();
       } catch (err) {
