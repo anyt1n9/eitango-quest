@@ -95,6 +95,56 @@ describe("inferPartOfSpeech", () => {
     expect(inferPartOfSpeech("as soon as possible", "できるだけ早く")).toBe("other");
   });
 
+  it("前置詞で始まる句は other", () => {
+    // "She looked in addition when she heard the news." のような非文を防ぐ
+    for (const [w, t] of [["in fact", "実際には"], ["for example", "例えば"],
+                          ["according to", "によると"], ["at last", "ついに，やっと"],
+                          ["no longer", "もはや～でない"], ["such as", "のような"]]) {
+      expect(inferPartOfSpeech(w, t)).toBe("other");
+    }
+  });
+
+  it("前置詞で終わる句は other（目的語が無いと使えないため）", () => {
+    // "I think his idea is quite capable of." のように目的語の欠けた例文を防ぐ
+    for (const [w, t] of [["capable of", "ができる，可能で"], ["relevant to", "に関連した"],
+                          ["plenty of", "たくさんの"], ["guilty of", "罪を犯して"],
+                          ["result in", "結果として"], ["rather than", "よりむしろ"],
+                          ["ought to", "すべきである"], ["hundreds of", "何百もの"]]) {
+      expect(inferPartOfSpeech(w, t)).toBe("other");
+    }
+  });
+
+  it("句動詞は前置詞で終わっても動詞のまま", () => {
+    for (const [w, t] of [["give up", "をあきらめる"], ["look after", "の世話をする"],
+                          ["take off", "を脱ぐ"], ["get up", "起きる"], ["do well", "うまくやる"]]) {
+      expect(inferPartOfSpeech(w, t)).toBe("verb");
+    }
+  });
+
+  it("代名詞句は other", () => {
+    expect(inferPartOfSpeech("each other", "お互い")).toBe("other");
+    expect(inferPartOfSpeech("the other", "もう一方の")).toBe("other");
+    expect(inferPartOfSpeech("one another", "お互いに")).toBe("other");
+  });
+
+  it("複合名詞は名詞のまま", () => {
+    for (const [w, t] of [["living room", "リビングルーム"], ["bank account", "銀行口座"],
+                          ["fossil fuel", "化石燃料"], ["high school", "高校"]]) {
+      expect(inferPartOfSpeech(w, t)).toBe("noun");
+    }
+  });
+
+  it("Object.prototype のメンバー名でも品詞の文字列を返す", () => {
+    // 補助辞書をただのオブジェクトで持つと HINT["constructor"] が
+    // Object.prototype.constructor（関数）を拾い、品詞として関数が返っていた。
+    // 利用者がCSV・PDF・AIで追加しうる見出し語なので、必ず文字列で返す
+    for (const w of ["constructor", "valueOf", "hasOwnProperty", "prototype", "__proto__"]) {
+      const r = inferPartOfSpeech(w, "");
+      expect(typeof r).toBe("string");
+      expect(Object.keys(POS_LABELS)).toContain(r);
+    }
+  });
+
   it("訳語が空でも必ず有効な品詞を返す", () => {
     for (const w of ["", "xyzzy", "nation", "beautify", "hopeless"]) {
       expect(Object.keys(POS_LABELS)).toContain(inferPartOfSpeech(w, ""));

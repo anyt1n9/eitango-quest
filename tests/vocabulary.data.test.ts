@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import { initialVocabulary } from "../src/data/vocabulary";
 import { PartOfSpeech } from "../src/types";
 import { senses } from "./helpers";
+import {
+  ADJ_ATTR, ADJ_STATE, DETERMINER_LIKE, firstSense, NOUN, VERB_TRANS, VERB_INTRANS,
+  ADJ_QUALITY, ADV, OTHER
+} from "../scripts/rewrite_template_sentences";
 
 /**
  * 収録データ(7,700語超)そのものの検査。
@@ -15,6 +19,12 @@ import { senses } from "./helpers";
 const V = initialVocabulary;
 const LEVELS = ["junior", "senior", "senior2", "senior3", "advanced"];
 const POS: PartOfSpeech[] = ["verb", "noun", "adjective", "adverb", "other"];
+
+/** 生成スクリプトが配る定型文（手書きの個別例文と区別するため） */
+const templateSentences = new Set(
+  [...NOUN, ...VERB_TRANS, ...VERB_INTRANS, ...ADJ_QUALITY, ...ADJ_ATTR, ...ADJ_STATE, ...ADV, ...OTHER]
+    .map(f => f.en)
+);
 
 /** 失敗時に「何件・どの語か」が分かるように、違反した語を列挙して比較する */
 const violations = (fn: (w: typeof V[number]) => boolean, label: (w: typeof V[number]) => string) =>
@@ -126,6 +136,46 @@ describe("例文", () => {
     expect(violations(
       w => !w.sentenceTranslation.trim() || !/[ぁ-んァ-ヶ一-鿿]/.test(w.sentenceTranslation),
       w => w.id
+    )).toEqual([]);
+  });
+
+  it("1つの例文を共有する語が多すぎない", () => {
+    // 以前は111枠しか無く、1つの枠を57語が共有していた。
+    // 学習者から見ると同じ文が延々と出てくる状態になる
+    const count = new Map<string, number>();
+    for (const w of V) count.set(w.sentence, (count.get(w.sentence) || 0) + 1);
+    const worst = [...count.entries()].sort((a, b) => b[1] - a[1])[0];
+    expect(worst[1]).toBeLessThanOrEqual(30);
+  });
+
+  it("例文の種類が十分にある", () => {
+    expect(new Set(V.map(w => w.sentence)).size).toBeGreaterThan(4000);
+  });
+
+  it("関係形容詞（訳が「〜の」で終わる語）を述語の文枠に入れていない", () => {
+    // "The old bridge looked electric in the morning light." のような
+    // 文法は正しいが意味の通らない例文を防ぐ。
+    // 連体専用プールの枠は穴埋めの直後に必ず名詞が来る
+    const attrFrames = new Set(ADJ_ATTR.map(f => f.en));
+    expect(violations(
+      w => w.pos === "adjective"
+        && /の$/.test(firstSense(w.translation))
+        && !DETERMINER_LIKE.has(w.word.toLowerCase())
+        && templateSentences.has(w.sentence)
+        && !attrFrames.has(w.sentence),
+      w => `${w.id}:${w.word}(${w.translation}) / ${w.sentence}`
+    )).toEqual([]);
+  });
+
+  it("状態を表す形容詞（訳が「〜た」で終わる語）を状態用の文枠に入れている", () => {
+    const stateFrames = new Set(ADJ_STATE.map(f => f.en));
+    expect(violations(
+      w => w.pos === "adjective"
+        && /[たて]$/.test(firstSense(w.translation))
+        && !DETERMINER_LIKE.has(w.word.toLowerCase())
+        && templateSentences.has(w.sentence)
+        && !stateFrames.has(w.sentence),
+      w => `${w.id}:${w.word}(${w.translation}) / ${w.sentence}`
     )).toEqual([]);
   });
 
