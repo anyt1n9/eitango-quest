@@ -649,7 +649,7 @@ export default function Dictionary({
                             </div>
 
                             {/* 複数の意味を持つ語では、他の意味と品詞ごとの使用割合も見せる */}
-                            <WordSenses wordId={word.id} ownTranslation={word.translation} />
+                            <WordSenses wordId={word.id} ownTranslation={word.translation} ownPos={word.pos} />
 
                             {/* 例文セクション */}
                             <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-2">

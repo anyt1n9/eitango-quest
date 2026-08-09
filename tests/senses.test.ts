@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { wordSenses } from "../src/data/senses";
-import { findDominantSense, POS_SHARE_LABELS } from "../src/senses";
+import { findDominantSense, POS_SHARE_LABELS, groupSensesByPos } from "../src/senses";
 import { initialVocabulary } from "../src/data/vocabulary";
 import { parseSenses, rankSenses, containsWord, baseFormCandidates, referencedWords } from "../scripts/bake_senses";
 import { PartOfSpeech } from "../src/types";
@@ -85,6 +85,49 @@ describe("語義データの形", () => {
         byPos.set(s.pos, set);
       }
       for (const [pos, set] of byPos) if (set.size > 1) bad.push(`${id}:${pos}`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("使用割合は語ごとに全部あるか全部無いかのどちらか", () => {
+    // 「実測データが無い語」と「実測はあるがその品詞では見つからなかった(0%)」を
+    // 画面で区別するため、片方だけ空欄という状態を作らない
+    const bad = Object.entries(wordSenses)
+      .filter(([, list]) => {
+        const n = list.filter(s => s.share !== undefined).length;
+        return n !== 0 && n !== list.length;
+      })
+      .map(([id]) => id);
+    expect(bad.slice(0, 10)).toEqual([]);
+  });
+
+  it("実測に現れた品詞を四捨五入で 0% に潰さない", () => {
+    // 0% は「実測で見つからなかった」の意味に限る。
+    // 1つの語の割合がすべて 0 なら、丸めで消えたことになる
+    const bad = Object.entries(wordSenses)
+      .filter(([, list]) => list.every(s => s.share === 0))
+      .map(([id]) => id);
+    expect(bad).toEqual([]);
+  });
+
+  it("辞書が重要と示す語義に印が付いている", () => {
+    let marked = 0, mixed = 0;
+    for (const list of Object.values(wordSenses)) {
+      const n = list.filter(s => s.important).length;
+      marked += n;
+      if (n > 0 && n < list.length) mixed++;
+    }
+    expect(marked).toBeGreaterThan(5000);
+    // 全語義に印が付くだけなら区別の役に立たない。印の有無が分かれる語が多数あること
+    expect(mixed).toBeGreaterThan(2000);
+  });
+
+  it("重要印は true だけを持つ（false は容量の無駄）", () => {
+    const bad: string[] = [];
+    for (const [id, list] of Object.entries(wordSenses)) {
+      for (const s of list) {
+        if ("important" in s && s.important !== true) bad.push(id);
+      }
     }
     expect(bad).toEqual([]);
   });
@@ -267,6 +310,55 @@ describe("rankSenses", () => {
 describe("品詞ラベル", () => {
   it("すべての品詞に日本語ラベルがある", () => {
     for (const p of POS) expect(POS_SHARE_LABELS[p]).toBeTruthy();
+  });
+});
+
+describe("groupSensesByPos", () => {
+  it("同じ品詞の語義を1つのまとまりにする", () => {
+    const groups = groupSensesByPos([
+      { meaning: "腕時計", pos: "noun", share: 9 },
+      { meaning: "見張る", pos: "verb", share: 91 },
+      { meaning: "懐中時計", pos: "noun", share: 9 }
+    ]);
+    expect(groups).toHaveLength(2);
+    expect(groups[0].pos).toBe("noun");
+    expect(groups[0].senses.map(s => s.meaning)).toEqual(["腕時計", "懐中時計"]);
+    // 割合はまとまりが持つ。語義ごとに繰り返さないための土台
+    expect(groups[0].share).toBe(9);
+    expect(groups[1].share).toBe(91);
+  });
+
+  it("品詞の登場順を保つ（生成側の並びが意図を持つため）", () => {
+    const groups = groupSensesByPos([
+      { meaning: "腕時計", pos: "noun", share: 9 },
+      { meaning: "見張る", pos: "verb", share: 91 }
+    ]);
+    // 割合では動詞が上だが、教材が教えている名詞を先頭に置いた並びを崩さない
+    expect(groups.map(g => g.pos)).toEqual(["noun", "verb"]);
+  });
+
+  it("用例をまとまり側に引き上げる", () => {
+    const groups = groupSensesByPos([
+      { meaning: "見張る", pos: "verb", share: 91, usage: "watch a game" },
+      { meaning: "見物する", pos: "verb", share: 91 }
+    ]);
+    expect(groups[0].usage).toBe("watch a game");
+  });
+
+  it("割合が無くても落ちない", () => {
+    const groups = groupSensesByPos([{ meaning: "羊皮紙", pos: "noun" }]);
+    expect(groups[0].share).toBeUndefined();
+  });
+
+  it("空の配列でも落ちない", () => {
+    expect(groupSensesByPos([])).toEqual([]);
+  });
+
+  it("実データでも語義の総数が変わらない", () => {
+    for (const [id, list] of Object.entries(wordSenses).slice(0, 500)) {
+      const total = groupSensesByPos(list).reduce((n, g) => n + g.senses.length, 0);
+      expect(total, id).toBe(list.length);
+    }
   });
 });
 

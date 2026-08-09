@@ -1,4 +1,4 @@
-import { WordSense } from "./types";
+import { PartOfSpeech, WordSense } from "./types";
 
 /**
  * 語義データの遅延読み込み。
@@ -51,4 +51,41 @@ export function findDominantSense(
   const ownShare = withShare.find(s => s.pos === ownPos)?.share ?? 0;
   // 差が小さいときは口を出さない（order は名詞52%・動詞48%でどちらも普通に使う）
   return top.share! - ownShare >= 25 ? top : null;
+}
+
+/** 品詞でまとめた語義。割合と用例は品詞単位の情報なのでまとまり側が持つ */
+export interface SenseGroup {
+  pos: PartOfSpeech;
+  /** その品詞が使われる割合(%)。undefined は実測データが無い、0 は実測で見つからなかった */
+  share?: number;
+  /** その品詞での用例（英語のみ） */
+  usage?: string;
+  senses: WordSense[];
+}
+
+/**
+ * 語義を品詞ごとにまとめる。
+ *
+ * 割合(%)も用例も品詞単位の情報なのに、語義1行ごとに並べていたため
+ * 「美しい 100% ／ みごとな 100%」のように意味ごとの頻度に見えてしまっていた。
+ * まとめて持てば、割合を見出しに1回だけ出せる。
+ *
+ * 並び順は元の配列の登場順を保つ（生成側で「教材が教えている品詞を先頭に、
+ * 残りは割合の高い順」に並べてあるため、ここで並べ替えると意図が壊れる）。
+ */
+export function groupSensesByPos(senses: WordSense[]): SenseGroup[] {
+  const groups: SenseGroup[] = [];
+  const byPos = new Map<PartOfSpeech, SenseGroup>();
+  for (const s of senses) {
+    let g = byPos.get(s.pos);
+    if (!g) {
+      g = { pos: s.pos, share: s.share, senses: [] };
+      byPos.set(s.pos, g);
+      groups.push(g);
+    }
+    // 用例は同じ品詞の最初の語義にだけ付いている
+    if (!g.usage && s.usage) g.usage = s.usage;
+    g.senses.push(s);
+  }
+  return groups;
 }
