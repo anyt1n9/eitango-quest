@@ -11,7 +11,10 @@ import {
 
 dotenv.config();
 
-const app = express();
+// テストから読み込めるよう app を公開する。
+// エンドポイントの入力検証・レート制限・エラー応答は、
+// 実際にHTTPで叩かないと「配線されているか」が確かめられない。
+export const app = express();
 
 // Render/Cloud Run などのリバースプロキシ配下では、実クライアントのIPは
 // X-Forwarded-For ヘッダに入る。これを信頼して req.ip を正しく解決する
@@ -1344,6 +1347,9 @@ async function main() {
   });
 }
 
-main().catch((err) => {
-  console.error("Server execution failed:", err);
-});
+// テストから読み込んだときにサーバーを起動しないよう、直接実行されたときだけ動かす
+if (process.argv[1] && /server\.(ts|cjs|js)$/.test(process.argv[1])) {
+  main().catch((err) => {
+    console.error("Server execution failed:", err);
+  });
+}
