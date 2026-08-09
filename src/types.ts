@@ -36,6 +36,20 @@ export interface WordSense {
   usage?: string;
 }
 
+/**
+ * 単語の使い方。訳語だけでは英文が組み立てられないため、
+ * 「どんな形をとるか」「どんな語と組むか」「どんな語族に属するか」を補う。
+ * 生成は scripts/bake_usage.ts（出典はすべて WordNet と EJDict）。
+ */
+export interface WordUsage {
+  /** 語源を同じくする語（decide → decision / decisive） */
+  family?: { word: string; meaning: string; pos: PartOfSpeech }[];
+  /** 動詞の文型。WordNet の sentence frame 番号（1〜35）。ラベルは src/usage.ts */
+  patterns?: number[];
+  /** よく組んで使われる複合語（gas station / weather forecast） */
+  collocations?: { phrase: string; meaning: string }[];
+}
+
 export interface Word {
   id: string; // 識別用
   word: string; // 英単語

@@ -49,6 +49,14 @@ npm run build   # vite build + server.ts のバンドル
   語義は起動時には要らないため
   `src/senses.ts` の `loadSenses()` で遅延読み込みしており、
   単語データ（`vocabulary.ts`）には混ぜない。
+- **語法のテスト** — `tests/usage.test.ts`。`src/data/wordUsage.ts`（動詞の文型・
+  コロケーション・語族）と `src/usage.ts` のラベルを検査する。生成は
+  `scripts/bake_usage.ts`（`.cache/` の WordNet と EJDict を bake_senses と共用）。
+  文型は WordNet の sentence frame 番号（1〜35）だけを焼き、日本語のラベルは
+  `src/usage.ts` に置く（データを小さく保つため）。文型は**その語のすべての語義を
+  まとめた一覧**で、語義ごとの区別は付かない。画面にもその旨を明記する。
+  コロケーションと語族は、EJDict に和訳がある語だけを採る
+  （英語だけの句を出しても読めないため）。
 - **サーバーのテスト** — `tests/serverGuards.test.ts` と `tests/serverRoutes.test.ts`。
   前者は `server/guards.ts` の入力検証・レート制限・呼び出し予算という「規則そのもの」を
   対象にし、時刻を `now` で差し替えて窓の経過を待たずに検証する。
@@ -63,7 +71,7 @@ npm run build   # vite build + server.ts のバンドル
   穴埋めの直後に名詞が来る」といった決まりをここで確認する。
 
 - **画面の描画テスト** — `tests/*.test.tsx`（`quiz.render` / `verbForms.render` /
-  `wordSenses.render`）。React Testing Library + jsdom で、学習者が実際に目にする部分を
+  `wordSenses.render` / `wordUsage.render`）。React Testing Library + jsdom で、学習者が実際に目にする部分を
   対象にする。「関数は正しいが画面に出ていない」「日→英モードで答えの綴りが見えている」
   「活用表の過去形と過去分詞の列がずれている」といった不具合は、型検査もビルドも
   ロジックのテストもすり抜けるため、この層でしか見つからない。
