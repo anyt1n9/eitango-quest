@@ -6,6 +6,8 @@ import { getAudioContext } from "../sound";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
 import { isSpellingCorrect, diffChars } from "../spelling";
+import { shuffle } from "../shuffle";
+import { canSpell } from "../quizFormats";
 
 /**
  * 綴り入力クイズ。
@@ -56,6 +58,10 @@ interface SpellingQuizProps {
   onBackToDashboard: () => void;
   updateRankingScore: (points: number) => void;
   questionCount?: number;
+  // 復習セッション用: 指定された単語のみを出題する（レベルフィルタを上書きする）
+  customWords?: Word[];
+  // 復習セッションかどうか（表示文言の切り替え用）
+  reviewMode?: boolean;
   srsData?: Record<string, SrsState>;
   recordAnswer?: (wordId: string, isCorrect: boolean) => void;
 }
@@ -71,6 +77,8 @@ export default function SpellingQuiz({
   onBackToDashboard,
   updateRankingScore,
   questionCount = 10,
+  customWords,
+  reviewMode = false,
   srsData = {},
   recordAnswer
 }: SpellingQuizProps) {
@@ -84,17 +92,24 @@ export default function SpellingQuiz({
   const [isFinished, setIsFinished] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 綴りを問うので、記号や数字の多い見出し（イディオム・文法パターン）は除く
+  // 綴りを問うので、記号や数字の多い見出し（イディオム・文法パターン）は除く。
+  // customWords が渡された場合（復習）はそれを出題プールにする
   const prepareQuestions = () => {
-    const pool = vocabulary.filter(
-      w => w.level === level && /^[a-zA-Z][a-zA-Z'\- ]*$/.test(w.word.trim()) && w.word.trim().length >= 2
-    );
-    return selectQuizWords({ pool, count: questionCount, solvedHistory, srsData });
+    const review = customWords && customWords.length > 0;
+    const pool = (review ? customWords! : vocabulary.filter(w => w.level === level)).filter(canSpell);
+    // 復習セッションは既に対象が絞られているので、優先度づけをせずそのまま使う
+    return review
+      ? shuffle(pool).slice(0, Math.min(questionCount, pool.length))
+      : selectQuizWords({ pool, count: questionCount, solvedHistory, srsData });
   };
+
+  // 出題対象は「中身」で見る。配列の同一性で見ると、呼び出し側が毎回
+  // 新しい配列を作るだけで出題し直しになり、解答の途中で問題が入れ替わる
+  const customWordsKey = (customWords || []).map(w => w.id).join(",");
 
   useEffect(() => {
     setQuestions(prepareQuestions());
-  }, [level, vocabulary, questionCount]);
+  }, [level, vocabulary, questionCount, customWordsKey]);
 
   const currentQuestion = questions[currentIndex];
 
@@ -321,7 +336,7 @@ export default function SpellingQuiz({
         <div className="text-center space-y-4 mb-8">
           <span className="text-xs font-black uppercase tracking-wider text-indigo-500 font-mono flex items-center justify-center gap-1.5">
             <Keyboard className="w-3.5 h-3.5" />
-            日本語訳から英単語を書く
+            {reviewMode ? "🔁 復習 — 日本語訳から英単語を書く" : "日本語訳から英単語を書く"}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
             {currentQuestion.translation}

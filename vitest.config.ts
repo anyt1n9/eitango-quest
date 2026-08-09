@@ -18,7 +18,11 @@ export default defineConfig({
           include: ["tests/**/*.test.ts"],
           environment: "node",
           // 7,744語の突き合わせを行うデータテストがあるため既定より長めにとる
-          testTimeout: 30000
+          testTimeout: 30000,
+          // serverRoutes は beforeAll で server.ts を読み込む。
+          // vite や AI クライアントまで芋づるに読むため、他のテストと並走すると
+          // 既定の10秒を超えることがある（単体で走らせると4秒程度）
+          hookTimeout: 30000
         }
       },
       {

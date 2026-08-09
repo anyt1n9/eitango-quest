@@ -147,9 +147,13 @@ export default function Quiz({
     });
   };
 
+  // 出題対象は「中身」で見る。配列の同一性で見ると、呼び出し側が毎回
+  // 新しい配列を作るだけで出題し直しになり、解答の途中で問題が入れ替わる
+  const customWordsKey = (customWords || []).map(w => w.id).join(",");
+
   useEffect(() => {
     setQuestions(prepareQuestions());
-  }, [level, vocabulary, questionCount, customWords, reverseMode]);
+  }, [level, vocabulary, questionCount, customWordsKey, reverseMode]);
 
   // リザルト画面から同じ設定でもう一度挑戦する（新しい出題セットを再抽選）
   const handleRetry = () => {

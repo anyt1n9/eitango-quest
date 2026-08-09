@@ -78,8 +78,14 @@ npm run build   # vite build + server.ts のバンドル
   「穴埋め記号はちょうど1つ」「a/an の直後に穴埋めを置かない」「連体専用の枠は
   穴埋めの直後に名詞が来る」といった決まりをここで確認する。
 
+- **出題形式のテスト** — `tests/quizFormats.test.ts` と `tests/reviewFormat.render.test.tsx`。
+  復習（今日の復習・苦手単語の復習）は四択に固定されていたが、形式を選べるようにした
+  （`src/quizFormats.ts`）。形式によっては出題できない語がある（綴りはイディオムを、
+  文穴埋めは例文の無い語を出せない）ので、出せる語だけに絞り、0語の形式は選べなくする。
+  出題対象は配列の**中身**（IDの並び）で見ること。同一性で見ると、呼び出し側が毎レンダーで
+  配列を作り直すだけで出題し直しになり、解答の途中で問題がすり替わる。
 - **画面の描画テスト** — `tests/*.test.tsx`（`quiz.render` / `verbForms.render` /
-  `wordSenses.render` / `wordUsage.render`）。React Testing Library + jsdom で、学習者が実際に目にする部分を
+  `wordSenses.render` / `wordUsage.render` / `reviewFormat.render`）。React Testing Library + jsdom で、学習者が実際に目にする部分を
   対象にする。「関数は正しいが画面に出ていない」「日→英モードで答えの綴りが見えている」
   「活用表の過去形と過去分詞の列がずれている」といった不具合は、型検査もビルドも
   ロジックのテストもすり抜けるため、この層でしか見つからない。
