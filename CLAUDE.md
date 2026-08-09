@@ -49,6 +49,14 @@ npm run build   # vite build + server.ts のバンドル
   語義は起動時には要らないため
   `src/senses.ts` の `loadSenses()` で遅延読み込みしており、
   単語データ（`vocabulary.ts`）には混ぜない。
+- **レベル配分のテスト** — `tests/levels.data.test.ts`。レベルが上がるほど実際の英文に
+  出てくる頻度が下がることと、上位語が上級に埋もれていないことを検査する。
+  裏取りに使う頻度順位は `tests/data/semcorRank.ts`（`scripts/fix_levels.ts` が
+  `.cache/cntlist.rev` から生成する。`.cache/` は git に入れないため書き出している）。
+  頻度は難易度そのものではない。SemCor は古い英文のコーパスなので war / wage /
+  federal が上位に来るし、the / you のような機能語や onion / carrot のような
+  日常語は内容語しか数えない集計に出てこない。だから「順位どおりに並べる」ことは
+  せず、外れ値だけを1語ずつ見て直す（一覧は `scripts/fix_levels.ts` の `LEVEL_FIXES`）。
 - **語法のテスト** — `tests/usage.test.ts`。`src/data/wordUsage.ts`（動詞の文型・
   コロケーション・語族）と `src/usage.ts` のラベルを検査する。生成は
   `scripts/bake_usage.ts`（`.cache/` の WordNet と EJDict を bake_senses と共用）。
