@@ -131,8 +131,6 @@ function inferCore(
   // "in fact" "due to" のような前置詞句・接続表現（"give up" のような句動詞は先頭が
   // 機能語ではないため、ここには当たらず動詞のまま残る）
   if (tokens.length === 2 && PHRASE_HEADS.has(tokens[0])) return "other";
-  // "do well" "give up" のように、先頭が動詞だと分かっている2語の句は動詞
-  if (tokens.length === 2 && HINT[tokens[0]] === "verb") return "verb";
   if (/ly$/.test(lw) && lw.length > 4 && !NOT_ADVERB_LY.has(lw)) return "adverb";
 
   // 括弧書きと先頭の「〜」を取り除いてから判定する。
@@ -179,6 +177,11 @@ function inferCore(
     if (r) return r;
   }
 
+  // "do well"（うまくやる）のように、訳語が漢字も「を」も含まず判定できない2語の句は、
+  // 先頭が動詞であることを手がかりにする。
+  // 訳語による判定より後に置くのは、"catch up"（追いつくこと）のような名詞句で
+  // 訳語の示す品詞を上書きしないため（このファイルの方針: 訳語 > 補助辞書）。
+  if (tokens.length === 2 && HINT[tokens[0]] === "verb") return "verb";
   if (HINT[lw]) return HINT[lw];
   if (/(ing|ed)$/.test(lw) && lw.length > 5) return "adjective";
   if (/(tion|sion|ment|ness|ity|ance|ence|ship|hood|ism|ure|age|cy|ist|ian|or|er|ee)$/.test(lw)) return "noun";

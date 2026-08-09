@@ -121,6 +121,17 @@ describe("inferPartOfSpeech", () => {
     }
   });
 
+  it("2語の句でも訳語の示す品詞を補助辞書で上書きしない", () => {
+    // 先頭が動詞の2語句を救済する規則が訳語の判定より先に走ると、
+    // "catch up"（追いつくこと＝名詞）まで動詞にしてしまう。
+    // 判定の優先順位は「訳語 > 補助辞書」でなければならない
+    // catch up は前置詞で終わるため最終的に other になるが、動詞にはならない
+    expect(inferPartOfSpeech("catch up", "追いつくこと")).not.toBe("verb");
+    expect(inferPartOfSpeech("show room", "展示室")).toBe("noun");
+    expect(inferPartOfSpeech("cover letter", "添え状")).toBe("noun");
+    expect(inferPartOfSpeech("answer sheet", "解答用紙")).toBe("noun");
+  });
+
   it("代名詞句は other", () => {
     expect(inferPartOfSpeech("each other", "お互い")).toBe("other");
     expect(inferPartOfSpeech("the other", "もう一方の")).toBe("other");
