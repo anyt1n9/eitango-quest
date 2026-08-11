@@ -23,7 +23,7 @@ npm run build   # vite build + server.ts のバンドル
   `readingQuiz`）を対象にする。乱数を使う関数は `random` 引数か `Math.random` の
   差し替えで決定的にする（`tests/helpers.ts` の `seededRandom`）。
 - **データのテスト** — `tests/vocabulary.data.test.ts` と `tests/passages.data.test.ts`。
-  収録語 7,700 語超と長文15本を全件検査する。型検査もビルドも通り抜ける不具合
+  収録語 7,700 語超と長文25本を全件検査する。型検査もビルドも通り抜ける不具合
   （四択に正解が2つある、例文に答えが露出している、実在しない綴りが混ざる、など）は
   この層でしか見つからない。`scripts/` の生成スクリプトを回したあとは必ず実行する。
 - **動詞の活用のテスト** — `tests/verbForms.test.ts`。`src/verbForms.ts` の不規則動詞表と
@@ -57,6 +57,19 @@ npm run build   # vite build + server.ts のバンドル
   federal が上位に来るし、the / you のような機能語や onion / carrot のような
   日常語は内容語しか数えない集計に出てこない。だから「順位どおりに並べる」ことは
   せず、外れ値だけを1語ずつ見て直す（一覧は `scripts/fix_levels.ts` の `LEVEL_FIXES`）。
+- **文法のテスト** — `tests/grammar.data.test.ts` と `tests/grammar.render.test.tsx`。
+  `src/data/grammar.ts`（中学〜大学レベルの文法34項目）を検査する。
+  語義・語法と違い、この解説は辞書やコーパスから作ったデータではなく**書き下ろし**で、
+  出典で正しさを担保できない。そのぶん「説明・例文・よくある間違い・練習問題が
+  すべての項目にそろっているか」「練習問題の正解が選択肢の中に1つだけあるか」
+  といった形の面をテストで固定する。内容そのものは1項目ずつ読んで確かめるほかない。
+  各項目は WordNet の文型番号（`verbFrames`）で `wordUsage.ts` と結び付いており、
+  「この形をとる動詞」を収録語から引いて画面に出す。
+  データは100KB超なので `src/grammar.ts` の `loadGrammar()` で遅延読み込みする。
+- **長文と文法の結び付きのテスト** — `tests/passages.data.test.ts` の「文法の印」。
+  各長文の `grammarFocus` は `scripts/tag_passage_grammar.ts` が本文の目印から
+  **機械的に**付ける（目視で決めると後から確かめられなくなるため）。
+  本文を書き換えたらスクリプトを回し直すこと。印が今の本文と一致しなければ落ちる。
 - **語法のテスト** — `tests/usage.test.ts`。`src/data/wordUsage.ts`（動詞の文型・
   コロケーション・語族）と `src/usage.ts` のラベルを検査する。生成は
   `scripts/bake_usage.ts`（`.cache/` の WordNet と EJDict を bake_senses と共用）。
