@@ -16,6 +16,7 @@ import Reading from "./components/Reading";
 import MapAndPuzzle from "./components/MapAndPuzzle";
 import AIDiary from "./components/AIDiary";
 import VerbFormsScreen from "./components/VerbForms";
+import Grammar from "./components/Grammar";
 import QuizFormatPicker from "./components/QuizFormatPicker";
 import { QuizFormat, QUIZ_FORMAT_LABELS, wordsForFormat } from "./quizFormats";
 import DataBackup from "./components/DataBackup";
@@ -25,7 +26,7 @@ import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft } from "lucide-react";
+import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked } from "lucide-react";
 
 // 苦手単語を1語卒業したときのボーナス点
 const GRADUATION_BONUS = 50;
@@ -239,7 +240,7 @@ export default function App() {
 
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "reverse_quiz" | "review" | "review_quiz" | "dictionary" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "reverse_quiz" | "review" | "review_quiz" | "dictionary" | "grammar" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -556,6 +557,21 @@ export default function App() {
               <span>動詞の活用表</span>
             </button>
 
+            {/* 文法ガイドボタン */}
+            <button
+              onClick={() => setCurrentScreen(currentScreen === "grammar" ? "dashboard" : "grammar")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+                currentScreen === "grammar"
+                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
+                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
+              }`}
+              id="nav_grammar_toggle_btn"
+              title="中学から大学レベルまでの文法を、例文と練習問題つきで確認できます"
+            >
+              <BookMarked className="w-3.5 h-3.5" />
+              <span>文法ガイド</span>
+            </button>
+
             {/* 今日の復習(SRS)ボタン */}
             <button
               onClick={() => {
@@ -808,6 +824,13 @@ export default function App() {
             setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
+          />
+        )}
+
+        {currentScreen === "grammar" && (
+          <Grammar
+            vocabulary={vocabulary}
+            onBackToDashboard={handleBackToDashboard}
           />
         )}
 
