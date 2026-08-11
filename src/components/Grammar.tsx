@@ -7,6 +7,7 @@ import {
   LEVEL_LABELS, LEVEL_ORDER
 } from "../grammar";
 import { loadUsage } from "../usage";
+import { passages } from "../data/passages";
 import { readStoredObject, writeStored } from "../storage";
 import {
   ArrowLeft, BookMarked, Search, Check, X, CircleCheck, Lightbulb,
@@ -238,6 +239,12 @@ function TopicDetail({
     [usage, topic.verbFrames, vocabulary]
   );
 
+  // この文法が出てくる長文（印は scripts/tag_passage_grammar.ts が本文から機械的に付ける）
+  const readings = useMemo(
+    () => passages.filter(p => p.grammarFocus?.includes(topic.id)).slice(0, 5),
+    [topic.id]
+  );
+
   const answer = (qIndex: number, optionIndex: number) => {
     if (answers[qIndex] !== undefined) return;
     setAnswers(prev => ({ ...prev, [qIndex]: optionIndex }));
@@ -325,6 +332,27 @@ function TopicDetail({
               <li key={w.id} className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1">
                 <span className="font-mono text-[11px] font-black text-gray-900 dark:text-slate-100">{w.word}</span>
                 <span className="ml-1.5 text-[11px] font-bold text-gray-600 dark:text-slate-400">{w.translation}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* この文法が出てくる長文 */}
+      {readings.length > 0 && (
+        <div className="bg-emerald-50/50 dark:bg-slate-800/40 border border-emerald-200/70 dark:border-slate-700 rounded-3xl p-5 space-y-2" data-testid="grammar_readings">
+          <h3 className="text-sm font-black text-emerald-800 dark:text-emerald-300">この文法が出てくる長文</h3>
+          <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed">
+            解説を読んだら、実際の英文の中で見つけてみてください。
+            「長文読破 Quest」から読めます。
+          </p>
+          <ul className="space-y-1.5 pt-1">
+            {readings.map(p => (
+              <li key={p.id} className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
+                <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 mr-1.5">
+                  {LEVEL_LABELS[p.level]}
+                </span>
+                <span className="text-xs font-bold text-gray-900 dark:text-slate-100">{p.title}</span>
               </li>
             ))}
           </ul>

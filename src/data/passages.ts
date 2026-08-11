@@ -14,11 +14,19 @@ export interface Passage {
   description: string;
   pointReward: number;
   questions?: PassageQuestion[]; // 理解度チェック設問
+  /**
+   * この長文に出てくる文法項目のID（src/data/grammar.ts）。
+   * 単語だけを覚えても実際の文は読めないので、
+   * 「習った文法が本文のどこで使われているか」をたどれるようにする。
+   * 割り当ては scripts/tag_passage_grammar.ts が本文の目印から機械的に行う。
+   */
+  grammarFocus?: string[];
 }
 
 export const passages: Passage[] = [
   {
     id: "p1",
+    grammarFocus: ["g_gerund","g_reported_speech","g_perfect_others","g_relative_pronoun"],
     level: "junior",
     title: "The Secret of the Old Library",
     englishParagraphs: [
@@ -118,6 +126,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p2",
+    grammarFocus: ["g_participle_construction","g_reported_speech","g_present_perfect","g_comparison"],
     level: "senior",
     title: "Exploring the Wonders of Nature",
     englishParagraphs: [
@@ -227,6 +236,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p3",
+    grammarFocus: ["g_subjunctive","g_modal_perfect","g_participle_construction","g_present_perfect"],
     level: "senior2",
     title: "Understanding Our Cultural Evolution",
     englishParagraphs: [
@@ -348,6 +358,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p4",
+    grammarFocus: ["g_participle_construction","g_gerund","g_perfect_others","g_present_perfect"],
     level: "senior3",
     title: "The Silent Disaster and Rebuilding Hope",
     englishParagraphs: [
@@ -479,6 +490,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p5",
+    grammarFocus: ["g_relative_adverb","g_present_perfect","g_comparison","g_relative_pronoun"],
     level: "advanced",
     title: "The Conspicuous Paradox of Modern Innovation",
     englishParagraphs: [
@@ -622,6 +634,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p6",
+    grammarFocus: ["g_perfect_others","g_noun_clause","g_passive","g_infinitive"],
     level: "junior",
     title: "The Notebook by the River",
     englishParagraphs: [
@@ -695,6 +708,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p7",
+    grammarFocus: ["g_noun_clause","g_infinitive"],
     level: "junior",
     title: "The Concert in the Rain",
     englishParagraphs: [
@@ -768,6 +782,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p8",
+    grammarFocus: ["g_perfect_others","g_comparison","g_noun_clause","g_relative_pronoun"],
     level: "senior",
     title: "The Bakery on the Corner",
     englishParagraphs: [
@@ -844,6 +859,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p9",
+    grammarFocus: ["g_modal_perfect","g_reported_speech","g_perfect_others","g_present_perfect"],
     level: "senior",
     title: "Letters from the Mountain",
     englishParagraphs: [
@@ -919,6 +935,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p10",
+    grammarFocus: ["g_gerund","g_reported_speech","g_perfect_others","g_comparison"],
     level: "senior2",
     title: "The Night Bus to Aomori",
     englishParagraphs: [
@@ -1008,6 +1025,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p11",
+    grammarFocus: ["g_causative","g_perfect_others","g_comparison","g_relative_pronoun"],
     level: "senior2",
     title: "The Robot That Learned to Wait",
     englishParagraphs: [
@@ -1094,6 +1112,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p12",
+    grammarFocus: ["g_causative","g_perfect_others","g_comparison","g_relative_pronoun"],
     level: "senior3",
     title: "The Archive of Ordinary Voices",
     englishParagraphs: [
@@ -1183,6 +1202,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p13",
+    grammarFocus: ["g_participle_construction","g_gerund","g_perfect_others","g_comparison"],
     level: "senior3",
     title: "The Coral Gardeners",
     englishParagraphs: [
@@ -1272,6 +1292,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p14",
+    grammarFocus: ["g_emphasis_inversion","g_modal_perfect","g_perfect_others","g_present_perfect"],
     level: "advanced",
     title: "The Cartographer's Deliberate Error",
     englishParagraphs: [
@@ -1363,6 +1384,7 @@ export const passages: Passage[] = [
   },
   {
     id: "p15",
+    grammarFocus: ["g_participle_construction","g_perfect_others","g_present_perfect","g_comparison"],
     level: "advanced",
     title: "What the Trial Could Not Measure",
     englishParagraphs: [
@@ -1449,6 +1471,826 @@ export const passages: Passage[] = [
           "政治的な対立に最終的な決着をつけること",
           "より大きな標本を集める必要性を示すこと",
           "政策の目的を研究者が決められるようにすること"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p16",
+    grammarFocus: ["g_reported_speech","g_perfect_others","g_passive","g_infinitive"],
+    level: "junior",
+    title: "The Umbrella We Shared",
+    englishParagraphs: [
+      "It started to rain hard when I was waiting for the bus. I did not have an umbrella because the sky was clear in the morning. I stood under the roof of the bus stop and watched the water run down the street.",
+      "A girl from my class came running. Her name was Mika, but we had never talked before. She opened her small umbrella and stood beside me. 'The bus is late again,' she said. 'It is always late when it rains.'",
+      "We waited for twenty minutes. She told me that she had moved to this town in April, and that she still did not know many people. I told her that I had lived here since I was born, and that I could show her the good places. She laughed and said she wanted to see the river.",
+      "When the bus finally came, we sat together. Outside the window, the rain was becoming weaker. Mika said, 'I was worried about this school. But today I feel better.' I did not know what to say, so I just smiled.",
+      "The next morning the sky was clear again, but I put an umbrella in my bag. My mother asked me why. I said, 'Someone may need it.' She looked at me and did not ask anything more."
+    ],
+    japaneseParagraphs: [
+      "バスを待っているとき、雨が激しく降り始めました。朝は空が晴れていたので、傘を持っていませんでした。私はバス停の屋根の下に立って、道を流れていく水を見ていました。",
+      "同じクラスの女の子が走ってきました。名前はミカといいましたが、それまで話したことはありませんでした。彼女は小さな傘を開いて、私のとなりに立ちました。「バス、また遅れてるね」と彼女は言いました。「雨の日はいつも遅れるの。」",
+      "私たちは20分待ちました。彼女は、4月にこの町に引っ越してきたこと、まだあまり知り合いがいないことを話してくれました。私は、生まれたときからここに住んでいること、いい場所を案内できることを話しました。彼女は笑って、川が見たいと言いました。",
+      "やっとバスが来たとき、私たちは並んで座りました。窓の外では、雨が弱くなってきていました。ミカは「この学校が不安だったの。でも今日は少し気持ちが楽になった」と言いました。私は何と言えばよいか分からず、ただ微笑みました。",
+      "翌朝、空はまた晴れていましたが、私はかばんに傘を入れました。母がなぜかと尋ねました。私は「だれかが必要かもしれないから」と答えました。母は私を見て、それ以上は何も聞きませんでした。"
+    ],
+    vocabularyHighlight: [
+      { word: "waiting", translation: "待っている" },
+      { word: "clear", translation: "晴れた、澄んだ" },
+      { word: "beside", translation: "〜のとなりに" },
+      { word: "moved", translation: "引っ越した" },
+      { word: "worried", translation: "心配して" },
+      { word: "smiled", translation: "微笑んだ" }
+    ],
+    description: "雨のバス停での小さな出会い。過去形と過去進行形、時を表す接続詞が続けて出てきます。",
+    pointReward: 60,
+    questions: [
+      {
+        question: "「私」が傘を持っていなかったのはなぜですか？",
+        options: [
+          "朝は空が晴れていたから",
+          "傘をなくしてしまったから",
+          "傘が重いのが嫌だったから",
+          "母が持って行くなと言ったから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "ミカについて、本文から分かることはどれですか？",
+        options: [
+          "4月にこの町へ引っ越してきた",
+          "「私」と昔からの友達だった",
+          "この町で生まれ育った",
+          "バスではなく自転車で通学している"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "「私」がミカに申し出たことは何ですか？",
+        options: [
+          "町のよい場所を案内すること",
+          "毎朝いっしょに登校すること",
+          "傘を買ってあげること",
+          "宿題を手伝うこと"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "バスの中でミカが言ったことはどれですか？",
+        options: [
+          "学校が不安だったが、その日は気持ちが楽になった",
+          "前の学校に戻りたい",
+          "雨がきらいだ",
+          "「私」と同じ部活に入りたい"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "晴れているのに「私」が傘をかばんに入れたのはなぜだと考えられますか？",
+        options: [
+          "だれかが必要とするかもしれないと思ったから",
+          "天気予報で雨だと言っていたから",
+          "傘を学校に忘れたくなかったから",
+          "母に持って行くよう言われたから"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p17",
+    grammarFocus: ["g_perfect_others","g_present_perfect","g_noun_clause","g_relative_pronoun"],
+    level: "junior",
+    title: "The Vending Machine at the End of the Street",
+    englishParagraphs: [
+      "There is an old vending machine at the end of my street. It is white, and one of its buttons does not work. My grandmother says that it has stood there for more than thirty years.",
+      "Last summer, I found a small paper on the machine. Someone had written, 'The third button gives you a surprise.' I did not believe it, but I put in my coins and pressed the third button. A can of cold tea came out, and then a second can came out, too.",
+      "I looked around, but nobody was there. I took the second can to my grandmother, and she laughed for a long time. 'That machine has been broken since your father was a child,' she said. 'We never told the company.'",
+      "After that, I sometimes bought a drink there and gave the extra can to someone. I gave one to the man who cleans the park, and one to a girl who was crying near the station. They both looked surprised, and then they smiled.",
+      "In October, a new machine arrived. It was bright and it never made mistakes. I stood in front of it for a while, and then I walked home without buying anything."
+    ],
+    japaneseParagraphs: [
+      "私の家のある通りのはずれに、古い自動販売機があります。白い機械で、ボタンの1つは動きません。祖母の話では、30年以上そこに立っているそうです。",
+      "去年の夏、その機械に小さな紙が貼ってあるのを見つけました。だれかが「3番目のボタンを押すと驚くことがある」と書いていました。信じていませんでしたが、硬貨を入れて3番目のボタンを押しました。冷たいお茶の缶が出てきて、それからもう1本出てきました。",
+      "あたりを見回しましたが、だれもいませんでした。2本目の缶を祖母のところへ持っていくと、祖母は長いこと笑いました。「あの機械はね、あんたのお父さんが子どものころから壊れてるのよ」と祖母は言いました。「会社には一度も言わなかったの。」",
+      "それからは、ときどきそこで飲み物を買って、余った缶をだれかにあげるようになりました。公園を掃除している人に1本あげ、駅の近くで泣いていた女の子にも1本あげました。二人とも驚いた顔をして、それから微笑みました。",
+      "10月に、新しい機械が来ました。ぴかぴかで、間違いは一度も起こしませんでした。私はしばらくその前に立って、それから何も買わずに家へ帰りました。"
+    ],
+    vocabularyHighlight: [
+      { word: "machine", translation: "機械" },
+      { word: "believe", translation: "信じる" },
+      { word: "pressed", translation: "押した" },
+      { word: "broken", translation: "壊れた" },
+      { word: "extra", translation: "余分の" },
+      { word: "surprised", translation: "驚いて" }
+    ],
+    description: "壊れた自動販売機をめぐる話。現在完了（継続）と関係代名詞が自然な形で出てきます。",
+    pointReward: 60,
+    questions: [
+      {
+        question: "紙には何と書かれていましたか？",
+        options: [
+          "3番目のボタンを押すと驚くことがある",
+          "この機械は故障中である",
+          "飲み物は無料である",
+          "会社に連絡してほしい"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "3番目のボタンを押すと何が起きましたか？",
+        options: [
+          "缶が2本出てきた",
+          "硬貨が戻ってきた",
+          "何も出てこなかった",
+          "温かい飲み物が出てきた"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "祖母の話から分かることはどれですか？",
+        options: [
+          "機械の故障は「私」の父が子どものころから続いていた",
+          "機械は去年の夏に壊れた",
+          "祖母が会社に修理を頼んだ",
+          "機械はもともと2本出るように作られていた"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "「私」は余った缶をどうしましたか？",
+        options: [
+          "ほかの人にあげた",
+          "家に持ち帰って保管した",
+          "機械の上に置いておいた",
+          "祖母にすべて渡した"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "新しい機械の前で「私」が何も買わずに帰ったのはなぜだと考えられますか？",
+        options: [
+          "間違いの起きない機械では、だれかに渡す余分の缶が出ないから",
+          "新しい機械の値段が高かったから",
+          "硬貨を持っていなかったから",
+          "祖母に買うなと言われていたから"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p18",
+    grammarFocus: ["g_present_perfect","g_passive","g_infinitive"],
+    level: "senior",
+    title: "The Map That Was Never Finished",
+    englishParagraphs: [
+      "In the corner of the town museum, there is a map that was never finished. It was drawn by a schoolteacher named Sato between 1948 and 1961. He wanted to record every path in the valley, including the ones that farmers used and the ones that only children knew.",
+      "Sato worked alone. He walked each path twice, once in summer and once in winter, because he believed that a path in snow is not the same path. In his notes, he wrote that a road which disappears for four months should be drawn in a different color.",
+      "The museum has kept 214 pages of his notes. Many of them contain small drawings of bridges, gates, and stones. Some pages are almost empty, and on one of them he wrote only a single line: 'Today I met nobody, and the wind was loud.'",
+      "The map stops at the eastern edge of the valley. Sato became ill in 1961, and he never returned to the mountains. His students finished the eastern section after his death, but they used a different style, and the change is easy to see.",
+      "Visitors often ask why the museum does not complete the map. The curator always gives the same answer. She says that an unfinished map tells us something a finished one cannot: that somebody was still walking when the work stopped."
+    ],
+    japaneseParagraphs: [
+      "町の博物館の隅に、完成しなかった地図があります。それは佐藤という名の学校の先生が、1948年から1961年にかけて描いたものです。彼は谷にあるすべての道を記録したいと考えていました。農家の人が使う道も、子どもだけが知っている道も含めてです。",
+      "佐藤は一人で作業しました。それぞれの道を夏と冬に一度ずつ、二度歩きました。雪の中の道は同じ道ではない、と彼は考えていたからです。手記の中で彼は、4か月のあいだ消えてしまう道は別の色で描くべきだ、と書いています。",
+      "博物館は彼の手記を214ページ保管しています。その多くには、橋や門や石の小さな絵が描かれています。ほとんど白紙のページもあり、そのうちの1枚には一行だけこう書かれていました。「今日はだれにも会わなかった。風が大きかった。」",
+      "地図は谷の東の端で止まっています。佐藤は1961年に病気になり、二度と山へは戻りませんでした。彼の教え子たちが没後に東の部分を仕上げましたが、描き方が違っていたので、その切れ目ははっきり分かります。",
+      "訪れる人はよく、なぜ博物館は地図を完成させないのかと尋ねます。学芸員はいつも同じ答えを返します。未完成の地図は、完成した地図には伝えられないことを伝えてくれる。作業が止まったとき、だれかがまだ歩いていたのだ、ということを。"
+    ],
+    vocabularyHighlight: [
+      { word: "record", translation: "記録する" },
+      { word: "believed", translation: "信じていた" },
+      { word: "disappears", translation: "消える" },
+      { word: "contain", translation: "含む" },
+      { word: "section", translation: "部分、区域" },
+      { word: "unfinished", translation: "未完成の" }
+    ],
+    description: "未完成の地図をめぐる話。受動態と関係代名詞、現在完了が繰り返し出てきます。",
+    pointReward: 90,
+    questions: [
+      {
+        question: "佐藤が記録しようとしたのは何ですか？",
+        options: [
+          "谷にあるすべての道",
+          "町の主要な道路だけ",
+          "谷に住む人の名前",
+          "山にある建物の位置"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "同じ道を二度歩いたのはなぜですか？",
+        options: [
+          "雪の中の道は同じ道ではないと考えたから",
+          "一度では道を覚えられなかったから",
+          "教え子に見せる必要があったから",
+          "夏には道が通れなかったから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "ほとんど白紙のページについて、本文はどう述べていますか？",
+        options: [
+          "一行だけ、その日の様子が書かれていた",
+          "後から破り取られていた",
+          "教え子が書き足した",
+          "絵だけが描かれていた"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "地図の東の部分について正しいものはどれですか？",
+        options: [
+          "佐藤の死後に教え子が仕上げ、描き方の違いが分かる",
+          "佐藤自身が病気の後に仕上げた",
+          "まったく手が付けられていない",
+          "博物館が最近になって描き直した"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "学芸員が地図を完成させない理由として述べているのはどれですか？",
+        options: [
+          "未完成であることが、作業が止まったときにだれかがまだ歩いていたことを伝えるから",
+          "完成させる費用がないから",
+          "佐藤の遺族が反対しているから",
+          "正確な地図がすでに別にあるから"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p19",
+    grammarFocus: ["g_modal_perfect","g_reported_speech","g_perfect_others","g_present_perfect"],
+    level: "senior2",
+    title: "The Language That Came Back",
+    englishParagraphs: [
+      "When Elena was a child, her grandmother spoke a language that nobody else in the village used. It had no written form, and only eleven people still knew it. Elena's parents told her that learning it would be a waste of time, and she believed them.",
+      "Her grandmother died when Elena was nineteen. At the funeral, an old man said a few sentences in that language, and Elena realized that she understood almost nothing. She had heard those sounds every day for years, but she had never tried to hold on to them.",
+      "Ten years later, Elena was working at a university. A researcher asked her whether anyone in her family had spoken the language. Elena said no at first. Then she went home and found four cassette tapes in a box under her grandmother's bed.",
+      "The tapes contained about six hours of speech. Elena spent two years transcribing them with the help of the two speakers who were still alive. If she had started earlier, she says, the work would have been much easier, and more of the vocabulary would have survived.",
+      "Today, thirty children in the village learn the language for one hour each week. Nobody claims that it has been saved. What has changed is smaller and harder to measure: the children now know that the sounds their grandparents made were a language, and not simply an old habit."
+    ],
+    japaneseParagraphs: [
+      "エレナが子どものころ、祖母は村のだれも使わない言語を話していました。その言語には文字が無く、まだ知っている人は11人しかいませんでした。両親はそれを習っても時間の無駄だと言い、エレナもそう信じていました。",
+      "祖母はエレナが19歳のときに亡くなりました。葬儀で、ある老人がその言語で数文を話しましたが、エレナは自分がほとんど何も理解できないことに気づきました。何年ものあいだ毎日その音を聞いていたのに、覚えておこうとしたことは一度も無かったのです。",
+      "10年後、エレナは大学で働いていました。ある研究者が、家族にその言語を話す人がいたかと尋ねました。エレナは最初、いいえと答えました。それから家に帰り、祖母のベッドの下の箱からカセットテープを4本見つけました。",
+      "テープにはおよそ6時間分の話し声が入っていました。エレナは、まだ存命だった二人の話者の助けを借りて、2年かけて書き起こしました。もっと早く始めていれば作業はずっと楽で、もっと多くの語彙が残っていただろう、と彼女は言います。",
+      "今日、村の30人の子どもが週に1時間その言語を学んでいます。それで言語が守られたと言う人はいません。変わったのはもっと小さく、測りにくいことです。祖父母が発していた音は言語であって、ただの古い習慣ではなかったと、子どもたちが知ったということです。"
+    ],
+    vocabularyHighlight: [
+      { word: "village", translation: "村" },
+      { word: "realized", translation: "気づいた" },
+      { word: "researcher", translation: "研究者" },
+      { word: "survived", translation: "生き残った" },
+      { word: "measure", translation: "測る" },
+      { word: "habit", translation: "習慣" }
+    ],
+    description: "消えかけた言語をめぐる話。仮定法過去完了と過去完了、関係代名詞が中心に出てきます。",
+    pointReward: 120,
+    questions: [
+      {
+        question: "エレナが子どものころ、その言語を学ばなかったのはなぜですか？",
+        options: [
+          "両親が時間の無駄だと言い、本人もそう信じていたから",
+          "祖母が教えることを拒んだから",
+          "学校で禁止されていたから",
+          "文字が無く学びようがなかったから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "葬儀でエレナが気づいたことは何ですか？",
+        options: [
+          "その言語をほとんど理解できないこと",
+          "祖母が自分に手紙を残していたこと",
+          "村人の多くがその言語を話せること",
+          "自分が発音だけは覚えていること"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "エレナが見つけたものは何ですか？",
+        options: [
+          "祖母のベッドの下にあったカセットテープ4本",
+          "祖母が書き残した辞書",
+          "村の記録簿",
+          "研究者の論文"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "「もっと早く始めていれば」についてエレナが述べていることはどれですか？",
+        options: [
+          "作業はずっと楽で、より多くの語彙が残っていただろう",
+          "話者を増やすことができただろう",
+          "研究費を得られただろう",
+          "文字を作ることができただろう"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "筆者が「変わったこと」として挙げているのはどれですか？",
+        options: [
+          "祖父母の発していた音が言語であったと子どもたちが知ったこと",
+          "話者の数が30人に増えたこと",
+          "言語が完全に保存されたこと",
+          "村の学校で必修科目になったこと"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p20",
+    grammarFocus: ["g_emphasis_inversion","g_modal_perfect","g_perfect_others","g_present_perfect"],
+    level: "senior3",
+    title: "The Cost of a Straight Line",
+    englishParagraphs: [
+      "When the new railway was planned, the engineers proposed a straight line between the two cities. A straight line is cheaper to build and faster to travel, and on paper the argument seemed complete. What the plan did not show was the village of Harada, which stood exactly in the middle.",
+      "Harada had 340 residents, a shrine, and a school that had been open since 1902. The railway company offered compensation, and most economists agreed that the offer was generous. Had the decision been purely financial, the matter would have ended there.",
+      "The residents did not argue about money. They argued that a village is not the sum of its buildings, and that compensation can replace a house but not a neighbour. Several newspapers described this as sentimental. One economist replied that sentiment, too, has a price, and that the residents were simply naming theirs.",
+      "In the end, the line was curved. The detour added 4.8 kilometres and roughly seven per cent to the cost, and it added ninety seconds to every journey. Critics calculated that, over fifty years, those ninety seconds would amount to more than two thousand years of human time.",
+      "That calculation is correct, and it is also beside the point. It assumes that the ninety seconds of a stranger and the last school year of a child can be placed on the same scale. The decision to curve the line was not a failure of arithmetic. It was a refusal to accept that particular scale."
+    ],
+    japaneseParagraphs: [
+      "新しい鉄道が計画されたとき、技術者たちは二つの都市を直線で結ぶ案を出しました。直線は建設費が安く、移動も速いので、紙の上では議論は完結しているように見えました。その計画に示されていなかったのは、ちょうど真ん中に位置する原田という村でした。",
+      "原田には340人の住民と、神社と、1902年から続く学校がありました。鉄道会社は補償を申し出て、多くの経済学者はその条件を手厚いものだと認めました。もし判断が純粋に金銭的なものであったなら、話はそこで終わっていたでしょう。",
+      "住民が争点にしたのは金銭ではありませんでした。村とは建物の合計ではない、補償は家を取り戻せても隣人を取り戻せない、というのが彼らの主張でした。いくつかの新聞はこれを感傷的だと評しました。ある経済学者は、感情にもまた値段があり、住民は自分たちの値段を示しているにすぎない、と応じました。",
+      "結局、路線は曲げられました。迂回によって4.8キロと、費用にしておよそ7パーセントが加わり、すべての旅程に90秒が加わりました。批判する人々は、50年間でその90秒は人間の時間にして2000年以上になると計算しました。",
+      "その計算は正しく、そして的を外してもいます。見知らぬ人の90秒と、ある子どもの最後の学年とを同じ物差しに載せられる、と前提しているからです。路線を曲げた判断は、計算の誤りではありませんでした。その物差しを受け入れることの拒否だったのです。"
+    ],
+    vocabularyHighlight: [
+      { word: "proposed", translation: "提案した" },
+      { word: "residents", translation: "住民" },
+      { word: "compensation", translation: "補償" },
+      { word: "sentimental", translation: "感傷的な" },
+      { word: "detour", translation: "迂回" },
+      { word: "refusal", translation: "拒否" }
+    ],
+    description: "鉄道の路線をめぐる論争。倒置を用いた仮定法、無生物主語、関係代名詞が出てきます。",
+    pointReward: 150,
+    questions: [
+      {
+        question: "技術者が直線を提案した理由として本文に挙げられているのはどれですか？",
+        options: [
+          "建設費が安く、移動も速いから",
+          "住民の要望があったから",
+          "地形が平坦だったから",
+          "既存の路線を利用できるから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "住民の主張の中心は何でしたか？",
+        options: [
+          "補償は家を取り戻せても隣人を取り戻せないということ",
+          "補償の金額が低すぎるということ",
+          "工事の騒音が耐えられないということ",
+          "鉄道そのものが不要だということ"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "「感情にもまた値段がある」と述べた経済学者の意図はどれですか？",
+        options: [
+          "住民の主張も結局は金銭に換算できると考えたこと",
+          "住民の主張を全面的に支持したこと",
+          "補償を打ち切るべきだと考えたこと",
+          "新聞の報道を批判したこと"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "路線を曲げた結果として本文が挙げているのはどれですか？",
+        options: [
+          "4.8キロと約7パーセントの費用、そして1回あたり90秒が加わった",
+          "工期が2年延びた",
+          "村の人口が増えた",
+          "運賃が7パーセント上がった"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "筆者が「的を外している」と述べる理由はどれですか？",
+        options: [
+          "見知らぬ人の90秒と子どもの最後の学年を同じ物差しで測れると前提しているから",
+          "計算に誤りが含まれているから",
+          "50年という期間が長すぎるから",
+          "費用の増加を考慮していないから"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p21",
+    grammarFocus: ["g_perfect_others","g_present_perfect","g_passive"],
+    level: "senior",
+    title: "The Boy Who Counted Trains",
+    englishParagraphs: [
+      "Every afternoon from four o'clock, a boy named Kenta sat on the fence near the crossing and counted the trains. He wrote the numbers in a notebook that his father had given him. He had been doing this for two years, and he had never missed a day.",
+      "The station workers knew him well. One of them, a woman called Ms. Ide, sometimes brought him a warm drink in winter. She never asked why he counted, because she thought that a question like that can spoil a small habit.",
+      "In March, the crossing was closed and a bridge was built instead. Kenta could no longer see the trains from the fence, and for two weeks he did not come. Ms. Ide found his notebook on the ground near the old gate, wet from the rain.",
+      "She dried the pages carefully and kept the notebook in a drawer. When Kenta finally appeared in April, she gave it back without saying anything. He looked at the swollen paper, and then he opened it and wrote the date.",
+      "Nobody taught him that a record does not have to be perfect to be worth keeping. He seems to have decided it by himself, somewhere between the closing of the crossing and the day he came back."
+    ],
+    japaneseParagraphs: [
+      "毎日午後4時から、ケンタという少年が踏切のそばの柵に座って電車を数えていました。父親がくれたノートに数を書いていました。2年間ずっと続けていて、一日も欠かしたことがありませんでした。",
+      "駅員たちは彼をよく知っていました。そのうちの一人、井出さんという女性は、冬にときどき温かい飲み物を持ってきてくれました。なぜ数えているのかを尋ねたことはありません。そういう質問は小さな習慣を台無しにすることがある、と考えていたからです。",
+      "3月に踏切が閉鎖され、代わりに橋が架けられました。ケンタは柵から電車を見ることができなくなり、2週間のあいだ姿を見せませんでした。井出さんは、古い門の近くの地面で、雨に濡れた彼のノートを見つけました。",
+      "彼女はページを丁寧に乾かし、ノートを引き出しにしまっておきました。4月になってケンタがようやく現れたとき、彼女は何も言わずにそれを返しました。彼はふくらんだ紙を見つめ、それから開いて日付を書きました。",
+      "記録は完璧でなくても残す価値がある、とだれかが彼に教えたわけではありません。踏切が閉まった日と戻ってきた日のあいだのどこかで、彼は自分でそう決めたようです。"
+    ],
+    vocabularyHighlight: [
+      { word: "counted", translation: "数えた" },
+      { word: "notebook", translation: "ノート" },
+      { word: "spoil", translation: "台無しにする" },
+      { word: "instead", translation: "代わりに" },
+      { word: "carefully", translation: "注意深く" },
+      { word: "perfect", translation: "完璧な" }
+    ],
+    description: "電車を数え続けた少年の話。過去完了進行形と受動態、動名詞が出てきます。",
+    pointReward: 90,
+    questions: [
+      {
+        question: "ケンタが2年間続けていたことは何ですか？",
+        options: [
+          "踏切のそばで電車の数を数えて記録すること",
+          "駅で働くこと",
+          "父親と一緒に旅をすること",
+          "毎日ノートに日記を書くこと"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "井出さんが理由を尋ねなかったのはなぜですか？",
+        options: [
+          "そういう質問は小さな習慣を台無しにすることがあると考えたから",
+          "ケンタが答えたがらなかったから",
+          "忙しくて時間がなかったから",
+          "すでに理由を知っていたから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "3月に何が起きましたか？",
+        options: [
+          "踏切が閉鎖され、代わりに橋が架けられた",
+          "駅が新しく建て替えられた",
+          "ケンタが引っ越した",
+          "電車の本数が減った"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "井出さんはノートをどうしましたか？",
+        options: [
+          "乾かして引き出しにしまい、後で返した",
+          "捨ててしまった",
+          "新しいノートを買って渡した",
+          "駅の掲示板に貼った"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "最後の段落で筆者が述べていることはどれですか？",
+        options: [
+          "記録は完璧でなくても残す価値があると、ケンタが自分で決めたようだということ",
+          "井出さんがケンタに大切なことを教えたということ",
+          "ケンタが数えるのをやめてしまったということ",
+          "父親がノートを取り上げたということ"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p22",
+    grammarFocus: ["g_reported_speech","g_perfect_others","g_comparison","g_relative_pronoun"],
+    level: "senior2",
+    title: "The Bench That Faced the Wrong Way",
+    englishParagraphs: [
+      "In 1974, the city placed twelve benches along the river. Eleven of them faced the water. The twelfth faced a brick wall, and for almost fifty years nobody moved it.",
+      "The mistake was reported twice. In 1981, a resident wrote a letter to the city office, and an official replied that the bench would be corrected during the next repair. In 2003, a newspaper printed a short article about it, which several readers found amusing.",
+      "What the article did not mention was that the bench was used more often than the others. Students sat there before exams. A taxi driver ate his lunch there every day for eleven years. A woman who had lost her husband told a reporter that she had chosen that bench because the wall did not ask anything of her.",
+      "When the city finally announced a renovation in 2021, forty-three residents signed a request to keep the bench as it was. The head of the planning section said that he had expected complaints about the delay, not about the repair.",
+      "The bench still faces the wall. A small sign now explains its history, and the sign itself faces the river, so that people who want the view can read it while sitting somewhere else."
+    ],
+    japaneseParagraphs: [
+      "1974年、市は川沿いに12脚のベンチを置きました。そのうち11脚は水辺を向いていました。12脚目はれんがの壁を向いていて、50年近くのあいだ、だれも動かしませんでした。",
+      "この誤りは二度報告されました。1981年に住民が市役所へ手紙を書き、担当者は次の修繕のときに直すと返答しました。2003年には新聞が短い記事にし、それを面白がった読者が何人もいました。",
+      "その記事が触れていなかったのは、そのベンチが他より多く使われていたことです。試験の前に生徒たちが座りました。あるタクシー運転手は11年間、毎日そこで昼食をとりました。夫を亡くしたある女性は記者に、壁は自分に何も求めてこないからそのベンチを選んだのだ、と語りました。",
+      "2021年に市がついに改修を発表すると、43人の住民がベンチをそのままにしてほしいという要望書に署名しました。計画課の課長は、遅れについての苦情は予想していたが、修繕についての苦情は予想していなかったと述べました。",
+      "ベンチは今も壁を向いています。今では小さな案内板がその経緯を説明しており、案内板のほうは川を向いています。眺めを求める人が、別の場所に座りながらそれを読めるようにです。"
+    ],
+    vocabularyHighlight: [
+      { word: "placed", translation: "置いた" },
+      { word: "official", translation: "職員／公式の" },
+      { word: "amusing", translation: "面白い" },
+      { word: "renovation", translation: "改修" },
+      { word: "complaints", translation: "苦情" },
+      { word: "history", translation: "経緯、歴史" }
+    ],
+    description: "向きを間違えたベンチの話。関係代名詞の非限定用法、過去完了、名詞節が出てきます。",
+    pointReward: 120,
+    questions: [
+      {
+        question: "12脚目のベンチはどうなっていましたか？",
+        options: [
+          "れんがの壁を向いていた",
+          "川に背を向けて壊れていた",
+          "他より小さく作られていた",
+          "設置されていなかった"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "2003年の新聞記事について正しいものはどれですか？",
+        options: [
+          "面白い話として扱われ、ベンチがよく使われていることには触れなかった",
+          "市の対応を厳しく批判した",
+          "住民の署名運動を報じた",
+          "ベンチの撤去を求めた"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "夫を亡くした女性がそのベンチを選んだ理由はどれですか？",
+        options: [
+          "壁は自分に何も求めてこないから",
+          "川の音がうるさかったから",
+          "日陰になっていたから",
+          "家からいちばん近かったから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "2021年に住民が求めたことは何ですか？",
+        options: [
+          "ベンチをそのままにしておくこと",
+          "ベンチを川向きに直すこと",
+          "ベンチを撤去すること",
+          "ベンチを増やすこと"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "案内板が川を向いているのはなぜですか？",
+        options: [
+          "眺めを求める人が別の場所に座りながら読めるようにするため",
+          "ベンチに座る人の視界をふさがないため",
+          "雨に濡れないようにするため",
+          "市の規則で向きが決まっているため"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p23",
+    grammarFocus: ["g_emphasis_inversion","g_modal_perfect","g_perfect_others","g_present_perfect"],
+    level: "senior3",
+    title: "What the Survey Did Not Ask",
+    englishParagraphs: [
+      "In 2016, a national survey reported that 68 per cent of young workers were satisfied with their jobs. The figure was quoted widely, and it was used to argue that concerns about working conditions had been exaggerated.",
+      "Three years later, a smaller study repeated the question and added one more: whether the respondent expected to hold the same job in five years. Among those who had described themselves as satisfied, only 31 per cent said yes. Had the first survey included this question, its headline would have been read very differently.",
+      "The difference is not a contradiction. Satisfaction describes the present, while expectation describes the future, and a person can be content today and certain that today will not last. What the first survey measured was real. What it implied was not.",
+      "Statistics of this kind are rarely wrong in the narrow sense. They are wrong in what they invite the reader to conclude. A number that answers a question we did not quite ask is more dangerous than a number that is simply false, because it survives every check we know how to perform.",
+      "The lesson is not that surveys should be distrusted. It is that a figure should be read together with the question that produced it. Whenever a percentage appears without its question, the most useful response is not doubt but curiosity: what, exactly, was asked?"
+    ],
+    japaneseParagraphs: [
+      "2016年、ある全国調査が、若年労働者の68パーセントが仕事に満足していると報告しました。この数字は広く引用され、労働条件への懸念は誇張されていたという主張の根拠に使われました。",
+      "3年後、より小規模な研究が同じ質問を繰り返し、もう一つ質問を加えました。5年後も同じ仕事に就いていると思うか、というものです。自分は満足していると答えた人のうち、「はい」と答えたのは31パーセントにすぎませんでした。もし最初の調査にこの質問が含まれていたなら、その見出しはまったく違った読まれ方をしていたでしょう。",
+      "この差は矛盾ではありません。満足は現在を表し、見通しは将来を表します。今日に満足しながら、今日が続かないと確信することはありえます。最初の調査が測ったものは本物でした。それが含意させたものが、そうではなかったのです。",
+      "この種の統計は、狭い意味で誤っていることはめったにありません。誤っているのは、読者に導かせる結論のほうです。私たちが正確には尋ねていない問いに答えている数字は、単に偽である数字よりも危険です。私たちが知っているどの検査もすり抜けてしまうからです。",
+      "得るべき教訓は、調査を信用するなということではありません。数字は、それを生んだ問いと一緒に読まれるべきだ、ということです。問いを伴わない割合が現れたとき、最も役に立つ反応は疑いではなく好奇心です。いったい何が尋ねられたのか、と。"
+    ],
+    vocabularyHighlight: [
+      { word: "survey", translation: "調査" },
+      { word: "satisfied", translation: "満足して" },
+      { word: "exaggerated", translation: "誇張された" },
+      { word: "contradiction", translation: "矛盾" },
+      { word: "conclude", translation: "結論づける" },
+      { word: "curiosity", translation: "好奇心" }
+    ],
+    description: "統計の読み方を論じた文章。倒置を用いた仮定法、無生物主語、名詞節が出てきます。",
+    pointReward: 150,
+    questions: [
+      {
+        question: "2016年の調査結果はどのように使われましたか？",
+        options: [
+          "労働条件への懸念は誇張されていたという主張の根拠に使われた",
+          "労働時間の短縮を求める根拠に使われた",
+          "調査手法の改善を求める根拠に使われた",
+          "若年労働者の賃金引き上げに使われた"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "3年後の研究が加えた質問はどれですか？",
+        options: [
+          "5年後も同じ仕事に就いていると思うか",
+          "賃金に満足しているか",
+          "転職したことがあるか",
+          "職場の人間関係はどうか"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "筆者が「矛盾ではない」と述べる理由はどれですか？",
+        options: [
+          "満足は現在を、見通しは将来を表しており、両立しうるから",
+          "二つの調査の対象者が違うから",
+          "回答者が嘘をついていたから",
+          "統計の誤差の範囲に収まるから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "「単に偽である数字よりも危険」と筆者が述べる理由はどれですか？",
+        options: [
+          "私たちが知っているどの検査もすり抜けてしまうから",
+          "計算し直すのに費用がかかるから",
+          "報道されにくいから",
+          "統計の専門家しか気づけないから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "筆者が勧めている読み方はどれですか？",
+        options: [
+          "数字を、それを生んだ問いと一緒に読むこと",
+          "すべての調査を信用しないこと",
+          "より大きな標本の調査だけを見ること",
+          "割合ではなく実数を見ること"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p24",
+    grammarFocus: ["g_modal_perfect","g_gerund","g_perfect_others","g_present_perfect"],
+    level: "advanced",
+    title: "The Archive That Refused to Be Complete",
+    englishParagraphs: [
+      "The founders of the municipal archive set out, in 1911, to preserve everything. Their charter used that word without qualification, and for three decades the staff behaved as though it were achievable. Letters, receipts, tram tickets, and the minutes of societies that had met four times were all accessioned with the same care.",
+      "By 1948 the building was full. The director of that period, faced with a choice between expansion and selection, chose neither. Instead she introduced a rule that has governed the institution ever since: nothing may be discarded, but nothing new may be added unless a member of the public has asked for something similar.",
+      "The consequence was not what her critics predicted. Rather than shrinking, the archive grew slowly and unevenly, in the shape of the questions people happened to bring. Whole categories that scholars would have prioritised remained thin, while records of local funerals, which no researcher had requested, accumulated because families kept asking for them.",
+      "Historians have called the collection unrepresentative, and in a strict sense they are right. It reflects curiosity rather than significance. But an archive assembled by professional judgement would have reflected something too, namely what a small number of trained people in a particular decade believed would matter later.",
+      "Neither principle escapes selection; they differ only in who does the selecting and whether the criterion is visible. The municipal archive has at least the merit of being legible. Its gaps record, with unusual precision, the questions that nobody in this city thought to ask."
+    ],
+    japaneseParagraphs: [
+      "市立文書館の創設者たちは、1911年に「すべてを保存する」という目標を掲げました。設立趣意書はその語を留保なしに用いており、30年のあいだ職員たちはそれが達成可能であるかのように振る舞いました。手紙も、領収書も、路面電車の切符も、4回しか集まらなかった団体の議事録も、同じ丁寧さで受け入れられました。",
+      "1948年までに建物はいっぱいになりました。当時の館長は、拡張か選別かという選択を迫られ、そのどちらも選びませんでした。代わりに、以後この施設を律することになる規則を導入しました。何も廃棄してはならない、ただし、市民から同種のものを求める問い合わせがない限り、新たに受け入れてもならない、というものです。",
+      "その結果は、批判者たちの予測とは異なりました。文書館は縮小するどころか、人々がたまたま持ち込んだ問いの形にそって、ゆっくりと不均一に育っていきました。研究者が優先したであろう分野の全体が薄いままである一方、だれも請求しなかったはずの地域の葬儀の記録は、遺族が繰り返し求めたために積み上がっていきました。",
+      "歴史家たちはこの収蔵を代表性に欠けると評してきましたし、厳密な意味ではその通りです。それは重要性ではなく好奇心を映しています。しかし専門家の判断で集められた文書館もまた、何かを映していたはずです。すなわち、ある10年間の、少数の訓練を受けた人々が、後に重要になると信じたものを。",
+      "どちらの原理も選別を免れてはいません。違うのは、だれが選ぶのかと、その基準が見えるかどうかだけです。市立文書館には少なくとも、読み取り可能であるという美点があります。その欠落は、この街のだれ一人として尋ねようと思わなかった問いを、異例の精度で記録しているのです。"
+    ],
+    vocabularyHighlight: [
+      { word: "preserve", translation: "保存する" },
+      { word: "expansion", translation: "拡張" },
+      { word: "discarded", translation: "廃棄された" },
+      { word: "consequence", translation: "結果" },
+      { word: "accumulated", translation: "積み重なった" },
+      { word: "criterion", translation: "基準" }
+    ],
+    description: "文書館の収集方針をめぐる論考。仮定法過去完了、分詞構文、関係代名詞が重なって現れます。",
+    pointReward: 180,
+    questions: [
+      {
+        question: "1948年に館長が導入した規則はどれですか？",
+        options: [
+          "何も廃棄しないが、市民の求めがない限り新たに受け入れない",
+          "重要でない資料を毎年廃棄する",
+          "建物を拡張して受け入れを続ける",
+          "専門家の判断で収集分野を決める"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "その規則の結果として実際に起きたことはどれですか？",
+        options: [
+          "人々の問いの形にそって、ゆっくりと不均一に収蔵が育った",
+          "収蔵が急速に縮小した",
+          "研究者向けの分野が充実した",
+          "収集が完全に止まった"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "地域の葬儀の記録が積み上がったのはなぜですか？",
+        options: [
+          "遺族が繰り返し求めたから",
+          "歴史家が重要だと判断したから",
+          "館長の個人的な関心だったから",
+          "法律で保存が義務づけられていたから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "専門家の判断で集めた場合について、筆者はどう述べていますか？",
+        options: [
+          "それもまた、ある時代の少数の人が重要になると信じたものを映すにすぎない",
+          "代表性のある収蔵になっていたはずだ",
+          "収蔵量がはるかに多くなっていたはずだ",
+          "市民の関心を正確に反映していたはずだ"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "筆者がこの文書館の美点として挙げているのはどれですか？",
+        options: [
+          "選別の基準が見え、欠落が「だれも尋ねなかった問い」を記録していること",
+          "選別をまったく行っていないこと",
+          "研究者の需要に応えていること",
+          "収蔵量が他の文書館より多いこと"
+        ],
+        correctIndex: 0
+      }
+    ]
+  },
+  {
+    id: "p25",
+    grammarFocus: ["g_emphasis_inversion","g_modal_perfect","g_present_perfect","g_relative_pronoun"],
+    level: "advanced",
+    title: "The Instrument That Measured Its Own Absence",
+    englishParagraphs: [
+      "For eleven years, a seismograph in a remote observatory recorded nothing of interest. Its operators submitted the same monthly report, and the funding committee raised, with increasing regularity, the question of whether the station should be closed.",
+      "The argument for closure was straightforward. An instrument that detects no events produces no data, and an institution that produces no data cannot justify its budget. Only one member objected, on grounds that the committee found difficult to summarise in the minutes.",
+      "Her position was this. The absence of recorded events is itself a record, provided that the instrument was working and that somebody can prove it was. Eleven years of confirmed silence in a region assumed to be active is not an empty result; it is a constraint on every model that predicts activity there.",
+      "The station remained open, and in the twelfth year it registered a sequence of small tremors. What made the sequence valuable was not its magnitude, which was trivial, but the eleven quiet years that preceded it. Without that silence, the tremors would have been one more entry in a long list. With it, they marked a beginning.",
+      "It is tempting to treat this as a story about patience rewarded. It is more accurately a story about what counts as evidence. Had the committee closed the station, no one would ever have known what was lost, because the loss would have taken the form of a question that could no longer be asked."
+    ],
+    japaneseParagraphs: [
+      "11年のあいだ、辺境の観測所にある地震計は、注目に値するものを何も記録しませんでした。担当者は毎月同じ報告書を提出し、予算委員会はこの観測所を閉鎖すべきではないかという問いを、次第に定期的に持ち出すようになりました。",
+      "閉鎖を求める論拠は単純でした。事象を検出しない機器はデータを生まず、データを生まない機関は予算を正当化できない、というものです。反対したのは一人だけで、その根拠は委員会が議事録に要約しづらいものでした。",
+      "彼女の立場はこうでした。記録された事象が無いということ自体が一つの記録である。ただし、機器が正常に動いていて、それを証明できる者がいるならば。活動的だと想定されている地域における、確認された11年間の静けさは、空の結果ではない。そこでの活動を予測するあらゆるモデルに対する制約なのだ、と。",
+      "観測所は存続し、12年目に一連の小さな震動を記録しました。この一連の記録を価値あるものにしたのは、取るに足らない規模ではなく、それに先立つ11年の静けさでした。その静けさが無ければ、この震動は長い一覧に加わるもう一項目にすぎなかったでしょう。それがあったからこそ、始まりを画すものになったのです。",
+      "これを「忍耐が報われた話」として扱いたくなります。より正確には、何が証拠として数えられるのかについての話です。もし委員会が観測所を閉鎖していたなら、何が失われたのかをだれも知ることはなかったでしょう。その喪失は、もはや問うことのできない問いという形をとっていたはずだからです。"
+    ],
+    vocabularyHighlight: [
+      { word: "remote", translation: "遠く離れた" },
+      { word: "closure", translation: "閉鎖" },
+      { word: "objected", translation: "反対した" },
+      { word: "absence", translation: "不在、欠如" },
+      { word: "constraint", translation: "制約" },
+      { word: "evidence", translation: "証拠" }
+    ],
+    description: "「記録が無いこと」の意味を論じた文章。倒置を用いた仮定法、無生物主語、同格が現れます。",
+    pointReward: 180,
+    questions: [
+      {
+        question: "閉鎖を求める論拠はどれですか？",
+        options: [
+          "事象を検出しない機器はデータを生まず、予算を正当化できない",
+          "機器が老朽化して故障が多い",
+          "観測所へ行く道が危険である",
+          "別の観測所で代替できる"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "反対した委員の主張はどれですか？",
+        options: [
+          "記録が無いこと自体が記録であり、活動を予測するモデルへの制約になる",
+          "いつか大きな地震が来るはずだ",
+          "観測所の職員の雇用を守るべきだ",
+          "予算の額が小さいので問題ない"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "その主張には条件が付いています。どれですか？",
+        options: [
+          "機器が正常に動いていて、それを証明できること",
+          "地域が活動的だと確認されていること",
+          "観測が20年以上続いていること",
+          "複数の機器で同時に観測すること"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "12年目の震動が価値を持ったのはなぜですか？",
+        options: [
+          "先立つ11年の静けさがあったから",
+          "規模が非常に大きかったから",
+          "新しい機器で観測されたから",
+          "予測と一致したから"
+        ],
+        correctIndex: 0
+      },
+      {
+        question: "最後の段落で筆者が述べていることはどれですか？",
+        options: [
+          "閉鎖していれば、失われたものは「もはや問えない問い」という形をとり、だれも気づけなかった",
+          "忍耐強く待てば必ず成果が出る",
+          "委員会の判断はすべて誤っていた",
+          "観測所は今後も閉鎖すべきでない"
         ],
         correctIndex: 0
       }

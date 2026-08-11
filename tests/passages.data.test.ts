@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { grammarTopics } from "../src/data/grammar";
+import { GRAMMAR_MARKERS, detectGrammar } from "../scripts/tag_passage_grammar";
 import { passages } from "../src/data/passages";
 
 /**
@@ -11,9 +13,9 @@ const wordCount = (p: typeof passages[number]) =>
   p.englishParagraphs.join(" ").split(/\s+/).filter(Boolean).length;
 
 describe("長文の構成", () => {
-  it("全レベルに3本ずつある", () => {
+  it("全レベルに5本ずつある", () => {
     for (const level of LEVELS) {
-      expect(passages.filter(p => p.level === level)).toHaveLength(3);
+      expect(passages.filter(p => p.level === level), level).toHaveLength(5);
     }
   });
 
@@ -147,5 +149,60 @@ describe("理解度チェックの設問", () => {
     for (const p of passages) for (const q of p.questions || []) counts[q.correctIndex]++;
     expect(counts.reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
     expect(counts[0]).toBe(counts.reduce((a, b) => a + b, 0));
+  });
+});
+
+describe("文法の印", () => {
+  it("すべての長文に文法の印が付いている", () => {
+    // 「習った文法が本文のどこで使われているか」をたどれるようにするための印
+    const bad = passages.filter(p => !p.grammarFocus || p.grammarFocus.length === 0).map(p => p.id);
+    expect(bad).toEqual([]);
+  });
+
+  it("印が実在する文法項目を指している", () => {
+    const ids = new Set(grammarTopics.map(t => t.id));
+    const bad: string[] = [];
+    for (const p of passages) {
+      for (const f of p.grammarFocus || []) if (!ids.has(f)) bad.push(`${p.id}:${f}`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("印の中で項目が重複していない", () => {
+    const bad = passages
+      .filter(p => new Set(p.grammarFocus).size !== (p.grammarFocus || []).length)
+      .map(p => p.id);
+    expect(bad).toEqual([]);
+  });
+
+  it("印を付けた文法が本文に実際に出てくる", () => {
+    // 印は本文の目印から機械的に付けているので、目印が消えたら印も消えるべき。
+    // 本文を書き換えて印を付け直し忘れると、ここで気づける
+    const byTopic = new Map(GRAMMAR_MARKERS.map(m => [m.topic, m.pattern]));
+    const bad: string[] = [];
+    for (const p of passages) {
+      const text = p.englishParagraphs.join("\n");
+      for (const f of p.grammarFocus || []) {
+        const pattern = byTopic.get(f);
+        if (!pattern || !pattern.test(text)) bad.push(`${p.id}:${f}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("印の付け方が今の本文と一致している", () => {
+    // 印を付け直し忘れていないか（scripts/tag_passage_grammar.ts を回し忘れていないか）
+    const bad = passages
+      .filter(p => JSON.stringify(detectGrammar(p.englishParagraphs)) !== JSON.stringify(p.grammarFocus))
+      .map(p => p.id);
+    expect(bad).toEqual([]);
+  });
+
+  it("どの文法項目も、印の付いた長文が集中しすぎない", () => {
+    // 1つの項目に全部の長文が付くと手がかりにならない
+    const counts: Record<string, number> = {};
+    for (const p of passages) for (const f of p.grammarFocus || []) counts[f] = (counts[f] || 0) + 1;
+    const tooMany = Object.entries(counts).filter(([, n]) => n > passages.length * 0.85);
+    expect(tooMany).toEqual([]);
   });
 });

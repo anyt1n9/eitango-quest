@@ -133,6 +133,23 @@ describe("項目の詳細", () => {
     expect(within(box).getByText("伝える")).toBeInTheDocument();
   });
 
+  it("その文法が出てくる長文を並べる", async () => {
+    const user = userEvent.setup();
+    await renderGuide();
+    // 現在完了は収録している長文の多くに出てくる
+    await user.click(document.getElementById("grammar_topic_g_present_perfect")!);
+    const box = await screen.findByTestId("grammar_readings");
+    expect(within(box).getAllByRole("listitem").length).toBeGreaterThan(0);
+  });
+
+  it("出てくる長文が無い項目には欄を出さない", async () => {
+    const user = userEvent.setup();
+    await renderGuide();
+    // 冠詞は長文の目印にしていないので、結び付く長文は無い
+    await user.click(document.getElementById("grammar_topic_g_noun_article")!);
+    expect(screen.queryByTestId("grammar_readings")).toBeNull();
+  });
+
   it("文型を持たない項目には動詞の欄を出さない", async () => {
     const user = userEvent.setup();
     await renderGuide();

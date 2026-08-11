@@ -4,6 +4,7 @@ import { passages, Passage, PassageQuestion } from "../data/passages";
 import { shuffleQuestion } from "../readingQuiz";
 import { readStoredArray, writeStored } from "../storage";
 import { sanitizePassage, sanitizePassages } from "../passageValidation";
+import { loadGrammar } from "../grammar";
 import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X } from "lucide-react";
 
 interface ReadingProps {
@@ -14,6 +15,17 @@ interface ReadingProps {
 }
 
 export default function Reading({ stats, setStats, onBackToDashboard, updateRankingScore }: ReadingProps) {
+  // 文法の題名だけを引く。解説の本体は重いので、必要な題名だけを取り出して捨てる
+  const [grammarTitles, setGrammarTitles] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let alive = true;
+    loadGrammar().then(topics => {
+      if (!alive) return;
+      setGrammarTitles(Object.fromEntries(topics.map(t => [t.id, t.title])));
+    });
+    return () => { alive = false; };
+  }, []);
+
   const [selectedPassage, setSelectedPassage] = useState<Passage | null>(null);
   const [showJapanese, setShowJapanese] = useState(true);
   const [selectedWordObj, setSelectedWordObj] = useState<{ word: string; translation: string } | null>(null);
@@ -270,6 +282,23 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
             重要単語数: <span className="text-gray-700 font-bold font-mono">{selectedPassage.vocabularyHighlight.length}語</span>
           </span>
         </div>
+
+        {/* この長文に出てくる文法。単語だけ覚えても文は読めないので、
+            詰まったときにどれを復習すればよいかを示す */}
+        {selectedPassage.grammarFocus && selectedPassage.grammarFocus.length > 0 && (
+          <div className="mt-4 flex items-center gap-2 flex-wrap" data-testid="passage_grammar">
+            <span className="text-[11px] font-black text-gray-500">この長文に出てくる文法:</span>
+            {selectedPassage.grammarFocus.map(id => (
+              <span
+                key={id}
+                className="text-[11px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5"
+              >
+                {grammarTitles[id] || id}
+              </span>
+            ))}
+            <span className="text-[11px] text-gray-400 font-semibold">（文法ガイドで確認できます）</span>
+          </div>
+        )}
 
         {/* 読解・重要単語エリアのグリッド */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
