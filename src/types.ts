@@ -50,6 +50,61 @@ export interface WordUsage {
   collocations?: { phrase: string; meaning: string }[];
 }
 
+/**
+ * 文法項目。
+ *
+ * この教材は「単語と訳を1対1で覚える」ことに寄っていて、文法の解説がまったく無かった。
+ * 単語を覚えても、その語をどう並べれば文になるかは別の知識なので、
+ * 結局は文法の参考書を別に買う必要があった。ここでその穴を埋める。
+ *
+ * 出典のあるデータ（語義・語法）と違い、この解説は書き下ろしである。
+ * 中学・高校で扱う順に並べ、各項目に「説明」「例文」「よくある間違い」「練習」を持たせる。
+ */
+export interface GrammarExample {
+  english: string;
+  japanese: string;
+  /** その例文で何を見るか */
+  note?: string;
+}
+
+/** 日本語話者がよく書いてしまう形と、その直し方 */
+export interface GrammarMistake {
+  wrong: string;
+  right: string;
+  why: string;
+}
+
+export interface GrammarQuestion {
+  /** 空所は [_____] で表す */
+  question: string;
+  options: string[];
+  correctIndex: number;
+  /** なぜその答えになるか。間違えたときに読む */
+  explanation: string;
+}
+
+export interface GrammarTopic {
+  id: string;
+  level: Level;
+  /** 「文の組み立て」「動詞の形」など、目次の見出しに使う */
+  category: string;
+  title: string;
+  /** 一行での要約 */
+  summary: string;
+  sections: { heading: string; body: string }[];
+  examples: GrammarExample[];
+  mistakes: GrammarMistake[];
+  questions: GrammarQuestion[];
+  /**
+   * この文法に関係する動詞の文型番号（WordNet の sentence frame）。
+   * 収録語のデータ（wordUsage.ts）から「その形をとる動詞」を引いて見せるのに使う。
+   * 解説だけで終わらせず、覚えた単語と結び付けるため。
+   */
+  verbFrames?: number[];
+  /** 先に読んでおくとよい項目のID */
+  requires?: string[];
+}
+
 export interface Word {
   id: string; // 識別用
   word: string; // 英単語
