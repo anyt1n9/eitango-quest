@@ -26,7 +26,9 @@ import {
   X,
   Copy,
   Check,
-  HelpCircle
+  HelpCircle,
+  BookMarked,
+  Repeat
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser, PartOfSpeech } from "../types";
 import SimpleMarkdown from "./SimpleMarkdown";
@@ -38,6 +40,34 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
+
+/**
+ * 「調べる」タブに並べる資料。
+ * 上部のナビに散らばっていたものをここへ集めた。
+ */
+const REFERENCE_ENTRIES = [
+  {
+    id: "dictionary",
+    title: "単語一覧辞書",
+    description: "収録語を検索し、語義・使用割合・文型・語族・例文を確かめる",
+    icon: BookOpen,
+    tone: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300"
+  },
+  {
+    id: "verb_forms",
+    title: "動詞の活用表",
+    description: "原形 → 過去形 → 過去分詞 → ing形 を一覧で確かめる",
+    icon: Repeat,
+    tone: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300"
+  },
+  {
+    id: "grammar",
+    title: "文法ガイド",
+    description: "中学から大学レベルまでの文法34項目。説明・例文・練習問題つき",
+    icon: BookMarked,
+    tone: "bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-300"
+  }
+] as const;
 
 /** レベルのカードへ飛ぶための並び */
 const LEVEL_JUMPS: { level: Level; label: string }[] = [
@@ -152,6 +182,8 @@ interface DashboardProps {
   onOpenDictionary: () => void;
   onStartReading: () => void;
   onOpenDiary: () => void;
+  onOpenVerbForms: () => void;
+  onOpenGrammar: () => void;
   ranking: RankingUser[];
   setRanking: React.Dispatch<React.SetStateAction<RankingUser[]>>;
   dailyLog: Record<string, { count: number; correct: number }>;
@@ -173,6 +205,8 @@ export default function Dashboard({
   onOpenDictionary,
   onStartReading,
   onOpenDiary,
+  onOpenVerbForms,
+  onOpenGrammar,
   ranking,
   setRanking,
   dailyLog,
@@ -562,7 +596,7 @@ export default function Dashboard({
   const [isFetchingWeakness, setIsFetchingWeakness] = useState(false);
   const [weaknessError, setWeaknessError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"progress" | "ranking" | "bonus" | "ai">("progress");
+  const [activeTab, setActiveTab] = useState<"progress" | "reference" | "ranking" | "bonus" | "ai">("progress");
 
   // 出題単語数選択用のステート
   /**
@@ -855,7 +889,7 @@ export default function Dashboard({
       </div>
 
       {/* タブ切り替え（Bento Gridスタイッシュ） */}
-      <div className="grid grid-cols-4 bg-gray-100 p-1 rounded-xl gap-1">
+      <div className="grid grid-cols-3 lg:grid-cols-5 bg-gray-100 p-1 rounded-xl gap-1" data-testid="dashboard_tabs">
         <button
           onClick={() => setActiveTab("progress")}
           className={`py-3 text-xs md:text-sm font-bold rounded-lg transition-all ${
@@ -868,6 +902,20 @@ export default function Dashboard({
           <div className="flex flex-col md:flex-row items-center justify-center gap-1.5">
             <BookOpen className="w-4 h-4" />
             <span>習熟度 & クイズ</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab("reference")}
+          className={`py-3 text-xs md:text-sm font-bold rounded-lg transition-all ${
+            activeTab === "reference"
+              ? "bg-white text-indigo-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/50"
+          }`}
+          id="tab_btn_reference"
+        >
+          <div className="flex flex-col md:flex-row items-center justify-center gap-1.5">
+            <BookMarked className="w-4 h-4 text-sky-600" />
+            <span>調べる</span>
           </div>
         </button>
         <button
@@ -1742,6 +1790,49 @@ export default function Dashboard({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 調べるタブ。辞書・活用表・文法ガイドの入口をまとめる。
+          上部のナビに散らばっていて、何がどこにあるのか分かりにくかった */}
+      {activeTab === "reference" && (
+        <div className="space-y-3" data-testid="reference_tab">
+          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-5">
+            <div className="flex items-start gap-2">
+              <BookMarked className="w-5 h-5 text-sky-600 mt-0.5 shrink-0" />
+              <div>
+                <h2 className="text-lg font-black text-gray-900 dark:text-slate-100">調べる</h2>
+                <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mt-1">
+                  解いていて分からなかったことを確かめる場所です。
+                  意味と使い方は辞書、形の変化は活用表、並べ方は文法ガイドで調べられます。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {REFERENCE_ENTRIES.map(entry => (
+            <button
+              key={entry.id}
+              onClick={
+                entry.id === "dictionary" ? onOpenDictionary
+                  : entry.id === "verb_forms" ? onOpenVerbForms
+                    : onOpenGrammar
+              }
+              id={`btn_reference_${entry.id}`}
+              className="w-full text-left bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-slate-800 transition cursor-pointer flex items-center gap-3.5"
+            >
+              <span className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${entry.tone}`}>
+                <entry.icon className="w-5 h-5" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-black text-gray-900 dark:text-slate-100">{entry.title}</span>
+                <span className="block text-xs font-semibold text-gray-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  {entry.description}
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+            </button>
+          ))}
         </div>
       )}
 

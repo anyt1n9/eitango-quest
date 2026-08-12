@@ -36,6 +36,8 @@ function renderDashboard() {
       onOpenDictionary={vi.fn()}
       onStartReading={vi.fn()}
       onOpenDiary={vi.fn()}
+      onOpenVerbForms={vi.fn()}
+      onOpenGrammar={vi.fn()}
       ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
       setRanking={vi.fn()}
       dailyLog={{}}
@@ -179,7 +181,7 @@ describe("長文・AI日記への入口", () => {
         stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
         solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
         onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={onStartReading}
-        onOpenDiary={vi.fn()}
+        onOpenDiary={vi.fn()} onOpenVerbForms={vi.fn()} onOpenGrammar={vi.fn()}
         ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
         setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
       />
@@ -196,12 +198,94 @@ describe("長文・AI日記への入口", () => {
         stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
         solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
         onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={vi.fn()}
-        onOpenDiary={onOpenDiary}
+        onOpenDiary={onOpenDiary} onOpenVerbForms={vi.fn()} onOpenGrammar={vi.fn()}
         ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
         setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
       />
     );
     await user.click(document.getElementById("dashboard_open_diary_btn")!);
     expect(onOpenDiary).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("「調べる」タブ", () => {
+  /**
+   * 辞書・活用表・文法ガイドは上部のナビに散らばっていて、
+   * 何がどこにあるのか分かりにくかった。
+   * 「習熟度 & クイズ」と「AIアドバイス」の間にタブを1つ足して、
+   * 3つの入口をそこにまとめる。
+   */
+  function renderWithHandlers() {
+    const handlers = {
+      onOpenDictionary: vi.fn(),
+      onOpenVerbForms: vi.fn(),
+      onOpenGrammar: vi.fn()
+    };
+    render(
+      <Dashboard
+        stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
+        solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
+        onStartReview={vi.fn()} onStartReading={vi.fn()} onOpenDiary={vi.fn()}
+        {...handlers}
+        ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
+        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
+      />
+    );
+    return handlers;
+  }
+
+  it("タブが「習熟度 & クイズ」と「AIアドバイス」の間に並ぶ", () => {
+    renderWithHandlers();
+    const ids = within(screen.getByTestId("dashboard_tabs"))
+      .getAllByRole("button")
+      .map(b => b.id);
+    expect(ids.indexOf("tab_btn_reference")).toBe(ids.indexOf("tab_btn_progress") + 1);
+    expect(ids.indexOf("tab_btn_reference")).toBe(ids.indexOf("tab_btn_ai") - 1);
+  });
+
+  it("押すまでは中身を出さない", () => {
+    renderWithHandlers();
+    expect(screen.queryByTestId("reference_tab")).toBeNull();
+  });
+
+  it("押すと3つの資料が並ぶ", async () => {
+    const user = userEvent.setup();
+    renderWithHandlers();
+    await user.click(document.getElementById("tab_btn_reference")!);
+    const panel = screen.getByTestId("reference_tab");
+    for (const label of ["単語一覧辞書", "動詞の活用表", "文法ガイド"]) {
+      expect(within(panel).getByText(label), label).toBeInTheDocument();
+    }
+  });
+
+  it("それぞれの画面へ移れる", async () => {
+    const user = userEvent.setup();
+    const h = renderWithHandlers();
+    await user.click(document.getElementById("tab_btn_reference")!);
+
+    await user.click(document.getElementById("btn_reference_dictionary")!);
+    expect(h.onOpenDictionary).toHaveBeenCalledTimes(1);
+
+    await user.click(document.getElementById("btn_reference_verb_forms")!);
+    expect(h.onOpenVerbForms).toHaveBeenCalledTimes(1);
+
+    await user.click(document.getElementById("btn_reference_grammar")!);
+    expect(h.onOpenGrammar).toHaveBeenCalledTimes(1);
+  });
+
+  it("何のための場所かを説明する", async () => {
+    const user = userEvent.setup();
+    renderWithHandlers();
+    await user.click(document.getElementById("tab_btn_reference")!);
+    const panel = screen.getByTestId("reference_tab");
+    expect(within(panel).getByText(/解いていて分からなかったことを確かめる場所/)).toBeInTheDocument();
+  });
+
+  it("他のタブに切り替えると閉じる", async () => {
+    const user = userEvent.setup();
+    renderWithHandlers();
+    await user.click(document.getElementById("tab_btn_reference")!);
+    await user.click(document.getElementById("tab_btn_progress")!);
+    expect(screen.queryByTestId("reference_tab")).toBeNull();
   });
 });

@@ -55,7 +55,8 @@ test("学習アドバイスが習得状況を反映する", async ({ page }) => 
 test("文法ガイドを開いて練習問題を解ける", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#nav_grammar_toggle_btn").click();
+  await page.locator("#tab_btn_reference").click();
+  await page.locator("#btn_reference_grammar").click();
 
   const list = page.locator('[data-testid="grammar_topic_list"] button');
   await expect(list.first()).toBeVisible({ timeout: 30_000 });
@@ -110,7 +111,8 @@ test("長文の重要語を苦手単語に入れられる", async ({ page }) => 
 test("辞書で語義・語法を見て、文法の解説へ跳べる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#nav_dictionary_toggle_btn").click();
+  await page.locator("#tab_btn_reference").click();
+  await page.locator("#btn_reference_dictionary").click();
   await page.locator('input[type="text"]').first().fill("tell");
   await page.getByText(/^tell$/).first().click();
 
@@ -159,7 +161,8 @@ test("画面ごとにURLが変わり、戻るでアプリが閉じない", async
   await page.goto("/");
   await waitForVocabulary(page);
 
-  await page.locator("#nav_grammar_toggle_btn").click();
+  await page.locator("#tab_btn_reference").click();
+  await page.locator("#btn_reference_grammar").click();
   await expect(page).toHaveURL(/\/grammar$/);
 
   await page.locator("#grammar_topic_g_present_perfect").click();
@@ -199,6 +202,38 @@ test("5つの形式がどれも同じ手順で始まる", async ({ page }) => {
   await page.locator("#btn_junior_word").click();
   await expect(page.locator("#quiz_options_container")).toBeVisible();
   await expect(page.getByText("Q: 1 / 50")).toBeVisible();
+});
+
+test("狭い画面でも横にはみ出さない", async ({ page }) => {
+  // タップ領域を広げたときに whitespace-nowrap を付けて、
+  // 360〜390px で3〜18px はみ出していた（測り直していなかった）。
+  // 横スクロールが出ると、読むたびに指で戻すことになる
+  for (const width of [360, 375, 390, 414]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/");
+    await waitForVocabulary(page);
+    const size = await page.evaluate(() => ({
+      doc: document.documentElement.scrollWidth,
+      win: window.innerWidth
+    }));
+    expect(size.doc, `${width}px`).toBeLessThanOrEqual(size.win + 1);
+  }
+});
+
+test("「調べる」タブから辞書・活用表・文法ガイドへ移れる", async ({ page }) => {
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await page.locator("#tab_btn_reference").click();
+
+  const panel = page.getByTestId("reference_tab");
+  await expect(panel).toBeVisible();
+  for (const label of ["単語一覧辞書", "動詞の活用表", "文法ガイド"]) {
+    await expect(panel.getByText(label, { exact: true })).toBeVisible();
+  }
+
+  await page.locator("#btn_reference_verb_forms").click();
+  await expect(page).toHaveURL(/\/verb-forms$/);
+  await expect(page.locator("#verb_forms_screen")).toBeVisible();
 });
 
 test("学習データを書き出すと、文法の進捗も含まれる", async ({ page }) => {

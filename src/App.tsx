@@ -586,20 +586,6 @@ export default function App() {
             {/* クイズなど集中画面では機能ボタン群を隠す */}
             {!isFocusScreen && (
             <>
-            {/* 単語一覧辞書ボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "dictionary" ? "dashboard" : "dictionary")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "dictionary"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
-                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-705"
-              }`}
-              id="nav_dictionary_toggle_btn"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>単語一覧辞書</span>
-            </button>
-
             {/* AIつながりマップ・パズルボタン */}
             <button
               onClick={() => navigate(currentScreen === "map_puzzle" ? "dashboard" : "map_puzzle")}
@@ -612,35 +598,6 @@ export default function App() {
             >
               <Network className="w-3.5 h-3.5" />
               <span>AIつながりマップ・パズル</span>
-            </button>
-
-            {/* 動詞の活用表ボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "verb_forms" ? "dashboard" : "verb_forms")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "verb_forms"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
-                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
-              }`}
-              id="nav_verb_forms_toggle_btn"
-            >
-              <Repeat className="w-3.5 h-3.5" />
-              <span>動詞の活用表</span>
-            </button>
-
-            {/* 文法ガイドボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "grammar" ? "dashboard" : "grammar")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "grammar"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
-                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
-              }`}
-              id="nav_grammar_toggle_btn"
-              title="中学から大学レベルまでの文法を、例文と練習問題つきで確認できます"
-            >
-              <BookMarked className="w-3.5 h-3.5" />
-              <span>文法ガイド</span>
             </button>
 
             {/* 今日の復習(SRS)ボタン */}
@@ -759,6 +716,8 @@ export default function App() {
             onOpenDictionary={() => navigate("dictionary")}
             onStartReading={() => navigate("reading")}
             onOpenDiary={() => navigate("diary")}
+            onOpenVerbForms={() => navigate("verb_forms")}
+            onOpenGrammar={() => navigate("grammar")}
             ranking={ranking}
             setRanking={setRanking}
             dailyLog={dailyLog}
@@ -1011,7 +970,9 @@ export default function App() {
       <footer className="bg-white dark:bg-slate-900 border-t border-gray-150 dark:border-slate-800 py-6 px-4 transition-colors duration-300" id="global_footer">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 dark:text-slate-500 gap-4 font-semibold font-sans">
           <p>© 2026 英単語 Quest. Built with Google AI Studio &amp; Claude.</p>
-          <div className="flex items-center gap-4">
+          {/* 狭い画面では折り返す。タップ領域を広げたときに whitespace-nowrap を
+              付けたため、360〜390px で横にはみ出していた */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <a 
               href="#" 
               onClick={(e) => { e.preventDefault(); alert("英単語 Quest (English Vocabulary Studio)\n\n中学生〜社会人までのレベルに最適化された英単語学習スタジオ。Gemini AIを搭載し、あなたが入力した新しい単語を完全に分析してクイズとして出題。楽しい仮想ランキング機能、デイリーログインボーナスなどのモチベーション維持機能、苦手単語の自動バックアップ・復習テスト機能を完備した全包囲型の学習プラットフォームです。"); }}
