@@ -107,6 +107,74 @@ describe("AIキーが無いときの振る舞い", () => {
   });
 });
 
+describe("学習アドバイス", () => {
+  /** 各レベルの習得率を並べてリクエストボディを作る */
+  const body = (rates: number[], wrongWordsCount = 0) => ({
+    juniorStats: { correct: Math.round(1062 * rates[0] / 100), total: 1062, rate: rates[0] },
+    seniorStats: { correct: Math.round(1189 * rates[1] / 100), total: 1189, rate: rates[1] },
+    senior2Stats: { correct: Math.round(1425 * rates[2] / 100), total: 1425, rate: rates[2] },
+    senior3Stats: { correct: Math.round(1620 * rates[3] / 100), total: 1620, rate: rates[3] },
+    advancedStats: { correct: Math.round(2434 * rates[4] / 100), total: 2434, rate: rates[4] },
+    wrongWordsCount
+  });
+
+  it("AIキーが無くても 200 を返す（学習が止まらないように）", async () => {
+    const res = await request(app).post("/api/gemini/advice").send(body([0, 0, 0, 0, 0]));
+    expect(res.status).toBe(200);
+    expect(typeof res.body.advice).toBe("string");
+  });
+
+  it("習得状況が違えば文面も違う", async () => {
+    // 以前は苦手単語の個数以外まったく同じ固定文を返していた
+    const profiles = [
+      body([0, 0, 0, 0, 0]),
+      body([94, 76, 70, 12, 0], 40),
+      body([99, 97, 95, 93, 90])
+    ];
+    const texts: string[] = [];
+    for (const p of profiles) {
+      const res = await request(app).post("/api/gemini/advice").send(p);
+      texts.push(res.body.advice);
+    }
+    expect(new Set(texts).size).toBe(3);
+  });
+
+  it("押すたびに毎回組み立て直す（同じ状況なら同じ内容）", async () => {
+    const p = body([50, 10, 0, 0, 0], 8);
+    const a = await request(app).post("/api/gemini/advice").send(p);
+    const b = await request(app).post("/api/gemini/advice").send(p);
+    expect(a.body.advice).toBe(b.body.advice);
+  });
+
+  it("どこで作った文章かを伝える", async () => {
+    // 手元で組み立てたものをAIの分析と偽らないため
+    const res = await request(app).post("/api/gemini/advice").send(body([0, 0, 0, 0, 0]));
+    expect(res.body.source).toBe("local");
+    expect(res.body.advice).toContain("AIではなくアプリが");
+  });
+
+  it("初学者に「習得度が高い」と言わない", async () => {
+    const res = await request(app).post("/api/gemini/advice").send(body([0, 0, 0, 0, 0]));
+    expect(res.body.advice).toContain("まだ習得済みの単語がありません");
+    expect(res.body.advice).not.toContain("習得度高め");
+  });
+
+  it("範囲外の割合をそのまま文面に出さない", async () => {
+    // rate に 9999 を送り込んで「習得度9999%」と書かせない
+    const res = await request(app)
+      .post("/api/gemini/advice")
+      .send({ juniorStats: { correct: 10, total: 100, rate: 9999 }, wrongWordsCount: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body.advice).not.toContain("9999");
+  });
+
+  it("ボディが空でも落ちない", async () => {
+    const res = await request(app).post("/api/gemini/advice").send({});
+    expect(res.status).toBe(200);
+    expect(typeof res.body.advice).toBe("string");
+  });
+});
+
 describe("ボディサイズの上限", () => {
   it("通常のエンドポイントは大きすぎるボディを弾く", async () => {
     // 以前は全ルート一律50MBで、巨大JSONの連投でメモリを枯渇させられた
