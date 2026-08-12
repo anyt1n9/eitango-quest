@@ -661,6 +661,9 @@ export default function Dashboard({
   };
   
   const [advice, setAdvice] = useState<string>("");
+  // AIが書いたのか、アプリが学習記録から組み立てたのか。
+  // 出どころを伏せると、固定文をAIの分析だと誤解させることになる
+  const [adviceSource, setAdviceSource] = useState<"ai" | "local" | null>(null);
   const [isFetchingAdvice, setIsFetchingAdvice] = useState(false);
   const [adviceError, setAdviceError] = useState("");
 
@@ -832,9 +835,14 @@ export default function Dashboard({
         throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
       }
       setAdvice(data.advice);
+      setAdviceSource(data.source === "ai" ? "ai" : "local");
       playAudio("bonus");
     } catch (err: any) {
       console.error(err);
+      // 再分析に失敗したときに前回の結果を残すと、更新されていない古い文章に
+      // 「Gemini AI が生成しました」の札が付いたまま見えてしまう
+      setAdvice("");
+      setAdviceSource(null);
       setAdviceError(err.message || "AIアドバイスの作成に失敗しました。");
     } finally {
       setIsFetchingAdvice(false);
@@ -1803,7 +1811,8 @@ export default function Dashboard({
           </div>
           <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">AIパーソナル学習アドバイザリー</h2>
           <p className="text-sm text-gray-500 mt-1 max-w-xl">
-            あなたの回答履歴（現在のレベル別習熟度、間違えた単語の数など）をGemini AIが綿密に多角分析し、効率的な英単語学習プランや個別メッセージを提案します。
+            あなたの回答履歴（レベル別の習得率、まだ手を付けていないレベル、間違えた単語の数）を分析して、
+            次に取り組むレベルと具体的な進め方を示します。押すたびに最新の記録で分析し直します。
           </p>
 
           <div className="mt-6 border-t border-gray-100 pt-6">
@@ -1812,6 +1821,13 @@ export default function Dashboard({
                 <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-5 text-gray-800 text-sm leading-relaxed max-w-none">
                   <SimpleMarkdown text={advice} />
                 </div>
+                {adviceSource && (
+                  <p className="text-[11px] font-bold text-gray-400" id="advice_source">
+                    {adviceSource === "ai"
+                      ? "Gemini AI が生成しました。"
+                      : "AIキーが未設定のため、アプリが学習記録から組み立てました。"}
+                  </p>
+                )}
                 <div className="flex gap-2 justify-end">
                   <button
                     onClick={handleFetchAdvice}

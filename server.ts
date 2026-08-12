@@ -8,6 +8,7 @@ import {
   MAX_WORD_LEN, MAX_MEANING_LEN, isValidShortText, escapeHtml, safeSvgIdSegment,
   createRateLimiter, createBudget
 } from "./server/guards";
+import { AdviceInput, LevelStat, buildLocalAdvice, buildAnalysisForPrompt } from "./server/advice";
 
 dotenv.config();
 
@@ -578,66 +579,66 @@ app.post("/api/gemini/advice", async (req, res) => {
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(0, Math.min(Math.round(n), 1_000_000)) : 0;
   };
-  const toSafeStats = (s: any) => ({
-    correct: toSafeCount(s?.correct),
-    total: toSafeCount(s?.total),
-    rate: toSafeCount(s?.rate)
-  });
-  const juniorStats = toSafeStats(req.body?.juniorStats);
-  const seniorStats = toSafeStats(req.body?.seniorStats);
-  const senior2Stats = toSafeStats(req.body?.senior2Stats);
-  const senior3Stats = toSafeStats(req.body?.senior3Stats);
-  const advancedStats = toSafeStats(req.body?.advancedStats);
-  const wrongWordsCount = toSafeCount(req.body?.wrongWordsCount);
+  // 割合は0〜100に収める。範囲外の値をそのまま流すと
+  // 「習得度9999%」のような分析をAIに書かせてしまう
+  const toSafeRate = (v: unknown): number => Math.min(100, toSafeCount(v));
+  // 習得数は収録数を超えられない。独立に丸めるだけでは
+  // correct=5000000 / total=1 のような値が通り、「全体の500000000%」と書いてしまう
+  const toLevel = (label: string, s: any): LevelStat => {
+    const total = toSafeCount(s?.total);
+    return { label, total, correct: Math.min(toSafeCount(s?.correct), total), rate: toSafeRate(s?.rate) };
+  };
+
+  // 学習順に並べる。分析側は「最初に未達のレベル」を次の目標とするので順序が意味を持つ
+  const adviceInput: AdviceInput = {
+    levels: [
+      toLevel("中学生", req.body?.juniorStats),
+      toLevel("高校1年生", req.body?.seniorStats),
+      toLevel("高校2年生", req.body?.senior2Stats),
+      toLevel("高校3年生", req.body?.senior3Stats),
+      toLevel("大学生・社会人", req.body?.advancedStats)
+    ],
+    wrongWordsCount: toSafeCount(req.body?.wrongWordsCount)
+  };
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    const defaultAdvice = `### 🎉 AI学習アドバイスへようこそ！
-
-現在、**中学生レベル**は習得度高めですが、**高校レベル以上**の難単語に挑戦すると語彙力アップの伸びしろが大きく広がります。
-
-**💡 今後のおすすめ勉強法:**
-- 新規の単語クイズを毎日10〜20問続け、知っている単語を増やしましょう。
-- 「間違えた単語の復習」タブに現在 **${wrongWordsCount || 0} 個** 溜まっています。ここを空っぽにすることを最初の目標にして繰り返してください。
-- 覚えた単語が200語を超えると、**「AI英語日記モード」**が自動開放されます！学んだ単語を日常エッセイで使い切る快感をぜひ体験してください。`;
-    return res.json({ advice: defaultAdvice });
+    // AIは呼べないが、手元の数値からは十分に具体的な助言が作れる。
+    // 固定文を返すと、習得を終えた学習者にも初学者と同じ文面が出てしまう
+    return res.json({ advice: buildLocalAdvice(adviceInput), source: "local" });
   }
 
   try {
     const client = getGeminiClient();
-    const prompt = `進捗スタッツ:
-- 中学生レベル: 正解数 ${juniorStats.correct}/${juniorStats.total} (${juniorStats.rate}%)
-- 高校1年生レベル: 正解数 ${seniorStats.correct}/${seniorStats.total} (${seniorStats.rate}%)
-- 高校2年生レベル: 正解数 ${senior2Stats.correct}/${senior2Stats.total} (${senior2Stats.rate}%)
-- 高校3年生レベル: 正解数 ${senior3Stats.correct}/${senior3Stats.total} (${senior3Stats.rate}%)
-- 大学生・社会人レベル: 正解数 ${advancedStats.correct}/${advancedStats.total} (${advancedStats.rate}%)
-- 現在登録されている、間違えた単語(復習が必要な単語)の数: ${wrongWordsCount}個
+    // 数値だけを渡すと一般論が返ってくるので、読み取れることまでこちらで書いて渡す
+    const prompt = `学習者の進捗分析:
+${buildAnalysisForPrompt(adviceInput)}
+
+レベル別の内訳:
+${adviceInput.levels.map(l => `- ${l.label}レベル: 習得 ${l.correct}/${l.total}語 (${l.rate}%)`).join("\n")}
 
 アドバイスの仕様:
-- 挨拶と、現在の進捗に対する温かいフィードバック。
-- 得意そうなレベルと、改善のための具体的な英単語学習テクニック。
-- 学びを楽しく継続するための応援メッセージ。
+- 上の分析に書かれている事実だけを根拠にすること。書かれていないことを推測で断定しない。
+- 「いま取り組むべきレベル」を必ず名前で挙げ、具体的な次の一手を示すこと。
+- 苦手単語の数に触れ、その量に見合った扱い方を勧めること。
 - 親しみやすい、インテリジェントな英語学習マスターのトーン(先生風)で回答して。
-- 150〜200文字程度で、Markdown形式に整形してください。`;
+- 200〜300文字程度で、Markdown形式に整形してください。`;
 
     const response = await client.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt,
     });
 
-    res.json({ advice: response.text || "アドバイスの生成に失敗しました。" });
+    const text = response.text;
+    if (!text || !text.trim()) {
+      // 空の応答をそのまま出すと画面が白くなるので、手元の分析に切り替える
+      return res.json({ advice: buildLocalAdvice(adviceInput), source: "local" });
+    }
+    res.json({ advice: text, source: "ai" });
   } catch (error: any) {
     console.error("Gemini Advice Error: ", error);
-    console.warn("AIアドバイスの生成に失敗したため、ローカルフォールバックデータを使用します。");
-    const defaultAdvice = `### 🎉 AI学習アドバイスへようこそ！ (ローカルAI)
-    
-現在、**中学生レベル**は習得度高めですが、**高校レベル以上**の難単語に挑戦すると語彙力アップの伸びしろが大きく広がります。
-
-**💡 今後のおすすめ勉強法:**
-- 新規 of 単語クイズを毎日10〜20問続け、知っている単語を増やしましょう。
-- 「間違えた単語の復習」タブに現在 **${wrongWordsCount || 0} 個** 溜まっています。ここを空っぽにすることを最初の目標にして繰り返してください。
-- 覚えた単語が200語を超えると、**「AI英語日記モード」**が自動開放されます！学んだ単語を日常エッセイで使い切る快感をぜひ体験してください。 (APIクォータ制限のため一時的なローカル補助を表示しています)`;
-    return res.json({ advice: defaultAdvice, isFallback: true });
+    console.warn("AIアドバイスの生成に失敗したため、手元の分析に切り替えます。");
+    return res.json({ advice: buildLocalAdvice(adviceInput), source: "local" });
   }
 });
 
