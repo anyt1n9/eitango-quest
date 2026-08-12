@@ -93,6 +93,13 @@ describe("習得状況の読み取り", () => {
     expect(analyzeProgress(NEARLY_DONE).diaryRemaining).toBe(0);
   });
 
+  it("割合が100%を超えない入力なら、全体の割合も100%を超えない", () => {
+    // 入り口（server.ts の toLevel）で correct <= total を保証しているので、
+    // 分析側に不合理な割合が渡ることはない
+    const a = analyzeProgress(input([100, 100, 100, 100, 100]));
+    expect(a.overallRate).toBe(100);
+  });
+
   it("レベルが空でも落ちない", () => {
     const a = analyzeProgress({ levels: [], wrongWordsCount: 0 });
     expect(a.masteredTotal).toBe(0);

@@ -168,6 +168,17 @@ describe("学習アドバイス", () => {
     expect(res.body.advice).not.toContain("9999");
   });
 
+  it("習得数が収録数を超えていても不合理な割合を書かない", async () => {
+    // correct=5000000 / total=1 を送ると「全体の500000000%」と書いていた。
+    // 直そうとしている「事実に基づかない断定」を別の形で作ってしまう
+    const res = await request(app)
+      .post("/api/gemini/advice")
+      .send({ juniorStats: { correct: 5_000_000, total: 1, rate: 100 }, wrongWordsCount: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body.advice).not.toMatch(/全体の\d{4,}%/);
+    expect(res.body.advice).not.toContain("5000000語");
+  });
+
   it("ボディが空でも落ちない", async () => {
     const res = await request(app).post("/api/gemini/advice").send({});
     expect(res.status).toBe(200);

@@ -582,12 +582,12 @@ app.post("/api/gemini/advice", async (req, res) => {
   // 割合は0〜100に収める。範囲外の値をそのまま流すと
   // 「習得度9999%」のような分析をAIに書かせてしまう
   const toSafeRate = (v: unknown): number => Math.min(100, toSafeCount(v));
-  const toLevel = (label: string, s: any): LevelStat => ({
-    label,
-    correct: toSafeCount(s?.correct),
-    total: toSafeCount(s?.total),
-    rate: toSafeRate(s?.rate)
-  });
+  // 習得数は収録数を超えられない。独立に丸めるだけでは
+  // correct=5000000 / total=1 のような値が通り、「全体の500000000%」と書いてしまう
+  const toLevel = (label: string, s: any): LevelStat => {
+    const total = toSafeCount(s?.total);
+    return { label, total, correct: Math.min(toSafeCount(s?.correct), total), rate: toSafeRate(s?.rate) };
+  };
 
   // 学習順に並べる。分析側は「最初に未達のレベル」を次の目標とするので順序が意味を持つ
   const adviceInput: AdviceInput = {

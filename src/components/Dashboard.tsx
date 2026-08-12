@@ -839,6 +839,10 @@ export default function Dashboard({
       playAudio("bonus");
     } catch (err: any) {
       console.error(err);
+      // 再分析に失敗したときに前回の結果を残すと、更新されていない古い文章に
+      // 「Gemini AI が生成しました」の札が付いたまま見えてしまう
+      setAdvice("");
+      setAdviceSource(null);
       setAdviceError(err.message || "AIアドバイスの作成に失敗しました。");
     } finally {
       setIsFetchingAdvice(false);
