@@ -75,7 +75,7 @@ test("文法ガイドを開いて練習問題を解ける", async ({ page }) => 
 test("長文を読み、音読と文法の解説へ辿れる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.getByText("長文読破 Quest").first().click();
+  await page.locator("#dashboard_open_reading_btn").click();
 
   await page.getByText("The Secret of the Old Library").first().click();
   await expect(page.locator("#passage_text_container")).toBeVisible();
@@ -93,7 +93,7 @@ test("長文を読み、音読と文法の解説へ辿れる", async ({ page }) 
 test("長文の重要語を苦手単語に入れられる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.getByText("長文読破 Quest").first().click();
+  await page.locator("#dashboard_open_reading_btn").click();
   await page.getByText("The Secret of the Old Library").first().click();
 
   // 右の重要語リストから1語選ぶ
@@ -178,7 +178,7 @@ test("リンクから文法項目を直接開ける", async ({ page }) => {
 test("読んでいた長文は再読み込みしても開いたまま", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.getByText("長文読破 Quest").first().click();
+  await page.locator("#dashboard_open_reading_btn").click();
   await page.getByText("The Secret of the Old Library").first().click();
   await expect(page).toHaveURL(/\/reading\/p1$/);
 

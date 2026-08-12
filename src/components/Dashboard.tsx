@@ -151,6 +151,7 @@ interface DashboardProps {
   onStartReview: () => void;
   onOpenDictionary: () => void;
   onStartReading: () => void;
+  onOpenDiary: () => void;
   ranking: RankingUser[];
   setRanking: React.Dispatch<React.SetStateAction<RankingUser[]>>;
   dailyLog: Record<string, { count: number; correct: number }>;
@@ -171,6 +172,7 @@ export default function Dashboard({
   onStartReview,
   onOpenDictionary,
   onStartReading,
+  onOpenDiary,
   ranking,
   setRanking,
   dailyLog,
@@ -994,12 +996,7 @@ export default function Dashboard({
               </div>
             </div>
             <button
-              onClick={() => {
-                const navBtn = document.getElementById("nav_diary_toggle_btn");
-                if (navBtn) {
-                  navBtn.click();
-                }
-              }}
+              onClick={onOpenDiary}
               className="bg-white dark:bg-slate-100 hover:bg-gray-100 text-slate-950 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
               id="dashboard_open_diary_btn"
             >

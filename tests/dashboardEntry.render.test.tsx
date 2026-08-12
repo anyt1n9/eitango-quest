@@ -35,6 +35,7 @@ function renderDashboard() {
       onStartReview={vi.fn()}
       onOpenDictionary={vi.fn()}
       onStartReading={vi.fn()}
+      onOpenDiary={vi.fn()}
       ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
       setRanking={vi.fn()}
       dailyLog={{}}
@@ -157,5 +158,50 @@ describe("画面の詰まりを減らす", () => {
     const spy = vi.spyOn(card, "scrollIntoView");
     await user.click(document.getElementById("btn_jump_advanced")!);
     expect(spy).toHaveBeenCalled();
+  });
+});
+
+describe("長文・AI日記への入口", () => {
+  /**
+   * この2つは上部のナビからは外した（ダッシュボードに大きな案内カードがあり、
+   * 入口が二重になっていたため）。カード側のボタンが唯一の入口になるので、
+   * ここが動かなくなると画面へ行けなくなる。
+   *
+   * AI日記のボタンは以前、消したナビのボタンを
+   * `document.getElementById(...).click()` で押していた。
+   * ナビを消した時点で行き先を失うので、呼び出しで繋ぎ直してある。
+   */
+  it("長文はカードのボタンから開ける", async () => {
+    const user = userEvent.setup();
+    const onStartReading = vi.fn();
+    render(
+      <Dashboard
+        stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
+        solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
+        onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={onStartReading}
+        onOpenDiary={vi.fn()}
+        ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
+        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
+      />
+    );
+    await user.click(document.getElementById("dashboard_open_reading_btn")!);
+    expect(onStartReading).toHaveBeenCalledTimes(1);
+  });
+
+  it("AI日記はカードのボタンから開ける", async () => {
+    const user = userEvent.setup();
+    const onOpenDiary = vi.fn();
+    render(
+      <Dashboard
+        stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
+        solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
+        onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={vi.fn()}
+        onOpenDiary={onOpenDiary}
+        ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
+        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
+      />
+    );
+    await user.click(document.getElementById("dashboard_open_diary_btn")!);
+    expect(onOpenDiary).toHaveBeenCalledTimes(1);
   });
 });

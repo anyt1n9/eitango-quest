@@ -586,20 +586,6 @@ export default function App() {
             {/* クイズなど集中画面では機能ボタン群を隠す */}
             {!isFocusScreen && (
             <>
-            {/* 長文読破 Quest ボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "reading" ? "dashboard" : "reading")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "reading"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
-                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-705"
-              }`}
-              id="nav_reading_toggle_btn"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>長文読破 Quest</span>
-            </button>
-
             {/* 単語一覧辞書ボタン */}
             <button
               onClick={() => navigate(currentScreen === "dictionary" ? "dashboard" : "dictionary")}
@@ -626,23 +612,6 @@ export default function App() {
             >
               <Network className="w-3.5 h-3.5" />
               <span>AIつながりマップ・パズル</span>
-            </button>
-
-            {/* AI英語日記ボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "diary" ? "dashboard" : "diary")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "diary"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100"
-                  : "bg-gradient-to-r from-amber-50 to-amber-100 dark:from-slate-800 dark:to-slate-850 text-amber-950 dark:text-amber-300 hover:opacity-90 border-amber-200/55 dark:border-slate-700"
-              }`}
-              id="nav_diary_toggle_btn"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-300/30 animate-pulse" />
-              <span className="flex items-center gap-1">
-                <span>AI英語日記</span>
-                <span className="bg-amber-500 text-slate-900 text-[8px] px-1 rounded font-black tracking-tight scale-90">VIP</span>
-              </span>
             </button>
 
             {/* 動詞の活用表ボタン */}
@@ -789,6 +758,7 @@ export default function App() {
             onStartReview={() => navigate("review")}
             onOpenDictionary={() => navigate("dictionary")}
             onStartReading={() => navigate("reading")}
+            onOpenDiary={() => navigate("diary")}
             ranking={ranking}
             setRanking={setRanking}
             dailyLog={dailyLog}
