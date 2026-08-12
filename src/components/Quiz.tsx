@@ -7,6 +7,7 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
+import { canUseSpeech, onVoicesChanged } from "../speech";
 import { DominantSenseHint } from "./WordSenses";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
@@ -99,6 +100,11 @@ export default function Quiz({
   const [score, setScore] = useState(0);
   const [details, setDetails] = useState<{ word: Word; userChoice: string; isCorrect: boolean }[]>([]);
   const [isFinished, setIsFinished] = useState(false);
+
+  // 読み上げが使えるか。使えない端末ではリスニングでも綴りを見せる
+  // （綴りを隠したままだと手がかりが無く、当てずっぽうにしかならない）
+  const [speechOk, setSpeechOk] = useState(canUseSpeech);
+  useEffect(() => onVoicesChanged(() => setSpeechOk(canUseSpeech())), []);
 
   // タイマーとスキップ管理用
   const timerRef = React.useRef<any>(null);
@@ -436,20 +442,33 @@ export default function Quiz({
                 {currentQuestion.translation}
               </h2>
             ) : listeningMode && selectedOption === null ? (
-              /* リスニングモード中は綴りを隠し、大きな再生ボタンだけを見せる */
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
-                  className="w-24 h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all cursor-pointer active:scale-90 flex items-center justify-center shadow-lg shadow-indigo-200"
-                  title="もう一度発音を聴く"
-                  id="listening_replay_btn"
-                >
-                  <Volume2 className="w-10 h-10" />
-                </button>
-                <p className="text-xs text-gray-400 font-semibold">
-                  タップでもう一度再生できます
-                </p>
-              </div>
+              /* リスニングモード中は綴りを隠し、大きな再生ボタンだけを見せる。
+                 ただし読み上げが使えない端末で綴りまで隠すと、手がかりが
+                 何も無い四択になって答えようがなくなるので、そのときは綴りを出す */
+              speechOk ? (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
+                    className="w-24 h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all cursor-pointer active:scale-90 flex items-center justify-center shadow-lg shadow-indigo-200"
+                    title="もう一度発音を聴く"
+                    id="listening_replay_btn"
+                  >
+                    <Volume2 className="w-10 h-10" />
+                  </button>
+                  <p className="text-xs text-gray-400 font-semibold">
+                    タップでもう一度再生できます
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2" id="listening_no_speech">
+                  <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-slate-100">
+                    {currentQuestion.word}
+                  </h2>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-bold">
+                    この端末では英語の音声を再生できないため、綴りを表示しています
+                  </p>
+                </div>
+              )
             ) : (
               <>
                 {reverseMode && (

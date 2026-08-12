@@ -1,20 +1,30 @@
-import React, { useState, useEffect } from "react";
-import { Level, UserStats, RankingUser } from "../types";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Level, UserStats, RankingUser, Word } from "../types";
 import { passages, Passage, PassageQuestion } from "../data/passages";
 import { shuffleQuestion } from "../readingQuiz";
 import { readStoredArray, writeStored } from "../storage";
 import { sanitizePassage, sanitizePassages } from "../passageValidation";
 import { loadGrammar } from "../grammar";
-import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X } from "lucide-react";
+import { canUseSpeech, onVoicesChanged, speak, stopSpeaking } from "../speech";
+import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
 
 interface ReadingProps {
   stats: UserStats;
   setStats: React.Dispatch<React.SetStateAction<UserStats>>;
   onBackToDashboard: () => void;
   updateRankingScore: (points: number) => void;
+  /** 本文の重要語を苦手単語に入れるために、収録語と突き合わせる */
+  vocabulary: Word[];
+  wrongWords: string[];
+  setWrongWords: React.Dispatch<React.SetStateAction<string[]>>;
+  /** 文法ガイドの該当項目を開く */
+  onOpenGrammar?: (topicId: string) => void;
 }
 
-export default function Reading({ stats, setStats, onBackToDashboard, updateRankingScore }: ReadingProps) {
+export default function Reading({
+  stats, setStats, onBackToDashboard, updateRankingScore,
+  vocabulary, wrongWords, setWrongWords, onOpenGrammar
+}: ReadingProps) {
   // 文法の題名だけを引く。解説の本体は重いので、必要な題名だけを取り出して捨てる
   const [grammarTitles, setGrammarTitles] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -60,6 +70,82 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
   const [shuffledQuestions, setShuffledQuestions] = useState<PassageQuestion[]>([]);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
 
+  // 設問を間違えた長文。単語の苦手リストにあたるもので、
+  // これが無いと「読んで間違えた長文」を後から見つけられない
+  const [wrongPassages, setWrongPassages] = useState<string[]>(() =>
+    readStoredArray<string>("quest_reading_wrong")
+  );
+
+  useEffect(() => {
+    writeStored("quest_reading_wrong", wrongPassages);
+  }, [wrongPassages]);
+
+  // 綴り → 収録語のID。本文の重要語を苦手単語に入れるために使う
+  const wordIdByText = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const w of vocabulary) {
+      const key = String(w.word || "").trim().toLowerCase();
+      if (key && !map.has(key)) map.set(key, w.id);
+    }
+    return map;
+  }, [vocabulary]);
+
+  /** 本文中の語を苦手単語に入れる。収録されていない語は入れられない */
+  const addWrongWord = (text: string) => {
+    const id = wordIdByText.get(String(text || "").trim().toLowerCase());
+    if (!id) return;
+    setWrongWords(prev => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  /** その語が既に苦手単語に入っているか。収録外なら null */
+  const wrongWordState = (text: string): "in" | "out" | null => {
+    const id = wordIdByText.get(String(text || "").trim().toLowerCase());
+    if (!id) return null;
+    return wrongWords.includes(id) ? "in" : "out";
+  };
+
+  // —— 音読 ——
+  // 単語やクイズには読み上げがあるのに、まとまった英文を耳で追える場所が
+  // ここしか無いのに音が出せなかった。段落ごとに読み上げ、続けて次の段落へ進む。
+  const [readingIdx, setReadingIdx] = useState<number | null>(null);
+  const keepReadingRef = useRef(false);
+  const [speechOk, setSpeechOk] = useState(canUseSpeech);
+  useEffect(() => onVoicesChanged(() => setSpeechOk(canUseSpeech())), []);
+
+  const stopReading = () => {
+    keepReadingRef.current = false;
+    setReadingIdx(null);
+    stopSpeaking();
+  };
+
+  /** idx 段落から読み上げる。continuous なら読み終わり次第、次の段落へ進む */
+  const speakFrom = (idx: number, continuous: boolean) => {
+    const paragraphs = selectedPassage?.englishParagraphs ?? [];
+    if (idx < 0 || idx >= paragraphs.length) {
+      stopReading();
+      return;
+    }
+    keepReadingRef.current = continuous;
+    setReadingIdx(idx);
+    const started = speak(paragraphs[idx], {
+      onEnd: () => {
+        // 停止ボタンを押したときも onEnd が来るので、続きを読むかは旗で決める
+        if (keepReadingRef.current) speakFrom(idx + 1, true);
+        else setReadingIdx(null);
+      }
+    });
+    // 読み上げられなかったときに「読み上げ中」の表示が残らないようにする
+    if (!started) stopReading();
+  };
+
+  // 別の長文へ移ったときと、画面を離れるときは読み上げを止める
+  useEffect(() => {
+    return () => {
+      keepReadingRef.current = false;
+      stopSpeaking();
+    };
+  }, [selectedPassage]);
+
   // 長文を開いたとき、設問の選択肢をシャッフルして回答状態をリセットする
   useEffect(() => {
     if (selectedPassage?.questions && selectedPassage.questions.length > 0) {
@@ -68,6 +154,7 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
       setShuffledQuestions([]);
     }
     setQuizAnswers({});
+    setReadingIdx(null);
   }, [selectedPassage]);
 
   // AIによる長文の新規生成
@@ -277,6 +364,31 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
               {showJapanese ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               <span>日本語訳: {showJapanese ? "非表示にする (暗記確認)" : "表示する"}</span>
             </button>
+
+            {/* 音読。単語には読み上げがあるのに、まとまった英文を耳で追う場所が無かった */}
+            {speechOk && (
+              <div data-testid="passage_audio">
+                {readingIdx === null ? (
+                  <button
+                    onClick={() => speakFrom(0, true)}
+                    id="btn_passage_read_all"
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border cursor-pointer select-none transition bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>音読する（最初から）</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopReading}
+                    id="btn_passage_stop_reading"
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border cursor-pointer select-none transition bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100"
+                  >
+                    <Square className="w-4 h-4" />
+                    <span>読み上げを止める（{readingIdx + 1}段落目）</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <span className="text-[11px] text-gray-400 font-semibold">
             重要単語数: <span className="text-gray-700 font-bold font-mono">{selectedPassage.vocabularyHighlight.length}語</span>
@@ -289,14 +401,29 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
           <div className="mt-4 flex items-center gap-2 flex-wrap" data-testid="passage_grammar">
             <span className="text-[11px] font-black text-gray-500">この長文に出てくる文法:</span>
             {selectedPassage.grammarFocus.map(id => (
-              <span
-                key={id}
-                className="text-[11px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5"
-              >
-                {grammarTitles[id] || id}
-              </span>
+              onOpenGrammar ? (
+                // 読んでいて詰まった文法をその場で開けるようにする。
+                // 題名を並べるだけでは、探しに行くのは学習者任せだった
+                <button
+                  key={id}
+                  onClick={() => onOpenGrammar(id)}
+                  id={`btn_passage_grammar_${id}`}
+                  className="text-[11px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 hover:bg-indigo-100 cursor-pointer transition"
+                >
+                  {grammarTitles[id] || id}
+                </button>
+              ) : (
+                <span
+                  key={id}
+                  className="text-[11px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5"
+                >
+                  {grammarTitles[id] || id}
+                </span>
+              )
             ))}
-            <span className="text-[11px] text-gray-400 font-semibold">（文法ガイドで確認できます）</span>
+            <span className="text-[11px] text-gray-400 font-semibold">
+              {onOpenGrammar ? "（押すと文法ガイドの解説が開きます）" : "（文法ガイドで確認できます）"}
+            </span>
           </div>
         )}
 
@@ -307,12 +434,36 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
           <div className="lg:col-span-2 space-y-8" id="passage_text_container">
             {selectedPassage.englishParagraphs.map((eng, idx) => {
               const jap = selectedPassage.japaneseParagraphs[idx];
+              const isReading = readingIdx === idx;
               return (
-                <div key={idx} className="space-y-3.5 border-l-4 border-slate-100 pl-4 py-1">
+                <div
+                  key={idx}
+                  data-testid={`passage_paragraph_${idx}`}
+                  className={`space-y-3.5 border-l-4 pl-4 py-1 transition-colors ${
+                    isReading ? "border-indigo-400 bg-indigo-50/40 rounded-r-xl" : "border-slate-100"
+                  }`}
+                >
                   {/* 英語本文 */}
                   <p className="text-gray-800 text-base sm:text-lg leading-relaxed font-sans font-medium tracking-wide">
                     {renderEnglishWithHighlights(eng, selectedPassage.vocabularyHighlight, selectedPassage.level)}
                   </p>
+
+                  {/* 段落だけを聞き直す。長い長文では全文の再生を待てないため */}
+                  {speechOk && (
+                    <button
+                      onClick={() => (isReading ? stopReading() : speakFrom(idx, false))}
+                      id={`btn_passage_read_${idx}`}
+                      aria-label={isReading ? `${idx + 1}段落目の読み上げを止める` : `${idx + 1}段落目を読み上げる`}
+                      className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition ${
+                        isReading
+                          ? "bg-indigo-600 border-indigo-600 text-white"
+                          : "bg-white border-gray-200 text-gray-500 hover:bg-gray-100"
+                      }`}
+                    >
+                      {isReading ? <Square className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                      <span>{isReading ? "停止" : "この段落を聞く"}</span>
+                    </button>
+                  )}
 
                   {/* 日本語翻訳 (表示トグル対象) */}
                   {showJapanese && (
@@ -355,10 +506,40 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
               </div>
 
               {selectedWordObj && (
-                <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl animate-fade-in">
+                <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl animate-fade-in" data-testid="reading_selected_word">
                   <span className="text-[10px] text-indigo-500 font-semibold block uppercase">選択中の単語</span>
                   <p className="text-sm font-black text-indigo-950 font-mono">{selectedWordObj.word}</p>
                   <p className="text-xs font-semibold text-indigo-800 mt-1">{selectedWordObj.translation}</p>
+
+                  {/* 読んでいて意味を確かめた語は、そのまま単語の復習に回せるようにする。
+                      長文で出会った語が復習の輪に入らないままだった */}
+                  {(() => {
+                    const state = wrongWordState(selectedWordObj.word);
+                    if (state === null) {
+                      return (
+                        <p className="text-[10px] text-gray-400 font-semibold mt-2">
+                          この語は単語データに収録されていないため、復習には追加できません。
+                        </p>
+                      );
+                    }
+                    if (state === "in") {
+                      return (
+                        <p className="text-[11px] font-black text-emerald-700 mt-2 flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          苦手単語に入っています
+                        </p>
+                      );
+                    }
+                    return (
+                      <button
+                        onClick={() => addWrongWord(selectedWordObj.word)}
+                        id="btn_reading_add_wrong"
+                        className="mt-2 w-full bg-white border border-indigo-200 hover:bg-indigo-100 text-indigo-800 text-[11px] font-black rounded-lg py-1.5 cursor-pointer transition"
+                      >
+                        苦手単語に追加して後で復習する
+                      </button>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -445,6 +626,13 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
                             onClick={() => {
                               if (answered) return;
                               setQuizAnswers(prev => ({ ...prev, [qi]: oi }));
+                              if (oi !== q.correctIndex) {
+                                // 間違えた長文を残す。読み直す手がかりが無いと、
+                                // 内容が分からないまま次の長文へ進んでしまう
+                                setWrongPassages(prev =>
+                                  prev.includes(selectedPassage.id) ? prev : [...prev, selectedPassage.id]
+                                );
+                              }
                             }}
                             disabled={answered}
                             className={`border rounded-xl p-3.5 text-left text-sm font-medium transition flex items-center justify-between gap-2 cursor-pointer ${btnClass}`}
@@ -610,6 +798,14 @@ export default function Reading({ stats, setStats, onBackToDashboard, updateRank
                     {isCustom && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-violet-50 text-violet-700 border-violet-200/60">
                         ✨ AI生成
+                      </span>
+                    )}
+                    {wrongPassages.includes(p.id) && (
+                      <span
+                        className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-rose-50 text-rose-700 border-rose-200/60"
+                        data-testid={`passage_wrong_${p.id}`}
+                      >
+                        設問を間違えた
                       </span>
                     )}
                   </div>

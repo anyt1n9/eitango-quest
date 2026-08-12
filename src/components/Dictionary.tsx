@@ -33,6 +33,8 @@ interface DictionaryProps {
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
   srsData: Record<string, SrsState>;
   onBackToDashboard: () => void;
+  /** 文型の説明にあたる文法項目を開く */
+  onOpenGrammar?: (topicId: string) => void;
 }
 
 type FilterLevel = "all" | Level | "custom" | "weak";
@@ -96,7 +98,8 @@ export default function Dictionary({
   wrongWords,
   solvedHistory,
   srsData,
-  onBackToDashboard
+  onBackToDashboard,
+  onOpenGrammar
 }: DictionaryProps) {
   // AI単語使用頻度の情報キャッシュ
   const [wordFrequencies, setWordFrequencies] = useState<Record<string, any>>({});
@@ -653,7 +656,7 @@ export default function Dictionary({
                             <WordSenses wordId={word.id} ownTranslation={word.translation} ownPos={word.pos} />
 
                             {/* 訳語だけでは英文が組み立てられないので、文型・組んで使う語・語族を補う */}
-                            <WordUsageInfo wordId={word.id} />
+                            <WordUsageInfo wordId={word.id} onOpenGrammar={onOpenGrammar} />
 
                             {/* 例文セクション */}
                             <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-2">

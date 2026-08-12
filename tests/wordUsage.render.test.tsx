@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import WordUsageInfo from "../src/components/WordUsage";
 
 /**
@@ -113,5 +114,38 @@ describe("データが無いとき", () => {
     const { container } = render(<WordUsageInfo wordId="w_none" />);
     await vi.waitFor(() => expect(screen.queryByText("使い方を読み込んでいます…")).toBeNull());
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("文法の解説への導線", () => {
+  /** 文型14(SVOO)・26 を扱う項目が収録データにあることを前提にする */
+  it("その文型を扱う文法項目を出す", async () => {
+    const onOpenGrammar = vi.fn();
+    render(<WordUsageInfo wordId="w_tell" onOpenGrammar={onOpenGrammar} />);
+    const links = await screen.findByTestId("usage_grammar_links");
+    expect(within(links).getAllByRole("button").length).toBeGreaterThan(0);
+  });
+
+  it("押すとその項目を開こうとする", async () => {
+    const user = userEvent.setup();
+    const onOpenGrammar = vi.fn();
+    render(<WordUsageInfo wordId="w_tell" onOpenGrammar={onOpenGrammar} />);
+    const links = await screen.findByTestId("usage_grammar_links");
+    await user.click(within(links).getAllByRole("button")[0]);
+    expect(onOpenGrammar).toHaveBeenCalledTimes(1);
+    expect(String(onOpenGrammar.mock.calls[0][0])).toMatch(/^g_/);
+  });
+
+  it("移動先が無ければ出さない", async () => {
+    // 辞書以外の場所から使うときは導線を出さない（行き先が無いため）
+    render(<WordUsageInfo wordId="w_tell" />);
+    expect(await screen.findByTestId("word_usage")).toBeInTheDocument();
+    expect(screen.queryByTestId("usage_grammar_links")).toBeNull();
+  });
+
+  it("文型を持たない語には出さない", async () => {
+    render(<WordUsageInfo wordId="w_station" onOpenGrammar={vi.fn()} />);
+    expect(await screen.findByTestId("word_usage")).toBeInTheDocument();
+    expect(screen.queryByTestId("usage_grammar_links")).toBeNull();
   });
 });

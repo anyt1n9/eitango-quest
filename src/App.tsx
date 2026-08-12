@@ -258,6 +258,8 @@ export default function App() {
    * null のあいだは形式の選択画面を出す。
    */
   const [reviewFormat, setReviewFormat] = useState<QuizFormat | null>(null);
+  // 長文や辞書から文法ガイドへ移ったとき、開くべき項目
+  const [grammarTopicId, setGrammarTopicId] = useState<string | null>(null);
   /** 苦手単語の復習を「一覧」ではなくクイズとして解いているときの出題対象 */
   const [wrongSessionWords, setWrongSessionWords] = useState<Word[]>([]);
 
@@ -288,7 +290,17 @@ export default function App() {
     setSrsSessionWords([]);
     setWrongSessionWords([]);
     setReviewFormat(null);
+    setGrammarTopicId(null);
     setCurrentScreen("dashboard");
+  };
+
+  /**
+   * 文法ガイドの特定の項目を開く。
+   * 長文で詰まった文法や、辞書で見た文型の説明へ、その場から移れるようにする。
+   */
+  const openGrammarTopic = (topicId: string) => {
+    setGrammarTopicId(topicId);
+    setCurrentScreen("grammar");
   };
 
   // 自分のランキングスコアのバーストアップデート
@@ -806,6 +818,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             srsData={srsData}
             onBackToDashboard={handleBackToDashboard}
+            onOpenGrammar={openGrammarTopic}
           />
         )}
 
@@ -815,6 +828,10 @@ export default function App() {
             setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
+            vocabulary={vocabulary}
+            wrongWords={wrongWords}
+            setWrongWords={setWrongWords}
+            onOpenGrammar={openGrammarTopic}
           />
         )}
 
@@ -831,6 +848,7 @@ export default function App() {
           <Grammar
             vocabulary={vocabulary}
             onBackToDashboard={handleBackToDashboard}
+            initialTopicId={grammarTopicId}
           />
         )}
 

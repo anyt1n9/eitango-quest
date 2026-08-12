@@ -97,6 +97,26 @@ export function verbsForFrames(
 }
 
 /**
+ * その文型を扱っている文法項目を引く（verbsForFrames の逆向き）。
+ *
+ * 文法ガイドから「この形をとる動詞」へは辿れるが、
+ * 辞書で語の文型を見ているときに「その形の説明」へ戻る道が無かった。
+ * 易しい項目から順に返す（同じ形を複数の項目が扱うことがあるため）。
+ */
+export function topicsForFrames(
+  topics: GrammarTopic[],
+  frames: number[] | undefined,
+  limit = 3
+): GrammarTopic[] {
+  if (!frames || frames.length === 0) return [];
+  const wanted = new Set(frames);
+  return topics
+    .filter(t => t.verbFrames?.some(f => wanted.has(f)))
+    .sort((a, b) => LEVEL_ORDER.indexOf(a.level) - LEVEL_ORDER.indexOf(b.level))
+    .slice(0, limit);
+}
+
+/**
  * 練習問題の成績。
  * 「読んだ」ではなく「解けた」を進捗とするため、項目ごとに正解した問題の番号を持つ。
  */

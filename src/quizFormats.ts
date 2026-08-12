@@ -54,19 +54,29 @@ export function canChooseMeaning(word: Word): boolean {
  * 形式に合わない語が混ざると出題できずにセッションが空になる。
  * どの形式で何語出せるかを先に数えておき、画面で選べないようにするために使う。
  */
-export function wordsForFormat(words: Word[], format: QuizFormat): Word[] {
+export interface FormatOptions {
+  /**
+   * 読み上げが使えるか。使えない端末ではリスニングは綴りを隠したまま
+   * 手がかりが何も無い四択になるため、1語も出せないものとして扱う。
+   * 既定は true（判定できない環境で塞いでしまわないように）。
+   */
+  speech?: boolean;
+}
+
+export function wordsForFormat(words: Word[], format: QuizFormat, options: FormatOptions = {}): Word[] {
   switch (format) {
     case "spelling": return words.filter(canSpell);
     case "sentence": return words.filter(canFillSentence);
     case "reverse": return words.filter(canAnswerInEnglish);
-    case "word":
-    case "listening": return words.filter(canChooseMeaning);
+    case "listening":
+      return options.speech === false ? [] : words.filter(canChooseMeaning);
+    case "word": return words.filter(canChooseMeaning);
   }
 }
 
 /** 形式ごとに何語出せるかを数える（選べない形式を画面で無効にするため） */
-export function countByFormat(words: Word[]): Record<QuizFormat, number> {
+export function countByFormat(words: Word[], options: FormatOptions = {}): Record<QuizFormat, number> {
   const out = {} as Record<QuizFormat, number>;
-  for (const f of QUIZ_FORMATS) out[f.key] = wordsForFormat(words, f.key).length;
+  for (const f of QUIZ_FORMATS) out[f.key] = wordsForFormat(words, f.key, options).length;
   return out;
 }
