@@ -5,14 +5,27 @@
 ## 検証コマンド
 
 ```bash
-npm run lint    # tsc --noEmit（型チェック）
-npm test        # vitest run（ロジックと収録データのテスト）
-npm run build   # vite build + server.ts のバンドル
+npm run lint      # tsc --noEmit（型チェック）
+npm test          # vitest run（ロジックと収録データのテスト）
+npm run build     # vite build + server.ts のバンドル
+npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて画面を通しで操作）
 ```
 
-コードを変更したら、コミット前に上記3つを通すこと。
-同じ3つをプルリクエストと main への push で GitHub Actions が実行する
+コードを変更したら、コミット前に上記を通すこと。
+同じものをプルリクエストと main への push で GitHub Actions が実行する
 （`.github/workflows/ci.yml`）。
+
+## 単語データの読み込み
+
+`src/data/vocabulary.ts`（3.1MB）はアプリからは直接 import しない。
+静的に読み込むと初期チャンクが 2.8MB になり、解析が終わるまで画面が出ない。
+アプリ側は `src/vocabulary.ts` の `loadVocabulary()` で動的に読む
+（`App.tsx` が読み込み中の待機画面を出す）。
+`scripts/` の生成スクリプトと `tests/*.data.test.ts` は
+これまでどおり `src/data/vocabulary.ts` を直接読んでよい。
+
+読み込みが終わるまで単語は0語なので、その状態で保存の副作用を走らせないこと。
+走らせると、保存済みの追加単語（AI・CSV・PDF由来）を空で上書きしてしまう。
 
 ## テスト
 
@@ -112,9 +125,32 @@ npm run build   # vite build + server.ts のバンドル
   `tests/setupDom.ts` で最小限だけ埋める。単語は `tests/fixtures.ts` で作り、
   収録データには依存させない（どの語が出題されるかで結果が変わってしまうため）。
 
+- **バックアップのテスト** — `tests/dataBackup.test.ts`。`src/backupKeys.ts` の一覧と、
+  `src` の中に書かれた `quest_` で始まる保存キーを機械的に突き合わせる。
+  一覧は手で並べたものなので、新しい保存先を足したときに追加を忘れても
+  型検査もビルドも通ってしまい、気づくのは「端末を移したらその機能の進捗だけが
+  消えていた」ときになる（文法ガイドで実際に起きた）。
+  バックアップしないキーは `NON_BACKUP_KEYS` に理由を書いて除外する。
+- **読み上げのテスト** — `tests/speech.test.ts` と `tests/listeningFallback.render.test.tsx`。
+  リスニングは綴りを隠して再生ボタンだけを見せるので、英語の音声が無い端末では
+  手がかりの無い四択になる。`src/speech.ts` の判定は3値で、音声の一覧が空のときは
+  `unknown`（＝塞がない）。多くのブラウザが最初の呼び出しで空を返すため、
+  ここで「使えない」と断じると実際には鳴る端末からリスニングを取り上げてしまう。
+- **取り込みのテスト** — `tests/importWords.test.ts`。`src/importWords.ts`（CSV の解析、
+  AI・PDF から来た単語の正規化）を検査する。level が `"SENIOR"` のように不正だと
+  どのレベルのクイズにも出題されない語ができ、エラーも出ないので気づけない。
+- **発音記号のテスト** — `tests/phonetics.test.ts`。通信エラーが続いたときの休止を検査する。
+  時計は `__setPhoneticsClock` で差し替える。休止の判定は待ち行列の前後の両方で行う
+  （辞書は1ページに50語を同時に描くので、最初の失敗が返る前に50件並んでしまう）。
+
 `tests/*.test.ts` は node 環境、`tests/*.test.tsx` は jsdom 環境で走る
 （`vitest.config.ts` の `projects`）。どちらも `npm test` でまとめて実行される。
-画面全体の操作は引き続き Playwright で手動確認している。
+
+**画面の通し確認** — `e2e/walkthrough.spec.ts`（Playwright）。`npm run test:e2e` で実行し、
+CI でも走る。`vite preview` ではなくビルド済みの `dist/server.cjs` を立てる
+（preview は静的ファイルしか返さず API が無いため）。
+画面をまたいだときにだけ壊れるもの（状態の持ち越し・遷移・遅延読み込み）を対象にし、
+1画面の中の描画は `tests/*.render.test.tsx` に任せる。
 
 ## issue 修正時のワークフロー
 

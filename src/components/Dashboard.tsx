@@ -32,7 +32,7 @@ import { Level, Word, UserStats, RankingUser, PartOfSpeech } from "../types";
 import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr, SrsState } from "../srs";
 import { isMastered, countMastered } from "../mastery";
-import { pickDistractors, Candidate } from "../distractors";
+import { parseCSV, buildDistractors, normalizeImportedWord } from "../importWords";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
@@ -207,133 +207,6 @@ export default function Dashboard({
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  // CSVシンプルなパーサー
-  const parseCSV = (text: string): string[][] => {
-    const lines: string[][] = [];
-    let row: string[] = [];
-    let inQuotes = false;
-    let entry = '';
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      const nextChar = text[i + 1];
-
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          entry += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        row.push(entry.trim());
-        entry = '';
-      } else if ((char === '\r' || char === '\n') && !inQuotes) {
-        if (char === '\r' && nextChar === '\n') {
-          i++;
-        }
-        row.push(entry.trim());
-        lines.push(row);
-        row = [];
-        entry = '';
-      } else {
-        entry += char;
-      }
-    }
-    if (entry || row.length > 0) {
-      row.push(entry.trim());
-      lines.push(row);
-    }
-    return lines.filter(r => r.length > 0 && r.some(c => c !== ''));
-  };
-
-  // 誤選択肢（ディストラクター）の抽出。
-  // 収録語と同じく「同じ品詞・同じレベルで、表記の近い語」から選ぶ。
-  // 以前は同レベルからのランダム抽出で、品詞すら揃っていなかったため
-  // 意味を知らなくても消去法で正解できてしまっていた。
-  const buildDistractors = (
-    target: { word: string; translation: string; level: Level; pos: PartOfSpeech },
-    mode: "translation" | "word",
-    count = 3
-  ): string[] => {
-    const candidates: Candidate[] = vocabulary.map(w => ({
-      word: w.word,
-      translation: w.translation,
-      level: w.level,
-      pos: getWordPos(w)
-    }));
-    const picked = pickDistractors(target as Candidate, candidates, count, mode);
-    // 候補が足りない場合は正解で埋めず、取れた分だけ返す（呼び出し側で長さを確認する）
-    return picked;
-  };
-
-  const shuffleArray = <T,>(arr: T[]): T[] => shuffle(arr);
-
-  // AI（単語追加・PDF抽出）が返す単語をアプリが扱える形に整える。
-  // 応答は必ずしもスキーマ通りではなく、そのまま保存すると次の不具合になる:
-  //  - level が "SENIOR" のように不正だと `w.level === level` にどれも一致せず、
-  //    追加した単語がどのレベルのクイズにも一度も出題されない（エラーも出ないので気づけない）
-  //  - options が配列でないと選択肢が0個の問題になり、その問題から先へ進めなくなる
-  // 不正な項目は既存単語から選択肢を作り直すなどして補い、
-  // 単語・訳が欠けているものだけ取り込み対象から外す。
-  const normalizeImportedWord = (raw: any, idPrefix: string, index: number, pool: Word[]): Word | null => {
-    const word = typeof raw?.word === "string" ? raw.word.trim() : "";
-    const translation = typeof raw?.translation === "string" ? raw.translation.trim() : "";
-    if (!word || !translation) return null;
-
-    const validLevels: Level[] = ["junior", "senior", "senior2", "senior3", "advanced"];
-    const level: Level = validLevels.includes(raw?.level) ? raw.level : "senior";
-
-    const strList = (v: any): string[] =>
-      Array.isArray(v) ? v.filter((x: any) => typeof x === "string" && x.trim() !== "") : [];
-
-    const validPos = ["verb", "noun", "adjective", "adverb", "other"];
-    // 誤選択肢を同じ品詞から選ぶために品詞を確定させる
-    const pos: PartOfSpeech = validPos.includes(raw?.pos)
-      ? raw.pos
-      : inferPartOfSpeech(word, translation);
-
-    // 四択は「正解を必ず含む4件以上」を保証する
-    let options = strList(raw?.options);
-    if (!options.includes(translation)) options = [translation, ...options];
-    if (options.length < 4) {
-      const d = buildDistractors({ word, translation, level, pos }, "translation", 3);
-      options = shuffleArray([translation, ...d]);
-    }
-
-    let sentenceOptions = strList(raw?.sentenceOptions);
-    if (!sentenceOptions.includes(word)) sentenceOptions = [word, ...sentenceOptions];
-    if (sentenceOptions.length < 4) {
-      const d = buildDistractors({ word, translation, level, pos }, "word", 3);
-      sentenceOptions = shuffleArray([word, ...d]);
-    }
-
-    let sentence = typeof raw?.sentence === "string" ? raw.sentence.trim() : "";
-    let sentenceTranslation = typeof raw?.sentenceTranslation === "string" ? raw.sentenceTranslation.trim() : "";
-    if (!sentence) {
-      sentence = `I want to study [_____] today.`;
-      sentenceTranslation = `私は今日、[_____]を勉強したいです。`;
-    } else if (!sentence.includes("[_____]")) {
-      sentence = `${sentence} [_____]`;
-    }
-
-    const id = typeof raw?.id === "string" && raw.id.trim() !== ""
-      ? raw.id
-      : `${idPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`;
-
-    return {
-      id,
-      word,
-      translation,
-      level,
-      options,
-      sentence,
-      sentenceTranslation,
-      sentenceOptions,
-      pos
-    };
-  };
-
   // CSVファイルの解析と単語追加
   const handleCsvUpload = (file: File) => {
     setCsvError("");
@@ -413,13 +286,13 @@ export default function Dashboard({
           }
 
           const csvPos = inferPartOfSpeech(rawWord, rawTranslation);
-          const options = shuffleArray([
+          const options = shuffle([
             rawTranslation,
-            ...buildDistractors({ word: rawWord, translation: rawTranslation, level, pos: csvPos }, "translation", 3)
+            ...buildDistractors({ word: rawWord, translation: rawTranslation, level, pos: csvPos }, vocabulary, "translation", 3)
           ]);
-          const sentenceOptions = shuffleArray([
+          const sentenceOptions = shuffle([
             rawWord,
-            ...buildDistractors({ word: rawWord, translation: rawTranslation, level, pos: csvPos }, "word", 3)
+            ...buildDistractors({ word: rawWord, translation: rawTranslation, level, pos: csvPos }, vocabulary, "word", 3)
           ]);
 
           const wordObject: Word = {
