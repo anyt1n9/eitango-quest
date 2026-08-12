@@ -30,6 +30,8 @@ function renderDashboard() {
       onOpenDictionary={vi.fn()}
       onStartReading={vi.fn()}
       onOpenDiary={vi.fn()}
+      onOpenVerbForms={vi.fn()}
+      onOpenGrammar={vi.fn()}
       ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
       setRanking={vi.fn()}
       dailyLog={{}}
