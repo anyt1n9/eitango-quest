@@ -33,7 +33,6 @@ import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr, SrsState } from "../srs";
 import { isMastered, countMastered } from "../mastery";
 import { pickDistractors, Candidate } from "../distractors";
-import { initialVocabulary } from "../data/vocabulary";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";

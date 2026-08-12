@@ -160,3 +160,19 @@ describe("休止しないとき", () => {
     expect(await getPhonetic("cache")).toBe("/kæʃ/");
   });
 });
+
+describe("一度に大量の語を描いたとき", () => {
+  it("順番待ちの分も休止で打ち切る", async () => {
+    // 辞書の一覧は1ページに50語を同時に描く。
+    // 待ち行列に入る前だけを見ていると、最初の失敗が返るより先に
+    // 50件すべてが並んでしまい、歯止めがまったく効かなかった（実測：50件）
+    const fail = failingFetch();
+    vi.stubGlobal("fetch", fail);
+    const words = Array.from({ length: 50 }, (_, i) =>
+      String.fromCharCode(97 + (i % 26)) + String.fromCharCode(97 + Math.floor(i / 26)) + "x"
+    );
+    await Promise.all(words.map(w => getPhonetic(w)));
+    // 同時実行の上限が4なので、多くても「上限 + 失敗の閾値」程度で止まる
+    expect(fail.mock.calls.length).toBeLessThanOrEqual(8);
+  });
+});

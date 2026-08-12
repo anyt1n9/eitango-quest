@@ -59,3 +59,8 @@ Thumbs.db
 
 # 辞書データの取得キャッシュ（scripts/bake_senses.ts）
 .cache/
+
+# ===== 画面の通し確認（Playwright）の出力 =====
+playwright-report/
+test-results/
+.playwright/

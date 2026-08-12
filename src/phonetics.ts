@@ -134,6 +134,10 @@ export async function getPhonetic(rawWord: string): Promise<string | null> {
   const task = (async (): Promise<string | null> => {
     await acquireSlot();
     try {
+      // 順番待ちのあいだに休止に入っていることがある。
+      // 辞書の一覧は50語を一度に描くので、最初の失敗が返るより先に
+      // 50件が並んでしまう。ここで見ないと歯止めが効かない
+      if (isPaused()) return null;
       const res = await fetch(
         `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`
       );

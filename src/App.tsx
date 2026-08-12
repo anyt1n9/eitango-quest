@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Level, Word, UserStats, RankingUser } from "./types";
-import { initialVocabulary } from "./data/vocabulary";
+import { loadVocabulary } from "./vocabulary";
 import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
 import SentenceQuiz from "./components/SentenceQuiz";
@@ -31,8 +31,6 @@ import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network
 // 苦手単語を1語卒業したときのボーナス点
 const GRADUATION_BONUS = 50;
 
-// 初期収録単語のIDセット（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使用）
-const INITIAL_VOCAB_IDS = new Set(initialVocabulary.map(w => w.id));
 
 // デフォルトのランキング架空ユーザー
 const DEFAULT_RANKING: RankingUser[] = [
@@ -62,10 +60,23 @@ export default function App() {
     return { ...defaults, ...readStoredObject<Partial<UserStats>>("quest_stats", {}) };
   });
 
-  const [vocabulary, setVocabulary] = useState<Word[]>(() => {
-    const customList = readStoredArray<Word>("quest_vocab_custom");
-    return [...initialVocabulary, ...customList];
-  });
+  // 単語データは3.1MBあるので、起動時ではなく読み込めてから入れる。
+  // 読み込みが終わるまでは空なので、保存の副作用を動かしてはいけない
+  const [vocabulary, setVocabulary] = useState<Word[]>([]);
+  const [vocabularyReady, setVocabularyReady] = useState(false);
+  // 初期収録単語のID（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使う）
+  const initialVocabIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    let alive = true;
+    loadVocabulary().then(words => {
+      if (!alive) return;
+      initialVocabIdsRef.current = new Set(words.map(w => w.id));
+      setVocabulary([...words, ...readStoredArray<Word>("quest_vocab_custom")]);
+      setVocabularyReady(true);
+    });
+    return () => { alive = false; };
+  }, []);
 
   const [wrongWords, setWrongWords] = useState<string[]>(() =>
     readStoredArray<string>("quest_wrong_words")
@@ -191,9 +202,11 @@ export default function App() {
   useEffect(() => {
     // ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出など、初期収録以外すべて）を保存
     // ※以前は "ai_" で始まるIDのみ保存していたため、CSV/PDF由来の単語がリロードで消える不具合があった
-    const customOnly = vocabulary.filter(w => !INITIAL_VOCAB_IDS.has(w.id));
+    // 読み込み前の空の状態で走らせると、保存済みの追加単語を空で上書きしてしまう
+    if (!vocabularyReady) return;
+    const customOnly = vocabulary.filter(w => !initialVocabIdsRef.current.has(w.id));
     writeStored("quest_vocab_custom", customOnly);
-  }, [vocabulary]);
+  }, [vocabulary, vocabularyReady]);
 
   useEffect(() => {
     writeStored("quest_srs", srsData);
@@ -469,6 +482,24 @@ export default function App() {
     currentScreen === "review" ||
     currentScreen === "review_quiz" ||
     currentScreen === "srs_review";
+
+  // 単語データが届くまでは、どの画面も0語で描くことになるので待つ。
+  // 待つといっても外枠と文字は先に出るので、以前のように
+  // 3.1MBの解析が終わるまで真っ白、ということにはならない
+  if (!vocabularyReady) {
+    return (
+      <div
+        className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col items-center justify-center gap-4"
+        id="vocabulary_loading_screen"
+      >
+        <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-md">
+          <BrainCircuit className="w-7 h-7" />
+        </div>
+        <p className="text-sm font-black text-gray-700 dark:text-slate-200">英単語 Quest</p>
+        <p className="text-xs font-bold text-gray-400 dark:text-slate-500">単語データを読み込んでいます…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
