@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { grammarTopics } from "../src/data/grammar";
 import {
-  findTopic, topicsByLevel, searchTopics, verbsForFrames,
+  findTopic, topicsByLevel, searchTopics, verbsForFrames, topicsForFrames,
   isTopicCleared, levelProgress, nextTopics, LEVEL_LABELS, LEVEL_ORDER
 } from "../src/grammar";
 import { VERB_PATTERNS } from "../src/usage";
@@ -350,5 +350,43 @@ describe("verbsForFrames", () => {
   it("文型が無ければ空を返す", () => {
     expect(verbsForFrames(undefined, usage, words)).toEqual([]);
     expect(verbsForFrames([], usage, words)).toEqual([]);
+  });
+});
+
+describe("文型から文法項目を引く", () => {
+  it("その文型を扱う項目を返す", () => {
+    // 文法ガイドから「この形をとる動詞」へは辿れたが、
+    // 辞書で文型を見ているときに解説へ戻る道が無かった
+    const withFrames = grammarTopics.filter(t => t.verbFrames && t.verbFrames.length > 0);
+    expect(withFrames.length).toBeGreaterThan(0);
+    const frame = withFrames[0].verbFrames![0];
+    const found = topicsForFrames(grammarTopics, [frame]);
+    expect(found.length).toBeGreaterThan(0);
+    expect(found.every(t => t.verbFrames!.includes(frame))).toBe(true);
+  });
+
+  it("扱う項目が無い文型では空になる", () => {
+    // WordNet の文型番号は1〜35。範囲外の番号を持つ項目は無い
+    expect(topicsForFrames(grammarTopics, [999])).toEqual([]);
+  });
+
+  it("文型が無ければ空になる", () => {
+    expect(topicsForFrames(grammarTopics, undefined)).toEqual([]);
+    expect(topicsForFrames(grammarTopics, [])).toEqual([]);
+  });
+
+  it("易しい項目から順に返す", () => {
+    // 同じ形を複数の項目が扱うとき、上級のものを先に見せない
+    const all = grammarTopics.filter(t => t.verbFrames?.length);
+    const frames = all.flatMap(t => t.verbFrames!);
+    const found = topicsForFrames(grammarTopics, frames, 10);
+    const order = found.map(t => LEVEL_ORDER.indexOf(t.level));
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it("出しすぎない", () => {
+    const frames = grammarTopics.flatMap(t => t.verbFrames ?? []);
+    expect(topicsForFrames(grammarTopics, frames).length).toBeLessThanOrEqual(3);
+    expect(topicsForFrames(grammarTopics, frames, 1).length).toBe(1);
   });
 });

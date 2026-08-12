@@ -155,3 +155,29 @@ describe("収録データでの出題可能数", () => {
     expect(notSpellable.length).toBeGreaterThan(0);
   });
 });
+
+describe("読み上げが使えない端末", () => {
+  const words = [makeWord({ id: "a", word: "beautiful" }), makeWord({ id: "b", word: "quiet" })];
+
+  it("リスニングは1語も出せないものとして扱う", () => {
+    // 綴りを隠して再生ボタンだけを見せる形式なので、
+    // 音が出ない端末では手がかりの無い四択になってしまう
+    expect(wordsForFormat(words, "listening", { speech: false })).toEqual([]);
+    expect(countByFormat(words, { speech: false }).listening).toBe(0);
+  });
+
+  it("他の形式は影響を受けない", () => {
+    const counts = countByFormat(words, { speech: false });
+    expect(counts.word).toBe(2);
+    expect(counts.spelling).toBe(2);
+    expect(counts.sentence).toBe(2);
+    expect(counts.reverse).toBe(2);
+  });
+
+  it("指定が無ければ従来どおり出せる", () => {
+    // 判定できない環境で塞いでしまわないよう、既定は「使える」
+    expect(countByFormat(words).listening).toBe(2);
+    expect(countByFormat(words, {}).listening).toBe(2);
+    expect(countByFormat(words, { speech: true }).listening).toBe(2);
+  });
+});

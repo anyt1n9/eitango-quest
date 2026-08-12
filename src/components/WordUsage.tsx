@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { WordUsage as Usage } from "../types";
+import { GrammarTopic, WordUsage as Usage } from "../types";
 import { loadUsage, describePatterns, transitivity } from "../usage";
+import { loadGrammar, topicsForFrames } from "../grammar";
 import { POS_SHARE_LABELS } from "../senses";
-import { Link2, Blocks, Puzzle } from "lucide-react";
+import { Link2, Blocks, Puzzle, BookMarked } from "lucide-react";
 
 /**
  * 単語の使い方（語法・コロケーション・語族）。
@@ -16,11 +17,14 @@ import { Link2, Blocks, Puzzle } from "lucide-react";
 interface Props {
   wordId: string;
   className?: string;
+  /** 文型の説明にあたる文法項目を開く */
+  onOpenGrammar?: (topicId: string) => void;
 }
 
-export default function WordUsageInfo({ wordId, className = "" }: Props) {
+export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }: Props) {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [grammarTopics, setGrammarTopics] = useState<GrammarTopic[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -32,6 +36,20 @@ export default function WordUsageInfo({ wordId, className = "" }: Props) {
     });
     return () => { alive = false; };
   }, [wordId]);
+
+  // 文型から文法の解説へ戻れるようにする。
+  // 解説データは重いので、文型を持つ語を開いたときだけ読む
+  useEffect(() => {
+    let alive = true;
+    if (!onOpenGrammar || !usage?.patterns?.length) {
+      setGrammarTopics([]);
+      return;
+    }
+    loadGrammar().then(topics => {
+      if (alive) setGrammarTopics(topicsForFrames(topics, usage.patterns));
+    });
+    return () => { alive = false; };
+  }, [usage, onOpenGrammar]);
 
   if (loading) {
     return <p className={`text-xs text-gray-400 font-semibold ${className}`}>使い方を読み込んでいます…</p>;
@@ -75,6 +93,29 @@ export default function WordUsageInfo({ wordId, className = "" }: Props) {
                 <span className="font-mono text-[11px] font-semibold text-sky-800 dark:text-sky-300">
                   {p.pattern}
                 </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* --- その形を扱う文法項目 ---------------------------------------- */}
+      {grammarTopics.length > 0 && onOpenGrammar && (
+        <div data-testid="usage_grammar_links">
+          <div className="flex items-center gap-1">
+            <BookMarked className="w-3 h-3 text-gray-400" />
+            <span className="text-[10px] font-black text-gray-500 dark:text-slate-400">この形の説明を読む</span>
+          </div>
+          <ul className="mt-1.5 flex flex-wrap gap-1.5">
+            {grammarTopics.map(t => (
+              <li key={t.id}>
+                <button
+                  onClick={() => onOpenGrammar(t.id)}
+                  id={`btn_usage_grammar_${t.id}`}
+                  className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1 text-[11px] font-bold text-sky-800 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-slate-800 cursor-pointer transition"
+                >
+                  {t.title}
+                </button>
               </li>
             ))}
           </ul>

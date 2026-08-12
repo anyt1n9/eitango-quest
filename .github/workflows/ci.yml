@@ -40,3 +40,21 @@ jobs:
 
       - name: ビルド (npm run build)
         run: npm run build
+
+      # 画面をつないで操作したときだけ壊れる不具合は、型検査もテストもすり抜ける。
+      # ビルド済みのサーバーを立てて、主要な画面を一通り触る
+      - name: ブラウザの用意
+        run: npx playwright install --with-deps chromium
+
+      - name: 画面の通し確認 (npm run test:e2e)
+        run: npm run test:e2e
+
+      - name: 失敗したときの記録を残す
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

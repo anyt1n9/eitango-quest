@@ -1,29 +1,7 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, Download, Upload, Target, Database, ShieldCheck, AlertTriangle } from "lucide-react";
 import { writeStored } from "../storage";
-
-// バックアップ対象の localStorage キー一覧
-const BACKUP_KEYS = [
-  "quest_stats",
-  "quest_vocab_custom",
-  "quest_wrong_words",
-  "quest_solved_history",
-  "quest_ranking_score",
-  "quest_rival_growth_date",
-  "quest_srs",
-  "quest_daily_progress",
-  "quest_daily_goal",
-  "quest_daily_log",
-  "quest_read_passages",
-  "quest_custom_passages",
-  "quest_word_images",
-  "quest_theme",
-  "quest_diary_history",
-  "quest_current_diary_cache",
-  "quest_owned_rewards",
-  "quest_gacha_spent",
-  "quest_equipped",
-];
+import { BACKUP_KEYS } from "../backupKeys";
 
 interface DataBackupProps {
   dailyGoal: number;

@@ -1,14 +1,16 @@
 import express from "express";
 import path from "path";
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import dotenv from "dotenv";
 import { PREBAKED_WORD_IMAGES } from "./src/data/wordImages";
 import { sampleArray } from "./src/shuffle";
 import {
-  MAX_WORD_LEN, MAX_MEANING_LEN, isValidShortText, escapeHtml, safeSvgIdSegment,
-  createRateLimiter, createBudget
+  MAX_WORD_LEN, MAX_MEANING_LEN, isValidShortText, escapeHtml, safeSvgIdSegment
 } from "./server/guards";
 import { AdviceInput, LevelStat, buildLocalAdvice, buildAnalysisForPrompt } from "./server/advice";
+import { POS_JP_LABELS, buildFallbackWeaknessAnalysis } from "./server/weakness";
+import { getPdfMockWords } from "./server/pdfMockWords";
+import { aiRateLimiter, getGeminiClient } from "./server/gemini";
 
 dotenv.config();
 
@@ -58,80 +60,8 @@ app.use(express.urlencoded({ limit: "100kb", extended: true }));
 // デプロイ環境(Cloud Run など)は PORT 環境変数でリッスンするポートを指定するため、それを優先する
 const PORT = Number(process.env.PORT) || 3000;
 
-// ───────────────────────────────────────────────────────────
-// AIエンドポイントのレート制限（IP単位・スライディングウィンドウ）
-// 公開エンドポイントの「ただ乗り」による Gemini 利用枠の浪費を防ぐ。
-// 依存追加なしのメモリ内実装。プロセス再起動でリセットされるが、
-// 悪用の連続大量アクセスを弾く目的には十分。
-// ───────────────────────────────────────────────────────────
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1分
-// 1分あたり最大40リクエスト/IP。辞書で単語を開くと画像・頻度分析で2回発火するため、
-// 通常の辞書学習(1語ごとに2回×十数語)を妨げない一方、悪用(毎分数百回)は確実に弾く水準。
-const RATE_LIMIT_MAX = 40;
-const rateLimiter = createRateLimiter({ windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX });
-
-// メモリ肥大を防ぐため、古い記録を定期的に掃除する
-setInterval(() => rateLimiter.sweep(), RATE_LIMIT_WINDOW_MS).unref();
-
-function aiRateLimiter(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) {
-  const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const { allowed, retryAfterSec } = rateLimiter.check(ip);
-
-  if (!allowed) {
-    res.setHeader("Retry-After", String(retryAfterSec));
-    return res.status(429).json({
-      error: `リクエストが多すぎます。${retryAfterSec}秒ほど待ってから再度お試しください。`
-    });
-  }
-
-  next();
-}
-
 // すべての /api/gemini/* エンドポイントにレート制限を適用（ルート定義より前に置く）
 app.use("/api/gemini", aiRateLimiter);
-
-// ───────────────────────────────────────────────────────────
-// サーバー全体のGemini呼び出し予算（1時間あたりの上限）
-// IP単位のレート制限は多数のIPに分散した攻撃(プロキシ/ボットネット)には
-// 効かないため、全体の呼び出し回数にも上限を設けてAPI課金の暴走を防ぐ。
-// 上限超過時は getGeminiClient が例外を投げ、各エンドポイントの
-// 既存のcatch節がローカルフォールバック応答に切り替える（ユーザーには
-// 「一時的な自動調整モード」として振る舞い、サービス自体は継続する）。
-// ───────────────────────────────────────────────────────────
-const GEMINI_BUDGET_WINDOW_MS = 60 * 60 * 1000; // 1時間
-const GEMINI_HOURLY_BUDGET = Math.max(1, Number(process.env.GEMINI_HOURLY_BUDGET) || 600);
-const geminiBudget = createBudget({ windowMs: GEMINI_BUDGET_WINDOW_MS, limit: GEMINI_HOURLY_BUDGET });
-
-function consumeGeminiBudget(): void {
-  geminiBudget.consume();
-}
-
-// Gemini API の安全な初期化
-let ai: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI {
-  // 呼び出しごとに全体予算を消費する（超過時はここで例外 → 各エンドポイントのフォールバックへ）
-  consumeGeminiBudget();
-  if (!ai) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      // 開発中、APIキーが設定されていない場合でもクラッシュさせず穏やかにエラー返却できるようにする
-      console.warn("警告: GEMINI_API_KEY がセットされていません。AI機能はモックモード、またはエラー応答になります。");
-    }
-    ai = new GoogleGenAI({
-      apiKey: key || "DUMMY_KEY",
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
-  }
-  return ai;
-}
 
 // 1. API: 新しい単語を分析・生成
 app.post("/api/gemini/generate-word", async (req, res) => {
@@ -643,54 +573,6 @@ ${adviceInput.levels.map(l => `- ${l.label}レベル: 習得 ${l.correct}/${l.to
 });
 
 // 1.85. API: 間違えた単語の傾向から弱点分野を自動分析
-const POS_JP_LABELS: Record<string, string> = {
-  verb: "動詞",
-  noun: "名詞",
-  adjective: "形容詞",
-  adverb: "副詞",
-  other: "その他"
-};
-
-function heuristicPosStats(words: { word: string; pos?: string }[]) {
-  const counts: Record<string, number> = { "動詞": 0, "名詞": 0, "形容詞": 0, "副詞": 0, "その他": 0 };
-  for (const w of words) {
-    // クライアントが品詞を明示してきた場合はそれを優先する
-    if (w.pos && POS_JP_LABELS[w.pos]) {
-      counts[POS_JP_LABELS[w.pos]]++;
-      continue;
-    }
-    const lw = w.word.toLowerCase();
-    if (lw.endsWith("ly")) counts["副詞"]++;
-    else if (lw.endsWith("tion") || lw.endsWith("ity") || lw.endsWith("ment") || lw.endsWith("ness")) counts["名詞"]++;
-    else if (lw.endsWith("ive") || lw.endsWith("ous") || lw.endsWith("al") || lw.endsWith("ful")) counts["形容詞"]++;
-    else if (lw.endsWith("ed") || lw.endsWith("ing") || lw.endsWith("ize") || lw.endsWith("ise")) counts["動詞"]++;
-    else counts["その他"]++;
-  }
-  const total = words.length || 1;
-  return Object.entries(counts)
-    .filter(([, count]) => count > 0)
-    .map(([label, count]) => ({ label, count, percentage: Math.round((count / total) * 100) }))
-    .sort((a, b) => b.count - a.count);
-}
-
-function buildFallbackWeaknessAnalysis(words: { word: string }[]) {
-  const partOfSpeechStats = heuristicPosStats(words);
-  const topPos = partOfSpeechStats[0];
-  return {
-    summary: topPos
-      ? `間違えた単語の中では「${topPos.label}」が最も多く(${topPos.percentage}%)、ここが伸びしろのポイントです。`
-      : "分析できる間違えた単語がまだ十分にありません。",
-    partOfSpeechStats,
-    topicStats: [{ label: "総合", count: words.length, percentage: 100 }],
-    recommendations: [
-      "間違えた単語の復習リストを毎日少しずつ解き、定着させましょう。",
-      "似た品詞の単語をまとめて覚えると、語形の違いを整理しやすくなります。",
-      "例文ごと音読して、単語を文脈の中で覚える習慣をつけましょう。"
-    ],
-    isFallback: true
-  };
-}
-
 app.post("/api/gemini/weakness-analysis", async (req, res) => {
   const { wrongWords } = req.body;
   if (!Array.isArray(wrongWords) || wrongWords.length === 0) {
@@ -1107,102 +989,6 @@ ${JSON.stringify(words)}
 });
 
 // PDF読み込み時のフォールバック用重要英単語
-function getPdfMockWords(): any[] {
-  const mockBase = [
-    {
-      word: "significant",
-      translation: "重要な、意義深い",
-      level: "senior3",
-      options: ["重要な、意義深い", "一時的な", "表面的な", "不十分な"],
-      sentence: "The project had a [_____] impact on our environmental footprint.",
-      sentenceTranslation: "そのプロジェクトは私たちの環境フットプリントに重要な影響を与えました。",
-      sentenceOptions: ["significant", "minor", "synthetic", "vague"]
-    },
-    {
-      word: "evaluate",
-      translation: "～を評価する、査定する",
-      level: "advanced",
-      options: ["～を評価する、査定する", "～を破壊する", "～を無視する", "～を維持する"],
-      sentence: "We need more data to [_____] the effectiveness of this system.",
-      sentenceTranslation: "このシステムの有効性を評価するためにはさらなるデータが必要です。",
-      sentenceOptions: ["evaluate", "demolish", "disregard", "stabilize"]
-    },
-    {
-      word: "infrastructure",
-      translation: "社会的基盤、インフラ",
-      level: "advanced",
-      options: ["社会的基盤、インフラ", "農業、農耕", "娯楽施設", "通信エラー"],
-      sentence: "The government is investing heavily in rural communication [_____].",
-      sentenceTranslation: "政府は農村部の通信インフラに多大な投資を行っています。",
-      sentenceOptions: ["infrastructure", "agriculture", "recreation", "obstacle"]
-    },
-    {
-      word: "analyze",
-      translation: "～を分析する",
-      level: "senior2",
-      options: ["～を分析する", "～を要約する", "～を誇張する", "～を否定する"],
-      sentence: "Our research team will [_____] the chemical composition of the water.",
-      sentenceTranslation: "私たちの研究チームは水の化学組成を分析する予定です。",
-      sentenceOptions: ["analyze", "summarize", "exaggerate", "deny"]
-    },
-    {
-      word: "collaborate",
-      translation: "共同で取り組む、協力する",
-      level: "senior3",
-      options: ["共同で取り組む、協力する", "対立する、喧嘩する", "孤立する", "～を妨害する"],
-      sentence: "Scientists around the world [_____] to find a cure for the disease.",
-      sentenceTranslation: "世界中の科学者たちがその病気の治療法を見つけるために協力しています。",
-      sentenceOptions: ["collaborate", "compete", "isolate", "interfere"]
-    },
-    {
-      word: "comprehensive",
-      translation: "包括的な、総合的な",
-      level: "advanced",
-      options: ["包括的な、総合的な", "部分的な、限定的な", "単純な、初歩的な", "理解困難な"],
-      sentence: "The book provides a [_____] guide to organic chemistry.",
-      sentenceTranslation: "その本は有機化学への包括的なガイドを提供しています。",
-      sentenceOptions: ["comprehensive", "fractional", "elementary", "incomprehensible"]
-    },
-    {
-      word: "acquire",
-      translation: "～を獲得する、身につける",
-      level: "senior3",
-      options: ["～を獲得する、身につける", "～を紛失する", "～を引き渡す", "～を拒絶する"],
-      sentence: "It takes years of practice to [_____] a new language perfectly.",
-      sentenceTranslation: "新しい言語を完璧に身につけるには、何年もの練習が必要です。",
-      sentenceOptions: ["acquire", "abandon", "deliver", "reject"]
-    },
-    {
-      word: "innovation",
-      translation: "革新、技術革新",
-      level: "senior3",
-      options: ["革新、技術革新", "伝統、慣習", "模倣、コピー", "停滞、沈滞"],
-      sentence: "Technological [_____] drives economic growth in modern societies.",
-      sentenceTranslation: "技術革新は現代社会における経済成長を牽引しています。",
-      sentenceOptions: ["innovation", "custom", "imitation", "stagnation"]
-    },
-    {
-      word: "precise",
-      translation: "正確な、精密な",
-      level: "senior2",
-      options: ["正確な、精密な", "曖昧な、適当な", "巨大な", "大まかな"],
-      sentence: "The surgeon made a [_____] incision to remove the tumor.",
-      sentenceTranslation: "外科医は腫瘍を取り除くために正確な切開を行いました。",
-      sentenceOptions: ["precise", "vague", "mammoth", "rough"]
-    },
-    {
-      word: "hypothesis",
-      translation: "仮説",
-      level: "advanced",
-      options: ["仮説", "定説、定説的な事実", "反論、抗議", "実験装置"],
-      sentence: "The scientist formulated a [_____] to explain the observed phenomenon.",
-      sentenceTranslation: "その科学者は観察された現象を説明するための仮説を立てました。",
-      sentenceOptions: ["hypothesis", "dogma", "protest", "apparatus"]
-    }
-  ];
-  return mockBase;
-}
-
 // 6. API: PDFファイルからの英単語スマート抽出
 app.post("/api/gemini/parse-pdf", async (req, res) => {
   let { pdfBase64 } = req.body;

@@ -248,3 +248,76 @@ describe("進捗", () => {
     expect(suggestions()).not.toContain(topic.title);
   });
 });
+
+describe("間違えた項目の記録", () => {
+  /** 最初の練習問題を、正解／不正解を指定して解く */
+  async function answerFirstQuestion(user: ReturnType<typeof userEvent.setup>, correct: boolean) {
+    const topic = grammarTopics.find(t => t.id === "g_present_perfect")!;
+    const q = topic.questions[0];
+    const index = correct
+      ? q.correctIndex
+      : q.options.findIndex((_, i) => i !== q.correctIndex);
+    await user.click(document.getElementById(`grammar_q0_opt${index}`)!);
+    return topic;
+  }
+
+  it("間違えた項目が一覧に残る", async () => {
+    // 以前は正解だけを数えていたので、間違えた項目と
+    // まだ手を付けていない項目が見分けられなかった
+    const user = userEvent.setup();
+    await renderGuide();
+    await user.click(document.getElementById("grammar_topic_g_present_perfect")!);
+    const topic = await answerFirstQuestion(user, false);
+
+    await user.click(document.getElementById("btn_grammar_detail_back")!);
+    const list = await screen.findByTestId("grammar_wrong_topics");
+    expect(within(list).getByText(topic.title)).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem("quest_grammar_wrong") || "[]"))
+      .toContain("g_present_perfect");
+  });
+
+  it("一覧から間違えた項目を開き直せる", async () => {
+    const user = userEvent.setup();
+    await renderGuide();
+    await user.click(document.getElementById("grammar_topic_g_present_perfect")!);
+    await answerFirstQuestion(user, false);
+    await user.click(document.getElementById("btn_grammar_detail_back")!);
+
+    await user.click(document.getElementById("grammar_wrong_g_present_perfect")!);
+    expect(document.getElementById("grammar_detail")).toBeInTheDocument();
+  });
+
+  it("正解しただけの項目は一覧に出さない", async () => {
+    const user = userEvent.setup();
+    await renderGuide();
+    await user.click(document.getElementById("grammar_topic_g_present_perfect")!);
+    await answerFirstQuestion(user, true);
+
+    await user.click(document.getElementById("btn_grammar_detail_back")!);
+    expect(screen.queryByTestId("grammar_wrong_topics")).toBeNull();
+  });
+
+  it("一覧の項目に要復習の印が付く", async () => {
+    const user = userEvent.setup();
+    await renderGuide();
+    await user.click(document.getElementById("grammar_topic_g_present_perfect")!);
+    await answerFirstQuestion(user, false);
+    await user.click(document.getElementById("btn_grammar_detail_back")!);
+
+    const row = document.getElementById("grammar_topic_g_present_perfect")!;
+    expect(row).toHaveTextContent("要復習");
+  });
+});
+
+describe("特定の項目を開いて入る", () => {
+  it("長文や辞書から渡された項目をそのまま開く", async () => {
+    render(<Grammar vocabulary={[]} onBackToDashboard={vi.fn()} initialTopicId="g_present_perfect" />);
+    expect(await screen.findByText("現在完了（have + 過去分詞）", { selector: "h2" })).toBeInTheDocument();
+    expect(document.getElementById("grammar_detail")).toBeInTheDocument();
+  });
+
+  it("指定が無ければ一覧から始まる", async () => {
+    await renderGuide();
+    expect(document.getElementById("grammar_detail")).toBeNull();
+  });
+});

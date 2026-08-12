@@ -22,5 +22,17 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  // 対象を書いておかないと、ビルド成果物(dist/)まで型検査の対象になる。
+  // 手元の作業ファイルを直下に置くと黙って混ざるので、置き場所も含めて固定する
+  "include": [
+    "src",
+    "server",
+    "tests",
+    "scripts",
+    "server.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
 }

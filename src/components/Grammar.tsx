@@ -8,10 +8,10 @@ import {
 } from "../grammar";
 import { loadUsage } from "../usage";
 import { passages } from "../data/passages";
-import { readStoredObject, writeStored } from "../storage";
+import { readStoredArray, readStoredObject, writeStored } from "../storage";
 import {
   ArrowLeft, BookMarked, Search, Check, X, CircleCheck, Lightbulb,
-  AlertTriangle, PencilLine, ChevronRight, Sparkles
+  AlertTriangle, PencilLine, ChevronRight, Sparkles, RotateCcw
 } from "lucide-react";
 
 /**
@@ -24,20 +24,45 @@ import {
  * 読むだけで終わらせないために、各項目に練習問題を付け、
  * 「全問正解したら仕上がり」として進捗を残す。
  * さらに、その文法の形をとる動詞を収録語から引いて並べ、覚えた単語と結び付ける。
+ *
+ * 練習問題を間違えたことも残す。以前は正解だけを数えていたので、
+ * 間違えた項目は「まだ手を付けていない項目」と見分けが付かず、
+ * 復習に戻る手がかりが残らなかった。
  */
 interface Props {
   vocabulary: Word[];
   onBackToDashboard: () => void;
+  /** 長文や辞書から特定の項目を開いて入ってきたとき */
+  initialTopicId?: string | null;
+  /** 開いている項目が変わったことを伝える（URLに反映する） */
+  onOpenTopicChange?: (topicId: string | null) => void;
 }
 
 const STORAGE_KEY = "quest_grammar_progress";
+const WRONG_KEY = "quest_grammar_wrong";
 
-export default function Grammar({ vocabulary, onBackToDashboard }: Props) {
-  const [openId, setOpenId] = useState<string | null>(null);
+export default function Grammar({
+  vocabulary, onBackToDashboard, initialTopicId = null, onOpenTopicChange
+}: Props) {
+  const [openId, setOpenId] = useState<string | null>(initialTopicId);
+
+  // 外（長文・辞書・URL）から指定が変わったら開き直す
+  useEffect(() => {
+    setOpenId(initialTopicId);
+  }, [initialTopicId]);
+
+  // 開いている項目をURLに反映する
+  useEffect(() => {
+    onOpenTopicChange?.(openId);
+  }, [openId]);
   const [query, setQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState<Level | "all">("all");
   const [progress, setProgress] = useState<GrammarProgress>(() =>
     readStoredObject<GrammarProgress>(STORAGE_KEY, {})
+  );
+  // 練習問題を間違えた項目。仕上がった時点で外れる
+  const [wrongTopics, setWrongTopics] = useState<string[]>(() =>
+    readStoredArray<string>(WRONG_KEY)
   );
   // 解説データは100KBを超え、使うのはこの画面だけなので必要になってから読む
   const [topics, setTopics] = useState<GrammarTopic[] | null>(null);
@@ -51,6 +76,20 @@ export default function Grammar({ vocabulary, onBackToDashboard }: Props) {
   useEffect(() => {
     writeStored(STORAGE_KEY, progress);
   }, [progress]);
+
+  useEffect(() => {
+    writeStored(WRONG_KEY, wrongTopics);
+  }, [wrongTopics]);
+
+  // 仕上がった項目は復習の一覧から外す
+  useEffect(() => {
+    if (!topics || wrongTopics.length === 0) return;
+    const stillWrong = wrongTopics.filter(id => {
+      const t = findTopic(topics, id);
+      return t ? !isTopicCleared(t, progress) : false;
+    });
+    if (stillWrong.length !== wrongTopics.length) setWrongTopics(stillWrong);
+  }, [topics, progress, wrongTopics]);
 
   const filtered = useMemo(() => {
     if (!topics) return [];
@@ -76,6 +115,7 @@ export default function Grammar({ vocabulary, onBackToDashboard }: Props) {
         vocabulary={vocabulary}
         progress={progress}
         setProgress={setProgress}
+        onWrong={id => setWrongTopics(prev => (prev.includes(id) ? prev : [...prev, id]))}
         onBack={() => setOpenId(null)}
       />
     );
@@ -104,6 +144,41 @@ export default function Grammar({ vocabulary, onBackToDashboard }: Props) {
             </p>
           </div>
         </div>
+
+        {/* 間違えた項目。単語の苦手リストにあたるもので、ここに残らないと
+            「解いたが間違えた」項目が未着手と区別できない */}
+        {wrongTopics.length > 0 && (
+          <div
+            className="bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-900 rounded-2xl p-3 space-y-1.5"
+            data-testid="grammar_wrong_topics"
+          >
+            <div className="flex items-center gap-1.5">
+              <RotateCcw className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+              <p className="text-xs font-black text-rose-700 dark:text-rose-300">
+                練習問題を間違えた項目（{wrongTopics.length}件）
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {wrongTopics.map(id => {
+                const t = findTopic(topics, id);
+                if (!t) return null;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setOpenId(id)}
+                    id={`grammar_wrong_${id}`}
+                    className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-rose-800 dark:text-rose-200 hover:bg-rose-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {t.title}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-gray-500 dark:text-slate-400 font-semibold">
+              全問正解するとこの一覧から外れます。
+            </p>
+          </div>
+        )}
 
         {/* 次に読むとよい項目 */}
         {suggestions.length > 0 && (
@@ -192,6 +267,11 @@ export default function Grammar({ vocabulary, onBackToDashboard }: Props) {
                         <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 rounded px-1.5 py-0.5">
                           {t.category}
                         </span>
+                        {wrongTopics.includes(t.id) && (
+                          <span className="text-[10px] font-black text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded px-1.5 py-0.5">
+                            要復習
+                          </span>
+                        )}
                       </span>
                       <span className="block text-xs font-semibold text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
                         {t.summary}
@@ -212,12 +292,13 @@ export default function Grammar({ vocabulary, onBackToDashboard }: Props) {
 
 /** 1項目の詳細。説明 → 例文 → よくある間違い → 練習の順に並べる */
 function TopicDetail({
-  topic, vocabulary, progress, setProgress, onBack
+  topic, vocabulary, progress, setProgress, onWrong, onBack
 }: {
   topic: GrammarTopic;
   vocabulary: Word[];
   progress: GrammarProgress;
   setProgress: Dispatch<SetStateAction<GrammarProgress>>;
+  onWrong: (topicId: string) => void;
   onBack: () => void;
 }) {
   const [usage, setUsage] = useState<Record<string, WordUsage> | null>(null);
@@ -248,7 +329,12 @@ function TopicDetail({
   const answer = (qIndex: number, optionIndex: number) => {
     if (answers[qIndex] !== undefined) return;
     setAnswers(prev => ({ ...prev, [qIndex]: optionIndex }));
-    if (optionIndex !== topic.questions[qIndex].correctIndex) return;
+    if (optionIndex !== topic.questions[qIndex].correctIndex) {
+      // 間違えたことを残す。正解だけを数えていたので、
+      // 間違えた項目とまだ手を付けていない項目が見分けられなかった
+      onWrong(topic.id);
+      return;
+    }
     setProgress(prev => {
       const done = prev[topic.id] || [];
       if (done.includes(qIndex)) return prev;

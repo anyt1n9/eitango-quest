@@ -7,6 +7,7 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
+import { canUseSpeech, onVoicesChanged } from "../speech";
 import { DominantSenseHint } from "./WordSenses";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
@@ -100,6 +101,11 @@ export default function Quiz({
   const [details, setDetails] = useState<{ word: Word; userChoice: string; isCorrect: boolean }[]>([]);
   const [isFinished, setIsFinished] = useState(false);
 
+  // 読み上げが使えるか。使えない端末ではリスニングでも綴りを見せる
+  // （綴りを隠したままだと手がかりが無く、当てずっぽうにしかならない）
+  const [speechOk, setSpeechOk] = useState(canUseSpeech);
+  useEffect(() => onVoicesChanged(() => setSpeechOk(canUseSpeech())), []);
+
   // タイマーとスキップ管理用
   const timerRef = React.useRef<any>(null);
   const nextCallbackRef = React.useRef<(() => void) | null>(null);
@@ -191,6 +197,26 @@ export default function Quiz({
       }
     }
   }, [currentIndex, currentQuestion, isFinished, reverseMode]);
+
+  // 数字キー(1〜4)で選択肢を選べるようにする。
+  // パソコンで解くとき、毎問マウスへ手を移すことになっていた
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isFinished || selectedOption !== null || showFeedback !== null) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // 文字を入力しているときは邪魔しない
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      const n = Number(e.key);
+      if (!Number.isInteger(n) || n < 1) return;
+      const option = currentQuestion?.options?.[n - 1];
+      if (option === undefined) return;
+      e.preventDefault();
+      handleSelectOption(option);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const handleSelectOption = (option: string) => {
     if (selectedOption !== null || showFeedback !== null) return;
@@ -436,20 +462,33 @@ export default function Quiz({
                 {currentQuestion.translation}
               </h2>
             ) : listeningMode && selectedOption === null ? (
-              /* リスニングモード中は綴りを隠し、大きな再生ボタンだけを見せる */
-              <div className="flex flex-col items-center gap-3">
-                <button
-                  onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
-                  className="w-24 h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all cursor-pointer active:scale-90 flex items-center justify-center shadow-lg shadow-indigo-200"
-                  title="もう一度発音を聴く"
-                  id="listening_replay_btn"
-                >
-                  <Volume2 className="w-10 h-10" />
-                </button>
-                <p className="text-xs text-gray-400 font-semibold">
-                  タップでもう一度再生できます
-                </p>
-              </div>
+              /* リスニングモード中は綴りを隠し、大きな再生ボタンだけを見せる。
+                 ただし読み上げが使えない端末で綴りまで隠すと、手がかりが
+                 何も無い四択になって答えようがなくなるので、そのときは綴りを出す */
+              speechOk ? (
+                <div className="flex flex-col items-center gap-3">
+                  <button
+                    onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
+                    className="w-24 h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all cursor-pointer active:scale-90 flex items-center justify-center shadow-lg shadow-indigo-200"
+                    title="もう一度発音を聴く"
+                    id="listening_replay_btn"
+                  >
+                    <Volume2 className="w-10 h-10" />
+                  </button>
+                  <p className="text-xs text-gray-400 font-semibold">
+                    タップでもう一度再生できます
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2" id="listening_no_speech">
+                  <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-slate-100">
+                    {currentQuestion.word}
+                  </h2>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-bold">
+                    この端末では英語の音声を再生できないため、綴りを表示しています
+                  </p>
+                </div>
+              )
             ) : (
               <>
                 {reverseMode && (
@@ -506,10 +545,23 @@ export default function Quiz({
                   key={idx}
                   onClick={() => handleSelectOption(option)}
                   disabled={selectedOption !== null}
-                  className={`border rounded-2xl p-4.5 text-left text-sm font-semibold transition-all flex items-center justify-between cursor-pointer group ${btnClass}`}
+                  className={`border rounded-2xl p-4.5 text-left text-sm font-semibold transition-all flex items-center gap-3 cursor-pointer group ${btnClass}`}
                   id={`option_btn_${idx}`}
                 >
-                  <span className={`flex-1 pr-4 ${reverseMode ? "font-mono" : ""}`}>{option}</span>
+                  {/* 数字キーでも選べることを示す。番号が見えていないと使われない。
+                      読み上げと文字の突き合わせには要らないので aria からは隠す */}
+                  <span
+                    aria-hidden="true"
+                    className="hidden sm:flex shrink-0 w-6 h-6 rounded-md border border-current/20 items-center justify-center text-[11px] font-mono font-black opacity-60"
+                  >
+                    {idx + 1}
+                  </span>
+                  <span
+                    data-testid="option_label"
+                    className={`flex-1 pr-4 ${reverseMode ? "font-mono" : ""}`}
+                  >
+                    {option}
+                  </span>
                   <div className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center group-hover:border-indigo-500/40 relative">
                     {selectedOption !== null && isCorrectAnswer && (
                       <Check className="w-3.5 h-3.5 text-emerald-600 stroke-3 absolute" />

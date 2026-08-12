@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Word } from "../types";
 import { QUIZ_FORMATS, QuizFormat, countByFormat } from "../quizFormats";
+import { canUseSpeech, onVoicesChanged } from "../speech";
 import { List, PenLine, Headphones, Keyboard, Languages } from "lucide-react";
 
 /**
@@ -28,7 +30,11 @@ const ICONS: Record<QuizFormat, typeof List> = {
 };
 
 export default function QuizFormatPicker({ words, onSelect, className = "" }: Props) {
-  const counts = countByFormat(words);
+  // 音声の一覧は後から埋まるブラウザがあるので、変化を見て数え直す
+  const [speech, setSpeech] = useState(canUseSpeech);
+  useEffect(() => onVoicesChanged(() => setSpeech(canUseSpeech())), []);
+
+  const counts = countByFormat(words, { speech });
 
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2.5 ${className}`} data-testid="quiz_format_picker">
@@ -36,13 +42,16 @@ export default function QuizFormatPicker({ words, onSelect, className = "" }: Pr
         const Icon = ICONS[f.key];
         const count = counts[f.key];
         const disabled = count === 0;
+        const noSpeech = f.key === "listening" && !speech;
         return (
           <button
             key={f.key}
             onClick={() => onSelect(f.key)}
             disabled={disabled}
             id={`review_format_${f.key}`}
-            title={disabled ? "この形式で出題できる単語がありません" : f.description}
+            title={noSpeech
+              ? "この端末では英語の音声を再生できないため、リスニングは出題できません"
+              : disabled ? "この形式で出題できる単語がありません" : f.description}
             className={`border rounded-2xl p-3.5 text-left transition flex items-center gap-3 ${disabled
               ? "bg-gray-50 dark:bg-slate-800/40 border-gray-100 dark:border-slate-800 text-gray-300 dark:text-slate-600 cursor-not-allowed"
               : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-slate-800 cursor-pointer"}`}
@@ -53,7 +62,7 @@ export default function QuizFormatPicker({ words, onSelect, className = "" }: Pr
                 {f.label}
               </span>
               <span className={`block text-[11px] font-semibold ${disabled ? "" : "text-gray-500 dark:text-slate-400"}`}>
-                {f.description}
+                {noSpeech ? "この端末では音声を再生できません" : f.description}
               </span>
             </span>
             <span className={`shrink-0 text-[11px] font-mono font-black ${disabled
