@@ -198,6 +198,26 @@ export default function Quiz({
     }
   }, [currentIndex, currentQuestion, isFinished, reverseMode]);
 
+  // 数字キー(1〜4)で選択肢を選べるようにする。
+  // パソコンで解くとき、毎問マウスへ手を移すことになっていた
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isFinished || selectedOption !== null || showFeedback !== null) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // 文字を入力しているときは邪魔しない
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      const n = Number(e.key);
+      if (!Number.isInteger(n) || n < 1) return;
+      const option = currentQuestion?.options?.[n - 1];
+      if (option === undefined) return;
+      e.preventDefault();
+      handleSelectOption(option);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   const handleSelectOption = (option: string) => {
     if (selectedOption !== null || showFeedback !== null) return;
     
@@ -525,10 +545,23 @@ export default function Quiz({
                   key={idx}
                   onClick={() => handleSelectOption(option)}
                   disabled={selectedOption !== null}
-                  className={`border rounded-2xl p-4.5 text-left text-sm font-semibold transition-all flex items-center justify-between cursor-pointer group ${btnClass}`}
+                  className={`border rounded-2xl p-4.5 text-left text-sm font-semibold transition-all flex items-center gap-3 cursor-pointer group ${btnClass}`}
                   id={`option_btn_${idx}`}
                 >
-                  <span className={`flex-1 pr-4 ${reverseMode ? "font-mono" : ""}`}>{option}</span>
+                  {/* 数字キーでも選べることを示す。番号が見えていないと使われない。
+                      読み上げと文字の突き合わせには要らないので aria からは隠す */}
+                  <span
+                    aria-hidden="true"
+                    className="hidden sm:flex shrink-0 w-6 h-6 rounded-md border border-current/20 items-center justify-center text-[11px] font-mono font-black opacity-60"
+                  >
+                    {idx + 1}
+                  </span>
+                  <span
+                    data-testid="option_label"
+                    className={`flex-1 pr-4 ${reverseMode ? "font-mono" : ""}`}
+                  >
+                    {option}
+                  </span>
                   <div className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center group-hover:border-indigo-500/40 relative">
                     {selectedOption !== null && isCorrectAnswer && (
                       <Check className="w-3.5 h-3.5 text-emerald-600 stroke-3 absolute" />

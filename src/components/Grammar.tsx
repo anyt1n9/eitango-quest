@@ -34,13 +34,27 @@ interface Props {
   onBackToDashboard: () => void;
   /** 長文や辞書から特定の項目を開いて入ってきたとき */
   initialTopicId?: string | null;
+  /** 開いている項目が変わったことを伝える（URLに反映する） */
+  onOpenTopicChange?: (topicId: string | null) => void;
 }
 
 const STORAGE_KEY = "quest_grammar_progress";
 const WRONG_KEY = "quest_grammar_wrong";
 
-export default function Grammar({ vocabulary, onBackToDashboard, initialTopicId = null }: Props) {
+export default function Grammar({
+  vocabulary, onBackToDashboard, initialTopicId = null, onOpenTopicChange
+}: Props) {
   const [openId, setOpenId] = useState<string | null>(initialTopicId);
+
+  // 外（長文・辞書・URL）から指定が変わったら開き直す
+  useEffect(() => {
+    setOpenId(initialTopicId);
+  }, [initialTopicId]);
+
+  // 開いている項目をURLに反映する
+  useEffect(() => {
+    onOpenTopicChange?.(openId);
+  }, [openId]);
   const [query, setQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState<Level | "all">("all");
   const [progress, setProgress] = useState<GrammarProgress>(() =>

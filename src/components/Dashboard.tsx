@@ -33,10 +33,27 @@ import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr, SrsState } from "../srs";
 import { isMastered, countMastered } from "../mastery";
 import { parseCSV, buildDistractors, normalizeImportedWord } from "../importWords";
+import { writeStored } from "../storage";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
+
+/** レベルのカードへ飛ぶための並び */
+const LEVEL_JUMPS: { level: Level; label: string }[] = [
+  { level: "junior", label: "中学" },
+  { level: "senior", label: "高1" },
+  { level: "senior2", label: "高2" },
+  { level: "senior3", label: "高3" },
+  { level: "advanced", label: "大学・社会人" }
+];
+
+/** 1回のクイズで出す問題数の選択肢 */
+const QUESTION_COUNTS = [
+  { count: 10, label: "10問", desc: "1分ほど" },
+  { count: 50, label: "50問", desc: "5分ほど" },
+  { count: 100, label: "100問", desc: "10分ほど" }
+];
 
 interface WeaknessStat {
   label: string;
@@ -546,8 +563,25 @@ export default function Dashboard({
   const [activeTab, setActiveTab] = useState<"progress" | "ranking" | "bonus" | "ai">("progress");
 
   // 出題単語数選択用のステート
-  const [selectedWordLimitLevel, setSelectedWordLimitLevel] = useState<Level | null>(null);
-  const [tempLimitOption, setTempLimitOption] = useState<number>(10);
+  /**
+   * 1回のクイズで出す問題数。
+   *
+   * 以前は「一問一答」だけモーダルで毎回選ばせ、他の4形式は10問固定だった。
+   * 同じ並びのボタンなのに片方だけ手順が増え、しかも他の形式では
+   * 問題数を選べないという不揃いになっていた。
+   * 設定を1つ持ち、5形式すべてがそれを使う。
+   */
+  /** 単語の取り込み（AI・CSV・PDF）の手順を開いているか。既定は畳む */
+  const [showImportPanel, setShowImportPanel] = useState(false);
+
+  const [questionCount, setQuestionCount] = useState<number>(() => {
+    const v = Number(localStorage.getItem("quest_question_count"));
+    return QUESTION_COUNTS.some(c => c.count === v) ? v : 10;
+  });
+
+  useEffect(() => {
+    writeStored("quest_question_count", String(questionCount));
+  }, [questionCount]);
 
   // 各レベルの単語カウントと習熟度計算
   const getLevelCounts = (level: Level) => {
@@ -795,7 +829,7 @@ export default function Dashboard({
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">英単語 Quest</h1>
           <p className="text-indigo-100 text-sm max-w-md">
-            中高大・社会人の3レベルを完全攻略。AIと連動した自分だけのクイズスタジオ。
+            中学から大学・社会人までの5レベル、7,730語。文法と長文もこの中で完結します。
           </p>
         </div>
 
@@ -930,7 +964,7 @@ export default function Dashboard({
             {onStartReading && (
               <button
                 onClick={onStartReading}
-                className="bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black px-4.5 py-2.5 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1 text-[11px] md:text-xs"
+                className="bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1 text-[11px] md:text-xs"
                 id="dashboard_open_reading_btn"
               >
                 <span>長文を読む ➔</span>
@@ -966,7 +1000,7 @@ export default function Dashboard({
                   navBtn.click();
                 }
               }}
-              className="bg-[#ffffff] hover:bg-[#f3f4f6] text-[#0f172a] text-xs font-black px-4.5 py-2.5 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+              className="bg-white dark:bg-slate-100 hover:bg-gray-100 text-slate-950 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
               id="dashboard_open_diary_btn"
             >
               <span>{masteredTotal >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}</span>
@@ -990,11 +1024,53 @@ export default function Dashboard({
             </div>
             <button
               onClick={onOpenDictionary}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4.5 py-2.5 rounded-xl shadow-xs hover:shadow-md cursor-pointer transition whitespace-nowrap"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4.5 min-h-11 rounded-xl shadow-xs hover:shadow-md cursor-pointer transition whitespace-nowrap"
               id="dashboard_open_dict_btn"
             >
               辞書一覧を開く
             </button>
+          </div>
+
+          {/* 1回の問題数。5形式すべてに効く。
+              以前は一問一答だけモーダルで毎回選ばせ、他の4形式は10問固定だった */}
+          <div
+            className="flex items-center gap-2 flex-wrap bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-4 py-3"
+            data-testid="question_count_picker"
+          >
+            {/* レベルへの飛び先。スマホでは1列に積むので、上級のカードまで
+                3,500px スクロールする必要があった */}
+            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto" data-testid="level_jump">
+              <span className="text-xs font-black text-gray-500 dark:text-slate-400">レベルへ移動</span>
+              {LEVEL_JUMPS.map(item => (
+                <button
+                  key={item.level}
+                  onClick={() => document.getElementById(`${item.level}_level_card`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  id={`btn_jump_${item.level}`}
+                  className="min-h-11 px-3 rounded-xl text-xs font-black border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 transition cursor-pointer whitespace-nowrap"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <span className="w-full sm:w-auto sm:ml-4 text-xs font-black text-gray-500 dark:text-slate-400">1回の問題数</span>
+            {QUESTION_COUNTS.map(item => (
+              <button
+                key={item.count}
+                onClick={() => setQuestionCount(item.count)}
+                id={`btn_question_count_${item.count}`}
+                aria-pressed={questionCount === item.count}
+                className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
+                  questionCount === item.count
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100"
+                }`}
+              >
+                {item.label}
+                <span className="ml-1.5 font-bold opacity-70">{item.desc}</span>
+              </button>
+            ))}
           </div>
 
           {/* クイズレベル選択 - スタイリッシュデザイン */}
@@ -1025,53 +1101,50 @@ export default function Dashboard({
                   <span>覚えた: {juniorStats.correct} 語</span>
                   <span>全 {juniorStats.total} 語</span>
                 </div>
-
-                <div className="mt-4 space-y-2 text-sm text-gray-600 border-t border-gray-50 pt-4">
-                  <p className="text-xs font-semibold text-gray-400">収録語句の例:</p>
-                  <p className="font-mono text-xs text-gray-500">beautiful, library, important, station...</p>
-                </div>
+                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
+                  例: beautiful, library, important, station...
+                </p>
               </div>
 
-              <div className="mt-6 flex flex-col gap-2">
+              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
-                  onClick={() => {
-                    setSelectedWordLimitLevel("junior");
-                    setTempLimitOption(10);
-                  }}
-                  className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-blue-700 shadow-sm hover:shadow transition"
+                  onClick={() => onStartQuiz("junior", "word", questionCount)}
+                  className="w-full bg-blue-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-blue-700 shadow-sm hover:shadow transition"
                   id="btn_junior_word"
                 >
                   一問一答を解く
                 </button>
-                <button
-                  onClick={() => onStartQuiz("junior", "sentence")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                <div className="grid grid-cols-2 gap-2">
+<button
+                  onClick={() => onStartQuiz("junior", "sentence", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_junior_sentence"
                 >
                   例文穴埋めを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("junior", "listening")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  onClick={() => onStartQuiz("junior", "listening", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_junior_listening"
                 >
                   🎧 リスニングを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("junior", "reverse")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  onClick={() => onStartQuiz("junior", "reverse", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_junior_reverse"
                 >
                   🇯🇵 日本語→英単語
                 </button>
                 <button
-                  onClick={() => onStartQuiz("junior", "spelling")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  onClick={() => onStartQuiz("junior", "spelling", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_junior_spelling"
                 >
                   ✏️ 綴りを書く
                 </button>
               </div>
+</div>
             </div>
 
             {/* SENIOR CARD */}
@@ -1099,53 +1172,50 @@ export default function Dashboard({
                   <span>覚えた: {seniorStats.correct} 語</span>
                   <span>全 {seniorStats.total} 語</span>
                 </div>
-
-                <div className="mt-4 space-y-2 text-sm text-gray-600 border-t border-gray-50 pt-4">
-                  <p className="text-xs font-semibold text-gray-400">収録語句の例:</p>
-                  <p className="font-mono text-xs text-gray-500">environment, achieve, technology, protect...</p>
-                </div>
+                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
+                  例: environment, achieve, technology, protect...
+                </p>
               </div>
 
-              <div className="mt-6 flex flex-col gap-2">
+              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
-                  onClick={() => {
-                    setSelectedWordLimitLevel("senior");
-                    setTempLimitOption(10);
-                  }}
-                  className="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-700 shadow-sm hover:shadow transition"
+                  onClick={() => onStartQuiz("senior", "word", questionCount)}
+                  className="w-full bg-emerald-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-emerald-700 shadow-sm hover:shadow transition"
                   id="btn_senior_word"
                 >
                   一問一答を解く
                 </button>
-                <button
-                  onClick={() => onStartQuiz("senior", "sentence")}
-                  className="w-full bg-emerald-50 text-emerald-700 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
+                <div className="grid grid-cols-2 gap-2">
+<button
+                  onClick={() => onStartQuiz("senior", "sentence", questionCount)}
+                  className="bg-emerald-50 text-emerald-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
                   id="btn_senior_sentence"
                 >
                   例文穴埋めを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior", "listening")}
-                  className="w-full bg-emerald-50 text-emerald-700 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
+                  onClick={() => onStartQuiz("senior", "listening", questionCount)}
+                  className="bg-emerald-50 text-emerald-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
                   id="btn_senior_listening"
                 >
                   🎧 リスニングを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior", "reverse")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  onClick={() => onStartQuiz("senior", "reverse", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_senior_reverse"
                 >
                   🇯🇵 日本語→英単語
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior", "spelling")}
-                  className="w-full bg-emerald-50 text-emerald-700 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
+                  onClick={() => onStartQuiz("senior", "spelling", questionCount)}
+                  className="bg-emerald-50 text-emerald-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
                   id="btn_senior_spelling"
                 >
                   ✏️ 綴りを書く
                 </button>
               </div>
+</div>
             </div>
 
             {/* SENIOR2 CARD (高校2年生レベル) */}
@@ -1173,53 +1243,50 @@ export default function Dashboard({
                   <span>覚えた: {senior2Stats.correct} 語</span>
                   <span>全 {senior2Stats.total} 語</span>
                 </div>
-
-                <div className="mt-4 space-y-2 text-sm text-gray-600 border-t border-gray-50 pt-4">
-                  <p className="text-xs font-semibold text-gray-400">収録語句の例:</p>
-                  <p className="font-mono text-xs text-gray-500">skill, tragedy, knowledge, establish...</p>
-                </div>
+                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
+                  例: skill, tragedy, knowledge, establish...
+                </p>
               </div>
 
-              <div className="mt-6 flex flex-col gap-2">
+              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
-                  onClick={() => {
-                    setSelectedWordLimitLevel("senior2");
-                    setTempLimitOption(10);
-                  }}
-                  className="w-full bg-purple-600 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-purple-700 shadow-sm hover:shadow transition"
+                  onClick={() => onStartQuiz("senior2", "word", questionCount)}
+                  className="w-full bg-purple-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-purple-700 shadow-sm hover:shadow transition"
                   id="btn_senior2_word"
                 >
                   一問一答を解く
                 </button>
-                <button
-                  onClick={() => onStartQuiz("senior2", "sentence")}
-                  className="w-full bg-purple-50 text-purple-700 font-bold py-2.5 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
+                <div className="grid grid-cols-2 gap-2">
+<button
+                  onClick={() => onStartQuiz("senior2", "sentence", questionCount)}
+                  className="bg-purple-50 text-purple-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
                   id="btn_senior2_sentence"
                 >
                   例文穴埋めを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior2", "listening")}
-                  className="w-full bg-purple-50 text-purple-700 font-bold py-2.5 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
+                  onClick={() => onStartQuiz("senior2", "listening", questionCount)}
+                  className="bg-purple-50 text-purple-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
                   id="btn_senior2_listening"
                 >
                   🎧 リスニングを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior2", "reverse")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  onClick={() => onStartQuiz("senior2", "reverse", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_senior2_reverse"
                 >
                   🇯🇵 日本語→英単語
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior2", "spelling")}
-                  className="w-full bg-purple-50 text-purple-700 font-bold py-2.5 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
+                  onClick={() => onStartQuiz("senior2", "spelling", questionCount)}
+                  className="bg-purple-50 text-purple-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
                   id="btn_senior2_spelling"
                 >
                   ✏️ 綴りを書く
                 </button>
               </div>
+</div>
             </div>
 
             {/* SENIOR3 CARD (高校3年生レベル) */}
@@ -1247,53 +1314,50 @@ export default function Dashboard({
                   <span>覚えた: {senior3Stats.correct} 語</span>
                   <span>全 {senior3Stats.total} 語</span>
                 </div>
-
-                <div className="mt-4 space-y-2 text-sm text-gray-600 border-t border-gray-50 pt-4">
-                  <p className="text-xs font-semibold text-gray-400">収録語句の例:</p>
-                  <p className="font-mono text-xs text-gray-500">significant, sacrifice, trigger, delight...</p>
-                </div>
+                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
+                  例: significant, sacrifice, trigger, delight...
+                </p>
               </div>
 
-              <div className="mt-6 flex flex-col gap-2">
+              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
-                  onClick={() => {
-                    setSelectedWordLimitLevel("senior3");
-                    setTempLimitOption(10);
-                  }}
-                  className="w-full bg-pink-600 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-pink-700 shadow-sm hover:shadow transition"
+                  onClick={() => onStartQuiz("senior3", "word", questionCount)}
+                  className="w-full bg-pink-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-pink-700 shadow-sm hover:shadow transition"
                   id="btn_senior3_word"
                 >
                   一問一答を解く
                 </button>
-                <button
-                  onClick={() => onStartQuiz("senior3", "sentence")}
-                  className="w-full bg-pink-50 text-pink-700 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
+                <div className="grid grid-cols-2 gap-2">
+<button
+                  onClick={() => onStartQuiz("senior3", "sentence", questionCount)}
+                  className="bg-pink-50 text-pink-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
                   id="btn_senior3_sentence"
                 >
                   例文穴埋めを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior3", "listening")}
-                  className="w-full bg-pink-50 text-pink-700 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
+                  onClick={() => onStartQuiz("senior3", "listening", questionCount)}
+                  className="bg-pink-50 text-pink-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
                   id="btn_senior3_listening"
                 >
                   🎧 リスニングを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior3", "reverse")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  onClick={() => onStartQuiz("senior3", "reverse", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_senior3_reverse"
                 >
                   🇯🇵 日本語→英単語
                 </button>
                 <button
-                  onClick={() => onStartQuiz("senior3", "spelling")}
-                  className="w-full bg-pink-50 text-pink-700 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
+                  onClick={() => onStartQuiz("senior3", "spelling", questionCount)}
+                  className="bg-pink-50 text-pink-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
                   id="btn_senior3_spelling"
                 >
                   ✏️ 綴りを書く
                 </button>
               </div>
+</div>
             </div>
 
             {/* ADVANCED CARD */}
@@ -1321,53 +1385,50 @@ export default function Dashboard({
                   <span>覚えた: {advancedStats.correct} 語</span>
                   <span>全 {advancedStats.total} 語</span>
                 </div>
-
-                <div className="mt-4 space-y-2 text-sm text-gray-600 border-t border-gray-50 pt-4">
-                  <p className="text-xs font-semibold text-gray-400">収録語句の例:</p>
-                  <p className="font-mono text-xs text-gray-500">comprehensive, architecture, constraint, execution...</p>
-                </div>
+                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
+                  例: comprehensive, architecture, constraint, execution...
+                </p>
               </div>
 
-              <div className="mt-6 flex flex-col gap-2">
+              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
-                  onClick={() => {
-                    setSelectedWordLimitLevel("advanced");
-                    setTempLimitOption(10);
-                  }}
-                  className="w-full bg-amber-600 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-amber-700 shadow-sm hover:shadow transition"
+                  onClick={() => onStartQuiz("advanced", "word", questionCount)}
+                  className="w-full bg-amber-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-amber-700 shadow-sm hover:shadow transition"
                   id="btn_advanced_word"
                 >
                   一問一答を解く
                 </button>
-                <button
-                  onClick={() => onStartQuiz("advanced", "sentence")}
-                  className="w-full bg-amber-50 text-amber-700 font-bold py-2.5 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
+                <div className="grid grid-cols-2 gap-2">
+<button
+                  onClick={() => onStartQuiz("advanced", "sentence", questionCount)}
+                  className="bg-amber-50 text-amber-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
                   id="btn_advanced_sentence"
                 >
                   例文穴埋めを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("advanced", "listening")}
-                  className="w-full bg-amber-50 text-amber-700 font-bold py-2.5 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
+                  onClick={() => onStartQuiz("advanced", "listening", questionCount)}
+                  className="bg-amber-50 text-amber-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
                   id="btn_advanced_listening"
                 >
                   🎧 リスニングを解く
                 </button>
                 <button
-                  onClick={() => onStartQuiz("advanced", "reverse")}
-                  className="w-full bg-blue-50 text-blue-700 font-bold py-2.5 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
+                  onClick={() => onStartQuiz("advanced", "reverse", questionCount)}
+                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
                   id="btn_advanced_reverse"
                 >
                   🇯🇵 日本語→英単語
                 </button>
                 <button
-                  onClick={() => onStartQuiz("advanced", "spelling")}
-                  className="w-full bg-amber-50 text-amber-700 font-bold py-2.5 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
+                  onClick={() => onStartQuiz("advanced", "spelling", questionCount)}
+                  className="bg-amber-50 text-amber-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
                   id="btn_advanced_spelling"
                 >
                   ✏️ 綴りを書く
                 </button>
               </div>
+</div>
             </div>
 
           </div>
@@ -1392,7 +1453,20 @@ export default function Dashboard({
                 自分で追加したい英単語をAIで精密分析して1件ずつ追加するか、CSVやPDFファイルを使ってあなた独自の辞書を劇的に拡張できます！
               </p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6 pt-6 border-t border-gray-100">
+              {/* 取り込みの手順は縦に1,200px あり、毎日の学習では使わない。
+                  既定では畳んでおき、必要なときだけ開く */}
+              <button
+                type="button"
+                onClick={() => setShowImportPanel(v => !v)}
+                aria-expanded={showImportPanel}
+                id="btn_toggle_import_panel"
+                className="mt-4 w-full min-h-11 px-4 rounded-xl border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100 text-indigo-800 text-xs font-black transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                {showImportPanel ? "追加の手順を閉じる" : "単語を自分で追加する（AI・CSV・PDF）"}
+              </button>
+
+              {showImportPanel && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6 pt-6 border-t border-gray-100" data-testid="import_panel">
                 {/* 左側：AIで個別追加 */}
                 <div className="flex flex-col justify-between pr-0 lg:pr-8 lg:border-r lg:border-gray-100">
                   <div>
@@ -1411,13 +1485,13 @@ export default function Dashboard({
                         value={newWord}
                         onChange={handleWordInputChange}
                         disabled={isAdding}
-                        className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold font-mono text-sm placeholder-gray-400"
+                        className="flex-1 px-4 min-h-11 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold font-mono text-sm placeholder-gray-400"
                         id="input_new_word"
                       />
                       <button
                         type="submit"
                         disabled={isAdding || !newWord.trim()}
-                        className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold px-5 rounded-xl transition flex items-center gap-1.5 shadow hover:shadow-md cursor-pointer text-xs whitespace-nowrap"
+                        className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold px-5 min-h-11 rounded-xl transition flex items-center gap-1.5 shadow hover:shadow-md cursor-pointer text-xs whitespace-nowrap"
                         id="btn_submit_add_word"
                       >
                         {isAdding ? (
@@ -1500,7 +1574,7 @@ export default function Dashboard({
                                 key={lvl}
                                 type="button"
                                 onClick={() => setDefaultCsvLevel(lvl)}
-                                className={`px-2 py-1 rounded-md text-[10px] font-black transition cursor-pointer ${
+                                className={`px-3 min-h-11 rounded-md text-[11px] font-black transition cursor-pointer ${
                                   defaultCsvLevel === lvl 
                                     ? "bg-white text-emerald-700 shadow-sm" 
                                     : "text-gray-500 hover:text-gray-800"
@@ -1668,6 +1742,7 @@ export default function Dashboard({
                   </div>
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
@@ -2045,79 +2120,6 @@ export default function Dashboard({
           </div>
         </div>
       )}
-
-      {/* 出題単語数選択モーダル。
-          overflow-y-auto + items-start + my-auto にしているのは、画面が低いとき
-          （スマートフォンの横向きなど）にモーダルが縦にはみ出し、スクロールもできず
-          「スタート」ボタンが画面外に出て押せなくなっていたため。
-          余裕があるときは中央に、足りないときは上寄せ＋スクロールで全体に手が届く。 */}
-      {selectedWordLimitLevel !== null && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-start justify-center z-50 p-4 overflow-y-auto transition-all" id="word_count_modal">
-          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative my-auto transform scale-100 transition-transform duration-300">
-            <h3 className="text-xl font-black text-gray-900 dark:text-slate-100 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
-              <span>一問一答の出題単語数を選択</span>
-            </h3>
-            <p className="text-xs text-gray-400 dark:text-slate-500 font-mono mt-1">Select the number of vocabulary words for this quiz</p>
-
-            <div className="mt-5 space-y-3">
-              {[
-                { count: 10, label: "10単語", desc: "お気軽クイック学習 (目標: 1分)" },
-                { count: 50, label: "50単語", desc: "しっかり集中トレーニング (目標: 5分)" },
-                { count: 100, label: "100単語", desc: "本気の限界挑戦テスト (目標: 10分)" }
-              ].map((item) => {
-                const isSelected = tempLimitOption === item.count;
-                return (
-                  <button
-                    key={item.count}
-                    type="button"
-                    onClick={() => setTempLimitOption(item.count)}
-                    className={`w-full text-left p-4.5 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${
-                      isSelected
-                        ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500 dark:border-indigo-400 text-indigo-950 dark:text-indigo-200 shadow-3xs"
-                        : "bg-gray-50/55 dark:bg-slate-850 hover:bg-gray-100 dark:hover:bg-slate-800 border-gray-200 dark:border-slate-800 text-gray-700 dark:text-slate-450"
-                    }`}
-                  >
-                    <div className="flex flex-col">
-                      <p className="font-extrabold text-sm flex items-center gap-2">
-                        <span className={`w-3 h-3 rounded-full border-2 border-indigo-500 flex items-center justify-center ${isSelected ? "bg-indigo-600 dark:bg-indigo-400" : "bg-transparent"}`} />
-                        <span>{item.label}</span>
-                      </p>
-                      <p className="text-[11px] text-gray-450 dark:text-slate-500 font-semibold mt-1.5 ml-5">
-                        {item.desc}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-6 flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setSelectedWordLimitLevel(null)}
-                className="flex-1 py-3.5 border border-gray-200 dark:border-slate-800 hover:bg-gray-150 dark:hover:bg-slate-800 text-gray-500 dark:text-slate-400 font-bold rounded-xl text-xs transition cursor-pointer text-center"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedWordLimitLevel) {
-                    onStartQuiz(selectedWordLimitLevel, "word", tempLimitOption);
-                    setSelectedWordLimitLevel(null);
-                  }
-                }}
-                className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs transition shadow-md hover:shadow-lg cursor-pointer text-center"
-                id="btn_confirm_word_count"
-              >
-                スタート ➔
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* CSVテンプレートモーダル */}
       {showCsvTemplateModal && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-start justify-center z-50 p-4 overflow-y-auto" id="csv_template_modal">

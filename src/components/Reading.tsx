@@ -19,11 +19,16 @@ interface ReadingProps {
   setWrongWords: React.Dispatch<React.SetStateAction<string[]>>;
   /** 文法ガイドの該当項目を開く */
   onOpenGrammar?: (topicId: string) => void;
+  /** URLから指定された長文（読み返せるようにするため） */
+  initialPassageId?: string | null;
+  /** 開いている長文が変わったことを伝える（URLに反映する） */
+  onOpenPassageChange?: (passageId: string | null) => void;
 }
 
 export default function Reading({
   stats, setStats, onBackToDashboard, updateRankingScore,
-  vocabulary, wrongWords, setWrongWords, onOpenGrammar
+  vocabulary, wrongWords, setWrongWords, onOpenGrammar,
+  initialPassageId = null, onOpenPassageChange
 }: ReadingProps) {
   // 文法の題名だけを引く。解説の本体は重いので、必要な題名だけを取り出して捨てる
   const [grammarTitles, setGrammarTitles] = useState<Record<string, string>>({});
@@ -37,7 +42,15 @@ export default function Reading({
   }, []);
 
   const [selectedPassage, setSelectedPassage] = useState<Passage | null>(null);
-  const [showJapanese, setShowJapanese] = useState(true);
+  // 日本語訳を出すかどうかは学習の仕方そのもの（暗記確認は隠して読む）。
+  // 毎回「表示する」に戻ると、開くたびに切り直すことになる
+  const [showJapanese, setShowJapanese] = useState<boolean>(
+    () => localStorage.getItem("quest_reading_show_ja") !== "false"
+  );
+
+  useEffect(() => {
+    writeStored("quest_reading_show_ja", showJapanese ? "true" : "false");
+  }, [showJapanese]);
   const [selectedWordObj, setSelectedWordObj] = useState<{ word: string; translation: string } | null>(null);
   
   // 読了済みの長文IDを管理するローカルステート
@@ -60,6 +73,23 @@ export default function Reading({
   }, [customPassages]);
 
   const allPassages = [...passages, ...customPassages];
+
+  // URLで指定された長文を開く（再読み込みや共有されたリンクから入ってきたとき）。
+  // 見つからないIDは黙って一覧のままにする
+  useEffect(() => {
+    if (!initialPassageId) {
+      if (initialPassageId === null && selectedPassage === null) return;
+      return;
+    }
+    if (selectedPassage?.id === initialPassageId) return;
+    const found = allPassages.find(p => p.id === initialPassageId);
+    if (found) setSelectedPassage(found);
+  }, [initialPassageId, customPassages]);
+
+  // 開いている長文をURLに反映する
+  useEffect(() => {
+    onOpenPassageChange?.(selectedPassage?.id ?? null);
+  }, [selectedPassage]);
 
   // AI長文生成用のステート
   const [genLevel, setGenLevel] = useState<Level>("junior");

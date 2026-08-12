@@ -19,6 +19,7 @@ import VerbFormsScreen from "./components/VerbForms";
 import Grammar from "./components/Grammar";
 import QuizFormatPicker from "./components/QuizFormatPicker";
 import { QuizFormat, QUIZ_FORMAT_LABELS, wordsForFormat } from "./quizFormats";
+import { Screen, Route, pathToRoute, routeToPath, resolveOnEntry } from "./routes";
 import DataBackup from "./components/DataBackup";
 import GachaShop from "./components/GachaShop";
 import AdBanner from "./components/AdBanner";
@@ -253,7 +254,12 @@ export default function App() {
 
 
   // 3. ルーティング
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz" | "reverse_quiz" | "review" | "review_quiz" | "dictionary" | "grammar" | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review" | "settings" | "gacha" | "privacy" | "terms">("dashboard");
+  //
+  // 画面ごとにURLを持つ。持たせていなかったときは、ホーム画面に追加して使うと
+  // 端末の戻るボタンで前の画面に戻らずアプリごと閉じ、再読み込みでも
+  // 必ずダッシュボードに戻されていた。
+  const initialRoute = resolveOnEntry(pathToRoute(window.location.pathname));
+  const [currentScreen, setCurrentScreen] = useState<Screen>(initialRoute.screen);
   const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
 
@@ -271,8 +277,14 @@ export default function App() {
    * null のあいだは形式の選択画面を出す。
    */
   const [reviewFormat, setReviewFormat] = useState<QuizFormat | null>(null);
-  // 長文や辞書から文法ガイドへ移ったとき、開くべき項目
-  const [grammarTopicId, setGrammarTopicId] = useState<string | null>(null);
+  // 長文や辞書から文法ガイドへ移ったとき、開くべき項目（URLからも入る）
+  const [grammarTopicId, setGrammarTopicId] = useState<string | null>(
+    initialRoute.screen === "grammar" ? initialRoute.param ?? null : null
+  );
+  // 開いている長文（URLに持たせて、読み返せるようにする）
+  const [openPassageId, setOpenPassageId] = useState<string | null>(
+    initialRoute.screen === "reading" ? initialRoute.param ?? null : null
+  );
   /** 苦手単語の復習を「一覧」ではなくクイズとして解いているときの出題対象 */
   const [wrongSessionWords, setWrongSessionWords] = useState<Word[]>([]);
 
@@ -283,6 +295,52 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [currentScreen]);
 
+  /** 画面を切り替え、URLも進める */
+  const navigate = useCallback((screen: Screen, param?: string | null) => {
+    const path = routeToPath({ screen, param: param ?? undefined });
+    if (path !== window.location.pathname) {
+      window.history.pushState({ screen, param: param ?? null }, "", path);
+    }
+    setCurrentScreen(screen);
+    setGrammarTopicId(screen === "grammar" ? param ?? null : null);
+    setOpenPassageId(screen === "reading" ? param ?? null : null);
+  }, []);
+
+  /**
+   * 同じ画面の中で開いているもの（文法項目・長文）が変わったときにURLだけ差し替える。
+   * 履歴を積まないので、戻るを押すと画面ごと前へ戻る
+   * （長文を1本ずつ遡らされることにならない）。
+   */
+  const replaceParam = useCallback((screen: Screen, param: string | null) => {
+    const path = routeToPath({ screen, param: param ?? undefined });
+    if (path !== window.location.pathname) {
+      window.history.replaceState({ screen, param }, "", path);
+    }
+  }, []);
+
+  // 戻る・進むでURLが変わったら、その画面へ移る
+  useEffect(() => {
+    const onPop = () => {
+      const next = resolveOnEntry(pathToRoute(window.location.pathname));
+      setSrsSessionWords([]);
+      setWrongSessionWords([]);
+      setReviewFormat(null);
+      setCurrentScreen(next.screen);
+      setGrammarTopicId(next.screen === "grammar" ? next.param ?? null : null);
+      setOpenPassageId(next.screen === "reading" ? next.param ?? null : null);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // 知らないパスや、URLからは復元できない画面で開かれたときにURLを整える
+  useEffect(() => {
+    const path = routeToPath(initialRoute);
+    if (path !== window.location.pathname) {
+      window.history.replaceState({ screen: initialRoute.screen }, "", path);
+    }
+  }, []);
+
   const handleStartQuiz = (
     level: Level,
     type: "word" | "sentence" | "listening" | "spelling" | "reverse",
@@ -290,7 +348,7 @@ export default function App() {
   ) => {
     setSelectedLevel(level);
     setQuizQuestionCount(count);
-    setCurrentScreen(
+    navigate(
       type === "word" ? "quiz"
         : type === "listening" ? "listening_quiz"
         : type === "spelling" ? "spelling_quiz"
@@ -303,8 +361,7 @@ export default function App() {
     setSrsSessionWords([]);
     setWrongSessionWords([]);
     setReviewFormat(null);
-    setGrammarTopicId(null);
-    setCurrentScreen("dashboard");
+    navigate("dashboard");
   };
 
   /**
@@ -312,8 +369,7 @@ export default function App() {
    * 長文で詰まった文法や、辞書で見た文型の説明へ、その場から移れるようにする。
    */
   const openGrammarTopic = (topicId: string) => {
-    setGrammarTopicId(topicId);
-    setCurrentScreen("grammar");
+    navigate("grammar", topicId);
   };
 
   // 自分のランキングスコアのバーストアップデート
@@ -523,14 +579,17 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          {/* 機能への入口。スマホでは折り返さず横スクロールにする。
+              折り返すと10個で約300px を占め、本文に着くまで指1本ぶん送る必要があった。
+              高さは指針どおり44px以上にする（以前は30px） */}
+          <div className="flex flex-nowrap sm:flex-wrap items-center gap-2.5 overflow-x-auto sm:overflow-visible -mx-6 px-6 sm:mx-0 sm:px-0 pb-1 sm:pb-0">
             {/* クイズなど集中画面では機能ボタン群を隠す */}
             {!isFocusScreen && (
             <>
             {/* 長文読破 Quest ボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "reading" ? "dashboard" : "reading")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "reading" ? "dashboard" : "reading")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "reading"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-705"
@@ -543,8 +602,8 @@ export default function App() {
 
             {/* 単語一覧辞書ボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "dictionary" ? "dashboard" : "dictionary")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "dictionary" ? "dashboard" : "dictionary")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "dictionary"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-705"
@@ -557,8 +616,8 @@ export default function App() {
 
             {/* AIつながりマップ・パズルボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "map_puzzle" ? "dashboard" : "map_puzzle")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "map_puzzle" ? "dashboard" : "map_puzzle")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "map_puzzle"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-705"
@@ -571,8 +630,8 @@ export default function App() {
 
             {/* AI英語日記ボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "diary" ? "dashboard" : "diary")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "diary" ? "dashboard" : "diary")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "diary"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100"
                   : "bg-gradient-to-r from-amber-50 to-amber-100 dark:from-slate-800 dark:to-slate-850 text-amber-950 dark:text-amber-300 hover:opacity-90 border-amber-200/55 dark:border-slate-700"
@@ -588,8 +647,8 @@ export default function App() {
 
             {/* 動詞の活用表ボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "verb_forms" ? "dashboard" : "verb_forms")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "verb_forms" ? "dashboard" : "verb_forms")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "verb_forms"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
@@ -602,8 +661,8 @@ export default function App() {
 
             {/* 文法ガイドボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "grammar" ? "dashboard" : "grammar")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "grammar" ? "dashboard" : "grammar")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "grammar"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
@@ -623,10 +682,10 @@ export default function App() {
                 } else {
                   // 復習セッション開始時点の対象単語を固定する
                   setSrsSessionWords(dueWords);
-                  setCurrentScreen("srs_review");
+                  navigate("srs_review");
                 }
               }}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              className={`relative flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "srs_review"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
@@ -645,8 +704,8 @@ export default function App() {
 
             {/* ごほうびガチャボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "gacha" ? "dashboard" : "gacha")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "gacha" ? "dashboard" : "gacha")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "gacha"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
                   : "bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-slate-800 dark:to-slate-850 text-violet-800 dark:text-violet-300 hover:opacity-90 border-violet-200/55 dark:border-slate-700"
@@ -660,8 +719,8 @@ export default function App() {
 
             {/* データ設定・バックアップボタン */}
             <button
-              onClick={() => setCurrentScreen(currentScreen === "settings" ? "dashboard" : "settings")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer ${
+              onClick={() => navigate(currentScreen === "settings" ? "dashboard" : "settings")}
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "settings"
                   ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
@@ -677,7 +736,7 @@ export default function App() {
 
             {/* 今日の学習目標チップ */}
             <div
-              className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-xl text-xs font-bold font-mono shadow-inner ${
+              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 border rounded-xl text-xs font-bold font-mono shadow-inner whitespace-nowrap ${
                 goalReached
                   ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300"
                   : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400"
@@ -688,7 +747,7 @@ export default function App() {
               <span>{todayCount}/{dailyGoal}</span>
             </div>
 
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 font-mono shadow-inner border-gray-200 dark:border-slate-700">
+            <div className="hidden sm:flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 bg-gray-50 dark:bg-slate-800 border rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 font-mono shadow-inner border-gray-200 dark:border-slate-700">
               <Compass className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
               <span>Ver 1.6.0</span>
             </div>
@@ -696,7 +755,7 @@ export default function App() {
             {/* テーマ切り替えボタン (Sun/Moon Toggle) */}
             <button
               onClick={() => setIsDark(!isDark)}
-              className="p-1.5 rounded-xl border border-gray-200 dark:border-slate-750 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-750 dark:text-slate-200 transition cursor-pointer select-none"
+              className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-750 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-750 dark:text-slate-200 transition cursor-pointer select-none"
               title={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
               id="theme_toggle_btn"
             >
@@ -707,7 +766,7 @@ export default function App() {
               )}
             </button>
             
-            <div className="px-3 py-1.5 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 rounded-xl flex items-center gap-1.5">
+            <div className="shrink-0 px-3.5 min-h-11 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 rounded-xl flex items-center gap-1.5">
               <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200 font-mono">{stats.score} <span className="text-[10px] text-indigo-400 dark:text-indigo-500">P</span></span>
             </div>
@@ -727,15 +786,15 @@ export default function App() {
             srsData={srsData}
             wrongWords={wrongWords}
             onStartQuiz={handleStartQuiz}
-            onStartReview={() => setCurrentScreen("review")}
-            onOpenDictionary={() => setCurrentScreen("dictionary")}
-            onStartReading={() => setCurrentScreen("reading")}
+            onStartReview={() => navigate("review")}
+            onOpenDictionary={() => navigate("dictionary")}
+            onStartReading={() => navigate("reading")}
             ranking={ranking}
             setRanking={setRanking}
             dailyLog={dailyLog}
             dailyGoal={dailyGoal}
             equipped={equipped}
-            onOpenGachaShop={() => setCurrentScreen("gacha")}
+            onOpenGachaShop={() => navigate("gacha")}
           />
         )}
 
@@ -837,7 +896,7 @@ export default function App() {
               const wrongSet = new Set(wrongWords);
               setWrongSessionWords(vocabulary.filter(w => wrongSet.has(w.id)));
               setReviewFormat(format);
-              setCurrentScreen("review_quiz");
+              navigate("review_quiz");
             }}
           />
         )}
@@ -863,6 +922,8 @@ export default function App() {
             wrongWords={wrongWords}
             setWrongWords={setWrongWords}
             onOpenGrammar={openGrammarTopic}
+            initialPassageId={openPassageId}
+            onOpenPassageChange={id => replaceParam("reading", id)}
           />
         )}
 
@@ -880,6 +941,7 @@ export default function App() {
             vocabulary={vocabulary}
             onBackToDashboard={handleBackToDashboard}
             initialTopicId={grammarTopicId}
+            onOpenTopicChange={id => replaceParam("grammar", id)}
           />
         )}
 
@@ -989,15 +1051,15 @@ export default function App() {
             </a>
             <span className="text-gray-200 dark:text-slate-800">|</span>
             <button
-              onClick={() => setCurrentScreen("privacy")}
-              className="hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              onClick={() => navigate("privacy")}
+              className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
             >
               プライバシーポリシー
             </button>
             <span className="text-gray-200 dark:text-slate-800">|</span>
             <button
-              onClick={() => setCurrentScreen("terms")}
-              className="hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              onClick={() => navigate("terms")}
+              className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
             >
               利用規約
             </button>

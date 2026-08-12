@@ -50,6 +50,13 @@ function optionButtons() {
   return within(container).getAllByRole("button");
 }
 
+/** 選択肢の文言だけを取り出す（ボタンには番号の飾りも入っているため） */
+function optionLabels() {
+  return optionButtons().map(
+    b => within(b).getByTestId("option_label").textContent
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -59,7 +66,7 @@ describe("英→日モード（既定）", () => {
     renderQuiz();
     expect(screen.getByRole("heading", { name: "beautiful" })).toBeInTheDocument();
     expect(screen.getByText("英単語の意味を選択")).toBeInTheDocument();
-    const labels = optionButtons().map(b => b.textContent);
+    const labels = optionLabels();
     expect(labels).toHaveLength(4);
     expect(labels.join("")).toContain("美しい");
     // 選択肢に英単語が混ざっていない
@@ -77,7 +84,7 @@ describe("日→英モード", () => {
     renderQuiz({ reverseMode: true });
     expect(screen.getByRole("heading", { name: "美しい" })).toBeInTheDocument();
     expect(screen.getByText("日本語に合う英単語を選択")).toBeInTheDocument();
-    const labels = optionButtons().map(b => b.textContent);
+    const labels = optionLabels();
     expect(labels).toHaveLength(4);
     expect(labels).toContain("beautiful");
   });
@@ -101,7 +108,7 @@ describe("日→英モード", () => {
   it("正解の判定は英単語の綴りで行う", async () => {
     const user = userEvent.setup();
     const { recordAnswer } = renderQuiz({ reverseMode: true });
-    await user.click(optionButtons().find(b => b.textContent === "beautiful")!);
+    await user.click(optionButtons()[optionLabels().indexOf("beautiful")]);
     expect(recordAnswer).toHaveBeenCalledWith("w_beautiful", true);
   });
 });
@@ -173,5 +180,40 @@ describe("進行", () => {
     renderQuiz({ vocabulary: [], customWords: [] });
     expect(screen.getByText("英単語クイズの準備をしています...")).toBeInTheDocument();
     expect(document.getElementById("quiz_options_container")).toBeNull();
+  });
+});
+
+describe("キーボードで解く", () => {
+  it("数字キーで選択肢を選べる", async () => {
+    // パソコンで解くとき、毎問マウスへ手を移すことになっていた
+    const user = userEvent.setup();
+    const { recordAnswer } = renderQuiz();
+    const labels = optionLabels();
+    const correctAt = labels.indexOf("美しい");
+    expect(correctAt).toBeGreaterThanOrEqual(0);
+    await user.keyboard(String(correctAt + 1));
+    expect(recordAnswer).toHaveBeenCalledWith("w_beautiful", true);
+  });
+
+  it("選択肢の数を超える番号では何も起きない", async () => {
+    const user = userEvent.setup();
+    const { recordAnswer } = renderQuiz();
+    await user.keyboard("9");
+    expect(recordAnswer).not.toHaveBeenCalled();
+  });
+
+  it("一度答えたら、番号を押しても二重に記録しない", async () => {
+    const user = userEvent.setup();
+    const { recordAnswer } = renderQuiz();
+    await user.keyboard("1");
+    await user.keyboard("2");
+    expect(recordAnswer).toHaveBeenCalledTimes(1);
+  });
+
+  it("選択肢に番号を表示する", () => {
+    // 押せることが見えていなければ使われない
+    renderQuiz();
+    const first = optionButtons()[0];
+    expect(first).toHaveTextContent("1");
   });
 });

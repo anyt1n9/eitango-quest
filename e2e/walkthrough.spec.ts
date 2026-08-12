@@ -153,6 +153,54 @@ test("日→英クイズで答えの綴りを見せない", async ({ page }) => 
   expect(text).not.toMatch(/^[a-zA-Z\s'-]+$/);
 });
 
+test("画面ごとにURLが変わり、戻るでアプリが閉じない", async ({ page }) => {
+  // ホーム画面に追加して使う（standalone）ため、端末の戻るで
+  // 前の画面に戻らないとアプリごと閉じてしまう
+  await page.goto("/");
+  await waitForVocabulary(page);
+
+  await page.locator("#nav_grammar_toggle_btn").click();
+  await expect(page).toHaveURL(/\/grammar$/);
+
+  await page.locator("#grammar_topic_g_present_perfect").click();
+  await expect(page).toHaveURL(/\/grammar\/g_present_perfect$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#btn_junior_reverse")).toBeVisible();
+});
+
+test("リンクから文法項目を直接開ける", async ({ page }) => {
+  await page.goto("/grammar/g_present_perfect");
+  await expect(page.locator("#grammar_detail")).toBeVisible({ timeout: 30_000 });
+});
+
+test("読んでいた長文は再読み込みしても開いたまま", async ({ page }) => {
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await page.getByText("長文読破 Quest").first().click();
+  await page.getByText("The Secret of the Old Library").first().click();
+  await expect(page).toHaveURL(/\/reading\/p1$/);
+
+  await page.reload();
+  await expect(page.locator("#passage_text_container")).toBeVisible({ timeout: 30_000 });
+});
+
+test("知らないパスでも白い画面にならない", async ({ page }) => {
+  await page.goto("/no-such-page");
+  await expect(page.locator("#btn_junior_reverse")).toBeVisible({ timeout: 30_000 });
+});
+
+test("5つの形式がどれも同じ手順で始まる", async ({ page }) => {
+  // 一問一答だけ問題数のモーダルを挟んでいた
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await page.locator("#btn_question_count_50").click();
+  await page.locator("#btn_junior_word").click();
+  await expect(page.locator("#quiz_options_container")).toBeVisible();
+  await expect(page.getByText("Q: 1 / 50")).toBeVisible();
+});
+
 test("学習データを書き出すと、文法の進捗も含まれる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
