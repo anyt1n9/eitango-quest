@@ -32,8 +32,86 @@ const POS_FIXES: Record<string, string> = {
   were: "verb",
   been: "verb",
   // 訳「一人で」から名詞と推定されていたが副詞
-  alone: "adverb"
+  alone: "adverb",
+
+  // ここから下は、辞書(WordNet)がその品詞を記録しておらず、
+  // かつ実測(SemCor)の使用割合が50%以上ある品詞へ寄せたもの。
+  // 訳と突き合わせて1語ずつ確認した（DESERTED_ON_PURPOSE も参照）。
+  nevertheless: "adverb",
+  celebration: "noun",
+  variety: "noun",
+  overseas: "adverb",
+  hesitate: "verb",
+  incorrect: "adjective",
+  asleep: "adjective",
+  commit: "verb",
+  annoy: "verb",
+  controversial: "adjective",
+  quite: "adverb",
+  dozen: "noun",
+  mystery: "noun",
+  relevant: "adjective",
+  jewish: "adjective",   // 照合は小文字で行う
+  elaborate: "adjective",
+  accustomed: "adjective",
+  apart: "adverb",
+  behalf: "noun",
+  greeting: "noun",
+  applicable: "adjective",
+  transact: "verb",
+  loose: "adjective",
+  adjacent: "adjective",
+  disabled: "adjective",
+  wilt: "verb",
+  mere: "adjective",
+  revival: "noun",
+  antitrust: "adjective",
+  sympathetic: "adjective",
+  misanthrope: "noun",
+  want: "verb",
+  ask: "verb",
+  call: "verb",
+  chief: "adjective",
+  pardon: "verb",
+  set: "verb",
+  besides: "adverb",
+  elsewhere: "adverb",
+  musical: "adjective",
+  aside: "adverb",
+  jealous: "adjective",
+  paddle: "verb",
+  prominent: "adjective",
+  protective: "adjective",
+  upward: "adverb",
+  astonishing: "adjective",
+  compassionate: "adjective",
+  costly: "adjective",
+  enduring: "adjective",
+  influential: "adjective",
+  manual: "noun",
+  outdo: "verb",
+  salty: "adjective",
+  taunt: "verb",
+  thrilling: "adjective",
+  untie: "verb",
+  enterprising: "adjective",
+  gnaw: "verb",
+  gruesome: "adjective",
+  intrinsic: "adjective",
+  macabre: "adjective",
+  nascent: "adjective",
+  unoccupied: "adjective",
+  veritable: "adjective"
 };
+
+/**
+ * 実測の割合では別の品詞が優勢だが、**この教材が教えている訳**は別の品詞なので
+ * 変えなかった語。割合だけで機械的に寄せると、画面上で訳と品詞が食い違う。
+ *   desert   … 訳「砂漠」は名詞。動詞69%は「見捨てる」の意味
+ *   orient   … 訳「東洋」は名詞。動詞83%は「方向づける」の意味
+ *   downtown … 訳「中心街へ」は副詞的。形容詞54%と差も小さい
+ */
+const KEPT_ON_PURPOSE = ["desert", "orient", "downtown"];
 
 const file = path.join(process.cwd(), "src/data/vocabulary.ts");
 const source = fs.readFileSync(file, "utf8");
@@ -92,5 +170,51 @@ for (const w of rebuild) {
 }
 
 fs.writeFileSync(file, source.slice(0, start) + JSON.stringify(words) + source.slice(end), "utf8");
-console.log(`${changed.length}語の品詞を直し、${rebuild.length}語の四択を作り直しました:`);
+
+/*
+ * 品詞を変えると、品詞に結び付いた他のデータも合わなくなる。
+ *   語義(senses.ts) … 「教材が教えている品詞の語義には用例を付けない」
+ *                     （単語データ側に例文があるため）という決まりに引っかかる
+ *   語法(wordUsage.ts) … 文型は動詞として教えている語にだけ付ける。
+ *                        動詞でなくなった語に文型が残ると、名詞に動詞の語法が出る
+ * どちらも生成し直すには通信と .cache が要るので、ここで該当箇所だけ落とす。
+ */
+const fixedIds = new Set(targets.map(w => String(w.id)));
+const fixedPos = new Map(targets.map(w => [String(w.id), String(w.pos)]));
+
+const sensesFile = path.join(process.cwd(), "src/data/senses.ts");
+const sensesSrc = fs.readFileSync(sensesFile, "utf8");
+const sStart = sensesSrc.indexOf("{", sensesSrc.indexOf("wordSenses"));
+const sEnd = sensesSrc.lastIndexOf("};") + 1;
+const senses: Record<string, any[]> = JSON.parse(sensesSrc.slice(sStart, sEnd));
+let droppedUsage = 0;
+for (const [id, list] of Object.entries(senses)) {
+  const pos = fixedPos.get(id);
+  if (!pos || !Array.isArray(list)) continue;
+  for (const sense of list) {
+    if (sense.usage && sense.pos === pos) { delete sense.usage; droppedUsage++; }
+  }
+}
+if (droppedUsage > 0) {
+  fs.writeFileSync(sensesFile, sensesSrc.slice(0, sStart) + JSON.stringify(senses) + sensesSrc.slice(sEnd), "utf8");
+}
+
+const usageFile = path.join(process.cwd(), "src/data/wordUsage.ts");
+const usageSrc = fs.readFileSync(usageFile, "utf8");
+const uStart = usageSrc.indexOf("{", usageSrc.indexOf("wordUsage"));
+const uEnd = usageSrc.lastIndexOf("};") + 1;
+const usage: Record<string, any> = JSON.parse(usageSrc.slice(uStart, uEnd));
+let droppedPatterns = 0;
+for (const id of Object.keys(usage)) {
+  if (!fixedIds.has(id)) continue;
+  if (fixedPos.get(id) === "verb") continue;
+  if (usage[id]?.patterns?.length) { delete usage[id].patterns; droppedPatterns++; }
+  if (Object.keys(usage[id]).length === 0) delete usage[id];
+}
+if (droppedPatterns > 0) {
+  fs.writeFileSync(usageFile, usageSrc.slice(0, uStart) + JSON.stringify(usage) + usageSrc.slice(uEnd), "utf8");
+}
+console.log(`語義の用例を${droppedUsage}件、動詞でなくなった語の文型を${droppedPatterns}件外しました`);
+console.log(`${changed.length}語の品詞を直し、${rebuild.length}語の四択を作り直しました`);
+console.log(`（訳と食い違うため意図的に変えなかった語: ${KEPT_ON_PURPOSE.join(", ")}）`);
 for (const line of changed) console.log("  " + line);
