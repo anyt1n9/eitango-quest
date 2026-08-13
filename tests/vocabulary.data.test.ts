@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { initialVocabulary } from "../src/data/vocabulary";
 import { PartOfSpeech } from "../src/types";
 import { senses } from "./helpers";
+import { wordSenses } from "../src/data/senses";
 import {
   ADJ_ATTR, ADJ_STATE, DETERMINER_LIKE, firstSense, NOUN, VERB_TRANS, VERB_INTRANS,
   ADJ_QUALITY, ADV, OTHER
@@ -269,5 +270,78 @@ describe("四択（例文の空所に入る英単語を選ぶ問題）", () => {
       }),
       w => `${w.id}:${w.word}(${w.pos}) ${w.sentenceOptions.join(" / ")}`
     )).toEqual([]);
+  });
+});
+
+describe("品詞は一般的に使われるものに合わせる", () => {
+  /**
+   * 品詞は綴りと訳からの推定で焼き込んでいるため外れることがある。
+   * 辞書(WordNet)がその品詞を記録しておらず、しかも実測(SemCor)の
+   * 使用割合が別の品詞に偏っているなら、推定のほうが間違っている。
+   *
+   * ただし機械的に寄せてはいけない。この教材が教えている訳が別の品詞の
+   * ことがある（desert は「砂漠」で名詞だが、動詞69%は「見捨てる」の意味）。
+   * そういう語は理由を書いてここに並べ、意図して残していることを示す。
+   *
+   * 直すときは scripts/fix_pos.ts の POS_FIXES に足して回す
+   * （四択の誤答・語義の用例・動詞の文型もまとめて作り直される）。
+   */
+  const KEPT_ON_PURPOSE: Record<string, string> = {
+    desert: "訳「砂漠」は名詞。動詞69%は「見捨てる」の意味",
+    orient: "訳「東洋」は名詞。動詞83%は「方向づける」の意味",
+    downtown: "訳「中心街へ」は副詞的で、形容詞54%とは差も小さい"
+  };
+
+  /** 実測の割合が最も高い品詞。同率・データ無しのときは null */
+  function dominantPos(id: string): { pos: string; share: number } | null {
+    const list = wordSenses[id];
+    if (!Array.isArray(list) || list.length === 0) return null;
+    const share = new Map<string, number>();
+    for (const s of list) if (typeof s.share === "number") share.set(s.pos, s.share);
+    if (share.size === 0) return null;
+    const sorted = [...share.entries()].sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 1 && sorted[1][1] === sorted[0][1]) return null;
+    return { pos: sorted[0][0], share: sorted[0][1] };
+  }
+
+  it("辞書が記録していない品詞のまま残っている語は、理由を書いたものだけ", () => {
+    const bad: string[] = [];
+    for (const w of V) {
+      // 句・イディオムは辞書の見出しと対応しないので対象外
+      if (!/^[a-zA-Z][a-zA-Z'-]*$/.test(w.word.trim())) continue;
+      const list = wordSenses[w.id];
+      if (!Array.isArray(list) || list.length === 0) continue;
+      const posInDict = new Set(list.filter(s => typeof s.share === "number").map(s => s.pos));
+      if (posInDict.size === 0 || posInDict.has(w.pos)) continue;
+      const top = dominantPos(w.id);
+      if (!top || top.share < 50) continue;
+      if (w.word.toLowerCase() in KEPT_ON_PURPOSE) continue;
+      bad.push(`${w.word}: ${w.pos} → ${top.pos} (${top.share}%)`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("意図して残した語には理由が書いてある", () => {
+    for (const [word, reason] of Object.entries(KEPT_ON_PURPOSE)) {
+      expect(reason.length, word).toBeGreaterThan(10);
+      expect(V.some(w => w.word.toLowerCase() === word), word).toBe(true);
+    }
+  });
+
+  it("よく使う語の品詞が正しい", () => {
+    // 名指しで固定する。絞り込みで最初に目に付く語
+    const expected: Record<string, string> = {
+      almost: "adverb", nevertheless: "adverb", quite: "adverb", apart: "adverb",
+      want: "verb", ask: "verb", call: "verb", be: "verb", is: "verb", are: "verb",
+      asleep: "adjective", relevant: "adjective", incorrect: "adjective",
+      celebration: "noun", greeting: "noun"
+    };
+    const bad: string[] = [];
+    for (const [word, pos] of Object.entries(expected)) {
+      const w = V.find(x => x.word.toLowerCase() === word);
+      if (!w) { bad.push(`${word}: 収録されていない`); continue; }
+      if (w.pos !== pos) bad.push(`${word}: ${w.pos}（${pos} のはず）`);
+    }
+    expect(bad).toEqual([]);
   });
 });
