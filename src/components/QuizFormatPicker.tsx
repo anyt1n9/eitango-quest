@@ -67,7 +67,7 @@ export default function QuizFormatPicker({ words, onSelect, className = "" }: Pr
             </span>
             <span className={`shrink-0 text-[11px] font-mono font-black ${disabled
               ? ""
-              : "text-indigo-700 dark:text-indigo-300"}`}>
+              : "text-indigo-700"}`}>
               {count}語
             </span>
           </button>

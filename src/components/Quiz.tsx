@@ -358,6 +358,13 @@ export default function Quiz({
               showFeedback === "correct" ? "bg-emerald-500/10" : "bg-rose-500/10"
             }`}
           >
+            {/* 〇×は絵で見せているだけなので、読み上げには言葉で伝える。
+                これが無いと、画面を読み上げて使う人には正誤が分からない */}
+            <span className="sr-only" role="status" aria-live="polite">
+              {showFeedback === "correct"
+                ? "正解です"
+                : `不正解です。正解は ${currentQuestion?.word ?? ""}、${currentQuestion?.translation ?? ""}`}
+            </span>
             {showFeedback === "correct" ? (
               <motion.div
                 initial={{ scale: 0, rotate: -45 }}
@@ -366,7 +373,8 @@ export default function Quiz({
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 className="w-48 h-48 rounded-full border-16 border-emerald-500 flex items-center justify-center bg-white shadow-2xl"
               >
-                <span className="text-emerald-500 font-extrabold text-9xl leading-none">〇</span>
+                {/* -500 は白い丸の上で 2.47 しかない（大きな文字の基準は 3.0） */}
+                <span className="text-emerald-600 font-extrabold text-9xl leading-none">〇</span>
               </motion.div>
             ) : (
               <div className="flex flex-col items-center gap-4">

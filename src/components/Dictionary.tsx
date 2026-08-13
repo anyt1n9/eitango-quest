@@ -431,16 +431,16 @@ export default function Dictionary({
         {/* 総単語数カウンタ */}
         <div className="flex gap-2 text-right">
           <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3 px-4 shadow-2xs">
-            <span className="text-[10px] text-indigo-400 font-black tracking-wider block uppercase">全収録単語数</span>
+            <span className="text-[10px] text-indigo-600 font-black tracking-wider block uppercase">全収録単語数</span>
             <span className="font-black text-xl text-indigo-950 font-mono">{vocabulary.length}</span>
-            <span className="text-xs text-indigo-400 font-bold ml-1">語</span>
+            <span className="text-xs text-indigo-600 font-bold ml-1">語</span>
           </div>
           <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 px-4 shadow-2xs">
-            <span className="text-[10px] text-emerald-400 font-black tracking-wider block uppercase">習得済み単語</span>
+            <span className="text-[10px] text-emerald-700 font-black tracking-wider block uppercase">習得済み単語</span>
             <span className="font-black text-xl text-emerald-950 font-mono">
               {masteredCount}
             </span>
-            <span className="text-xs text-emerald-400 font-bold ml-1">語</span>
+            <span className="text-xs text-emerald-700 font-bold ml-1">語</span>
           </div>
         </div>
       </div>
@@ -539,7 +539,7 @@ export default function Dictionary({
               >
                 <span>{tab.label}</span>
                 <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
-                  isActive ? "bg-white/20 text-white" : "bg-gray-200/60 text-gray-500"
+                  isActive ? "bg-black/20 text-white" : "bg-gray-200/60 text-gray-600"
                 }`}>
                   {count}
                 </span>
@@ -571,7 +571,7 @@ export default function Dictionary({
               >
                 <span>{tab.label}</span>
                 <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
-                  isActive ? "bg-white/20 text-white" : "bg-gray-200/60 text-gray-500"
+                  isActive ? "bg-black/20 text-white" : "bg-gray-200/60 text-gray-600"
                 }`}>
                   {count}
                 </span>

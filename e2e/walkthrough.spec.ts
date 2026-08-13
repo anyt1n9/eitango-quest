@@ -302,6 +302,152 @@ test("不正解のときの正しい綴りが、明暗どちらのテーマで�
   }
 });
 
+/**
+ * 画面に出ている文字を全部たどって、基準（WCAG AA）に届かないものを挙げる。
+ *
+ * 1か所ずつ測っていると、直した色の隣で新しく壊れたものに気づけない。
+ * 実際、暗いテーマ用に文字を明るくしたとき、対になる背景を明るいまま
+ * 残してしまい、明るい地に明るい文字という逆向きの不具合を作っている。
+ *
+ * - 半透明の背景は親までさかのぼって重ねてから測る
+ * - グラデーションの上は1色に決まらないので測らない
+ * - aria-hidden の飾り（区切りの「|」など）は読ませる文字ではないので外す
+ */
+const LOW_CONTRAST = () => {
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 1;
+  const ctx = cv.getContext("2d")!;
+  const toRGBA = (c: string) => {
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = c;
+    ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
+  };
+  const over = (fg: number[], bg: number[]) =>
+    [0, 1, 2].map(i => Math.round(fg[i] * fg[3] + bg[i] * (1 - fg[3])));
+  const skip = (e: Element) => {
+    let x: Element | null = e;
+    while (x) {
+      if (getComputedStyle(x).backgroundImage !== "none") return true;
+      if (x.getAttribute("aria-hidden") === "true") return true;
+      x = x.parentElement;
+    }
+    return false;
+  };
+  const stack = (e: Element) => {
+    const layers: number[][] = [];
+    let x: Element | null = e;
+    while (x) {
+      const v = toRGBA(getComputedStyle(x).backgroundColor);
+      if (v[3] > 0) layers.push(v);
+      x = x.parentElement;
+    }
+    let base = [255, 255, 255];
+    for (let i = layers.length - 1; i >= 0; i--) base = over(layers[i], [...base, 1]);
+    return base;
+  };
+  const lum = ([r, g, b]: number[]) => {
+    const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const bad: string[] = [];
+  for (const e of document.querySelectorAll("*")) {
+    if (e.children.length) continue;
+    const t = (e.textContent || "").trim();
+    if (!t) continue;
+    const r = e.getBoundingClientRect();
+    if (r.width < 4 || r.height < 6) continue;
+    const s = getComputedStyle(e);
+    if (s.visibility === "hidden" || s.opacity === "0" || skip(e)) continue;
+    const fg = toRGBA(s.color);
+    if (fg[3] === 0) continue;
+    const size = parseFloat(s.fontSize), weight = Number(s.fontWeight) || 400;
+    // 大きな文字（24px以上、または太字18.66px以上）だけ基準がゆるい
+    const need = size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5;
+    const l1 = lum([fg[0], fg[1], fg[2]]), l2 = lum(stack(e));
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    if (ratio >= need) continue;
+    bad.push(`${ratio.toFixed(2)}（要 ${need}） ${size}px「${t.slice(0, 20)}」`);
+  }
+  return [...new Set(bad)];
+};
+
+test("どの画面も、明暗どちらのテーマでも文字が読める", async ({ page }) => {
+  test.slow();
+  for (const theme of ["light", "dark"]) {
+    await page.goto("/");
+    await page.evaluate(t => localStorage.setItem("quest_theme", t), theme);
+
+    for (const [name, path, anchor] of [
+      ["ダッシュボード", "/", "#btn_junior_reverse"],
+      ["辞書", "/dictionary", "#dictionary_words_container"],
+      ["文法ガイド", "/grammar", "#grammar_screen"],
+      ["長文一覧", "/reading", "#passages_grid_container"],
+      ["活用表", "/verb-forms", "#verb_forms_screen"]
+    ]) {
+      await page.goto(path);
+      await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
+      await expect(page.locator(anchor)).toBeVisible();
+      expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${name}`).toEqual([]);
+    }
+
+    // 出題中と、答え合わせの直後
+    await page.goto("/");
+    await waitForVocabulary(page);
+    await page.locator("#btn_junior_word").click();
+    await expect(page.locator("#quiz_options_container")).toBeVisible();
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / 出題中`).toEqual([]);
+    await page.locator("#quiz_options_container button").last().click();
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / 答え合わせ`).toEqual([]);
+  }
+});
+
+test("キーボードで移動した先が分かる", async ({ page }) => {
+  // ブラウザ既定の outline は auto 1px のほぼ黒で、暗いテーマでは見えない
+  for (const theme of ["light", "dark"]) {
+    await page.goto("/");
+    await page.evaluate(t => localStorage.setItem("quest_theme", t), theme);
+    await page.reload();
+    await waitForVocabulary(page);
+
+    await page.keyboard.press("Tab");
+    const ring = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body) return null;
+      const s = getComputedStyle(el);
+      return { tag: el.tagName, width: parseFloat(s.outlineWidth), style: s.outlineStyle };
+    });
+    expect(ring, theme).not.toBeNull();
+    expect(ring!.style, theme).not.toBe("none");
+    expect(ring!.width, theme).toBeGreaterThanOrEqual(2);
+  }
+});
+
+test("解答の正誤が読み上げにも伝わる", async ({ page }) => {
+  // 〇×は絵で見せているだけなので、読み上げには言葉が要る
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await page.locator("#btn_junior_word").click();
+  await expect(page.locator("#quiz_options_container")).toBeVisible();
+  await page.locator("#quiz_options_container button").first().click();
+
+  const status = page.locator('[role="status"]').first();
+  await expect(status).toHaveAttribute("aria-live", "polite");
+  await expect(status).toContainText(/正解|不正解/);
+});
+
+test("長文はキーボードだけで開ける", async ({ page }) => {
+  // 一覧のカードは div なので、Tab では素通りしていた
+  await page.goto("/reading");
+  await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
+  const open = page.locator("#passages_grid_container button").first();
+  await open.focus();
+  await open.press("Enter");
+  await expect(page.locator("#passage_detail_screen")).toBeVisible();
+});
+
 test("学習データを書き出すと、文法の進捗も含まれる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);

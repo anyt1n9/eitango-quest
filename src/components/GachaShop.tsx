@@ -218,7 +218,7 @@ export default function GachaShop({
             <button
               onClick={() => setActiveTab("avatar")}
               className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                activeTab === "avatar" ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                activeTab === "avatar" ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               アバター ({avatarPool.filter(r => ownedRewardIds.includes(r.id)).length}/{avatarPool.length})
@@ -226,7 +226,7 @@ export default function GachaShop({
             <button
               onClick={() => setActiveTab("title")}
               className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer ${
-                activeTab === "title" ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                activeTab === "title" ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               称号 ({titlePool.filter(r => ownedRewardIds.includes(r.id)).length}/{titlePool.length})

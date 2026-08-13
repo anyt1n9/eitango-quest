@@ -307,7 +307,7 @@ export default function MapAndPuzzle({
             <button
               type="submit"
               disabled={isLoading || !searchWord.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 disabled:text-gray-400 text-white font-bold px-5 rounded-xl transition flex items-center gap-1.5 shadow select-none cursor-pointer text-xs"
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 disabled:text-gray-600 text-white font-bold px-5 rounded-xl transition flex items-center gap-1.5 shadow select-none cursor-pointer text-xs"
               id="btn_map_search_submit"
             >
               {isLoading ? (
@@ -446,7 +446,7 @@ export default function MapAndPuzzle({
                       {/* 音声再生 */}
                       <button
                         onClick={() => speakWord(node.word)}
-                        className="p-1 px-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-500 hover:text-indigo-600 transition flex items-center gap-1 select-none cursor-pointer text-[10px] font-bold"
+                        className="p-1 px-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 hover:text-indigo-600 transition flex items-center gap-1 select-none cursor-pointer text-[10px] font-bold"
                         title="音声を発音する"
                       >
                         <Volume2 className="w-3.5 h-3.5" />
