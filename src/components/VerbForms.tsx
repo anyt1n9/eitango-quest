@@ -171,7 +171,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
               onClick={() => setLevel(l)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
                 level === l
-                  ? "bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 border-slate-800 dark:border-slate-200"
+                  ? "bg-slate-800 text-white border-slate-800"
                   : "bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-700"
               }`}
             >

@@ -106,25 +106,114 @@
 .dark .text-rose-800 { color: #fb7185 !important; }
 .dark .text-rose-900 { color: #fda4af !important; }
 
-/* Eye-safe backgrounds for levels highlights */
-.dark .bg-emerald-50\/70, .dark .bg-emerald-50 {
+/* -700 も置き換える。-800 だけを対象にしていたため、
+   bg-*-50 の上に置いた text-*-700（レベルカードのクイズボタンなど）は
+   背景だけが暗くなり、暗い背景に暗い文字が残っていた
+   （実測 purple 2.13 / blue 2.16 / pink 2.57 / emerald 2.61 / amber 2.74。基準は4.5）。 */
+.dark .text-emerald-700 { color: #34d399 !important; }
+.dark .text-blue-700 { color: #60a5fa !important; }
+.dark .text-purple-700 { color: #c084fc !important; }
+.dark .text-pink-700 { color: #f472b6 !important; }
+.dark .text-amber-700 { color: #fbbf24 !important; }
+.dark .text-sky-700 { color: #38bdf8 !important; }
+.dark .text-indigo-700 { color: #a5b4fc !important; }
+.dark .text-violet-700 { color: #c4b5fd !important; }
+.dark .text-teal-700 { color: #2dd4bf !important; }
+.dark .text-orange-700 { color: #fb923c !important; }
+.dark .text-red-700 { color: #f87171 !important; }
+.dark .text-green-700 { color: #4ade80 !important; }
+.dark .text-yellow-700 { color: #facc15 !important; }
+.dark .text-slate-700 { color: #cbd5e1 !important; }
+
+/* 暗いテーマは --color-white を紺(#0f172a)に置き換えている。
+   bg-white を紺のカードにするためだが、text-white も同じ変数を見るので、
+   色付きボタンの白文字が紺になっていた（実測 3.22）。
+   文字だけ白に戻す（背景の置き換えはそのまま）。 */
+.dark .text-white { color: #f8fafc !important; }
+
+/* 補助的な小さい文字。明るいテーマで 2.60、暗いテーマで 2.36 しかなかった。
+   text- だけを対象にする（border-gray-400 / bg-gray-400 には触らない）。 */
+.text-gray-400 { color: #6b7280 !important; }
+.dark .text-gray-400 { color: #94a3b8 !important; }
+
+/* キーボードで操作している場所を見えるようにする。
+   ブラウザ既定の outline は auto 1px rgb(16,16,16) で、
+   暗いテーマではほぼ見えなかった。 */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.dark :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline-color: #a5b4fc;
+}
+
+/* Eye-safe backgrounds for levels highlights.
+   透過つき（bg-emerald-50/40 など）もまとめて拾う。
+   /70 だけを書いていたため、bg-emerald-50/40 の枠は暗いテーマでも明るいまま残り、
+   中の文字（暗いテーマ用に明るくした色）が読めなくなっていた（実測 1.09）。 */
+.dark [class~="bg-emerald-50"], .dark [class*="bg-emerald-50/"] {
   background-color: rgba(16, 185, 129, 0.15) !important;
 }
-.dark .bg-blue-50\/70, .dark .bg-blue-50 {
+.dark [class~="bg-blue-50"], .dark [class*="bg-blue-50/"] {
   background-color: rgba(59, 130, 246, 0.15) !important;
 }
-.dark .bg-purple-50\/70, .dark .bg-purple-50 {
+.dark [class~="bg-purple-50"], .dark [class*="bg-purple-50/"] {
   background-color: rgba(168, 85, 247, 0.15) !important;
 }
-.dark .bg-pink-50\/70, .dark .bg-pink-50 {
+.dark [class~="bg-pink-50"], .dark [class*="bg-pink-50/"] {
   background-color: rgba(236, 72, 153, 0.15) !important;
 }
-.dark .bg-amber-50\/70, .dark .bg-amber-50 {
+.dark [class~="bg-amber-50"], .dark [class*="bg-amber-50/"] {
   background-color: rgba(245, 158, 11, 0.15) !important;
 }
-.dark .bg-rose-50\/70, .dark .bg-rose-50 {
+.dark [class~="bg-rose-50"], .dark [class*="bg-rose-50/"] {
   background-color: rgba(244, 63, 94, 0.15) !important;
 }
+.dark [class~="bg-sky-50"], .dark [class*="bg-sky-50/"] {
+  background-color: rgba(14, 165, 233, 0.15) !important;
+}
+.dark [class~="bg-teal-50"], .dark [class*="bg-teal-50/"] {
+  background-color: rgba(20, 184, 166, 0.15) !important;
+}
+
+/* -100 の背景も暗くする。-50 だけを対象にしていたため、
+   bg-*-100 の見出し（レベルの「初級 (中学生レベル)」など）は明るいまま残り、
+   上の text-*-700 を明るくした結果、明るい背景に明るい文字になっていた。
+   背景と文字は必ず対で置き換える。 */
+.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.22) !important; }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.22) !important; }
+.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.22) !important; }
+.dark .bg-pink-100 { background-color: rgba(236, 72, 153, 0.22) !important; }
+.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.22) !important; }
+.dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.22) !important; }
+.dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.22) !important; }
+.dark .bg-sky-100 { background-color: rgba(14, 165, 233, 0.22) !important; }
+.dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.22) !important; }
+/* 例文の穴埋め記号（bg-yellow-100 text-yellow-900）。実測 1.23 */
+.dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.22) !important; }
+
+/* indigo の背景。変数は文字色に合わせて反転させてあるため
+   （text-indigo-950 が明るく出るように --color-indigo-950 を白寄りにしている）、
+   同じ変数を見る bg-indigo-* は暗いテーマで逆に明るくなる。
+   その上に白文字を載せていたので、主要なボタンが軒並み基準割れしていた
+   （実測 4.27。12px の文字に必要なのは 4.5）。背景だけここで暗くする。 */
+.dark .bg-indigo-500 { background-color: #4f46e5 !important; }
+.dark .bg-indigo-600, .dark .bg-indigo-600\/60 { background-color: #4338ca !important; }
+.dark .bg-indigo-700 { background-color: #3730a3 !important; }
+.dark .hover\:bg-indigo-700:hover { background-color: #3730a3 !important; }
+.dark .hover\:bg-indigo-800:hover { background-color: #312e81 !important; }
+
+/* 同じ理由で、文字色も暗いテーマでは -600 が沈む（実測 4.00）。
+   -700 以上は上の一覧で明るくしてあるので、-600 をここで揃える。 */
+.dark .text-indigo-600 { color: #818cf8 !important; }
+
+/* -50 の背景に載せる -950 の文字。emerald 系は変数を反転していないので、
+   背景（.dark .bg-emerald-50）だけが暗くなり文字は暗いままだった（実測 1.08）。 */
+.dark .text-emerald-950, .dark .text-emerald-900 { color: #6ee7b7 !important; }
+.dark .text-rose-950 { color: #fda4af !important; }
+.dark .text-amber-950, .dark .text-amber-900 { color: #fcd34d !important; }
+.dark .text-yellow-900 { color: #fde047 !important; }
 
 /* Level Borders contrast */
 .dark .border-emerald-250, .dark .border-emerald-200 { border-color: rgba(16, 185, 129, 0.45) !important; }

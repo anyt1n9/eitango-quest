@@ -876,9 +876,17 @@ export default function Reading({
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
-                  <span className="text-xs font-black text-indigo-600 group-hover:translate-x-1 transition-all flex items-center gap-0.5">
+                  {/* カード全体にも onClick は付けてあるが、div はキーボードで
+                      たどり着けない。Tab で長文を開けるよう、ここはボタンにする
+                      （カード自体を button にすると、上の削除ボタンが入れ子になる）。 */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setSelectedPassage(p); }}
+                    className="text-xs font-black text-indigo-600 group-hover:translate-x-1 transition-all flex items-center gap-0.5 cursor-pointer"
+                    aria-label={`${p.title} を読む`}
+                  >
                     読む ➔
-                  </span>
+                  </button>
                 </div>
               </div>
             </div>

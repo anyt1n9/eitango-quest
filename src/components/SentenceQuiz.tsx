@@ -334,6 +334,12 @@ export default function SentenceQuiz({
               showFeedback === "correct" ? "bg-emerald-500/10" : "bg-rose-500/10"
             }`}
           >
+            {/* 〇×は絵なので、読み上げには言葉で伝える */}
+            <span className="sr-only" role="status" aria-live="polite">
+              {showFeedback === "correct"
+                ? "正解です"
+                : `不正解です。正解は ${currentQuestion?.word ?? ""}、${currentQuestion?.translation ?? ""}`}
+            </span>
             {showFeedback === "correct" ? (
               <motion.div
                 initial={{ scale: 0, rotate: -45 }}
@@ -342,7 +348,8 @@ export default function SentenceQuiz({
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 className="w-48 h-48 rounded-full border-16 border-emerald-500 flex items-center justify-center bg-white shadow-2xl"
               >
-                <span className="text-emerald-500 font-extrabold text-9xl leading-none">〇</span>
+                {/* -500 は白い丸の上で 2.47 しかない（大きな文字の基準は 3.0） */}
+                <span className="text-emerald-600 font-extrabold text-9xl leading-none">〇</span>
               </motion.div>
             ) : (
               <div className="flex flex-col items-center gap-4">
@@ -421,7 +428,7 @@ export default function SentenceQuiz({
 
           {/* 穴埋め例文の出題 */}
           <div className="space-y-6 my-6 relative bg-gray-50/50 p-6 rounded-2xl border border-gray-100 text-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
               穴埋めに当てはまる英単語を選択
             </span>
             

@@ -413,6 +413,9 @@ export default function SpellingQuiz({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
+              // 正誤とその理由（正しい綴り）を読み上げにも伝える
+              role="status"
+              aria-live="polite"
               className={`mt-5 rounded-2xl p-4 border text-center ${
                 judged === "correct" ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"
               }`}

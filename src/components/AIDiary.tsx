@@ -313,7 +313,7 @@ export default function AIDiary({
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-extrabold text-indigo-700 bg-indigo-55 dark:bg-indigo-950 px-3 py-1 rounded-full uppercase tracking-wider font-mono">
+          <span className="text-xs font-extrabold text-indigo-700 bg-indigo-55 px-3 py-1 rounded-full uppercase tracking-wider font-mono">
             Premium Mode
           </span>
         </div>
@@ -327,7 +327,7 @@ export default function AIDiary({
 
         <div className="space-y-3 z-10 max-w-xl">
           <div className="flex items-center gap-3">
-            <span className="p-2 bg-indigo-50 dark:bg-indigo-950/50 rounded-2xl text-indigo-700 dark:text-indigo-400">
+            <span className="p-2 bg-indigo-50 rounded-2xl text-indigo-700 dark:text-indigo-400">
               {isUnlocked ? <Unlock className="w-6 h-6 animate-pulse" /> : <Lock className="w-6 h-6 text-gray-400" />}
             </span>
             <div>
@@ -354,7 +354,7 @@ export default function AIDiary({
                 {Math.min(100, Math.round((masteredCount / 200) * 100))}% Unlocked
               </span>
             </div>
-            <div className="w-full h-3.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-indigo-50/50 dark:border-indigo-900/10">
+            <div className="w-full h-3.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-indigo-50/50">
               <div 
                 className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 dark:from-indigo-600 dark:to-indigo-500 rounded-full transition-all duration-500 shadow-3xs"
                 style={{ width: `${Math.min(100, (masteredCount / 200) * 100)}%` }}
@@ -414,7 +414,7 @@ export default function AIDiary({
                   {/* ヘッダー・スタンプ風 */}
                   <div className="bg-gradient-to-r from-gray-50 to-indigo-50/20 dark:from-slate-850 dark:to-slate-900 border-b border-gray-100 dark:border-slate-800 py-4 px-6 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="p-1.5 bg-indigo-100 dark:bg-indigo-950 rounded-lg text-[13px] text-indigo-700 dark:text-indigo-400 font-black uppercase font-mono">
+                      <span className="p-1.5 bg-indigo-100 rounded-lg text-[13px] text-indigo-700 dark:text-indigo-400 font-black uppercase font-mono">
                         Diary
                       </span>
                       <span className="text-[11px] text-gray-400 dark:text-slate-500 font-extrabold tracking-tight flex items-center gap-1">
@@ -428,7 +428,7 @@ export default function AIDiary({
                         onClick={() => setShowTranslation(!showTranslation)}
                         className={`px-3 py-1 text-[11px] font-bold rounded-lg border transition ${
                           showTranslation
-                            ? "bg-indigo-50 dark:bg-indigo-950 border-indigo-100 dark:border-indigo-900 text-indigo-700 dark:text-indigo-300"
+                            ? "bg-indigo-50 border-indigo-100 text-indigo-700"
                             : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800"
                         }`}
                         id="toggle_translation_btn"
@@ -508,7 +508,7 @@ export default function AIDiary({
 
                     {/* 日記のタイトル */}
                     <div>
-                      <h3 className="text-xl md:text-2xl font-extrabold text-indigo-950 dark:text-indigo-200 font-sans tracking-tight">
+                      <h3 className="text-xl md:text-2xl font-extrabold text-indigo-950 font-sans tracking-tight">
                         {diary.title}
                       </h3>
                       <div className="h-1.5 w-12 bg-amber-400 rounded-full mt-2" />
@@ -532,10 +532,10 @@ export default function AIDiary({
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
-                        className="bg-indigo-50/30 dark:bg-indigo-950/20 border border-indigo-100/40 dark:border-indigo-900/40 rounded-xl p-5"
+                        className="bg-indigo-50/30 border border-indigo-100/40 rounded-xl p-5"
                       >
                         <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold mb-1">日本語訳:</p>
-                        <p className="text-sm text-indigo-950 dark:text-indigo-300 font-medium leading-relaxed leading-normal">
+                        <p className="text-sm text-indigo-950 font-medium leading-relaxed leading-normal">
                           {diary.diaryTranslation}
                         </p>
                       </motion.div>
@@ -627,6 +627,16 @@ export default function AIDiary({
                     return (
                       <div
                         key={hEntry.id}
+                        role="button"
+                        tabIndex={0}
+                        // div のままではキーボードでたどり着けず、過去の日記を開けない
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter" && e.key !== " ") return;
+                          e.preventDefault();
+                          if (isDeleteConfirm) return;
+                          setDiary(hEntry);
+                          playLocalSound("sparkle");
+                        }}
                         onClick={() => {
                           if (isDeleteConfirm) return;
                           setDiary(hEntry);
@@ -634,7 +644,7 @@ export default function AIDiary({
                         }}
                         className={`text-left p-3 rounded-2xl border transition-all cursor-pointer select-none relative group overflow-hidden ${
                           isActive
-                            ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-900/60 shadow-sm"
+                            ? "bg-indigo-50/70 border-indigo-200 shadow-sm"
                             : "bg-gray-50/50 dark:bg-slate-850 hover:bg-gray-150 dark:hover:bg-slate-800 border-gray-150 dark:border-slate-800"
                         }`}
                       >
@@ -668,7 +678,7 @@ export default function AIDiary({
                             {hEntry.date}
                           </span>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-indigo-600 dark:text-indigo-400 font-black text-[9px] bg-indigo-100/50 dark:bg-indigo-950 px-1.5 py-0.5 rounded">
+                            <span className="text-indigo-600 dark:text-indigo-400 font-black text-[9px] bg-indigo-100/50 px-1.5 py-0.5 rounded">
                               {hEntry.usedWords.length}語使用
                             </span>
                             <button

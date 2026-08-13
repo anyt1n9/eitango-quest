@@ -591,7 +591,7 @@ export default function App() {
               onClick={() => navigate(currentScreen === "map_puzzle" ? "dashboard" : "map_puzzle")}
               className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "map_puzzle"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 shadow-indigo-100 dark:shadow-none"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-100 dark:shadow-none"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-705"
               }`}
               id="nav_map_puzzle_toggle_btn"
@@ -613,7 +613,7 @@ export default function App() {
               }}
               className={`relative flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "srs_review"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
+                  ? "bg-indigo-600 text-white border-indigo-600"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
               }`}
               id="nav_srs_review_btn"
@@ -633,7 +633,7 @@ export default function App() {
               onClick={() => navigate(currentScreen === "gacha" ? "dashboard" : "gacha")}
               className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "gacha"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
+                  ? "bg-indigo-600 text-white border-indigo-600"
                   : "bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-slate-800 dark:to-slate-850 text-violet-800 dark:text-violet-300 hover:opacity-90 border-violet-200/55 dark:border-slate-700"
               }`}
               id="nav_gacha_btn"
@@ -648,7 +648,7 @@ export default function App() {
               onClick={() => navigate(currentScreen === "settings" ? "dashboard" : "settings")}
               className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
                 currentScreen === "settings"
-                  ? "bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500"
+                  ? "bg-indigo-600 text-white border-indigo-600"
                   : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
               }`}
               id="nav_settings_btn"
@@ -692,9 +692,12 @@ export default function App() {
               )}
             </button>
             
-            <div className="shrink-0 px-3.5 min-h-11 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 rounded-xl flex items-center gap-1.5">
+            {/* 暗いテーマでは indigo の変数そのものを反転させている（index.css）。
+                dark: を重ねると二重に反転して、暗い地に暗い文字が載る
+                （「P」の実測 1.58）。ここでは変数の反転に任せる。 */}
+            <div className="shrink-0 px-3.5 min-h-11 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center gap-1.5">
               <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200 font-mono">{stats.score} <span className="text-[10px] text-indigo-400 dark:text-indigo-500">P</span></span>
+              <span className="text-xs font-bold text-indigo-950 font-mono">{stats.score} <span className="text-[10px] text-indigo-600 dark:text-indigo-400">P</span></span>
             </div>
           </div>
         </div>
@@ -980,21 +983,21 @@ export default function App() {
             >
               アプリケーション説明
             </a>
-            <span className="text-gray-200 dark:text-slate-800">|</span>
+            <span aria-hidden="true" className="text-gray-300 dark:text-slate-600">|</span>
             <button
               onClick={() => navigate("privacy")}
               className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
             >
               プライバシーポリシー
             </button>
-            <span className="text-gray-200 dark:text-slate-800">|</span>
+            <span aria-hidden="true" className="text-gray-300 dark:text-slate-600">|</span>
             <button
               onClick={() => navigate("terms")}
               className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
             >
               利用規約
             </button>
-            <span className="text-gray-200 dark:text-slate-800">|</span>
+            <span aria-hidden="true" className="text-gray-300 dark:text-slate-600">|</span>
             <div className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
               <span>Powered by Gemini 3.5 Flash</span>
               <ExternalLink className="w-3 h-3" />

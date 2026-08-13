@@ -51,7 +51,7 @@ const REFERENCE_ENTRIES = [
     title: "単語一覧辞書",
     description: "収録語を検索し、語義・使用割合・文型・語族・例文を確かめる",
     icon: BookOpen,
-    tone: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300"
+    tone: "bg-indigo-50 text-indigo-600"
   },
   {
     id: "verb_forms",
@@ -986,7 +986,7 @@ export default function Dashboard({
               </div>
               <button
                 onClick={onStartReview}
-                className="bg-rose-600 text-white font-bold hover:bg-rose-700 transition px-6 py-3 rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap group text-sm md:text-base"
+                className="bg-rose-700 text-white font-bold hover:bg-rose-800 transition px-6 py-3 rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap group text-sm md:text-base"
                 id="btn_start_review"
               >
                 <span>復習をスタートする</span>
@@ -1045,7 +1045,7 @@ export default function Dashboard({
             </div>
             <button
               onClick={onOpenDiary}
-              className="bg-white dark:bg-slate-100 hover:bg-gray-100 text-slate-950 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+              className="bg-white hover:bg-gray-100 text-slate-950 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
               id="dashboard_open_diary_btn"
             >
               <span>{masteredTotal >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}</span>
@@ -1154,7 +1154,7 @@ export default function Dashboard({
               <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
                   onClick={() => onStartQuiz("junior", "word", questionCount)}
-                  className="w-full bg-blue-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-blue-700 shadow-sm hover:shadow transition"
+                  className="w-full bg-blue-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-blue-800 shadow-sm hover:shadow transition"
                   id="btn_junior_word"
                 >
                   一問一答を解く
@@ -1225,7 +1225,7 @@ export default function Dashboard({
               <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
                   onClick={() => onStartQuiz("senior", "word", questionCount)}
-                  className="w-full bg-emerald-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-emerald-700 shadow-sm hover:shadow transition"
+                  className="w-full bg-emerald-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-emerald-800 shadow-sm hover:shadow transition"
                   id="btn_senior_word"
                 >
                   一問一答を解く
@@ -1296,7 +1296,7 @@ export default function Dashboard({
               <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
                   onClick={() => onStartQuiz("senior2", "word", questionCount)}
-                  className="w-full bg-purple-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-purple-700 shadow-sm hover:shadow transition"
+                  className="w-full bg-purple-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-purple-800 shadow-sm hover:shadow transition"
                   id="btn_senior2_word"
                 >
                   一問一答を解く
@@ -1367,7 +1367,7 @@ export default function Dashboard({
               <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
                   onClick={() => onStartQuiz("senior3", "word", questionCount)}
-                  className="w-full bg-pink-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-pink-700 shadow-sm hover:shadow transition"
+                  className="w-full bg-pink-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-pink-800 shadow-sm hover:shadow transition"
                   id="btn_senior3_word"
                 >
                   一問一答を解く
@@ -1438,7 +1438,7 @@ export default function Dashboard({
               <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
                 <button
                   onClick={() => onStartQuiz("advanced", "word", questionCount)}
-                  className="w-full bg-amber-600 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-amber-700 shadow-sm hover:shadow transition"
+                  className="w-full bg-amber-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-amber-800 shadow-sm hover:shadow transition"
                   id="btn_advanced_word"
                 >
                   一問一答を解く
@@ -1536,7 +1536,7 @@ export default function Dashboard({
                       <button
                         type="submit"
                         disabled={isAdding || !newWord.trim()}
-                        className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold px-5 min-h-11 rounded-xl transition flex items-center gap-1.5 shadow hover:shadow-md cursor-pointer text-xs whitespace-nowrap"
+                        className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-600 text-white font-bold px-5 min-h-11 rounded-xl transition flex items-center gap-1.5 shadow hover:shadow-md cursor-pointer text-xs whitespace-nowrap"
                         id="btn_submit_add_word"
                       >
                         {isAdding ? (
@@ -1563,7 +1563,7 @@ export default function Dashboard({
 
                   <div className="bg-slate-50 rounded-2xl p-4 mt-6 border border-slate-100">
                     <h4 className="text-xs font-bold text-slate-700 mb-1.5">💡 個別学習 of コツ</h4>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                    <p className="text-[11px] text-gray-600 leading-relaxed">
                       AI追加機能は、読書中や仕事中に出会った新しい専門用語、フレーズ、時事用語を追加するのに最適です。瞬時に関連データがクイズに組み込まれ、あなたの学習を全方位でサポートします。
                     </p>
                   </div>
@@ -1579,8 +1579,8 @@ export default function Dashboard({
                         onClick={() => setImportMode("csv")}
                         className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
                           importMode === "csv"
-                            ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-3xs"
-                            : "text-gray-500 hover:text-gray-800 dark:hover:text-slate-200"
+                            ? "bg-white text-emerald-700 dark:text-emerald-400 shadow-3xs"
+                            : "text-gray-600 hover:text-gray-800 dark:hover:text-slate-200"
                         }`}
                       >
                         <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -1591,8 +1591,8 @@ export default function Dashboard({
                         onClick={() => setImportMode("pdf")}
                         className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
                           importMode === "pdf"
-                            ? "bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-400 shadow-3xs"
-                            : "text-gray-500 hover:text-gray-800 dark:hover:text-slate-200"
+                            ? "bg-white text-indigo-700 dark:text-indigo-400 shadow-3xs"
+                            : "text-gray-600 hover:text-gray-800 dark:hover:text-slate-200"
                         }`}
                       >
                         <FileText className="w-3.5 h-3.5" />
@@ -1622,7 +1622,7 @@ export default function Dashboard({
                                 className={`px-3 min-h-11 rounded-md text-[11px] font-black transition cursor-pointer ${
                                   defaultCsvLevel === lvl 
                                     ? "bg-white text-emerald-700 shadow-sm" 
-                                    : "text-gray-500 hover:text-gray-800"
+                                    : "text-gray-600 hover:text-gray-800"
                                 }`}
                               >
                                 {lvl === "junior" ? "中学" : lvl === "senior" ? "高1" : lvl === "senior2" ? "高2" : lvl === "senior3" ? "高3" : "上級"}
@@ -1692,13 +1692,13 @@ export default function Dashboard({
                               <span>テンプレートを見る / DL</span>
                             </button>
                           </div>
-                          <p className="text-[11px] text-slate-500 leading-relaxed mb-2 font-sans">
+                          <p className="text-[11px] text-gray-600 leading-relaxed mb-2 font-sans">
                             以下の形式で、カンマ区切りのテキストファイルをご用意ください。
                           </p>
                           <div className="bg-white/80 border border-emerald-100 p-2 rounded-lg font-mono text-[10px] text-slate-600 overflow-x-auto leading-relaxed shadow-inner">
-                            <div><span className="text-emerald-700 font-bold">1列目:</span> 英単語 (例: evaluate)  <span className="text-[9px] text-rose-500 font-bold">[必須]</span></div>
-                            <div><span className="text-emerald-700 font-bold">2列目:</span> 日本語訳 (例: 評価する)  <span className="text-[9px] text-rose-500 font-bold">[必須]</span></div>
-                            <div><span className="text-emerald-700 font-bold">3列目:</span> レベル (junior/senior/senior2...) <span className="text-[9px] text-slate-400 font-bold">[任意]</span></div>
+                            <div><span className="text-emerald-700 font-bold">1列目:</span> 英単語 (例: evaluate)  <span className="text-[9px] text-rose-700 font-bold">[必須]</span></div>
+                            <div><span className="text-emerald-700 font-bold">2列目:</span> 日本語訳 (例: 評価する)  <span className="text-[9px] text-rose-700 font-bold">[必須]</span></div>
+                            <div><span className="text-emerald-700 font-bold">3列目:</span> レベル (junior/senior/senior2...) <span className="text-[9px] text-gray-600 font-bold">[任意]</span></div>
                           </div>
                         </div>
                       </>
@@ -1741,7 +1741,7 @@ export default function Dashboard({
                               <p className="text-xs font-black text-indigo-800 dark:text-indigo-400 animate-pulse">
                                 AIがドキュメントを読み取り中...
                               </p>
-                              <p className="text-[9px] text-slate-400 mt-1">
+                              <p className="text-[9px] text-gray-600 mt-1">
                                 最適な問題セット（4択クイズ、文脈例文）を自動で作成しています
                               </p>
                             </div>
@@ -1778,7 +1778,7 @@ export default function Dashboard({
                             <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
                             <span>💡 PDF AIスマートインポート</span>
                           </h4>
-                          <p className="text-[11px] text-slate-500 leading-relaxed font-sans">
+                          <p className="text-[11px] text-gray-600 leading-relaxed font-sans">
                             <b>Gemini</b>がお手元のPDFから学術・日常シーンで役立つ英単語を抽出し、レベル分類から代表和訳、オリジナルの例文英作文・択一クイズのすべてをワンタップで追加！教科書の予習や試験学習に威力を発揮します。
                           </p>
                         </div>
@@ -2006,7 +2006,7 @@ export default function Dashboard({
                   <button
                     onClick={handleFetchWeaknessAnalysis}
                     disabled={isFetchingWeakness}
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm"
+                    className="bg-rose-700 hover:bg-rose-800 text-white font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm"
                     id="btn_get_weakness_analysis"
                   >
                     {isFetchingWeakness ? (
@@ -2062,21 +2062,21 @@ export default function Dashboard({
           {/* 自己ベスト・累計スタッツパネル */}
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3" id="self_records_panel">
             <div className="bg-amber-50/70 border border-amber-150 rounded-2xl p-4 text-center">
-              <span className="text-[10px] text-amber-600 font-black tracking-wider uppercase block">総スコア</span>
-              <p className="text-2xl font-black text-amber-800 font-mono mt-1">{stats.score}<span className="text-xs text-amber-500 ml-0.5">P</span></p>
+              <span className="text-[10px] text-amber-700 font-black tracking-wider uppercase block">総スコア</span>
+              <p className="text-2xl font-black text-amber-800 font-mono mt-1">{stats.score}<span className="text-xs text-amber-700 ml-0.5">P</span></p>
             </div>
             <div className="bg-emerald-50/70 border border-emerald-150 rounded-2xl p-4 text-center">
-              <span className="text-[10px] text-emerald-600 font-black tracking-wider uppercase block">連続ログイン</span>
-              <p className="text-2xl font-black text-emerald-800 font-mono mt-1">{stats.currentStreak}<span className="text-xs text-emerald-500 ml-0.5">日</span></p>
+              <span className="text-[10px] text-emerald-700 font-black tracking-wider uppercase block">連続ログイン</span>
+              <p className="text-2xl font-black text-emerald-800 font-mono mt-1">{stats.currentStreak}<span className="text-xs text-emerald-700 ml-0.5">日</span></p>
             </div>
             <div className="bg-indigo-50/70 border border-indigo-150 rounded-2xl p-4 text-center">
               <span className="text-[10px] text-indigo-600 font-black tracking-wider uppercase block">累計回答数</span>
-              <p className="text-2xl font-black text-indigo-800 font-mono mt-1">{stats.completedQuestions}<span className="text-xs text-indigo-500 ml-0.5">問</span></p>
+              <p className="text-2xl font-black text-indigo-800 font-mono mt-1">{stats.completedQuestions}<span className="text-xs text-indigo-700 ml-0.5">問</span></p>
             </div>
             <div className="bg-rose-50/70 border border-rose-150 rounded-2xl p-4 text-center">
-              <span className="text-[10px] text-rose-600 font-black tracking-wider uppercase block">累計正答率</span>
+              <span className="text-[10px] text-rose-700 font-black tracking-wider uppercase block">累計正答率</span>
               <p className="text-2xl font-black text-rose-800 font-mono mt-1">
-                {stats.completedQuestions > 0 ? Math.round((stats.correctAnswers / stats.completedQuestions) * 100) : 0}<span className="text-xs text-rose-500 ml-0.5">%</span>
+                {stats.completedQuestions > 0 ? Math.round((stats.correctAnswers / stats.completedQuestions) * 100) : 0}<span className="text-xs text-rose-700 ml-0.5">%</span>
               </p>
             </div>
           </div>
@@ -2117,7 +2117,7 @@ export default function Dashboard({
                     </div>
                     <div>
                       <h4 className={`text-sm tracking-tight ${isMe ? "font-black text-amber-900" : "font-bold text-gray-800"}`}>
-                        {user.name} {isMe ? <span className="bg-amber-100 text-amber-700 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">YOU</span> : <span className="bg-gray-100 text-gray-500 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">CPU</span>}
+                        {user.name} {isMe ? <span className="bg-amber-100 text-amber-700 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">YOU</span> : <span className="bg-gray-100 text-gray-600 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">CPU</span>}
                       </h4>
                       <p className="text-xs text-gray-400 font-medium">
                         {isMe && equipped.title ? (
@@ -2177,7 +2177,7 @@ export default function Dashboard({
                         : "bg-gray-50 border-gray-100 opacity-60"
                   }`}
                 >
-                  <span className="text-xs text-gray-400 font-bold">DAY {bonus.day}</span>
+                  <span className="text-xs text-gray-600 font-bold">DAY {bonus.day}</span>
                   <div className="my-3 text-3xl">
                     {status === "claimed" ? "🎁" : idx === 6 ? "👑" : "💎"}
                   </div>
@@ -2193,7 +2193,7 @@ export default function Dashboard({
             {checkCanClaimToday() ? (
               <button
                 onClick={handleClaimLoginBonus}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-10 py-4 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center gap-2 transform active:scale-95 cursor-pointer text-base"
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold px-10 py-4 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center gap-2 transform active:scale-95 cursor-pointer text-base"
                 id="btn_claim_bonus"
               >
                 <Sparkles className="w-5 h-5 animate-pulse" />
@@ -2241,7 +2241,7 @@ export default function Dashboard({
                   className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     csvTemplateType === "full"
                       ? "bg-white text-indigo-700 shadow-sm"
-                      : "text-gray-500 hover:text-gray-800"
+                      : "text-gray-600 hover:text-gray-800"
                   }`}
                 >
                   <span>標準テンプレート（フル機能推奨）</span>

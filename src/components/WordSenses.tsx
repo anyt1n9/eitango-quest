@@ -114,7 +114,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
             <div key={group.pos} data-testid={`sense_group_${group.pos}`}>
               {/* 割合は品詞のまとまりに1回だけ。語義ごとに繰り返すと意味別の頻度に見える */}
               <div className="flex items-center gap-1.5 pb-1 border-b border-amber-200/70 dark:border-slate-700">
-                <span className="inline-block px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-amber-200 dark:border-slate-600 text-[10px] font-black text-amber-700 dark:text-amber-300">
+                <span className="inline-block px-1.5 py-0.5 rounded-md bg-white border border-amber-200 dark:border-slate-600 text-[10px] font-black text-amber-700 dark:text-amber-300">
                   {POS_SHARE_LABELS[group.pos] || group.pos}
                 </span>
                 <span className={`text-[10px] font-mono font-bold ${label.muted
@@ -135,7 +135,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
                     <li key={i} className="flex items-start gap-1.5 text-sm leading-snug">
                       <span className="text-amber-400 dark:text-amber-600 mt-0.5 text-[10px]">●</span>
                       <span className={`flex-1 ${taught
-                        ? "font-black text-indigo-800 dark:text-indigo-300"
+                        ? "font-black text-indigo-800"
                         : "font-semibold text-gray-700 dark:text-slate-300"}`}>
                         {s.meaning}
                         {s.important && (

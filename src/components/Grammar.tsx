@@ -182,17 +182,17 @@ export default function Grammar({
 
         {/* 次に読むとよい項目 */}
         {suggestions.length > 0 && (
-          <div className="bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-900 rounded-2xl p-3 space-y-1.5">
+          <div className="bg-indigo-50/60 border border-indigo-200/70 rounded-2xl p-3 space-y-1.5">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <p className="text-xs font-black text-indigo-700 dark:text-indigo-300">次に読むとよい項目</p>
+              <p className="text-xs font-black text-indigo-700">次に読むとよい項目</p>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {suggestions.map(t => (
                 <button
                   key={t.id}
                   onClick={() => setOpenId(t.id)}
-                  className="bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded-lg px-2.5 py-1 text-[11px] font-bold text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="bg-white dark:bg-slate-900 border border-indigo-200 rounded-lg px-2.5 py-1 text-[11px] font-bold text-indigo-800 hover:bg-indigo-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   {t.title}
                 </button>
@@ -357,7 +357,7 @@ function TopicDetail({
 
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-3xl p-5 space-y-2 shadow-sm">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 rounded px-1.5 py-0.5">
+          <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">
             {LEVEL_LABELS[topic.level]}
           </span>
           <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 rounded px-1.5 py-0.5">
