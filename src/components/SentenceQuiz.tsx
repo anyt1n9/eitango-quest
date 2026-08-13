@@ -6,6 +6,8 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
+// 例文を穴埋めにする処理は共有する（綴りクイズ・取り込みでも同じ扱いが要る）
+import { toFillInSentence } from "../fillIn";
 
 // クイズ回答時の効果音（シンセ）
 const playSentenceSound = (isCorrect: boolean) => {
@@ -113,19 +115,6 @@ export default function SentenceQuiz({
       }
     };
   }, []);
-
-  // 例文を必ず穴埋め形式にする。
-  // 穴埋め記号が無いまま出題すると、答えの単語が本文にそのまま表示され
-  // （読み上げでも答えを言ってしまい）、穴埋め問題として成立しない。
-  const toFillInSentence = (sentence: string, word: string): string => {
-    if (typeof sentence !== "string" || sentence.trim() === "") {
-      return "I want to study [_____] today.";
-    }
-    if (sentence.includes("[_____]")) return sentence;
-    const escaped = word.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-    const re = new RegExp(`\\b${escaped}\\b`, "i");
-    return re.test(sentence) ? sentence.replace(re, "[_____]") : `${sentence} [_____]`;
-  };
 
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {

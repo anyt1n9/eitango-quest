@@ -8,6 +8,7 @@ import { selectQuizWords } from "../selectQuestions";
 import { isSpellingCorrect, diffChars } from "../spelling";
 import { shuffle } from "../shuffle";
 import { canSpell } from "../quizFormats";
+import { toFillInSentence, showHoles } from "../fillIn";
 
 /**
  * 綴り入力クイズ。
@@ -342,7 +343,9 @@ export default function SpellingQuiz({
             {currentQuestion.translation}
           </h2>
           <p className="text-sm text-gray-500 font-medium">
-            {currentQuestion.sentence.replace("[_____]", "＿＿＿")}
+            {/* 例文は手がかりとして出すので、答えは必ず伏せる。
+                取り込んだ単語には答えの残った例文がある */}
+            {showHoles(toFillInSentence(currentQuestion.sentence, currentQuestion.word))}
           </p>
         </div>
 

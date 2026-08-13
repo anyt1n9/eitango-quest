@@ -123,8 +123,17 @@ export default function ReviewList({
                 const isExpanded = expandedWordId === word.id;
                 
                 return (
-                  <div 
-                    key={word.id} 
+                  <div
+                    key={word.id}
+                    // div のままではキーボードで辿り着けず、詳細を開けない
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      setExpandedWordId(isExpanded ? null : word.id);
+                    }}
                     onClick={() => setExpandedWordId(isExpanded ? null : word.id)}
                     className={`border rounded-2xl p-4.5 cursor-pointer transition-all hover:bg-gray-50/50 ${
                       isExpanded ? "bg-rose-50/20 border-rose-200 shadow-sm" : "bg-white border-gray-150"

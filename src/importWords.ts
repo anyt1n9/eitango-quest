@@ -2,6 +2,7 @@ import { Level, PartOfSpeech, Word } from "./types";
 import { pickDistractors, Candidate } from "./distractors";
 import { getWordPos, inferPartOfSpeech } from "./pos";
 import { shuffle } from "./shuffle";
+import { toFillInSentence } from "./fillIn";
 
 /**
  * 外から入ってきた単語（CSV取り込み・PDF抽出・AI生成）を、
@@ -135,8 +136,10 @@ export function normalizeImportedWord(
   if (!sentence) {
     sentence = FALLBACK_SENTENCE;
     sentenceTranslation = FALLBACK_SENTENCE_JA;
-  } else if (!sentence.includes("[_____]")) {
-    sentence = `${sentence} [_____]`;
+  } else {
+    // 末尾に穴を足すだけでは、本文に残った答えが出題画面に見えてしまう。
+    // 答えのある位置を穴にする
+    sentence = toFillInSentence(sentence, word);
   }
 
   const id = typeof raw?.id === "string" && raw.id.trim() !== ""
