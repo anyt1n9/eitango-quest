@@ -101,7 +101,136 @@ const POS_FIXES: Record<string, string> = {
   macabre: "adjective",
   nascent: "adjective",
   unoccupied: "adjective",
-  veritable: "adjective"
+  veritable: "adjective",
+
+  // ------------------------------------------------------------------
+  // ここから下は「動詞として教えているのに、WordNet が動詞の文型を
+  // 1つも記録していない語」を洗い出して直したもの。
+  // 動詞1,626語のうち167語に文型が無く、その大半は WordNet の抜けではなく
+  // 品詞の付け間違いだった（形容詞・名詞を動詞として教えていた）。
+  //
+  // 誤答は同じ品詞から選ばれるので、形容詞が動詞の四択に混ざると
+  // 品詞での消去法が効かなくなり、逆に動詞の四択には形容詞が並ぶ。
+  //
+  // 判断の基準は上と同じで、実測(SemCor)が別の品詞に50%以上偏っていること。
+  // ------------------------------------------------------------------
+  similar: "adjective",        // 実測 形容詞100% ／ 訳「似ている，類似の」
+  certain: "adjective",        // 実測 形容詞100% ／ 訳「ある，確信している」
+  bilingual: "adjective",      // 実測 形容詞100%
+  historic: "adjective",       // 実測 形容詞100%
+  confident: "adjective",      // 実測 形容詞100%
+  indeed: "adverb",            // 実測 副詞100%
+  dependent: "adjective",      // 実測 形容詞83%
+  satisfactory: "adjective",   // 実測 形容詞100%
+  pregnant: "adjective",       // 実測 形容詞100%
+  aware: "adjective",          // 実測 形容詞100%
+  civilized: "adjective",      // 実測 形容詞100%
+  multiple: "adjective",       // 実測 形容詞100%（訳も直した。下の TRANSLATION_FIXES）
+  increasing: "adjective",     // 実測 形容詞100%
+  talented: "adjective",       // 実測 形容詞100%
+  solvent: "adjective",        // 実測は名詞100%（溶剤）だが、訳「支払い能力のある」は形容詞
+  corresponding: "adjective",  // 実測 形容詞100%
+  angular: "adjective",        // 実測 形容詞100%
+  deserving: "adjective",      // 実測 形容詞100%
+  perennial: "adjective",      // 実測 形容詞100%
+  widespread: "adjective",     // 実測 形容詞100%
+  trustworthy: "adjective",    // 実測 形容詞100%
+  occupied: "adjective",       // 実測 形容詞100%
+  considerate: "adjective",    // 実測 形容詞100%
+  situated: "adjective",       // 実測 形容詞100%
+  ambivalent: "adjective",     // 実測 形容詞100%
+  discerning: "adjective",     // 実測 形容詞100%
+  disparate: "adjective",      // 実測 形容詞100%
+  erudite: "adjective",        // 実測 形容詞100%
+  ubiquitous: "adjective",     // 実測 形容詞100%
+  popular: "adjective",        // 実測 形容詞100%
+  dear: "adjective",           // 実測 形容詞69%
+  exciting: "adjective",       // 実測 形容詞100%
+  armchair: "noun",            // 実測 名詞75% ／ 訳「ひじ掛けいす」
+  dead: "adjective",           // 実測 形容詞89%
+  wheelchair: "noun",          // 実測 名詞100%
+  challenging: "adjective",    // 実測 形容詞100%
+  deadly: "adjective",         // 実測 形容詞100%
+  fond: "adjective",           // 実測 形容詞100%
+  gifted: "adjective",         // 実測 形容詞100%
+  outward: "adjective",        // 実測 形容詞75%
+  potential: "adjective",      // 実測 形容詞57%
+  proud: "adjective",          // 実測 形容詞100%
+  qualified: "adjective",      // 実測 形容詞100%
+  shiny: "adjective",          // 実測 形容詞100%
+  tiring: "adjective",         // 実測 形容詞100%
+  wardrobe: "noun",            // 実測 名詞100%
+  worthwhile: "adjective",     // 実測 形容詞100%
+  worthy: "adjective",         // 実測 形容詞100%
+  drought: "noun",             // 実測 名詞100%
+  exhausting: "adjective",     // 実測 形容詞100%
+  indebted: "adjective",       // 実測 形容詞100%
+  misleading: "adjective",     // 実測 形容詞100%
+  motivated: "adjective",      // 実測 形容詞100%
+  reflective: "adjective",     // 実測 形容詞100%
+  shaky: "adjective",          // 実測 形容詞100%
+  successive: "adjective",     // 実測 形容詞100%
+  turbulent: "adjective",      // 実測 形容詞100%
+  adjoining: "adjective",      // 実測 形容詞100%
+  beguiling: "adjective",      // 実測 形容詞100%
+  crippling: "adjective",      // 実測 形容詞100%
+  elastic: "adjective",        // 実測 形容詞100%
+  engrossing: "adjective",     // 実測 形容詞100%
+  extant: "adjective",         // 実測 形容詞100%
+  hostile: "adjective",        // 実測 形容詞100%
+  melancholy: "noun",          // 実測 名詞57% ／ 訳「憂うつ、もの悲しさ」
+  privileged: "adjective",     // 実測 形容詞100%
+  resounding: "adjective",     // 実測 形容詞100%
+  sentient: "adjective",       // 実測 形容詞100%
+  symptomatic: "adjective",    // 実測 形容詞100%
+  telltale: "adjective",       // 実測 形容詞100%
+
+  // ------------------------------------------------------------------
+  // SemCor（1990年代の英文コーパス）に1度も出てこない語。
+  // 実測が無いので、**教材が教えている訳**を根拠に1語ずつ直した。
+  // どれも訳が形容詞・名詞の形（「〜のある」「〜な」「〜さ」）で、
+  // かつ WordNet が動詞の文型を持たない。
+  // -ing / -ed の分詞（considering, expecting, fading など）は動詞の活用形
+  // なので動詞のまま残す。
+  // ------------------------------------------------------------------
+  faulty: "adjective",         // 欠点のある
+  compelling: "adjective",     // 説得力のある
+  cogent: "adjective",         // 説得力のある、適切な
+  soporific: "adjective",      // 眠気を誘う、催眠の
+  beneficent: "adjective",     // 善を行う、慈善的な
+  captious: "adjective",       // あら探しをする、難癖をつける
+  cognizant: "adjective",      // 認識している、承知の
+  concomitant: "adjective",    // 付随する、共存する
+  congenial: "adjective",      // 気の合う、好みに合う
+  contrite: "adjective",       // 悔いる、痛悔した
+  culpable: "adjective",       // 刑に値する、有罪の
+  devoid: "adjective",         // 欠いている、全くない
+  resilient: "adjective",      // 回復力のある、弾力的な
+  snowy: "adjective",          // 雪の降る、雪の積もった
+  caring: "adjective",         // 思いやりのある、世話好きな
+  creepy: "adjective",         // ぞっとする、気味の悪い
+  grueling: "adjective",       // へとへとに疲れさせる、過酷な
+  gutsy: "adjective",          // 勇気のある、ど根性のある
+  lackluster: "adjective",     // 精彩を欠く、さえない
+  painstaking: "adjective",    // 骨の折れる、入念な
+  reminiscent: "adjective",    // （～を）思い出させる
+  torrential: "adjective",     // （雨が）激しく降る、奔流の
+  traumatic: "adjective",      // 心に深い傷を残す、痛ましい
+  unnerving: "adjective",      // 不安にさせる、気味の悪い
+  unsettling: "adjective",     // 不安にさせる、落ち着かない
+  intrigued: "adjective",      // 興味をそそられた
+  platitude: "noun"            // お決まりのせりふ、陳腐な言葉
+};
+
+/**
+ * 訳そのものが間違っていた語。
+ *
+ * multiple の訳は「掛け算する」（multiply との取り違え）で、
+ * 品詞を形容詞に直しても訳が動詞のままでは画面上で食い違う。
+ * 訳を変えると四択の正解も変わるので、ここで直して選択肢を作り直す。
+ */
+const TRANSLATION_FIXES: Record<string, string> = {
+  multiple: "多数の、複数の"
 };
 
 /**
@@ -110,8 +239,9 @@ const POS_FIXES: Record<string, string> = {
  *   desert   … 訳「砂漠」は名詞。動詞69%は「見捨てる」の意味
  *   orient   … 訳「東洋」は名詞。動詞83%は「方向づける」の意味
  *   downtown … 訳「中心街へ」は副詞的。形容詞54%と差も小さい
+ *   solvent  … 訳「支払い能力のある」は形容詞。名詞100%は「溶剤」の意味
  */
-const KEPT_ON_PURPOSE = ["desert", "orient", "downtown"];
+const KEPT_ON_PURPOSE = ["desert", "orient", "downtown", "solvent"];
 
 const file = path.join(process.cwd(), "src/data/vocabulary.ts");
 const source = fs.readFileSync(file, "utf8");
@@ -126,11 +256,20 @@ if (start < 0 || end < 2) {
 const words: any[] = JSON.parse(source.slice(start, end));
 const changed: string[] = [];
 const targets: any[] = [];
+/** 直す前の訳。訳を書き換えた語を誤答に使っている語も作り直すために控えておく */
+const oldTranslations = new Set<string>();
 
 for (const w of words) {
-  const want = POS_FIXES[String(w.word).toLowerCase()];
+  const key = String(w.word).toLowerCase();
+  const want = POS_FIXES[key];
   if (!want) continue;
   targets.push(w);
+  const newTranslation = TRANSLATION_FIXES[key];
+  if (newTranslation && w.translation !== newTranslation) {
+    oldTranslations.add(String(w.translation));
+    changed.push(`${w.word}: 訳「${w.translation}」→「${newTranslation}」`);
+    w.translation = newTranslation;
+  }
   if (w.pos === want) continue;
   changed.push(`${w.word}: ${w.pos} → ${want}`);
   w.pos = want;
@@ -149,7 +288,7 @@ if (targets.length === 0) {
  * 直した語を誤答に含む語も一緒に作り直す。
  */
 const fixedWords = new Set(targets.map(w => String(w.word)));
-const fixedTranslations = new Set(targets.map(w => String(w.translation)));
+const fixedTranslations = new Set([...targets.map(w => String(w.translation)), ...oldTranslations]);
 const rebuild = words.filter(w =>
   fixedWords.has(String(w.word))
   || (Array.isArray(w.options) && w.options.some((o: string) => fixedTranslations.has(o)))

@@ -3,31 +3,58 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { Level, Word, UserStats, RankingUser } from "./types";
 import { loadVocabulary } from "./vocabulary";
 import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
-import SentenceQuiz from "./components/SentenceQuiz";
-import SpellingQuiz from "./components/SpellingQuiz";
-import ReviewList from "./components/ReviewList";
-import Dictionary from "./components/Dictionary";
-import Reading from "./components/Reading";
-import MapAndPuzzle from "./components/MapAndPuzzle";
-import AIDiary from "./components/AIDiary";
-import VerbFormsScreen from "./components/VerbForms";
-import Grammar from "./components/Grammar";
 import QuizFormatPicker from "./components/QuizFormatPicker";
 import { QuizFormat, QUIZ_FORMAT_LABELS, wordsForFormat } from "./quizFormats";
 import { Screen, Route, pathToRoute, routeToPath, resolveOnEntry } from "./routes";
-import DataBackup from "./components/DataBackup";
-import GachaShop from "./components/GachaShop";
 import AdBanner from "./components/AdBanner";
-import { PrivacyPolicy, TermsOfService } from "./components/LegalPages";
+
+/*
+ * 起動時に要らない画面は、開いたときに読み込む。
+ *
+ * 以前はすべての画面を静的に import していたため、
+ * 最初の JS が 862KB（gzip 258KB）あった。
+ * 起動して最初に見えるのはダッシュボードだけなので、
+ * 辞書・長文・文法・日記といった大きな画面はそのぶん後回しにできる。
+ *
+ * ダッシュボードと四択クイズ（一問一答・リスニング・日→英が共有する）は
+ * 最初の操作でそのまま使うので、待ち時間を挟まないよう静的に持つ。
+ */
+const SentenceQuiz = lazy(() => import("./components/SentenceQuiz"));
+const SpellingQuiz = lazy(() => import("./components/SpellingQuiz"));
+const ReviewList = lazy(() => import("./components/ReviewList"));
+const Dictionary = lazy(() => import("./components/Dictionary"));
+const Reading = lazy(() => import("./components/Reading"));
+const MapAndPuzzle = lazy(() => import("./components/MapAndPuzzle"));
+const AIDiary = lazy(() => import("./components/AIDiary"));
+const VerbFormsScreen = lazy(() => import("./components/VerbForms"));
+const Grammar = lazy(() => import("./components/Grammar"));
+const DataBackup = lazy(() => import("./components/DataBackup"));
+const GachaShop = lazy(() => import("./components/GachaShop"));
+const PrivacyPolicy = lazy(() =>
+  import("./components/LegalPages").then(m => ({ default: m.PrivacyPolicy }))
+);
+const TermsOfService = lazy(() =>
+  import("./components/LegalPages").then(m => ({ default: m.TermsOfService }))
+);
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked } from "lucide-react";
+
+/** 遅延読み込みの画面を待つあいだの表示 */
+function ScreenLoading() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-3" id="screen_loading">
+      <div className="w-8 h-8 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+      <p className="text-xs font-bold text-gray-500 dark:text-slate-400">画面を読み込んでいます…</p>
+    </div>
+  );
+}
 
 // 苦手単語を1語卒業したときのボーナス点
 const GRADUATION_BONUS = 50;
@@ -705,6 +732,9 @@ export default function App() {
 
       {/* メインステージ */}
       <main className="flex-1 py-8 px-4 max-w-4xl w-full mx-auto" id="main_payload">
+        {/* 遅延読み込みの画面を開いている間の待ち。
+            画面が入れ替わるだけで、ヘッダーとフッターは出たまま */}
+        <Suspense fallback={<ScreenLoading />}>
         {currentScreen === "dashboard" && (
           <Dashboard
             stats={stats}
@@ -964,6 +994,7 @@ export default function App() {
         {currentScreen === "terms" && (
           <TermsOfService onBack={handleBackToDashboard} />
         )}
+        </Suspense>
       </main>
 
       {/* 広告枠（全コンテンツの下・控えめに1枠。未設定時は非表示） */}
