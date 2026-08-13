@@ -498,6 +498,34 @@ test("起動時に読み込む JS が大きくなりすぎていない", async (
   expect(bytes / 1024, `起動時の JS が ${(bytes / 1024).toFixed(0)}KB`).toBeLessThan(600);
 });
 
+test("ビルド済みのファイルを配り、オフラインでも開ける", async ({ page, context }) => {
+  // ビルド済みかどうかの判定を NODE_ENV だけで見ていたため、
+  // npm start（node dist/server.cjs）でも開発用の Vite ミドルウェアが動き、
+  // /sw.js にも index.html が返ってサービスワーカーが登録されていなかった。
+  // 判定そのものは tests/serverMode.test.ts が見る。ここは実際の結果を見る
+  const sw = await page.request.get("/sw.js");
+  expect(sw.headers()["content-type"], "/sw.js が JavaScript として配られていない")
+    .toContain("javascript");
+  const manifest = await page.request.get("/manifest.webmanifest");
+  expect(manifest.headers()["content-type"]).toContain("manifest");
+
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await page.waitForFunction(
+    async () => !!(await navigator.serviceWorker.getRegistration())?.active,
+    null,
+    { timeout: 30_000 }
+  );
+
+  await context.setOffline(true);
+  try {
+    await page.reload();
+    await expect(page.locator("#btn_junior_word")).toBeVisible({ timeout: 30_000 });
+  } finally {
+    await context.setOffline(false);
+  }
+});
+
 test("学習データを書き出すと、文法の進捗も含まれる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
