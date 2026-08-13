@@ -70,6 +70,12 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   federal が上位に来るし、the / you のような機能語や onion / carrot のような
   日常語は内容語しか数えない集計に出てこない。だから「順位どおりに並べる」ことは
   せず、外れ値だけを1語ずつ見て直す（一覧は `scripts/fix_levels.ts` の `LEVEL_FIXES`）。
+  品詞は `scripts/bake_pos.ts` が綴りと訳から推定して焼き込む。推定なので外れる語があり、
+  明らかに違うものだけを `scripts/fix_pos.ts` の `POS_FIXES` に列挙して直す
+  （規則をいじると他の語に波及して確かめようがなくなるため）。
+  品詞を変えたら四択の誤答も作り直すこと。誤答は同じ品詞から選ばれているので、
+  品詞だけ変えると**その語を誤答に使っている他の語**にも別の品詞が混ざる
+  （`fix_pos.ts` がまとめて作り直す）。
 - **文法のテスト** — `tests/grammar.data.test.ts` と `tests/grammar.render.test.tsx`。
   `src/data/grammar.ts`（中学〜大学レベルの文法34項目）を検査する。
   語義・語法と違い、この解説は辞書やコーパスから作ったデータではなく**書き下ろし**で、
