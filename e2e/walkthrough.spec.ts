@@ -448,6 +448,48 @@ test("長文はキーボードだけで開ける", async ({ page }) => {
   await expect(page.locator("#passage_detail_screen")).toBeVisible();
 });
 
+test("起動時に、まだ開いていない画面の JS を読み込まない", async ({ page }) => {
+  // すべての画面を静的に import していたため、最初の JS が 862KB あった。
+  // 開いた画面だけを読み込むようにして 496KB に減らしている（src/App.tsx）。
+  // 分割は「どのチャンクを取りに行ったか」で確かめる。大きさで見ると
+  // 誤差で落ちるし、静的 import に戻したことにも気づけない
+  const loaded: string[] = [];
+  page.on("response", res => {
+    const url = res.url();
+    if (url.endsWith(".js")) loaded.push(url.split("/").pop()!);
+  });
+
+  await page.goto("/");
+  await waitForVocabulary(page);
+
+  const deferred = ["Dictionary", "Reading", "Grammar", "AIDiary", "MapAndPuzzle", "passages"];
+  for (const name of deferred) {
+    expect(loaded.filter(f => f.startsWith(name)), `${name} を起動時に読み込んでいる`).toEqual([]);
+  }
+
+  // 開いたときに初めて取りに行く
+  await page.locator("#dashboard_open_dict_btn").click();
+  await expect(page.locator("#dictionary_words_container")).toBeVisible();
+  expect(loaded.some(f => f.startsWith("Dictionary")), "辞書を開いても読み込まれない").toBe(true);
+});
+
+test("起動時に読み込む JS が大きくなりすぎていない", async ({ page }) => {
+  // 単語データ（vocabulary）は別枠で遅れて読み込むので、ここでは数えない
+  let bytes = 0;
+  page.on("response", async res => {
+    const name = res.url().split("/").pop() || "";
+    if (!name.endsWith(".js") || name.startsWith("vocabulary")) return;
+    const body = await res.body().catch(() => null);
+    if (body) bytes += body.length;
+  });
+
+  await page.goto("/");
+  await waitForVocabulary(page);
+
+  // 実測 496KB。戻り始めたら気づけるよう、少しだけ余裕を持たせた線
+  expect(bytes / 1024, `起動時の JS が ${(bytes / 1024).toFixed(0)}KB`).toBeLessThan(600);
+});
+
 test("学習データを書き出すと、文法の進捗も含まれる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
