@@ -236,6 +236,72 @@ test("「調べる」タブから辞書・活用表・文法ガイドへ移れ�
   await expect(page.locator("#verb_forms_screen")).toBeVisible();
 });
 
+/** 文字と背景の明暗差（WCAG のコントラスト比）。半透明の背景は下の色と重ねてから測る */
+const CONTRAST = () => {
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 1;
+  const ctx = cv.getContext("2d")!;
+  const toRGBA = (c: string) => {
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = c;
+    ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
+  };
+  const over = (fg: number[], bg: number[]) =>
+    [0, 1, 2].map(i => Math.round(fg[i] * fg[3] + bg[i] * (1 - fg[3])));
+  const stack = (e: Element) => {
+    const layers: number[][] = [];
+    let x: Element | null = e;
+    while (x) {
+      const v = toRGBA(getComputedStyle(x).backgroundColor);
+      if (v[3] > 0) layers.push(v);
+      x = x.parentElement;
+    }
+    let base = [255, 255, 255];
+    for (let i = layers.length - 1; i >= 0; i--) base = over(layers[i], [...base, 1]);
+    return base;
+  };
+  const lum = ([r, g, b]: number[]) => {
+    const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const el = [...document.querySelectorAll("span")]
+    .find(e => !e.children.length && /^[a-z' -]+$/i.test((e.textContent || "").trim())
+      && parseFloat(getComputedStyle(e).fontSize) >= 18);
+  if (!el) return null;
+  const fg = toRGBA(getComputedStyle(el).color);
+  const bg = stack(el);
+  const l1 = lum([fg[0], fg[1], fg[2]]), l2 = lum(bg);
+  return {
+    text: (el.textContent || "").trim(),
+    ratio: (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
+  };
+};
+
+test("不正解のときの正しい綴りが、明暗どちらのテーマでも読める", async ({ page }) => {
+  // 暗いテーマでは色の変数そのものが置き換わる（--color-white は紺になる）。
+  // そのため誤答カードは明るい背景のまま、中の文字だけ明るくなり、
+  // 「正しい綴り」が明るい背景に明るい文字で載って読めなくなっていた（実測 1.05）
+  for (const theme of ["light", "dark"]) {
+    await page.goto("/");
+    await page.evaluate(t => localStorage.setItem("quest_theme", t), theme);
+    await page.reload();
+    await waitForVocabulary(page);
+
+    await page.locator("#btn_junior_spelling").click();
+    const input = page.locator('input[type="text"]').first();
+    await input.fill("zzzzz");
+    await input.press("Enter");
+    await expect(page.getByText("おしい！正しい綴りはこちら")).toBeVisible();
+
+    const measured = await page.evaluate(CONTRAST);
+    expect(measured, theme).not.toBeNull();
+    // 大きな文字の基準は 3.0。ここは答えそのものなので余裕を持って確かめる
+    expect(measured!.ratio, `${theme} / ${measured!.text}`).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
 test("学習データを書き出すと、文法の進捗も含まれる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);

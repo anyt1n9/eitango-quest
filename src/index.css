@@ -97,6 +97,14 @@
 .dark .text-purple-800 { color: #c084fc !important; }
 .dark .text-pink-800 { color: #f472b6 !important; }
 .dark .text-amber-800 { color: #fbbf24 !important; }
+/* rose だけ抜けていた。誤答のカードは bg-rose-50 のまま明るく残る一方、
+   中の文字（text-gray-900 など）は暗いテーマ用に明るく置き換わるため、
+   「正しい綴り」が明るい背景に明るい文字で載って読めなくなっていた
+   （実測のコントラスト比 1.05）。 */
+.dark .text-rose-600 { color: #fb7185 !important; }
+.dark .text-rose-700 { color: #fb7185 !important; }
+.dark .text-rose-800 { color: #fb7185 !important; }
+.dark .text-rose-900 { color: #fda4af !important; }
 
 /* Eye-safe backgrounds for levels highlights */
 .dark .bg-emerald-50\/70, .dark .bg-emerald-50 {
@@ -114,6 +122,9 @@
 .dark .bg-amber-50\/70, .dark .bg-amber-50 {
   background-color: rgba(245, 158, 11, 0.15) !important;
 }
+.dark .bg-rose-50\/70, .dark .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+}
 
 /* Level Borders contrast */
 .dark .border-emerald-250, .dark .border-emerald-200 { border-color: rgba(16, 185, 129, 0.45) !important; }
@@ -121,4 +132,6 @@
 .dark .border-purple-250, .dark .border-purple-200 { border-color: rgba(168, 85, 247, 0.45) !important; }
 .dark .border-pink-250, .dark .border-pink-200 { border-color: rgba(236, 72, 153, 0.45) !important; }
 .dark .border-amber-250, .dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.45) !important; }
+.dark .border-rose-250, .dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.45) !important; }
+.dark .border-rose-300 { border-color: rgba(244, 63, 94, 0.55) !important; }
 

@@ -431,7 +431,8 @@ export default function SpellingQuiz({
                   {/* どの文字から間違えたかが分かるように、入力を1文字ずつ色分けする */}
                   <p className="font-mono text-sm">
                     {diffChars(input, answer).map((c, i) => (
-                      <span key={i} className={c.ok ? "text-gray-500" : "text-rose-600 font-black underline"}>
+                      // 間違えた文字は rose-600 だと明るい背景に対して比 4.12 で基準に届かない
+                      <span key={i} className={c.ok ? "text-gray-500" : "text-rose-700 font-black underline"}>
                         {c.ch}
                       </span>
                     ))}
@@ -439,7 +440,15 @@ export default function SpellingQuiz({
                 </div>
               )}
               <div className="flex items-center justify-center gap-2 mt-2">
-                <span className="font-mono font-black text-lg text-gray-900 select-all">{answer}</span>
+                {/* いちばん読ませたい「正しい綴り」。周りより大きく、太く、はっきり出す */}
+                {/* dark: を足してはいけない。このアプリの暗いテーマは
+                    index.css で色の変数そのものを置き換えており、
+                    text-gray-900 は暗いテーマでは自動的に明るい色になる。
+                    dark:text-slate-50 と書くと --color-slate-50 が
+                    暗い紺（#020617）に置き換わっているので、逆に読めなくなる */}
+                <span className="font-mono font-black text-xl md:text-2xl tracking-wide text-gray-900 select-all">
+                  {answer}
+                </span>
                 <button
                   type="button"
                   onClick={() => speak(answer)}

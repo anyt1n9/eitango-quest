@@ -389,12 +389,15 @@ export default function Quiz({
                   // パネル全体を pointer-events-auto にすると、退場アニメーション中
                   // (約0.3〜0.4秒。タブ非表示時はさらに長く残留する)にパネルが
                   // 次の問題の選択肢に重なり、そのタップを吸い取ってしまう。
-                  className="bg-slate-900/95 text-white px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5"
+                  // このパネルは常に濃い紺の上に出るので、文字は常に白でなければならない。
+                  // text-white は使えない。暗いテーマは index.css で --color-white を
+                  // 紺(#0f172a)に置き換えるため、暗いテーマだと濃紺の上に濃紺の文字になる
+                  className="bg-slate-900/95 text-[#f8fafc] px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5"
                 >
                   <span className="text-[10px] text-rose-400 font-black tracking-wider uppercase">
                     正解の単語 ＆ 日本語訳
                   </span>
-                  <p className="text-base font-black text-white font-mono">
+                  <p className="text-base font-black text-[#f8fafc] font-mono">
                     {currentQuestion.word}
                   </p>
                   <p className="text-sm text-emerald-400 font-bold border-t border-slate-800 w-full pt-1.5 mt-1">
