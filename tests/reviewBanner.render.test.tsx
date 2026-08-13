@@ -110,3 +110,48 @@ describe("今日の復習の案内", () => {
     expect(btn.className).toContain("min-h-11");
   });
 });
+
+describe("ログインボーナス", () => {
+  it("すばやく2回押しても、受け取りは1回だけ", async () => {
+    // checkCanClaimToday() は描画時点の stats を見るので、
+    // 再描画の前に2回押すとどちらも通ってしまう。
+    // 3連打で受け取りの処理が3回走り、お知らせも3つ出ていた
+    const user = userEvent.setup();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const setStats = vi.fn();
+    const setRanking = vi.fn();
+    renderDashboard({ setStats, setRanking });
+
+    await user.click(document.getElementById("tab_btn_bonus")!);
+    const claim = document.getElementById("btn_claim_bonus")!;
+    claim.click();
+    claim.click();
+    claim.click();
+
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(setStats).toHaveBeenCalledTimes(1);
+    alertSpy.mockRestore();
+  });
+
+  it("加点は関数形で行う（前の値に足す）", async () => {
+    // 絶対値で書いていたため、二重に走っても偶然おかしくならなかっただけだった
+    const user = userEvent.setup();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const setStats = vi.fn();
+    renderDashboard({ setStats });
+
+    await user.click(document.getElementById("tab_btn_bonus")!);
+    await user.click(document.getElementById("btn_claim_bonus")!);
+
+    const updater = setStats.mock.calls[0][0];
+    expect(typeof updater, "関数を渡していない").toBe("function");
+    const before = { score: 500, currentStreak: 0, lastLoginDate: null };
+    const after = updater(before);
+    expect(after.score).toBeGreaterThan(500);
+    // すでに今日受け取っていれば何も足さない
+    const today = new Date();
+    const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    expect(updater({ ...before, lastLoginDate: key }).score).toBe(500);
+    alertSpy.mockRestore();
+  });
+});

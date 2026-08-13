@@ -32,9 +32,13 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
+    // NODE_ENV は渡さない。利用者が `npm start` で動かすのと同じ条件にする。
+    // ここで NODE_ENV=production を足していたため、
+    // 「NODE_ENV が無いとビルド済みではなく開発用サーバーが動く」不具合を
+    // 通し確認がすり抜けていた
     command: "node dist/server.cjs",
     url: "http://localhost:4180",
-    env: { PORT: "4180", NODE_ENV: "production" },
+    env: { PORT: "4180" },
     timeout: 60_000,
     reuseExistingServer: !process.env.CI
   }

@@ -27,6 +27,19 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 読み込みが終わるまで単語は0語なので、その状態で保存の副作用を走らせないこと。
 走らせると、保存済みの追加単語（AI・CSV・PDF由来）を空で上書きしてしまう。
 
+## サーバーの起動
+
+`npm run dev` は `tsx server.ts`、本番は `npm start`（`node dist/server.cjs`）。
+どちらで動いているかは `server.ts` の `isDevServer()` が
+**TypeScript のまま実行しているか**で判定する。`NODE_ENV` だけを見てはいけない。
+`npm start` は `NODE_ENV` を設定しないため、以前は本番のつもりで
+開発用の Vite ミドルウェアが動き、
+`/sw.js` と `/manifest.webmanifest` にも `index.html` が返って
+サービスワーカーが登録されず、オフラインで開けなかった。
+
+`playwright.config.ts` の `webServer` にも `NODE_ENV` を渡さない。
+渡すと、利用者が実際に動かす条件と違うものを確認することになる。
+
 ## 画面の読み込み
 
 起動時に見えるのはダッシュボードだけなので、他の画面は `App.tsx` で

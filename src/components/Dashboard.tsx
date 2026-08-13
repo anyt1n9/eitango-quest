@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Trophy, 
   Calendar, 
@@ -657,29 +657,40 @@ export default function Dashboard({
     return stats.lastLoginDate !== todayStr();
   };
 
+  /**
+   * 受け取りの二重実行よけ。
+   *
+   * checkCanClaimToday() は描画時点の stats を見るので、
+   * 素早く2回押すと（React が再描画する前に）どちらも通ってしまう。
+   * 実際、3連打すると受け取りの処理が3回走ってお知らせも3つ出ていた。
+   * 加算が二重にならなかったのは newScore を絶対値で書いていたためで、
+   * 関数形（prev.score + points）に直した瞬間に二重加算になる書き方だった。
+   */
+  const claimingRef = useRef(false);
+
   const handleClaimLoginBonus = () => {
-    if (!checkCanClaimToday()) return;
+    if (claimingRef.current || !checkCanClaimToday()) return;
+    claimingRef.current = true;
 
     playAudio("bonus");
     const today = todayStr();
-    
+
     // スコア追加
     const rawIndex = stats.currentStreak % 7;
     const points = bonusDays[rawIndex].points;
     const nextStreak = (stats.lastLoginDate === getYesterdayString()) ? stats.currentStreak + 1 : 1;
-    
-    const newScore = stats.score + points;
-    
-    setStats(prev => ({
-      ...prev,
-      score: newScore,
-      currentStreak: nextStreak,
-      lastLoginDate: today
-    }));
+
+    // 加算は関数形で行い、すでに今日受け取っていれば何もしない。
+    // 別の経路（別タブなど）から更新されていても二重に足さない
+    setStats(prev => (
+      prev.lastLoginDate === today
+        ? prev
+        : { ...prev, score: prev.score + points, currentStreak: nextStreak, lastLoginDate: today }
+    ));
 
     // ランキングの更新
     setRanking(prev => {
-      const updated = prev.map(u => u.isMe ? { ...u, score: newScore } : u);
+      const updated = prev.map(u => u.isMe ? { ...u, score: u.score + points } : u);
       return updated.sort((a, b) => b.score - a.score);
     });
 

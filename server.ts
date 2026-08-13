@@ -1109,9 +1109,32 @@ app.post("/api/gemini/parse-pdf", async (req, res) => {
 });
 
 
+/**
+ * 開発中かどうか。
+ *
+ * これまで `NODE_ENV !== "production"` で判定していたが、
+ * `npm start`（node dist/server.cjs）は NODE_ENV を設定しないため、
+ * ビルド済みのファイルを配るつもりで開発用の Vite ミドルウェアが動いていた。
+ * その結果、本番でも
+ *   - dist/index.html ではなく開発用のHTMLが返る（@react-refresh 入り）
+ *   - /sw.js と /manifest.webmanifest まで index.html が返り、
+ *     サービスワーカーが登録されない＝オフラインで開けない
+ *   - 実行時に不要なはずの vite（devDependency）が必要になる
+ * という状態だった。
+ *
+ * 判定は「TypeScript のまま実行しているか」で行う。
+ * npm run dev は tsx server.ts、本番は node dist/server.cjs なので取り違えない。
+ * 環境変数で上書きしたいときのために NODE_ENV も見る。
+ */
+export function isDevServer(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  if (process.env.NODE_ENV === "development") return true;
+  return /\.tsx?$/.test(process.argv[1] || "");
+}
+
 // ExpressサーバーでViteミドルウェア（開発時）の設定、または静的なビルドファイルの配信
 async function main() {
-  if (process.env.NODE_ENV !== "production") {
+  if (isDevServer()) {
     // Vite は開発時のミドルウェアにしか使わないため、ここで動的に読み込む。
     // 静的 import にすると本番のバンドルでも require("vite") が走るので、
     // 実行時には使わない開発用パッケージを本番環境へ入れる必要が出てしまう。
