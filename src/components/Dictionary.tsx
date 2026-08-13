@@ -19,9 +19,9 @@ import {
   AlertCircle,
   RefreshCw
 } from "lucide-react";
-import { Word, Level } from "../types";
+import { Word, Level, PartOfSpeech } from "../types";
 import Phonetic from "./Phonetic";
-import { getWordPosLabel } from "../pos";
+import { getWordPos, getWordPosLabel, POS_LABELS } from "../pos";
 import WordSenses from "./WordSenses";
 import WordUsageInfo from "./WordUsage";
 import { SrsState } from "../srs";
@@ -39,6 +39,15 @@ interface DictionaryProps {
 
 type FilterLevel = "all" | Level | "custom" | "weak";
 type SortOption = "alphabetical-asc" | "alphabetical-desc" | "level-asc" | "level-desc";
+/** 品詞の絞り込み。"all" は絞らない */
+type FilterPos = "all" | PartOfSpeech;
+
+/**
+ * 品詞の絞り込みに並べる順。
+ * 「その他」は前置詞・接続詞・イディオムなどが入る受け皿で、
+ * 出さないとどの品詞でも辿り着けない語ができてしまうので最後に置く。
+ */
+const POS_FILTERS: PartOfSpeech[] = ["noun", "verb", "adjective", "adverb", "other"];
 
 // ユーザーが追加した単語（AI追加・CSVインポート・PDF抽出）の判定
 const isCustomWordId = (id: string) => /^(ai_|csv_|pdf_)/.test(id);
@@ -215,6 +224,7 @@ export default function Dictionary({
   // 1. 検索・フィルター・ソートのステート
   const [searchQuery, setSearchQuery] = useState("");
   const [filterLevel, setFilterLevel] = useState<FilterLevel>("all");
+  const [filterPos, setFilterPos] = useState<FilterPos>("all");
   const [sortBy, setSortBy] = useState<SortOption>("level-asc");
   const [expandedWordId, setExpandedWordId] = useState<string | null>(null);
 
@@ -281,6 +291,12 @@ export default function Dictionary({
       }
     }
 
+    // 品詞での絞り込み。明示が無い語は綴りと訳から推定した品詞で扱う
+    // （クイズの誤選択肢を選ぶときと同じ判定なので、画面ごとに違う品詞にならない）
+    if (filterPos !== "all") {
+      result = result.filter(w => getWordPos(w) === filterPos);
+    }
+
     // 検索ワードマッチング
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase().trim();
@@ -321,7 +337,7 @@ export default function Dictionary({
     });
 
     return result;
-  }, [vocabulary, filterLevel, searchQuery, sortBy, wrongWordSet]);
+  }, [vocabulary, filterLevel, filterPos, searchQuery, sortBy, wrongWordSet]);
 
   // 各絞り込みタブの件数。以前はタブごとに vocabulary 全体を filter していたため、
   // 検索欄に1文字入力するたびに全単語の走査が7回発生していた。1パスで集計する。
@@ -344,10 +360,18 @@ export default function Dictionary({
     return counts;
   }, [vocabulary, wrongWordSet]);
 
+  // 品詞ごとの件数。レベルの絞り込みと同じ1パスの数え方にする
+  const posCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: vocabulary.length };
+    for (const p of POS_FILTERS) counts[p] = 0;
+    for (const w of vocabulary) counts[getWordPos(w)]++;
+    return counts;
+  }, [vocabulary]);
+
   // 5. フィルターや検索が変更されたらページを1に戻す
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterLevel, sortBy, pageSize]);
+  }, [searchQuery, filterLevel, filterPos, sortBy, pageSize]);
 
   // 6. ページ分割されたデータ取得
   const totalItems = processedVocabulary.length;
@@ -508,6 +532,38 @@ export default function Dictionary({
                 key={tab.value}
                 onClick={() => setFilterLevel(tab.value)}
                 className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                  isActive
+                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                    : "bg-gray-50 hover:bg-gray-100 border-gray-250 text-gray-600"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+                  isActive ? "bg-white/20 text-white" : "bg-gray-200/60 text-gray-500"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 品詞での絞り込み。名詞だけ・動詞だけをまとめて見たいときに使う。
+            明示が無い語は綴りと訳から推定した品詞で数える */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1" id="pos_filter_container" data-testid="pos_filter">
+          <span className="text-xs font-bold text-gray-400 mr-2">品詞:</span>
+          {([{ value: "all" as const, label: "すべて" },
+             ...POS_FILTERS.map(p => ({ value: p, label: POS_LABELS[p] }))]
+          ).map(tab => {
+            const isActive = filterPos === tab.value;
+            const count = posCounts[tab.value] || 0;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setFilterPos(tab.value)}
+                id={`pos_filter_${tab.value}`}
+                aria-pressed={isActive}
+                className={`text-xs font-bold px-3 min-h-11 rounded-xl border transition-all cursor-pointer ${
                   isActive
                     ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
                     : "bg-gray-50 hover:bg-gray-100 border-gray-250 text-gray-600"
