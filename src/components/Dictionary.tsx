@@ -1090,48 +1090,9 @@ export default function Dictionary({
                           </div>
                         </div>
 
-                        {/* 四択時の選択肢などの学習参考情報 */}
-                        {word.options && word.options.length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="bg-gray-50/50 border border-gray-150 p-3 rounded-xl">
-                              <span className="text-[10px] font-bold text-gray-400 block uppercase mb-1">英単語クイズ 四択選択肢</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {word.options.map((opt, i) => (
-                                  <span 
-                                    key={i} 
-                                    className={`text-xs px-2.5 py-1 rounded-lg font-semibold ${
-                                      opt === word.translation 
-                                        ? "bg-emerald-100 text-emerald-800 border border-emerald-250 font-extrabold" 
-                                        : "bg-white text-gray-600 border border-gray-200"
-                                    }`}
-                                  >
-                                    {opt}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-
-                            {word.sentenceOptions && word.sentenceOptions.length > 0 && (
-                              <div className="bg-gray-50/50 border border-gray-150 p-3 rounded-xl">
-                                <span className="text-[10px] font-bold text-gray-400 block uppercase mb-1">例文クイズ 英語スペル選択肢</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {word.sentenceOptions.map((opt, i) => (
-                                    <span 
-                                      key={i} 
-                                      className={`text-xs px-2.5 py-1 rounded-lg font-mono font-bold ${
-                                        opt === word.word 
-                                          ? "bg-indigo-100 text-indigo-800 border border-indigo-250 font-extrabold" 
-                                          : "bg-white text-gray-600 border border-gray-200"
-                                      }`}
-                                    >
-                                      {opt}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {/* 四択の選択肢はここには出さない。
+                            誤答は出題のための材料であって単語の情報ではないうえ、
+                            辞書で先に見てしまうと出題時の手がかりになる */}
 
                         {/* 学習履歴詳細 */}
                         {attemptCount > 0 && (

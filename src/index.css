@@ -199,7 +199,9 @@
    その上に白文字を載せていたので、主要なボタンが軒並み基準割れしていた
    （実測 4.27。12px の文字に必要なのは 4.5）。背景だけここで暗くする。 */
 .dark .bg-indigo-500 { background-color: #4f46e5 !important; }
-.dark .bg-indigo-600, .dark .bg-indigo-600\/60 { background-color: #4338ca !important; }
+/* 透過つき（bg-indigo-600/60）はグラデーションの上に重ねる飾りなので、
+   ここで不透明にしない。不透明にすると重ねた意味が失われる */
+.dark .bg-indigo-600 { background-color: #4338ca !important; }
 .dark .bg-indigo-700 { background-color: #3730a3 !important; }
 .dark .hover\:bg-indigo-700:hover { background-color: #3730a3 !important; }
 .dark .hover\:bg-indigo-800:hover { background-color: #312e81 !important; }

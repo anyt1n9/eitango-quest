@@ -749,6 +749,12 @@ export default function App() {
             onOpenDictionary={() => navigate("dictionary")}
             onStartReading={() => navigate("reading")}
             onOpenDiary={() => navigate("diary")}
+            dueCount={dueWords.length}
+            onStartSrsReview={() => {
+              // 復習セッション開始時点の対象単語を固定する（ヘッダーのボタンと同じ）
+              setSrsSessionWords(dueWords);
+              navigate("srs_review");
+            }}
             onOpenVerbForms={() => navigate("verb_forms")}
             onOpenGrammar={() => navigate("grammar")}
             ranking={ranking}

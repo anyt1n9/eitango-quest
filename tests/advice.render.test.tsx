@@ -38,6 +38,8 @@ function renderDashboard() {
       dailyGoal={20}
       equipped={{}}
       onOpenGachaShop={vi.fn()}
+      dueCount={0}
+      onStartSrsReview={vi.fn()}
     />
   );
 }
