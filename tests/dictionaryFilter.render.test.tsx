@@ -45,6 +45,30 @@ function listedWords(): string[] {
   );
 }
 
+describe("単語の詳細", () => {
+  it("四択の選択肢は出さない", async () => {
+    // 誤答は出題のための材料で、単語そのものの情報ではない。
+    // 辞書で先に見えると、出題されたときの手がかりになってしまう
+    const user = userEvent.setup();
+    renderDictionary();
+    await user.click(screen.getByText("beautiful"));
+
+    expect(screen.queryByText(/四択選択肢/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/英語スペル選択肢/)).not.toBeInTheDocument();
+    // 誤答そのものも出ていない（makeWord の options / sentenceOptions）
+    for (const wrong of ["重い", "静かな", "危険な", "careful", "powerful", "peaceful"]) {
+      expect(screen.queryByText(wrong), wrong).not.toBeInTheDocument();
+    }
+  });
+
+  it("その単語自身の情報は出す", async () => {
+    const user = userEvent.setup();
+    renderDictionary();
+    await user.click(screen.getByText("beautiful"));
+    expect(screen.getAllByText("美しい").length).toBeGreaterThan(0);
+  });
+});
+
 describe("品詞での絞り込み", () => {
   it("品詞ごとの件数を並べる", () => {
     renderDictionary();

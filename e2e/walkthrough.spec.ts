@@ -327,11 +327,19 @@ const LOW_CONTRAST = () => {
   const over = (fg: number[], bg: number[]) =>
     [0, 1, 2].map(i => Math.round(fg[i] * fg[3] + bg[i] * (1 - fg[3])));
   const skip = (e: Element) => {
-    let x: Element | null = e;
-    while (x) {
-      if (getComputedStyle(x).backgroundImage !== "none") return true;
+    for (let x: Element | null = e; x; x = x.parentElement) {
       if (x.getAttribute("aria-hidden") === "true") return true;
-      x = x.parentElement;
+    }
+    // グラデーションの上は1色に決まらないので測らない。
+    // ただし「グラデーションのカードの上に置いた、自前の背景を持つボタン」は
+    // 色が決まるので測る。ここを「先祖にグラデーションがあれば除外」と
+    // 書いていたため、バナーの白いボタンが検査から漏れ、
+    // 暗いテーマで紺地に紺の文字（実測 1.2）になっていたのを見逃した
+    for (let x: Element | null = e; x; x = x.parentElement) {
+      const s = getComputedStyle(x);
+      if (s.backgroundImage !== "none") return true;
+      // 不透明な背景に行き当たったら、そこで色は決まる
+      if (toRGBA(s.backgroundColor)[3] >= 1) return false;
     }
     return false;
   };

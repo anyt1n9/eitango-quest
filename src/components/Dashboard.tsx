@@ -184,6 +184,10 @@ interface DashboardProps {
   onOpenDiary: () => void;
   onOpenVerbForms: () => void;
   onOpenGrammar: () => void;
+  /** 今日の復習（忘却曲線）の対象語数 */
+  dueCount: number;
+  /** 今日の復習を始める */
+  onStartSrsReview: () => void;
   ranking: RankingUser[];
   setRanking: React.Dispatch<React.SetStateAction<RankingUser[]>>;
   dailyLog: Record<string, { count: number; correct: number }>;
@@ -207,6 +211,8 @@ export default function Dashboard({
   onOpenDiary,
   onOpenVerbForms,
   onOpenGrammar,
+  dueCount,
+  onStartSrsReview,
   ranking,
   setRanking,
   dailyLog,
@@ -859,7 +865,10 @@ export default function Dashboard({
 
         <div className="space-y-2 z-10">
           <div className="flex items-center gap-2">
-            <span className="bg-indigo-600/60 text-indigo-200 text-xs px-3 py-1 rounded-full font-semibold border border-indigo-400/40 tracking-wider uppercase font-mono">
+            {/* 暗いテーマでは indigo の変数が反転するので、text-indigo-200 は
+                明るい藤色ではなく濃紺になる。青いチップの上で読めなくなるため、
+                明暗どちらでも明るいままの slate-100 を使う */}
+            <span className="bg-indigo-600/60 text-slate-100 text-xs px-3 py-1 rounded-full font-semibold border border-indigo-400/40 tracking-wider uppercase font-mono">
               Dashboard
             </span>
           </div>
@@ -1045,10 +1054,50 @@ export default function Dashboard({
             </div>
             <button
               onClick={onOpenDiary}
-              className="bg-white hover:bg-gray-100 text-slate-950 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+              // bg-white と text-gray-900 は暗いテーマで対になって入れ替わる（index.css）。
+              // text-slate-950 は入れ替わらないので、暗いテーマで紺地に紺の文字になっていた（実測 1.2）
+              className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
               id="dashboard_open_diary_btn"
             >
               <span>{masteredTotal >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}</span>
+            </button>
+          </div>
+
+          {/* 今日の復習ショートカットバナー。
+              ヘッダーの小さなボタンだけでは、いちばん効く学習である
+              「忘れかけた語の復習」に気づかれないため、他のバナーと同じ大きさで出す */}
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-emerald-500/20" id="srs_review_banner">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/10 backdrop-blur-md text-white rounded-xl shadow-inner border border-white/10 shrink-0">
+                <RotateCcw className={`w-6 h-6 text-lime-200 ${dueCount > 0 ? "animate-pulse" : ""}`} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base flex items-center gap-2 flex-wrap">
+                  <span>今日の復習 (Spaced Repetition)</span>
+                  {dueCount > 0 ? (
+                    <span className="bg-rose-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-bounce">
+                      {dueCount} 語が復習日
+                    </span>
+                  ) : (
+                    <span className="bg-white/20 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      今日は完了
+                    </span>
+                  )}
+                </h3>
+                <p className="text-emerald-50 text-xs mt-1 max-w-xl font-medium leading-relaxed">
+                  一度覚えた単語は時間とともに忘れます。忘れかけたころに出し直すのがいちばん効きます。
+                  正解するほど次に出るまでの間隔が延び、間違えるとすぐ戻ってきます。形式（四択・綴りなど）も選べます。
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onStartSrsReview}
+              // bg-white と text-gray-900 は暗いテーマで対になって入れ替わる（index.css）。
+              // text-slate-950 は入れ替わらないので、暗いテーマで紺地に紺の文字になっていた（実測 1.2）
+              className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+              id="dashboard_open_srs_review_btn"
+            >
+              <span>{dueCount > 0 ? "復習を始める ➔" : "復習の状況を見る ➔"}</span>
             </button>
           </div>
 

@@ -44,6 +44,8 @@ function renderDashboard() {
       dailyGoal={20}
       equipped={{}}
       onOpenGachaShop={vi.fn()}
+      dueCount={0}
+      onStartSrsReview={vi.fn()}
     />
   );
   return { onStartQuiz };
@@ -183,7 +185,7 @@ describe("長文・AI日記への入口", () => {
         onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={onStartReading}
         onOpenDiary={vi.fn()} onOpenVerbForms={vi.fn()} onOpenGrammar={vi.fn()}
         ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
+        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
       />
     );
     await user.click(document.getElementById("dashboard_open_reading_btn")!);
@@ -200,7 +202,7 @@ describe("長文・AI日記への入口", () => {
         onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={vi.fn()}
         onOpenDiary={onOpenDiary} onOpenVerbForms={vi.fn()} onOpenGrammar={vi.fn()}
         ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
+        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
       />
     );
     await user.click(document.getElementById("dashboard_open_diary_btn")!);
@@ -228,7 +230,7 @@ describe("「調べる」タブ", () => {
         onStartReview={vi.fn()} onStartReading={vi.fn()} onOpenDiary={vi.fn()}
         {...handlers}
         ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
+        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
       />
     );
     return handlers;
