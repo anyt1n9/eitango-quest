@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Flame
 } from "lucide-react";
 import { Word, Level, PartOfSpeech } from "../types";
 import Phonetic from "./Phonetic";
@@ -30,6 +31,14 @@ import { isMastered } from "../mastery";
 interface DictionaryProps {
   vocabulary: Word[];
   wrongWords: string[];
+  /**
+   * 苦手リストの出し入れ。
+   *
+   * これまで苦手リストに語が入る道は「クイズで間違える」だけだった。
+   * 辞書は苦手で絞り込めるのに追加はできず、
+   * 「この語は苦手だ」と自分で分かっている語をその場で復習に回せなかった。
+   */
+  setWrongWords: React.Dispatch<React.SetStateAction<string[]>>;
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
   srsData: Record<string, SrsState>;
   onBackToDashboard: () => void;
@@ -60,51 +69,11 @@ const isCustomWordId = (id: string) => /^(ai_|csv_|pdf_)/.test(id);
 // 永久に止まる。接頭辞を付けて衝突を避ける。
 const cacheKey = (word: string) => "w:" + word.trim().toLowerCase();
 
-// AIが生成したSVGを dangerouslySetInnerHTML で描画する前に必ず通す安全化フィルタ。
-// サーバー側でも無害化済みだが、フィックス以前に localStorage へ保存された古いデータや
-// キャッシュ改ざんに備えて、描画直前にもDOMベースで再度除去する（多層防御）。
-const ALLOWED_SVG_TAGS = new Set([
-  "svg", "g", "defs", "title", "desc",
-  "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
-  "linearGradient", "radialGradient", "stop", "clipPath", "mask", "text", "tspan", "symbol", "use"
-]);
-
-function sanitizeSvgForRender(rawSvg: string): string {
-  try {
-    const doc = new DOMParser().parseFromString(rawSvg, "image/svg+xml");
-    const svgEl = doc.querySelector("svg");
-    if (!svgEl || doc.querySelector("parsererror")) return "";
-
-    const walk = (node: Element) => {
-      // 許可されていないタグは丸ごと削除（script, foreignObject, iframe など）
-      if (!ALLOWED_SVG_TAGS.has(node.tagName)) {
-        node.remove();
-        return;
-      }
-      // イベントハンドラ属性・javascript: スキームの参照属性を除去
-      Array.from(node.attributes).forEach((attr) => {
-        const name = attr.name.toLowerCase();
-        const value = attr.value.trim().toLowerCase();
-        if (name.startsWith("on")) {
-          node.removeAttribute(attr.name);
-        } else if ((name === "href" || name === "xlink:href" || name === "src") && /^\s*(javascript:|data:text\/html)/i.test(value)) {
-          node.removeAttribute(attr.name);
-        }
-      });
-      // 子要素は配列にコピーしてから走査（remove()中の生きたコレクション変化を避ける）
-      Array.from(node.children).forEach((child) => walk(child as Element));
-    };
-    walk(svgEl);
-
-    return new XMLSerializer().serializeToString(svgEl);
-  } catch (e) {
-    return "";
-  }
-}
 
 export default function Dictionary({
   vocabulary,
   wrongWords,
+  setWrongWords,
   solvedHistory,
   srsData,
   onBackToDashboard,
@@ -114,10 +83,6 @@ export default function Dictionary({
   const [wordFrequencies, setWordFrequencies] = useState<Record<string, any>>({});
   const [frequencyLoading, setFrequencyLoading] = useState<Record<string, boolean>>({});
   const [frequencyError, setFrequencyError] = useState<Record<string, string>>({});
-
-  // 単語イメージ（手作りSVG）のメモリキャッシュ。サーバーの prebaked から取得する。
-  const [wordImages, setWordImages] = useState<Record<string, string>>({});
-  const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
 
   // 類義語・反意語・コロケーションの情報キャッシュ
   const [wordRelations, setWordRelations] = useState<Record<string, any>>({});
@@ -193,34 +158,6 @@ export default function Dictionary({
     }
   };
 
-  // 手作り(prebaked)イメージのみを取得する。AIによる自動生成・再生成は行わない。
-  // 画像が存在しない単語は何も表示しない。
-  const handleFetchWordImage = async (wordText: string) => {
-    const trimmed = wordText.trim();
-    const key = cacheKey(wordText);
-    if (wordImages[key] || imageLoading[key]) return;
-
-    setImageLoading(prev => ({ ...prev, [key]: true }));
-
-    try {
-      const response = await fetch("/api/gemini/word-image-svg", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word: trimmed })
-      });
-
-      const payload = await response.json();
-      // svg があるものだけ表示する（無い場合は画像を出さない）
-      if (response.ok && payload && payload.svg) {
-        setWordImages(prev => ({ ...prev, [key]: payload.svg }));
-      }
-    } catch (err: any) {
-      console.error(err);
-    } finally {
-      setImageLoading(prev => ({ ...prev, [key]: false }));
-    }
-  };
-
   // 1. 検索・フィルター・ソートのステート
   const [searchQuery, setSearchQuery] = useState("");
   const [filterLevel, setFilterLevel] = useState<FilterLevel>("all");
@@ -228,14 +165,11 @@ export default function Dictionary({
   const [sortBy, setSortBy] = useState<SortOption>("level-asc");
   const [expandedWordId, setExpandedWordId] = useState<string | null>(null);
 
-  // アコーディオンが展開された時、自動的に該当する単語のシーン別使われ方頻度データとコンセプトイラストイメージをAIから引き出す
+  // アコーディオンを開いたときに、その単語の使用頻度の分析を取りに行く
   React.useEffect(() => {
     if (expandedWordId) {
       const found = vocabulary.find(w => w.id === expandedWordId);
-      if (found) {
-        handleFetchWordFrequency(found.word);
-        handleFetchWordImage(found.word);
-      }
+      if (found) handleFetchWordFrequency(found.word);
     }
   }, [expandedWordId, vocabulary]);
 
@@ -678,6 +612,28 @@ export default function Dictionary({
                     <span className="text-sm font-extrabold text-indigo-950 font-sans truncate">
                       {word.translation}
                     </span>
+                    {/* 苦手リストの出し入れ。カードを開く操作と混ざらないよう伝播を止める */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setWrongWords(prev =>
+                          prev.includes(word.id)
+                            ? prev.filter(id => id !== word.id)
+                            : [...prev, word.id]
+                        );
+                      }}
+                      title={isWrong ? "苦手リストから外す" : "苦手リストに入れて復習に回す"}
+                      aria-label={`${word.word} を苦手リストに${isWrong ? "入れている（外す）" : "入れる"}`}
+                      aria-pressed={isWrong}
+                      id={`btn_toggle_weak_${word.id}`}
+                      className={`shrink-0 w-9 h-9 rounded-xl border flex items-center justify-center transition cursor-pointer ${
+                        isWrong
+                          ? "bg-rose-100 border-rose-250 text-rose-700 hover:bg-rose-200"
+                          : "bg-white border-gray-200 text-gray-400 hover:text-rose-600 hover:border-rose-200"
+                      }`}
+                    >
+                      <Flame className={`w-4 h-4 ${isWrong ? "fill-rose-300" : ""}`} />
+                    </button>
                     <ChevronRight className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-300 ${isExpanded ? "rotate-90 text-indigo-600" : ""}`} />
                   </div>
 
@@ -741,31 +697,6 @@ export default function Dictionary({
                             </div>
                           </div>
 
-                          {/* 右側: 概念ビジュアルイメージ（手作り画像がある単語のみ表示。AI生成・再生成なし） */}
-                          {wordImages[cacheKey(word.word)] && (
-                            <div className="md:col-span-4 flex flex-col justify-between">
-                              <div className="border border-indigo-100 rounded-2xl overflow-hidden bg-white shadow-3xs p-3.5 flex flex-col h-full items-center justify-center min-h-[165px] relative">
-                                {/* ヘッダー */}
-                                <div className="w-full flex items-center justify-between pb-2 mb-2 border-b border-gray-100 text-[11px]">
-                                  <span className="font-extrabold text-indigo-950 flex items-center gap-1.5">
-                                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 fill-indigo-250" />
-                                    <span>概念イメージ</span>
-                                  </span>
-                                  <span className="text-[9px] bg-indigo-100 text-indigo-700 font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider font-mono">
-                                    Concept
-                                  </span>
-                                </div>
-
-                                {/* コンテンツ: インラインHTMLとしてSVGを埋め込む */}
-                                <div className="w-full flex flex-col items-center justify-center">
-                                  <div
-                                    className="w-full max-w-[120px] aspect-square shadow-xs rounded-xl overflow-hidden border border-indigo-50 flex items-center justify-center bg-gray-50 select-none"
-                                    dangerouslySetInnerHTML={{ __html: sanitizeSvgForRender(wordImages[cacheKey(word.word)]) }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
 
                         {/* —————————— AI単語使用頻度分析セクション —————————— */}

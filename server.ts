@@ -2,14 +2,10 @@ import express from "express";
 import path from "path";
 import { Type } from "@google/genai";
 import dotenv from "dotenv";
-import { PREBAKED_WORD_IMAGES } from "./src/data/wordImages";
 import { sampleArray } from "./src/shuffle";
-import {
-  MAX_WORD_LEN, MAX_MEANING_LEN, isValidShortText, escapeHtml, safeSvgIdSegment
-} from "./server/guards";
+import { MAX_WORD_LEN, MAX_MEANING_LEN, isValidShortText } from "./server/guards";
 import { AdviceInput, LevelStat, buildLocalAdvice, buildAnalysisForPrompt } from "./server/advice";
 import { POS_JP_LABELS, buildFallbackWeaknessAnalysis } from "./server/weakness";
-import { getPdfMockWords } from "./server/pdfMockWords";
 import { aiRateLimiter, getGeminiClient } from "./server/gemini";
 
 dotenv.config();
@@ -55,13 +51,30 @@ app.use(express.urlencoded({ limit: "100kb", extended: true }));
 // 入力バリデーション・レート制限・予算上限は server/guards.ts に切り出してある
 // （AIの利用料に直結するため、画面や外部通信から独立してテストできる形にした）。
 
-// フォールバック画像は自前テンプレートから組み立てる。ユーザー入力（単語）は
-// escapeHtml / safeSvgIdSegment を通してからしか埋め込まないため、そのまま返して安全。
 // デプロイ環境(Cloud Run など)は PORT 環境変数でリッスンするポートを指定するため、それを優先する
 const PORT = Number(process.env.PORT) || 3000;
 
 // すべての /api/gemini/* エンドポイントにレート制限を適用（ルート定義より前に置く）
 app.use("/api/gemini", aiRateLimiter);
+
+/**
+ * AI を呼べないときの応答。
+ *
+ * 以前は generate-word / connection-map / diary / parse-pdf が、
+ * APIキーが無いときに**作り置きの中身**を 200 で返していた。
+ * 画面はそれを本物のAI出力として表示するため、
+ *   - 単語追加では訳が「AI生成の訳 (仮)」の偽データが単語帳に保存され、
+ *     そのままクイズに出題される（学習データが壊れる）
+ *   - つながりマップは何を調べても同じ作り置きの図が出る
+ *   - 英語日記は毎回まったく同じ書き置きの文章が「あなたの単語で書いた日記」
+ *     として出る
+ * という状態だった。実測でも isFallback が付いておらず、
+ * 利用者には見分けがつかない。
+ *
+ * 集計で作れるもの（学習アドバイス・苦手分析）はこれまでどおり
+ * 手元で組み立てて出どころを明記するが、AIにしか作れないものは断る。
+ */
+const AI_UNAVAILABLE = "AIを呼び出せませんでした。この機能には Gemini APIキーの設定が必要です。";
 
 // 1. API: 新しい単語を分析・生成
 app.post("/api/gemini/generate-word", async (req, res) => {
@@ -72,17 +85,7 @@ app.post("/api/gemini/generate-word", async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // APIキーがない場合のフォールバック（動作保証用）
-    return res.json({
-      id: "ai_" + Date.now(),
-      word: word.trim(),
-      translation: "AI生成の訳 (仮)",
-      level: "senior",
-      options: ["AI生成の訳 (仮)", "無関係の選択肢1", "無関係の選択肢2", "無関係の選択肢3"],
-      sentence: `This is an example sentence featuring the word [_____].`,
-      sentenceTranslation: `これは単語「${word.trim()}」を使用した例文です。`,
-      sentenceOptions: [word.trim(), "create", "observe", "reject"]
-    });
+    return res.status(503).json({ error: AI_UNAVAILABLE });
   }
 
   try {
@@ -141,17 +144,9 @@ app.post("/api/gemini/generate-word", async (req, res) => {
     res.json(data);
   } catch (error: any) {
     console.error("Gemini Generate Word Error: ", error);
-    console.warn("AI単語生成に失敗したため、ローカルフォールバックモードで動作します。(429などのクォータ制限対策)");
-    return res.json({
-      id: "ai_" + Math.random().toString(36).substr(2, 9),
-      word: word.trim(),
-      translation: `「${word.trim()}」の意味を学ぶ (ローカル)`,
-      level: "senior",
-      options: [`「${word.trim()}」の意味を学ぶ (ローカル)`, "～を実行する", "～を観察する", "～を拒否する"],
-      sentence: `This is an example sentence featuring the word [_____].`,
-      sentenceTranslation: `これは英単語「${word.trim()}」を含む例文です。`,
-      sentenceOptions: [word.trim(), "create", "observe", "reject"],
-      isFallback: true
+    // 適当な訳を作って返すと、偽のデータが単語帳に保存されてクイズに出てしまう
+    return res.status(502).json({
+      error: "AIの応答を受け取れませんでした。時間をおいて再度お試しください。"
     });
   }
 });
@@ -166,44 +161,7 @@ app.post("/api/gemini/connection-map", async (req, res) => {
   const queryWord = word.trim().toLowerCase();
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // APIキーがない場合の賢いモックフォールバック（動作保証用）
-    const isActRelated = queryWord.includes("act") || queryWord.includes("play");
-    const mockedConnections = isActRelated ? [
-      { word: "act", type: "動詞/名詞", meaning: "行動する、演じる/舞台の幕", connectionReason: "パズルの基本となる行動のコアルートです。" },
-      { word: "action", type: "名詞", meaning: "行動、活動、働き", connectionReason: "act に名詞尾 -ion が結合し、継続的な活動を意味します。" },
-      { word: "activate", type: "動詞", meaning: "活性化する、起動する", connectionReason: "active に「～化する」を意味する -ate が結合した進化的動詞。" },
-      { word: "transaction", type: "名詞", meaning: "取引、処理、やり取り", connectionReason: "trans-(横切って、相互に) + action(行動) = 互いの間で行われる商取引手続き。" },
-      { word: "interaction", type: "名詞", meaning: "相互作用、交流", connectionReason: "inter-(～の間で) + action(行動) = 関係者が互いに影響を及ぼしあうこと。" }
-    ] : [
-      { word: queryWord, type: "キー単語", meaning: "探索の基点", connectionReason: "分析のメインとして指定された英単語。" },
-      { word: "construct", type: "動詞", meaning: "組み立てる、建設する", connectionReason: "ルーツ「struere (積み重ねる、建てる)」を同じくする代表語。" },
-      { word: "structure", type: "名詞", meaning: "構造、構成物、建物", connectionReason: "ラテン語「建てる」から直接名詞化され、骨組みを示します。" },
-      { word: "instruct", type: "動詞", meaning: "指示する、教える", connectionReason: "in-(〜の中に) + struct(組み立てる) ＝ 知の建築。" },
-      { word: "destruction", type: "名詞", meaning: "破壊、非建設", connectionReason: "de-(下へ、引き剥がす) + struct(組み立てる) ＝ 既存建築の崩壊。" }
-    ];
-
-    const mockedPuzzle = isActRelated ? [
-      { word: "act", partOfSpeech: "動詞", meaning: "行動する、演じる", masked: false },
-      { word: "action", partOfSpeech: "名詞", meaning: "行動、活動", masked: true },
-      { word: "active", partOfSpeech: "形容詞", meaning: "活動的な、積極的な", masked: false },
-      { word: "activity", partOfSpeech: "名詞", meaning: "活動、活気", masked: true },
-      { word: "activate", partOfSpeech: "動詞", meaning: "活性化する、起動する", masked: true }
-    ] : [
-      { word: "construct", partOfSpeech: "動詞", meaning: "組み立てる、建設する", masked: false },
-      { word: "construction", partOfSpeech: "名詞", meaning: "建設、工事", masked: true },
-      { word: "constructive", partOfSpeech: "形容詞", meaning: "建設的な、前向きな", masked: true },
-      { word: "reconstruct", partOfSpeech: "動詞", meaning: "再建する、再現する", masked: false },
-      { word: "reconstruction", partOfSpeech: "名詞", meaning: "再建、復興", masked: true }
-    ];
-
-    return res.json({
-      focusWord: word.trim(),
-      connections: mockedConnections,
-      puzzle: mockedPuzzle,
-      distractors: isActRelated 
-        ? ["acting", "actor", "activation", "inactive"]
-        : ["constructively", "constructor", "structural", "deconstruct"]
-    });
+    return res.status(503).json({ error: AI_UNAVAILABLE });
   }
 
   try {
@@ -278,44 +236,9 @@ app.post("/api/gemini/connection-map", async (req, res) => {
     res.json(data);
   } catch (error: any) {
     console.error("Gemini Connection Map Error: ", error);
-    console.warn("つながりマップ生成に失敗したため、ローカルフォールバックモードで動作します。");
-    const isActRelated = queryWord.includes("act") || queryWord.includes("play");
-    const mockedConnections = isActRelated ? [
-      { word: "act", type: "動詞/名詞", meaning: "行動する、演じる/舞台の幕", connectionReason: "パズルの基本となる行動のコアルートです。" },
-      { word: "action", type: "名詞", meaning: "行動、活動、働き", connectionReason: "act に名詞尾 -ion が結合し、継続的な活動を意味します。" },
-      { word: "activate", type: "動詞", meaning: "活性化する、起動する", connectionReason: "active に「～化する」を意味する -ate が結合した進化的動詞。" },
-      { word: "transaction", type: "名詞", meaning: "取引、処理、やり取り", connectionReason: "trans-(横切って、相互に) + action(行動) = 互いの間で行われる商取引手続き。" },
-      { word: "interaction", type: "名詞", meaning: "相互作用、交流", connectionReason: "inter-(～の間で) + action(行動) = 関係者が互いに影響を及ぼしあうこと。" }
-    ] : [
-      { word: queryWord, type: "キー単語", meaning: "探索の基点", connectionReason: "分析のメインとして指定された英単語。" },
-      { word: "construct", type: "動詞", meaning: "組み立てる、建設する", connectionReason: "ルーツ「struere (積み重ねる、建てる)」を同じくする代表語。" },
-      { word: "structure", type: "名詞", meaning: "構造、構成物、建物", connectionReason: "ラテン語「建てる」から直接名詞化され、骨組みを示します。" },
-      { word: "instruct", type: "動詞", meaning: "指示する、教える", connectionReason: "in-(〜の中に) + struct(組み立てる) ＝ 知の建築。" },
-      { word: "destruction", type: "名詞", meaning: "破壊、非建設", connectionReason: "de-(下へ、引き剥がす) + struct(組み立てる) ＝ 既存建築の崩壊。" }
-    ];
-
-    const mockedPuzzle = isActRelated ? [
-      { word: "act", partOfSpeech: "動詞", meaning: "行動する、演じる", masked: false },
-      { word: "action", partOfSpeech: "名詞", meaning: "行動、活動", masked: true },
-      { word: "active", partOfSpeech: "形容詞", meaning: "活動的な、積極的な", masked: false },
-      { word: "activity", partOfSpeech: "名詞", meaning: "活動、活気", masked: true },
-      { word: "activate", partOfSpeech: "動詞", meaning: "活性化する、起動する", masked: true }
-    ] : [
-      { word: "construct", partOfSpeech: "動詞", meaning: "組み立てる、建設する", masked: false },
-      { word: "construction", partOfSpeech: "名詞", meaning: "建設、工事", masked: true },
-      { word: "constructive", partOfSpeech: "形容詞", meaning: "建設的な、前向きな", masked: true },
-      { word: "reconstruct", partOfSpeech: "動詞", meaning: "再建する、再現する", masked: false },
-      { word: "reconstruction", partOfSpeech: "名詞", meaning: "再建、復興", masked: true }
-    ];
-
-    return res.json({
-      focusWord: word.trim(),
-      connections: mockedConnections,
-      puzzle: mockedPuzzle,
-      distractors: isActRelated 
-        ? ["acting", "actor", "activation", "inactive"]
-        : ["constructively", "constructor", "structural", "deconstruct"],
-      isFallback: true
+    // 作り置きの図を返すと、何を調べても同じ内容が「AIの分析」として出る
+    return res.status(502).json({
+      error: "AIの応答を受け取れませんでした。時間をおいて再度お試しください。"
     });
   }
 });
@@ -332,7 +255,7 @@ app.post("/api/gemini/word-frequency", async (req, res) => {
 
   if (!apiKey) {
     // 語尾ヒューリスティックの擬似データを本物のAI分析のように返さない
-    return res.status(503).json({ error: "AI頻度分析にはGemini APIキーの設定が必要です。" });
+    return res.status(503).json({ error: AI_UNAVAILABLE });
   }
 
   try {
@@ -688,7 +611,7 @@ app.post("/api/gemini/word-relations", async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(503).json({ error: "類義語・反意語の分析にはGemini APIキーの設定が必要です。" });
+    return res.status(503).json({ error: AI_UNAVAILABLE });
   }
 
   try {
@@ -775,7 +698,7 @@ app.post("/api/gemini/generate-passage", async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(503).json({ error: "AI長文の生成にはGemini APIキーの設定が必要です。" });
+    return res.status(503).json({ error: AI_UNAVAILABLE });
   }
 
   const levelInfo: Record<string, { label: string; cefr: string; reward: number; words: string }> = {
@@ -859,26 +782,6 @@ app.post("/api/gemini/generate-passage", async (req, res) => {
   }
 });
 
-// 1.9. API: 単語のイメージ（SVGイラスト）の返却（手作りprebakedのみ・AI生成なし）
-app.post("/api/gemini/word-image-svg", async (req, res) => {
-  const { word } = req.body;
-  if (!isValidShortText(word, MAX_WORD_LEN)) {
-    return res.status(400).json({ error: "英単語が正しく指定されていません。(最大64文字)" });
-  }
-
-  const queryWord = word.trim();
-  const cacheKey = queryWord.toLowerCase();
-
-  // 事前生成(手作り)イメージのみを返却する。AI(Gemini)による自動生成・再生成は行わない。
-  const prebaked = PREBAKED_WORD_IMAGES[cacheKey];
-  if (prebaked) {
-    return res.json({ word: queryWord, svg: prebaked, prebaked: true });
-  }
-
-  // 手作り画像がない単語は画像を表示しない（svg は返さない）
-  return res.json({ word: queryWord, svg: null, none: true });
-});
-
 // 3. API: ユーザーの覚えている単語リストに基づいた英語日記の自動生成
 app.post("/api/gemini/diary", async (req, res) => {
   const rawWords = req.body?.words;
@@ -899,23 +802,7 @@ app.post("/api/gemini/diary", async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    // APIキーがない場合の、文脈的に美しく自然に流れる日記のダミーフォールバック
-    const sampleWords = words.length > 0 ? words.slice(0, 15) : ["achieve", "collaborate", "constant", "improve", "glorious", "journey", "observe", "active", "creative", "challenge"];
-    const diaryText = `It was high time for me to reflect on my daily study and creative challenges. Looking back, I realize that constant efforts are what truly help us achieve our goals. On this glorious learning journey, I always want to stay active, keep improving my skills, and collaborate with inspiring friends from around the world. Every small success we observe along the way is a milestone worth celebrating. Let's keep moving forward with passion!`;
-    const diaryTranslation = `日々の学習やクリエイティブな挑戦について振り返る時期がやってきました。振り返ってみると、絶え間ない努力こそが目標を達成するための本当の原動力なのだと気づかされます。この輝かしい学びの旅路において、私は常にアクティブでいたいし、スキルを向上させ続け、世界中の刺激的な友人たちと協力し合いたいと願っています。その途上で私たちが目にする一つひとつの小さな成功こそが、お祝いするに値するマイルストーンです。これからも情熱を持って前へと進み続けましょう！`;
-    
-    // 実際に使われた単語をマッチ
-    const usedWords = words.filter(w => {
-      const lower = w.toLowerCase().trim();
-      return diaryText.toLowerCase().includes(lower);
-    });
-
-    return res.json({
-      title: "Reflections on My Learning Journey",
-      diaryText: diaryText,
-      diaryTranslation: diaryTranslation,
-      usedWords: usedWords.length > 0 ? usedWords : sampleWords
-    });
+    return res.status(503).json({ error: AI_UNAVAILABLE });
   }
 
   try {
@@ -970,25 +857,13 @@ ${JSON.stringify(words)}
     res.json(data);
   } catch (error: any) {
     console.error("Gemini Diary Error: ", error);
-    console.warn("AI英語日記の生成に失敗したため（クォータ制限等）、ローカルフォールバックデータを出力します。");
-    const sampleWords = words.length > 0 ? words.slice(0, 15) : ["achieve", "collaborate", "constant", "improve", "glorious", "journey", "observe", "active", "creative", "challenge"];
-    const diaryText = `It was high time for me to reflect on my daily study and creative challenges. Looking back, I realize that constant efforts are what truly help us achieve our goals. On this glorious learning journey, I always want to stay active, keep improving my skills, and collaborate with inspiring friends from around the world. Every small success we observe along the way is a milestone worth celebrating. Let's keep moving forward with passion!`;
-    const diaryTranslation = `日々の学習やクリエイティブな挑戦について振り返る時期がやってきました。振り返ってみると、絶え間ない努力こそが目標を達成するための本当の原動力なのだと気づかされます。この輝かしい学びの旅路において、私は常にアクティブでいたいし、スキルを向上させ続け、世界中の刺激的な友人たちと協力し合いたいと願っています。その途上で私たちが目にする一つひとつの小さな成功こそが、お祝いするに値するマイルストーンです。これからも情熱を持って前へと進み続けましょう！`;
-    const usedWords = words.filter(w => {
-      const lower = w.toLowerCase().trim();
-      return diaryText.toLowerCase().includes(lower);
-    });
-    return res.json({
-      title: "Reflections on My Learning Journey",
-      diaryText: diaryText,
-      diaryTranslation: diaryTranslation,
-      usedWords: usedWords.length > 0 ? usedWords : sampleWords,
-      isFallback: true
+    // 書き置きの文章を返すと、毎回同じものが「あなたの単語で書いた日記」として出る
+    return res.status(502).json({
+      error: "AIの応答を受け取れませんでした。時間をおいて再度お試しください。"
     });
   }
 });
 
-// PDF読み込み時のフォールバック用重要英単語
 // 6. API: PDFファイルからの英単語スマート抽出
 app.post("/api/gemini/parse-pdf", async (req, res) => {
   let { pdfBase64 } = req.body;
@@ -1023,12 +898,8 @@ app.post("/api/gemini/parse-pdf", async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn("APIキーがないため、PDF解析のフォールバックデータを出力します。");
-    const mockWords = getPdfMockWords().map((w, index) => ({
-      ...w,
-      id: `pdf_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`
-    }));
-    return res.json({ words: mockWords, isFallback: true });
+    // PDFと関係のない単語を返すと、読み取れたように見えて中身が別物になる
+    return res.status(503).json({ error: AI_UNAVAILABLE });
   }
 
   try {
@@ -1099,12 +970,9 @@ app.post("/api/gemini/parse-pdf", async (req, res) => {
 
   } catch (error: any) {
     console.error("Gemini PDF Parse Error: ", error);
-    console.warn("AI PDF解析に失敗したため、ローカルフォールバックモードで動作します。(429などのクォータ制限対策)");
-    const mockWords = getPdfMockWords().map((w, index) => ({
-      ...w,
-      id: `pdf_fallback_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`
-    }));
-    return res.json({ words: mockWords, isFallback: true });
+    return res.status(502).json({
+      error: "AIの応答を受け取れませんでした。時間をおいて再度お試しください。"
+    });
   }
 });
 

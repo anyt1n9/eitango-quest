@@ -476,13 +476,13 @@ export default function Dashboard({
             body: JSON.stringify({ pdfBase64: base64Result })
           });
 
-          if (!response.ok) {
-            throw new Error("サーバーとの通信に失敗しました。快適な接続環境下で再度お試しください。");
-          }
-
-          const data = await response.json();
-          if (data.error) {
-            throw new Error(data.error);
+          // 先に本文を読む。ここで通信エラーとして丸めてしまうと、
+          // 「AIを呼び出せませんでした」というサーバーの理由が利用者に届かない
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.error) {
+            throw new Error(
+              data.error || "サーバーとの通信に失敗しました。快適な接続環境下で再度お試しください。"
+            );
           }
 
           const rawWords: any[] = Array.isArray(data.words) ? data.words : [];
@@ -753,11 +753,11 @@ export default function Dashboard({
         };
       });
 
-      const msg = data.isFallback
-        ? `💡 一時的な自動調整モード:\nAI接続の混雑を避けるため、今回はローカルエンジンを使用して英単語「${data.word}」を登録しました。\n（自動生成されたクイズと例文が正常に追加されました！）`
-        : `AIが英単語「${data.word}」の分析を完了しました！\n難易度: ${
-            data.level === "junior" ? "中学生" : data.level === "senior" ? "高校1年生" : data.level === "senior2" ? "高校2年生" : data.level === "senior3" ? "高校3年生" : "大学生・社会人"
-          }\n自動分析された例文と選択肢がクイズに追加されました！ (獲得スコア: +50)`;
+      // AIを呼べなかったときは 503/502 で断るようになったので、
+      // ここに来るのは本当にAIが分析した結果だけ
+      const msg = `AIが英単語「${data.word}」の分析を完了しました！\n難易度: ${
+        data.level === "junior" ? "中学生" : data.level === "senior" ? "高校1年生" : data.level === "senior2" ? "高校2年生" : data.level === "senior3" ? "高校3年生" : "大学生・社会人"
+      }\n自動分析された例文と選択肢がクイズに追加されました！ (獲得スコア: +50)`;
       alert(msg);
     } catch (err: any) {
       console.error(err);
