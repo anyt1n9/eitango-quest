@@ -25,16 +25,18 @@ const WORDS: Word[] = [
   makeWord({ id: "o1", word: "how many ~?", translation: "いくつの", pos: "other" })
 ];
 
-function renderDictionary() {
+function renderDictionary(setWrongWords = vi.fn(), wrongWords: string[] = []) {
   render(
     <Dictionary
       vocabulary={WORDS}
-      wrongWords={[]}
+      wrongWords={wrongWords}
+      setWrongWords={setWrongWords}
       solvedHistory={{}}
       srsData={{}}
       onBackToDashboard={vi.fn()}
     />
   );
+  return { setWrongWords };
 }
 
 /** 一覧に出ている見出し語 */
@@ -66,6 +68,62 @@ describe("単語の詳細", () => {
     renderDictionary();
     await user.click(screen.getByText("beautiful"));
     expect(screen.getAllByText("美しい").length).toBeGreaterThan(0);
+  });
+});
+
+describe("苦手リストへの出し入れ", () => {
+  // 苦手リストに語が入る道は「クイズで間違える」だけだった。
+  // 辞書は苦手で絞り込めるのに追加はできず、
+  // 自分で「この語は苦手だ」と分かっている語を復習に回せなかった
+  it("一覧のどの語にも出し入れのボタンがある", () => {
+    renderDictionary();
+    for (const w of WORDS) {
+      expect(document.getElementById(`btn_toggle_weak_${w.id}`), w.word).toBeInTheDocument();
+    }
+  });
+
+  it("押すと苦手リストに入る", async () => {
+    const user = userEvent.setup();
+    const setWrongWords = vi.fn();
+    renderDictionary(setWrongWords);
+
+    await user.click(document.getElementById("btn_toggle_weak_n1")!);
+    const updater = setWrongWords.mock.calls[0][0] as (p: string[]) => string[];
+    expect(updater([])).toEqual(["n1"]);
+  });
+
+  it("入っている語をもう一度押すと外れる", async () => {
+    const user = userEvent.setup();
+    const setWrongWords = vi.fn();
+    renderDictionary(setWrongWords, ["n1"]);
+
+    await user.click(document.getElementById("btn_toggle_weak_n1")!);
+    const updater = setWrongWords.mock.calls[0][0] as (p: string[]) => string[];
+    expect(updater(["n1", "v1"])).toEqual(["v1"]);
+  });
+
+  it("二重に入れない", async () => {
+    const user = userEvent.setup();
+    const setWrongWords = vi.fn();
+    renderDictionary(setWrongWords, []);
+    await user.click(document.getElementById("btn_toggle_weak_n1")!);
+    const updater = setWrongWords.mock.calls[0][0] as (p: string[]) => string[];
+    expect(updater(["n1"])).toEqual([]);
+  });
+
+  it("いま入っているかどうかが分かる", () => {
+    renderDictionary(vi.fn(), ["n1"]);
+    expect(document.getElementById("btn_toggle_weak_n1")).toHaveAttribute("aria-pressed", "true");
+    expect(document.getElementById("btn_toggle_weak_v1")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("押しても単語の詳細は開かない", async () => {
+    // 訳は一覧にも小さく出ているので、詳細にしか出ない例文の訳で見る
+    const user = userEvent.setup();
+    renderDictionary();
+    expect(screen.queryByText(/その庭は春に/)).not.toBeInTheDocument();
+    await user.click(document.getElementById("btn_toggle_weak_n1")!);
+    expect(screen.queryByText(/その庭は春に/)).not.toBeInTheDocument();
   });
 });
 

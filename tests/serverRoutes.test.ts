@@ -256,3 +256,47 @@ describe("壊れたリクエスト", () => {
     expect(res.status).toBeLessThan(500);
   });
 });
+
+describe("AIを呼べないときの応答", () => {
+  /**
+   * 以前は generate-word / connection-map / diary / parse-pdf が、
+   * APIキーが無いときに**作り置きの中身**を 200 で返していた。
+   * 画面はそれを本物のAI出力として表示するため、
+   *   - 単語追加では訳が「AI生成の訳 (仮)」の偽データが単語帳に保存され、
+   *     そのままクイズに出題される
+   *   - つながりマップは何を調べても同じ図が出る
+   *   - 英語日記は毎回まったく同じ文章が「あなたの単語で書いた日記」として出る
+   * 実測でも isFallback が付いておらず、利用者には見分けがつかなかった。
+   */
+  const AI_ONLY: [name: string, path: string, body: object][] = [
+    ["単語追加", "/api/gemini/generate-word", { word: "serendipity" }],
+    ["つながりマップ", "/api/gemini/connection-map", { word: "beautiful" }],
+    ["英語日記", "/api/gemini/diary", { words: ["library", "station"] }],
+    ["頻度分析", "/api/gemini/word-frequency", { word: "library" }],
+    ["長文生成", "/api/gemini/generate-passage", { level: "junior" }],
+    ["類義語", "/api/gemini/word-relations", { word: "library" }],
+    ["PDF取り込み", "/api/gemini/parse-pdf", { pdfBase64: "JVBERi0xLjQK" }]
+  ];
+
+  it.each(AI_ONLY)("%s は断って理由を返す（作り話を返さない）", async (_name, path, body) => {
+    const res = await request(app).post(path).send(body);
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/AIを呼び出せませんでした/);
+    // 中身を作って返していない
+    expect(res.body.words).toBeUndefined();
+    expect(res.body.diaryText).toBeUndefined();
+    expect(res.body.connections).toBeUndefined();
+    expect(res.body.translation).toBeUndefined();
+  });
+
+  it("集計で作れるものは、出どころを明記して返す", async () => {
+    // 学習アドバイスは手元の集計から組み立てられる。
+    // AIを騙らず source: "local" を付けて返す
+    const res = await request(app)
+      .post("/api/gemini/advice")
+      .send({ levelStats: [{ level: "junior", total: 100, mastered: 10, accuracy: 60 }] });
+    expect(res.status).toBe(200);
+    expect(res.body.source).toBe("local");
+    expect(res.body.advice).toBeTruthy();
+  });
+});

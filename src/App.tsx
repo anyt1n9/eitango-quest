@@ -876,6 +876,7 @@ export default function App() {
           <Dictionary
             vocabulary={vocabulary}
             wrongWords={wrongWords}
+            setWrongWords={setWrongWords}
             solvedHistory={solvedHistory}
             srsData={srsData}
             onBackToDashboard={handleBackToDashboard}
