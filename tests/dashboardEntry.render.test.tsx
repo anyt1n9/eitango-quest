@@ -146,22 +146,47 @@ describe("画面の詰まりを減らす", () => {
     expect(document.getElementById("input_new_word")).toBeInTheDocument();
   });
 
-  it("レベルへの飛び先を並べる", () => {
-    // スマホでは1列に積むので、上級のカードまで3,500pxスクロールしていた
+  it("レベルは選ぶもので、5枚とも並べない", () => {
+    // 5レベルのカードを積んでいたときはスマホ幅で1,894pxあり、
+    // 中学以外を使う人は毎回そこまでスクロールしていた
     renderDashboard();
-    const jump = screen.getByTestId("level_jump");
+    const picker = screen.getByTestId("level_picker");
     for (const label of ["中学", "高1", "高2", "高3", "大学・社会人"]) {
-      expect(within(jump).getByText(label), label).toBeInTheDocument();
+      expect(within(picker).getByText(label), label).toBeInTheDocument();
     }
+    // 出ているカードは選んでいる1枚だけ
+    expect(screen.getAllByTestId("level_quiz_buttons")).toHaveLength(1);
+    expect(screen.getByTestId("level_card_junior")).toBeInTheDocument();
   });
 
-  it("飛び先はそのレベルのカードを指す", async () => {
+  it("選ぶと、そのレベルの5形式に入れ替わる", async () => {
+    const user = userEvent.setup();
+    const { onStartQuiz } = renderDashboard();
+
+    await user.click(document.getElementById("btn_level_advanced")!);
+    expect(document.getElementById("btn_level_advanced")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("level_card_advanced")).toBeInTheDocument();
+    expect(screen.queryByTestId("level_card_junior")).toBeNull();
+
+    await user.click(document.getElementById("btn_advanced_spelling")!);
+    expect(onStartQuiz).toHaveBeenCalledWith("advanced", "spelling", 10);
+  });
+
+  it("選んだレベルを覚えておく（毎回選び直させない）", async () => {
     const user = userEvent.setup();
     renderDashboard();
-    const card = document.getElementById("advanced_level_card")!;
-    const spy = vi.spyOn(card, "scrollIntoView");
-    await user.click(document.getElementById("btn_jump_advanced")!);
-    expect(spy).toHaveBeenCalled();
+    await user.click(document.getElementById("btn_level_senior2")!);
+    expect(localStorage.getItem("quest_selected_level")).toBe("senior2");
+
+    document.body.innerHTML = "";
+    renderDashboard();
+    expect(document.getElementById("btn_level_senior2")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("保存値が壊れていても中学に戻す", () => {
+    localStorage.setItem("quest_selected_level", "SENIOR");
+    renderDashboard();
+    expect(document.getElementById("btn_level_junior")).toHaveAttribute("aria-pressed", "true");
   });
 });
 

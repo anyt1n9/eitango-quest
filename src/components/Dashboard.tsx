@@ -69,13 +69,74 @@ const REFERENCE_ENTRIES = [
   }
 ] as const;
 
-/** レベルのカードへ飛ぶための並び */
-const LEVEL_JUMPS: { level: Level; label: string }[] = [
-  { level: "junior", label: "中学" },
-  { level: "senior", label: "高1" },
-  { level: "senior2", label: "高2" },
-  { level: "senior3", label: "高3" },
-  { level: "advanced", label: "大学・社会人" }
+/**
+ * レベルの一覧。
+ *
+ * 以前は5レベルのカードを縦に並べており、スマホ幅で 1,894px（画面2.2枚ぶん）あった。
+ * 中学以外を使う人は毎回そこまでスクロールする必要があり、
+ * 「レベルへ移動」というページ内リンクで補っていた。
+ * いまはレベルを先に選び、選んだレベルのカードだけを出す。
+ *
+ * 色は文字列のまま持つ。`bg-${color}-100` のように組み立てると
+ * Tailwind がクラスを見つけられず、色が付かなくなる。
+ */
+const LEVELS: {
+  level: Level;
+  /** 選ぶボタンに出す短い名前 */
+  short: string;
+  /** カードの見出し */
+  title: string;
+  /** 収録語の例（このレベルの雰囲気を掴むため） */
+  examples: string;
+  badge: string;
+  rate: string;
+  bar: string;
+  primaryBtn: string;
+  subBtn: string;
+}[] = [
+  {
+    level: "junior", short: "中学", title: "初級 (中学生レベル)",
+    examples: "beautiful, library, important, station...",
+    badge: "bg-blue-100 text-blue-700", rate: "text-blue-700", bar: "bg-blue-600",
+    primaryBtn: "bg-blue-700 hover:bg-blue-800",
+    subBtn: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200/50"
+  },
+  {
+    level: "senior", short: "高1", title: "中級 (高校1年生レベル)",
+    examples: "environment, achieve, technology, protect...",
+    badge: "bg-emerald-100 text-emerald-700", rate: "text-emerald-700", bar: "bg-emerald-600",
+    primaryBtn: "bg-emerald-700 hover:bg-emerald-800",
+    subBtn: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50"
+  },
+  {
+    level: "senior2", short: "高2", title: "中級 (高校2年生レベル)",
+    examples: "skill, tragedy, knowledge, establish...",
+    badge: "bg-purple-100 text-purple-700", rate: "text-purple-700", bar: "bg-purple-600",
+    primaryBtn: "bg-purple-700 hover:bg-purple-800",
+    subBtn: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200/50"
+  },
+  {
+    level: "senior3", short: "高3", title: "中級 (高校3年生レベル)",
+    examples: "significant, sacrifice, trigger, delight...",
+    badge: "bg-pink-100 text-pink-700", rate: "text-pink-700", bar: "bg-pink-600",
+    primaryBtn: "bg-pink-700 hover:bg-pink-800",
+    subBtn: "bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200/50"
+  },
+  {
+    level: "advanced", short: "大学・社会人", title: "上級 (大学生・社会人)",
+    examples: "comprehensive, architecture, constraint, execution...",
+    badge: "bg-amber-100 text-amber-700", rate: "text-amber-700", bar: "bg-amber-600",
+    primaryBtn: "bg-amber-700 hover:bg-amber-800",
+    subBtn: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200/50"
+  }
+];
+
+/** レベルの中で選べる出題形式。並びは5レベルで共通 */
+const QUIZ_FORMS: { form: "sentence" | "listening" | "reverse" | "spelling"; label: string }[] = [
+  { form: "sentence", label: "例文穴埋めを解く" },
+  { form: "listening", label: "🎧 リスニングを解く" },
+  { form: "reverse", label: "🇯🇵 日本語→英単語" },
+  { form: "spelling", label: "✏️ 綴りを書く" }
 ];
 
 /** 1回のクイズで出す問題数の選択肢 */
@@ -625,6 +686,21 @@ export default function Dashboard({
     writeStored("quest_question_count", String(questionCount));
   }, [questionCount]);
 
+  /**
+   * どのレベルを開いているか。
+   *
+   * 覚えておかないと、中学以外で学習している人は
+   * アプリを開くたびに選び直すことになる。
+   */
+  const [selectedLevel, setSelectedLevel] = useState<Level>(() => {
+    const saved = localStorage.getItem("quest_selected_level");
+    return LEVELS.some(l => l.level === saved) ? (saved as Level) : "junior";
+  });
+
+  useEffect(() => {
+    writeStored("quest_selected_level", selectedLevel);
+  }, [selectedLevel]);
+
   // 各レベルの単語カウントと習熟度計算
   const getLevelCounts = (level: Level) => {
     const levelWords = vocabulary.filter(w => w.level === level);
@@ -1145,19 +1221,25 @@ export default function Dashboard({
             className="flex items-center gap-2 flex-wrap bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-4 py-3"
             data-testid="question_count_picker"
           >
-            {/* レベルへの飛び先。スマホでは1列に積むので、上級のカードまで
-                3,500px スクロールする必要があった */}
-            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto" data-testid="level_jump">
-              <span className="text-xs font-black text-gray-500 dark:text-slate-400">レベルへ移動</span>
-              {LEVEL_JUMPS.map(item => (
+            {/* レベルを選ぶ。選んだレベルのカードだけを下に出す */}
+            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto" data-testid="level_picker">
+              <span className="text-xs font-black text-gray-500 dark:text-slate-400">レベル</span>
+              {LEVELS.map(item => (
                 <button
                   key={item.level}
-                  onClick={() => document.getElementById(`${item.level}_level_card`)
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  id={`btn_jump_${item.level}`}
-                  className="min-h-11 px-3 rounded-xl text-xs font-black border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-100 transition cursor-pointer whitespace-nowrap"
+                  onClick={() => setSelectedLevel(item.level)}
+                  id={`btn_level_${item.level}`}
+                  aria-pressed={selectedLevel === item.level}
+                  className={`min-h-11 px-3 rounded-xl text-xs font-black border transition cursor-pointer whitespace-nowrap ${
+                    selectedLevel === item.level
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100"
+                  }`}
                 >
-                  {item.label}
+                  {item.short}
+                  <span className="ml-1.5 font-bold opacity-70 font-mono">
+                    {getLevelCounts(item.level).masterRate}%
+                  </span>
                 </button>
               ))}
             </div>
@@ -1181,365 +1263,69 @@ export default function Dashboard({
             ))}
           </div>
 
-          {/* クイズレベル選択 - スタイリッシュデザイン */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6" id="level_selection_section">
-            
-            {/* JUNIOR CARD */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between" id="junior_level_card">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full font-bold">
-                    初級 (中学生レベル)
-                  </span>
-                  <div className="text-right">
-                    <span className="text-xs text-gray-400">習熟度</span>
-                    <p className="text-lg font-black text-blue-700 font-mono">{juniorStats.masterRate}%</p>
+          {/* 選んだレベルのカード。5レベルぶんを並べていたときは
+              スマホ幅で 1,894px あった */}
+          {(() => {
+            const conf = LEVELS.find(l => l.level === selectedLevel) || LEVELS[0];
+            const s = getLevelCounts(conf.level);
+            return (
+              <div
+                className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between"
+                id="level_selection_section"
+                data-testid={`level_card_${conf.level}`}
+              >
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className={`${conf.badge} text-xs px-3 py-1 rounded-full font-bold`}>
+                      {conf.title}
+                    </span>
+                    <div className="text-right">
+                      <span className="text-xs text-gray-400">習熟度</span>
+                      <p className={`text-lg font-black font-mono ${conf.rate}`}>{s.masterRate}%</p>
+                    </div>
+                  </div>
+
+                  {/* 進捗バー */}
+                  <div className="mt-4 bg-gray-100 w-full h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`${conf.bar} h-full rounded-full transition-all duration-1000`}
+                      style={{ width: `${s.masterRate}%` }}
+                    />
+                  </div>
+
+                  <div className="mt-3 flex justify-between text-xs text-gray-500 font-mono">
+                    <span>覚えた: {s.correct} 語</span>
+                    <span>全 {s.total} 語</span>
+                  </div>
+                  <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
+                    例: {conf.examples}
+                  </p>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
+                  <button
+                    onClick={() => onStartQuiz(conf.level, "word", questionCount)}
+                    className={`w-full ${conf.primaryBtn} text-white font-bold min-h-11 rounded-xl text-xs shadow-sm hover:shadow transition`}
+                    id={`btn_${conf.level}_word`}
+                  >
+                    一問一答を解く
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    {QUIZ_FORMS.map(f => (
+                      <button
+                        key={f.form}
+                        onClick={() => onStartQuiz(conf.level, f.form, questionCount)}
+                        className={`${conf.subBtn} font-bold min-h-11 px-2 rounded-xl text-xs transition border`}
+                        id={`btn_${conf.level}_${f.form}`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-
-                {/* 進捗バー */}
-                <div className="mt-4 bg-gray-100 w-full h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-blue-600 h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${juniorStats.masterRate}%` }}
-                  />
-                </div>
-                
-                <div className="mt-3 flex justify-between text-xs text-gray-500 font-mono">
-                  <span>覚えた: {juniorStats.correct} 語</span>
-                  <span>全 {juniorStats.total} 語</span>
-                </div>
-                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
-                  例: beautiful, library, important, station...
-                </p>
               </div>
-
-              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
-                <button
-                  onClick={() => onStartQuiz("junior", "word", questionCount)}
-                  className="w-full bg-blue-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-blue-800 shadow-sm hover:shadow transition"
-                  id="btn_junior_word"
-                >
-                  一問一答を解く
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-<button
-                  onClick={() => onStartQuiz("junior", "sentence", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_junior_sentence"
-                >
-                  例文穴埋めを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("junior", "listening", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_junior_listening"
-                >
-                  🎧 リスニングを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("junior", "reverse", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_junior_reverse"
-                >
-                  🇯🇵 日本語→英単語
-                </button>
-                <button
-                  onClick={() => onStartQuiz("junior", "spelling", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_junior_spelling"
-                >
-                  ✏️ 綴りを書く
-                </button>
-              </div>
-</div>
-            </div>
-
-            {/* SENIOR CARD */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between" id="senior_level_card">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="bg-emerald-100 text-emerald-700 text-xs px-3 py-1 rounded-full font-bold">
-                    中級 (高校1年生レベル)
-                  </span>
-                  <div className="text-right">
-                    <span className="text-xs text-gray-400">習熟度</span>
-                    <p className="text-lg font-black text-emerald-700 font-mono">{seniorStats.masterRate}%</p>
-                  </div>
-                </div>
-
-                {/* 進捗バー */}
-                <div className="mt-4 bg-gray-100 w-full h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-emerald-600 h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${seniorStats.masterRate}%` }}
-                  />
-                </div>
-                
-                <div className="mt-3 flex justify-between text-xs text-gray-500 font-mono">
-                  <span>覚えた: {seniorStats.correct} 語</span>
-                  <span>全 {seniorStats.total} 語</span>
-                </div>
-                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
-                  例: environment, achieve, technology, protect...
-                </p>
-              </div>
-
-              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
-                <button
-                  onClick={() => onStartQuiz("senior", "word", questionCount)}
-                  className="w-full bg-emerald-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-emerald-800 shadow-sm hover:shadow transition"
-                  id="btn_senior_word"
-                >
-                  一問一答を解く
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-<button
-                  onClick={() => onStartQuiz("senior", "sentence", questionCount)}
-                  className="bg-emerald-50 text-emerald-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
-                  id="btn_senior_sentence"
-                >
-                  例文穴埋めを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior", "listening", questionCount)}
-                  className="bg-emerald-50 text-emerald-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
-                  id="btn_senior_listening"
-                >
-                  🎧 リスニングを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior", "reverse", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_senior_reverse"
-                >
-                  🇯🇵 日本語→英単語
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior", "spelling", questionCount)}
-                  className="bg-emerald-50 text-emerald-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-emerald-100 transition border border-emerald-200/50"
-                  id="btn_senior_spelling"
-                >
-                  ✏️ 綴りを書く
-                </button>
-              </div>
-</div>
-            </div>
-
-            {/* SENIOR2 CARD (高校2年生レベル) */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between" id="senior2_level_card">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full font-bold">
-                    中級 (高校2年生レベル)
-                  </span>
-                  <div className="text-right">
-                    <span className="text-xs text-gray-400">習熟度</span>
-                    <p className="text-lg font-black text-purple-700 font-mono">{senior2Stats.masterRate}%</p>
-                  </div>
-                </div>
-
-                {/* 進捗バー */}
-                <div className="mt-4 bg-gray-100 w-full h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-purple-600 h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${senior2Stats.masterRate}%` }}
-                  />
-                </div>
-                
-                <div className="mt-3 flex justify-between text-xs text-gray-500 font-mono">
-                  <span>覚えた: {senior2Stats.correct} 語</span>
-                  <span>全 {senior2Stats.total} 語</span>
-                </div>
-                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
-                  例: skill, tragedy, knowledge, establish...
-                </p>
-              </div>
-
-              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
-                <button
-                  onClick={() => onStartQuiz("senior2", "word", questionCount)}
-                  className="w-full bg-purple-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-purple-800 shadow-sm hover:shadow transition"
-                  id="btn_senior2_word"
-                >
-                  一問一答を解く
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-<button
-                  onClick={() => onStartQuiz("senior2", "sentence", questionCount)}
-                  className="bg-purple-50 text-purple-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
-                  id="btn_senior2_sentence"
-                >
-                  例文穴埋めを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior2", "listening", questionCount)}
-                  className="bg-purple-50 text-purple-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
-                  id="btn_senior2_listening"
-                >
-                  🎧 リスニングを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior2", "reverse", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_senior2_reverse"
-                >
-                  🇯🇵 日本語→英単語
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior2", "spelling", questionCount)}
-                  className="bg-purple-50 text-purple-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-purple-100 transition border border-purple-200/50"
-                  id="btn_senior2_spelling"
-                >
-                  ✏️ 綴りを書く
-                </button>
-              </div>
-</div>
-            </div>
-
-            {/* SENIOR3 CARD (高校3年生レベル) */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between" id="senior3_level_card">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="bg-pink-100 text-pink-700 text-xs px-3 py-1 rounded-full font-bold">
-                    中級 (高校3年生レベル)
-                  </span>
-                  <div className="text-right">
-                    <span className="text-xs text-gray-400">習熟度</span>
-                    <p className="text-lg font-black text-pink-700 font-mono">{senior3Stats.masterRate}%</p>
-                  </div>
-                </div>
-
-                {/* 進捗バー */}
-                <div className="mt-4 bg-gray-100 w-full h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-pink-600 h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${senior3Stats.masterRate}%` }}
-                  />
-                </div>
-                
-                <div className="mt-3 flex justify-between text-xs text-gray-500 font-mono">
-                  <span>覚えた: {senior3Stats.correct} 語</span>
-                  <span>全 {senior3Stats.total} 語</span>
-                </div>
-                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
-                  例: significant, sacrifice, trigger, delight...
-                </p>
-              </div>
-
-              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
-                <button
-                  onClick={() => onStartQuiz("senior3", "word", questionCount)}
-                  className="w-full bg-pink-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-pink-800 shadow-sm hover:shadow transition"
-                  id="btn_senior3_word"
-                >
-                  一問一答を解く
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-<button
-                  onClick={() => onStartQuiz("senior3", "sentence", questionCount)}
-                  className="bg-pink-50 text-pink-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
-                  id="btn_senior3_sentence"
-                >
-                  例文穴埋めを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior3", "listening", questionCount)}
-                  className="bg-pink-50 text-pink-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
-                  id="btn_senior3_listening"
-                >
-                  🎧 リスニングを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior3", "reverse", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_senior3_reverse"
-                >
-                  🇯🇵 日本語→英単語
-                </button>
-                <button
-                  onClick={() => onStartQuiz("senior3", "spelling", questionCount)}
-                  className="bg-pink-50 text-pink-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-pink-100 transition border border-pink-200/50"
-                  id="btn_senior3_spelling"
-                >
-                  ✏️ 綴りを書く
-                </button>
-              </div>
-</div>
-            </div>
-
-            {/* ADVANCED CARD */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between" id="advanced_level_card">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="bg-amber-100 text-amber-700 text-xs px-3 py-1 rounded-full font-bold">
-                    上級 (大学生・社会人)
-                  </span>
-                  <div className="text-right">
-                    <span className="text-xs text-gray-400">習熟度</span>
-                    <p className="text-lg font-black text-amber-700 font-mono">{advancedStats.masterRate}%</p>
-                  </div>
-                </div>
-
-                {/* 進捗バー */}
-                <div className="mt-4 bg-gray-100 w-full h-2 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-amber-600 h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${advancedStats.masterRate}%` }}
-                  />
-                </div>
-                
-                <div className="mt-3 flex justify-between text-xs text-gray-500 font-mono">
-                  <span>覚えた: {advancedStats.correct} 語</span>
-                  <span>全 {advancedStats.total} 語</span>
-                </div>
-                <p className="mt-3 pt-3 border-t border-gray-50 font-mono text-[11px] text-gray-400 truncate">
-                  例: comprehensive, architecture, constraint, execution...
-                </p>
-              </div>
-
-              <div className="mt-6 flex flex-col gap-2" data-testid="level_quiz_buttons">
-                <button
-                  onClick={() => onStartQuiz("advanced", "word", questionCount)}
-                  className="w-full bg-amber-700 text-white font-bold min-h-11 rounded-xl text-xs hover:bg-amber-800 shadow-sm hover:shadow transition"
-                  id="btn_advanced_word"
-                >
-                  一問一答を解く
-                </button>
-                <div className="grid grid-cols-2 gap-2">
-<button
-                  onClick={() => onStartQuiz("advanced", "sentence", questionCount)}
-                  className="bg-amber-50 text-amber-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
-                  id="btn_advanced_sentence"
-                >
-                  例文穴埋めを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("advanced", "listening", questionCount)}
-                  className="bg-amber-50 text-amber-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
-                  id="btn_advanced_listening"
-                >
-                  🎧 リスニングを解く
-                </button>
-                <button
-                  onClick={() => onStartQuiz("advanced", "reverse", questionCount)}
-                  className="bg-blue-50 text-blue-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-blue-100 transition border border-blue-200/50"
-                  id="btn_advanced_reverse"
-                >
-                  🇯🇵 日本語→英単語
-                </button>
-                <button
-                  onClick={() => onStartQuiz("advanced", "spelling", questionCount)}
-                  className="bg-amber-50 text-amber-700 font-bold min-h-11 px-2 rounded-xl text-xs hover:bg-amber-100 transition border border-amber-200/50"
-                  id="btn_advanced_spelling"
-                >
-                  ✏️ 綴りを書く
-                </button>
-              </div>
-</div>
-            </div>
-
-          </div>
+            );
+          })()}
 
           {/* AI単語・CSVインポートセクション (Explore and Learn) */}
           <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 mt-6 relative overflow-hidden" id="ai_word_creation_bento">
