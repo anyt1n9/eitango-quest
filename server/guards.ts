@@ -20,20 +20,6 @@ export const isValidShortText = (value: unknown, maxLen: number): value is strin
   value.length <= maxLen &&
   !/[\u0000-\u001F\u007F]/.test(value);
 
-export const escapeHtml = (value: string): string =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-/** SVGのid属性に埋め込める形へ落とす */
-export const safeSvgIdSegment = (value: string): string => {
-  const safe = value.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 48);
-  return safe || "word";
-};
-
 // ── レート制限（IP単位・スライディングウィンドウ）─────────
 // 公開エンドポイントの「ただ乗り」による Gemini 利用枠の浪費を防ぐ。
 // 依存追加なしのメモリ内実装。プロセス再起動でリセットされるが、

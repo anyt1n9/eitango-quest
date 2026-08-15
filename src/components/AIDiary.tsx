@@ -66,7 +66,6 @@ interface DiaryEntry {
   diaryText: string;
   diaryTranslation: string;
   usedWords: string[];
-  isFallback?: boolean;
 }
 
 interface AIDiaryProps {
@@ -188,8 +187,7 @@ export default function AIDiary({
         diaryTranslation: typeof payload.diaryTranslation === "string" ? payload.diaryTranslation : "",
         usedWords: Array.isArray(payload.usedWords)
           ? payload.usedWords.filter((w: any) => typeof w === "string")
-          : [],
-        isFallback: !!payload.isFallback
+          : []
       };
 
       setDiary(newEntry);
@@ -489,19 +487,6 @@ export default function AIDiary({
                           >
                             キャンセル
                           </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 一時的フォールバック表示 */}
-                    {diary.isFallback && (
-                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-xl p-4 flex gap-3 text-amber-800 dark:text-amber-300 text-xs">
-                        <span className="text-sm">💡</span>
-                        <div>
-                          <p className="font-bold">一時的な自動調整中 (429過負荷の制限回避)</p>
-                          <p className="mt-1 opacity-90 leading-relaxed">
-                            現在APIへのアクセスが集中して一時的に読み込み制限がかかっているため、快適な学習を継続できるようローカルエンジンで自動組成した語彙確認用の仮日記を生成しました。時間を置いて再度実行すると、最新のAIによる完全生成に自動で戻ります。
-                          </p>
                         </div>
                       </div>
                     )}

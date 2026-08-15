@@ -372,54 +372,10 @@ JSON形式:
     res.json(data);
   } catch (error: any) {
     console.error("Gemini Frequency analysis Error: ", error);
-    console.warn("単語頻度分析に失敗したため、語尾パターンによる簡易推定を返します。");
-    const len = queryWord.length;
-    const isAcademic = len > 8 || queryWord.endsWith("tion") || queryWord.endsWith("ity") || queryWord.endsWith("ive") || queryWord.includes("struct");
-    const isBusiness = queryWord.includes("act") || queryWord.includes("project") || queryWord.includes("strategy") || queryWord.includes("meet") || queryWord.includes("sign") || queryWord.includes("serve") || queryWord.includes("offer") || queryWord.includes("press");
-
-    const everydayScore = isAcademic ? 2 : 4;
-    const academicScore = isAcademic ? 5 : 2;
-    const businessScore = isBusiness ? 5 : (isAcademic ? 3 : 2);
-    const estimateNote = "（綴りの語尾パターンからの簡易推定值であり、AIによる分析ではありません）";
-
-    return res.json({
-      word: word.trim(),
-      frequencies: {
-        everyday: {
-          score: everydayScore,
-          percentage: everydayScore * 20,
-          label: everydayScore >= 4 ? "高い(推定)" : (everydayScore >= 3 ? "普通(推定)" : "低い(推定)"),
-          description: `日常会話で使用される頻度の簡易推定です${estimateNote}。`
-        },
-        academic: {
-          score: academicScore,
-          percentage: academicScore * 20,
-          label: academicScore >= 4 ? "高い(推定)" : (academicScore >= 3 ? "普通(推定)" : "低い(推定)"),
-          description: `学術文献・講義での頻度の簡易推定です${estimateNote}。`
-        },
-        business: {
-          score: businessScore,
-          percentage: businessScore * 20,
-          label: businessScore >= 4 ? "高い(推定)" : (businessScore >= 3 ? "普通(推定)" : "低い(推定)"),
-          description: `ビジネス文脈での頻度の簡易推定です${estimateNote}。`
-        }
-      },
-      overallComment: `AI分析に接続できなかったため、綴りの語尾パターンにもとづく簡易推定を表示しています。正確な頻度分析を見るには、時間をおいて「再分析」をお試しください。`,
-      usageExamples: {
-        everyday: {
-          sentence: `I'll try to find a natural way to use "${word.trim()}" in daily chat.`,
-          translation: `日常会話の中で「${word.trim()}」を自然に使う方法を探してみるよ。（汎用の例文です）`
-        },
-        academic: {
-          sentence: `This study focuses primarily on the analytical factors surrounding "${word.trim()}".`,
-          translation: `この研究は主に「${word.trim()}」を取り巻く分析的要因に焦点を当てています。（汎用の例文です）`
-        },
-        business: {
-          sentence: `We need to analyze how we can leverage "${word.trim()}" in our operations.`,
-          translation: `私たちは業務の中で「${word.trim()}」をいかに活用できるかを分析する必要があります。（汎用の例文です）`
-        }
-      },
-      isFallback: true
+    // 綴りの語尾から推測した「簡易推定」と汎用の例文を返していた。
+    // 断り書きは付いていたが、他の機能は同じ状況で断るので挙動を揃える
+    return res.status(502).json({
+      error: "AIの応答を受け取れませんでした。時間をおいて再度お試しください。"
     });
   }
 });
