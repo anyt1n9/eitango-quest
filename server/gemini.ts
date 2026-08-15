@@ -20,8 +20,10 @@ import { createRateLimiter, createBudget } from "./guards";
 // 悪用の連続大量アクセスを弾く目的には十分。
 // ───────────────────────────────────────────────────────────
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1分
-// 1分あたり最大40リクエスト/IP。辞書で単語を開くと画像・頻度分析で2回発火するため、
-// 通常の辞書学習(1語ごとに2回×十数語)を妨げない一方、悪用(毎分数百回)は確実に弾く水準。
+// 1分あたり最大40リクエスト/IP。
+// 通常の学習の速さでは届かない一方、悪用(毎分数百回)は確実に弾く水準。
+// （以前は辞書で1語開くたびに画像と頻度分析で2回発火していたが、
+//   イラストを外したので1語あたり1回になった）
 const RATE_LIMIT_MAX = 40;
 const rateLimiter = createRateLimiter({ windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX });
 
@@ -50,9 +52,10 @@ export function aiRateLimiter(
 // サーバー全体のGemini呼び出し予算（1時間あたりの上限）
 // IP単位のレート制限は多数のIPに分散した攻撃(プロキシ/ボットネット)には
 // 効かないため、全体の呼び出し回数にも上限を設けてAPI課金の暴走を防ぐ。
-// 上限超過時は getGeminiClient が例外を投げ、各エンドポイントの
-// 既存のcatch節がローカルフォールバック応答に切り替える（ユーザーには
-// 「一時的な自動調整モード」として振る舞い、サービス自体は継続する）。
+// 上限を超えると getGeminiClient が例外を投げ、各エンドポイントの catch が
+// 502「AIの応答を受け取れませんでした」で断る。
+// 以前は catch が作り置きの中身を返しており、利用者には
+// AIが答えたのか作り話なのか区別が付かなかった。
 // ───────────────────────────────────────────────────────────
 const GEMINI_BUDGET_WINDOW_MS = 60 * 60 * 1000; // 1時間
 const GEMINI_HOURLY_BUDGET = Math.max(1, Number(process.env.GEMINI_HOURLY_BUDGET) || 600);
@@ -71,8 +74,9 @@ export function getGeminiClient(): GoogleGenAI {
   if (!ai) {
     const key = process.env.GEMINI_API_KEY;
     if (!key) {
-      // 開発中、APIキーが設定されていない場合でもクラッシュさせず穏やかにエラー返却できるようにする
-      console.warn("警告: GEMINI_API_KEY がセットされていません。AI機能はモックモード、またはエラー応答になります。");
+      // ここに来るのは、キーが無いときの 503 を通り抜けた場合だけ。
+      // クラッシュはさせず、呼び出しを失敗させて 502 で断る
+      console.warn("警告: GEMINI_API_KEY がセットされていません。AI機能は使えません。");
     }
     ai = new GoogleGenAI({
       apiKey: key || "DUMMY_KEY",
