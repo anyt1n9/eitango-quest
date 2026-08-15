@@ -19,6 +19,7 @@ export const BACKUP_KEYS = [
   "quest_daily_progress",
   "quest_daily_goal",
   "quest_question_count",
+  "quest_selected_level",
   "quest_daily_log",
   "quest_read_passages",
   "quest_reading_show_ja",
