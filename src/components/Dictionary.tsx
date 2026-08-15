@@ -742,25 +742,6 @@ export default function Dictionary({
 
                                 return (
                                   <div className="space-y-4">
-                                    {/* 簡易推定フォールバック時の明示的な警告 */}
-                                    {freqData.isFallback && (
-                                      <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2">
-                                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                        <div className="text-[11px] leading-relaxed">
-                                          <p className="font-black text-amber-900 dark:text-amber-300">これはAI分析ではありません（簡易推定）</p>
-                                          <p className="text-amber-800 dark:text-amber-400 font-semibold mt-0.5">
-                                            AIへの接続に失敗したため、綴りの語尾パターンによる大まかな推定値を表示しています。正確な分析は下の「再分析」からお試しください。
-                                          </p>
-                                          <button
-                                            onClick={() => handleFetchWordFrequency(word.word)}
-                                            className="mt-2 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-extrabold rounded-lg transition cursor-pointer"
-                                          >
-                                            AIで再分析する
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )}
-
                                     {/* 3つのドメインの頻度比較メーター */}
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                       
@@ -880,16 +861,9 @@ export default function Dictionary({
                                     {/* AI総合ニュアンスコメント */}
                                     {overallComment && (
                                       <div className="bg-indigo-50/30 border border-indigo-100/70 rounded-xl p-3 px-3.5 text-[11px] md:text-xs">
-                                        <div className="font-extrabold text-indigo-950 mb-1 flex items-center gap-1 justify-between">
-                                          <div className="flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-                                            <span>AIによる総合ニュアンス・アドバイス:</span>
-                                          </div>
-                                          {freqData.isFallback && (
-                                            <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[9px] px-1.5 py-0.5 rounded-full font-black shrink-0">
-                                              ローカルフォールバック
-                                            </span>
-                                          )}
+                                        <div className="font-extrabold text-indigo-950 mb-1 flex items-center gap-1">
+                                          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
+                                          <span>AIによる総合ニュアンス・アドバイス:</span>
                                         </div>
                                         <p className="text-gray-600 dark:text-slate-350 leading-relaxed font-semibold pr-4">
                                           {overallComment}

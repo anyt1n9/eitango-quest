@@ -850,6 +850,9 @@ export default function Dashboard({
       playAudio("bonus");
     } catch (err: any) {
       console.error(err);
+      // 前回の結果を残さない。残すと、更新されていない分析に
+      // 出どころの札（AIが分析／アプリが組み立て）が付いたまま見える
+      setWeaknessAnalysis(null);
       setWeaknessError(err.message || "弱点分析の作成に失敗しました。");
     } finally {
       setIsFetchingWeakness(false);
@@ -1979,7 +1982,8 @@ export default function Dashboard({
             </div>
             <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">弱点分野の自動分析</h2>
             <p className="text-sm text-gray-500 mt-1 max-w-xl">
-              「間違えた単語の復習」に溜まった単語をGemini AIが品詞・分野の傾向から分析し、あなたが苦手とする領域とその克服アドバイスを提案します。
+              「間違えた単語の復習」に溜まった単語から、あなたが苦手とする領域とその克服アドバイスを出します。
+              Gemini APIキーがあるときは AI が分析し、無いときはアプリが品詞を数えて組み立てます（結果に出どころを書きます）。
             </p>
 
             <div className="mt-6">
@@ -1990,6 +1994,13 @@ export default function Dashboard({
                       {weaknessAnalysis.summary}
                     </p>
                   </div>
+                  {/* 出どころを書く。AIキーが無いときは品詞を数えただけの集計なので、
+                      AIの分析として読まれると内容を過大に受け取らせてしまう */}
+                  <p className="text-[11px] font-bold text-gray-400" id="weakness_source">
+                    {weaknessAnalysis.isFallback
+                      ? "AIキーが未設定のため、アプリが間違えた単語の品詞を数えて組み立てました。"
+                      : "Gemini AI が分析しました。"}
+                  </p>
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">

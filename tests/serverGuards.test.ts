@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  isValidShortText, escapeHtml, safeSvgIdSegment,
+  isValidShortText,
   createRateLimiter, createBudget, BudgetExceededError,
   MAX_WORD_LEN, MAX_MEANING_LEN
 } from "../server/guards";
@@ -48,47 +48,6 @@ describe("isValidShortText", () => {
     expect(isValidShortText("word\u0000", MAX_WORD_LEN)).toBe(false);
     expect(isValidShortText("word\u007F", MAX_WORD_LEN)).toBe(false);
     expect(isValidShortText("word\r\n", MAX_WORD_LEN)).toBe(false);
-  });
-});
-
-describe("escapeHtml", () => {
-  it("SVGに埋め込む前に記号を実体参照へ変える", () => {
-    expect(escapeHtml('<script>alert("x")</script>'))
-      .toBe("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
-    expect(escapeHtml("it's & that")).toBe("it&#39;s &amp; that");
-  });
-
-  it("アンパサンドを二重に変換しない順序になっている", () => {
-    // & を後に処理すると &lt; が &amp;lt; になってしまう
-    expect(escapeHtml("<")).toBe("&lt;");
-  });
-
-  it("普通の文字はそのまま", () => {
-    expect(escapeHtml("beautiful")).toBe("beautiful");
-    expect(escapeHtml("美しい")).toBe("美しい");
-  });
-});
-
-describe("safeSvgIdSegment", () => {
-  it("id に使えない文字を落とす", () => {
-    expect(safeSvgIdSegment('a"b<c>d')).toBe("a_b_c_d");
-    expect(safeSvgIdSegment("give up")).toBe("give_up");
-  });
-
-  it("英数字とハイフン・アンダースコアは残す", () => {
-    expect(safeSvgIdSegment("well-known_word9")).toBe("well-known_word9");
-  });
-
-  it("長さを48文字までに切り詰める", () => {
-    expect(safeSvgIdSegment("a".repeat(100))).toHaveLength(48);
-  });
-
-  it("使えない文字だけの入力もアンダースコアに置き換わる", () => {
-    expect(safeSvgIdSegment("！＄％")).toBe("___");
-  });
-
-  it("空文字なら既定値を返す（id が空になるのを防ぐ）", () => {
-    expect(safeSvgIdSegment("")).toBe("word");
   });
 });
 

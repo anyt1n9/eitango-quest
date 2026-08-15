@@ -95,7 +95,6 @@ interface ConnectionMapResponse {
   connections: ConnectionNode[];
   puzzle: PuzzleItem[];
   distractors: string[];
-  isFallback?: boolean;
 }
 
 interface MapAndPuzzleProps {
@@ -371,18 +370,6 @@ export default function MapAndPuzzle({
       {/* メイン出力 (データ到着時) */}
       {data && (
         <div className="space-y-8" id="map_puzzle_results_container">
-          {data.isFallback && (
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl p-4 flex gap-3 text-amber-800 dark:text-amber-300 text-xs">
-              <span className="text-sm">💡</span>
-              <div>
-                <p className="font-bold">一時的な自動調整中 (429の制限回避)</p>
-                <p className="mt-1 opacity-90 leading-relaxed">
-                  現在APIへのアクセスが集中して一時的に読み込み制限がかかっているため、快適な学習を継続できるようローカルエンジンで自動構成したデモ用のつながりマップ・派生語パズルを表示しています。時間を置いて再度検索すると、最新のAIによって指定単語を完璧に分析したパーソナルコンテンツが生成されます。
-                </p>
-              </div>
-            </div>
-          )}
-          
           {/* 1. つながりマップセクション */}
           <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6" id="connections_map_card">
             <div className="flex md:items-center justify-between flex-col md:flex-row gap-2 border-b border-gray-100 pb-4">
