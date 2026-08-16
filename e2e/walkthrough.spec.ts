@@ -204,6 +204,49 @@ test("5つの形式がどれも同じ手順で始まる", async ({ page }) => {
   await expect(page.getByText("Q: 1 / 50")).toBeVisible();
 });
 
+test("どの幅でも、見出しとその選択肢が同じ行に並ぶ", async ({ page }) => {
+  // 「レベル」と「1回の問題数」を1つの flex に平らに並べていたため、
+  // 幅によっては「1回の問題数」だけがレベルの行の末尾に残り、
+  // 選択肢（10問・50問・100問）が次の行に落ちていた。
+  // 折り返しの位置は実際に並べてみないと分からないので、ここで測る。
+  for (const width of [360, 390, 500, 640, 768, 900, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await waitForVocabulary(page);
+
+    const rows = await page.evaluate(() => {
+      // 行の判定は中心の高さで見る。見出しの文字とボタンでは高さが違い、
+      // 同じ行に並んでいても上端は揃わない（items-center で中心が揃う）
+      const line = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return Math.round(r.top + r.height / 2);
+      };
+      const group = (testId: string) => {
+        const root = document.querySelector(`[data-testid="${testId}"]`)!;
+        return {
+          label: line(root.querySelector("span")!),
+          buttons: [...root.querySelectorAll("button")].map(line)
+        };
+      };
+      return { level: group("level_picker"), count: group("count_picker") };
+    });
+
+    // 見出しが「相手側の」ボタンと同じ行に混ざっていない。
+    // 選択肢が3つとも次の行に落ちる幅（360px など）では、見出しだけが
+    // レベルの行の末尾に取り残されて、何の見出しなのか分からなくなっていた
+    expect(rows.level.buttons, `${width}px: 「1回の問題数」がレベルの行に混ざっている`)
+      .not.toContain(rows.count.label);
+    expect(rows.count.buttons, `${width}px: 「レベル」が問題数の行に混ざっている`)
+      .not.toContain(rows.level.label);
+
+    // 見出しは自分の選択肢の行か、その1行上にある（離れていない）
+    expect(rows.count.label, `${width}px: 「1回の問題数」が選択肢から離れている`)
+      .toBeLessThanOrEqual(Math.min(...rows.count.buttons));
+    expect(rows.level.label, `${width}px: 「レベル」が選択肢から離れている`)
+      .toBeLessThanOrEqual(Math.min(...rows.level.buttons));
+  }
+});
+
 test("狭い画面でも横にはみ出さない", async ({ page }) => {
   // タップ領域を広げたときに whitespace-nowrap を付けて、
   // 360〜390px で3〜18px はみ出していた（測り直していなかった）。

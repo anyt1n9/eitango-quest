@@ -1217,12 +1217,15 @@ export default function Dashboard({
 
           {/* 1回の問題数。5形式すべてに効く。
               以前は一問一答だけモーダルで毎回選ばせ、他の4形式は10問固定だった */}
+          {/* 見出しとボタンは1つの塊にして、まとめて折り返す。
+              「1回の問題数」だけをレベルの行の末尾に置いていたときは、
+              画面の幅によって見出しと選択肢が別の行に離れていた */}
           <div
-            className="flex items-center gap-2 flex-wrap bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-4 py-3"
+            className="flex items-start gap-x-6 gap-y-3 flex-wrap bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-4 py-3"
             data-testid="question_count_picker"
           >
             {/* レベルを選ぶ。選んだレベルのカードだけを下に出す */}
-            <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto" data-testid="level_picker">
+            <div className="flex items-center gap-1.5 flex-wrap" data-testid="level_picker">
               <span className="text-xs font-black text-gray-500 dark:text-slate-400">レベル</span>
               {LEVELS.map(item => (
                 <button
@@ -1244,23 +1247,25 @@ export default function Dashboard({
               ))}
             </div>
 
-            <span className="w-full sm:w-auto sm:ml-4 text-xs font-black text-gray-500 dark:text-slate-400">1回の問題数</span>
-            {QUESTION_COUNTS.map(item => (
-              <button
-                key={item.count}
-                onClick={() => setQuestionCount(item.count)}
-                id={`btn_question_count_${item.count}`}
-                aria-pressed={questionCount === item.count}
-                className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
-                  questionCount === item.count
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100"
-                }`}
-              >
-                {item.label}
-                <span className="ml-1.5 font-bold opacity-70">{item.desc}</span>
-              </button>
-            ))}
+            <div className="flex items-center gap-1.5 flex-wrap" data-testid="count_picker">
+              <span className="text-xs font-black text-gray-500 dark:text-slate-400">1回の問題数</span>
+              {QUESTION_COUNTS.map(item => (
+                <button
+                  key={item.count}
+                  onClick={() => setQuestionCount(item.count)}
+                  id={`btn_question_count_${item.count}`}
+                  aria-pressed={questionCount === item.count}
+                  className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
+                    questionCount === item.count
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {item.label}
+                  <span className="ml-1.5 font-bold opacity-70">{item.desc}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* 選んだレベルのカード。5レベルぶんを並べていたときは
