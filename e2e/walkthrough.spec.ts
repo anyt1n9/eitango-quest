@@ -204,6 +204,38 @@ test("5つの形式がどれも同じ手順で始まる", async ({ page }) => {
   await expect(page.getByText("Q: 1 / 50")).toBeVisible();
 });
 
+test("ヘッダーのポイントは、ガチャで使える額と一致する", async ({ page }) => {
+  // stats.score は「これまでに稼いだ合計」で、ガチャを引いても減らない。
+  // ヘッダーがその合計を「P」として出していたため、ガチャ画面には
+  // 「3,000 P」（ヘッダー）と「使えるポイント: 2,550P」が同時に並んでいた。
+  // 使い切りかけている人には、3,000P と表示されたまま「足りません」と断られる。
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("quest_stats", JSON.stringify({
+      score: 3000, currentStreak: 0, lastLoginDate: null,
+      completedQuestions: 0, correctAnswers: 0
+    }));
+    localStorage.setItem("quest_gacha_spent", "450");
+  });
+  await page.reload();
+  await waitForVocabulary(page);
+
+  const header = page.getByTestId("header_points");
+  await expect(header).toContainText("2550");
+  await expect(header).not.toContainText("3000");
+
+  // ガチャ画面の「使えるポイント」と同じ数字であること
+  await page.locator("#nav_gacha_btn").click();
+  await expect(page.locator("#gacha_shop_root")).toContainText("使えるポイント: 2550P");
+  await expect(header).toContainText("2550");
+
+  // 稼いだ合計は消さない。ダッシュボードの「合計スコア」が受け持つ
+  await page.goto("/");
+  await waitForVocabulary(page);
+  const totalScore = page.locator("#main_payload").getByText("合計スコア").locator("..");
+  await expect(totalScore).toContainText("3000");
+});
+
 test("どの幅でも、見出しとその選択肢が同じ行に並ぶ", async ({ page }) => {
   // 「レベル」と「1回の問題数」を1つの flex に平らに並べていたため、
   // 幅によっては「1回の問題数」だけがレベルの行の末尾に残り、
