@@ -270,6 +270,19 @@ export default function App() {
     readStoredObject<{ avatar?: string; title?: string }>("quest_equipped", {})
   );
 
+  /**
+   * いま使えるポイント。
+   *
+   * `stats.score` は「これまでに稼いだ合計」で、ガチャを引いても減らない。
+   * ヘッダーはその合計を「P」として出していたため、ガチャ画面の
+   * 「使えるポイント」と数字が食い違い、同じ画面に2つのPが並んでいた。
+   * 使い切りかけている人には、ヘッダーが 3,000P と出ているのに
+   * 「ポイントが足りません」と断られることになる。
+   * ヘッダーは使える額を出し、合計はダッシュボードの
+   * 「合計スコア」「総スコア」が受け持つ。
+   */
+  const availablePoints = Math.max(0, stats.score - gachaSpent);
+
   useEffect(() => {
     writeStored("quest_owned_rewards", ownedRewardIds);
   }, [ownedRewardIds]);
@@ -725,9 +738,15 @@ export default function App() {
             {/* 暗いテーマでは indigo の変数そのものを反転させている（index.css）。
                 dark: を重ねると二重に反転して、暗い地に暗い文字が載る
                 （「P」の実測 1.58）。ここでは変数の反転に任せる。 */}
-            <div className="shrink-0 px-3.5 min-h-11 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center gap-1.5">
+            <div
+              className="shrink-0 px-3.5 min-h-11 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center gap-1.5"
+              title="ごほうびガチャで使えるポイント"
+              data-testid="header_points"
+            >
               <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-xs font-bold text-indigo-950 font-mono">{stats.score} <span className="text-[10px] text-indigo-600 dark:text-indigo-400">P</span></span>
+              <span className="text-xs font-bold text-indigo-950 font-mono" aria-label={`使えるポイント ${availablePoints}`}>
+                {availablePoints} <span className="text-[10px] text-indigo-600 dark:text-indigo-400">P</span>
+              </span>
             </div>
           </div>
         </div>
@@ -985,7 +1004,7 @@ export default function App() {
 
         {currentScreen === "gacha" && (
           <GachaShop
-            availablePoints={Math.max(0, stats.score - gachaSpent)}
+            availablePoints={availablePoints}
             totalScore={stats.score}
             ownedRewardIds={ownedRewardIds}
             setOwnedRewardIds={setOwnedRewardIds}
