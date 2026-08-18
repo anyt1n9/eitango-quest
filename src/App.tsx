@@ -628,7 +628,7 @@ export default function App() {
                 </span>
               </span>
               <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black font-mono tracking-widest uppercase mt-[-1px]">
-                eigorilla english app
+                eigorira english app
               </p>
             </div>
           </div>
@@ -1087,7 +1087,7 @@ export default function App() {
             id="about_app_panel"
           >
             <p className="font-black text-sm text-gray-900 dark:text-slate-100 mb-1.5">
-              エイゴリラ (Eigorilla English Study)
+              エイゴリラ (Eigorira English Study)
             </p>
             <p>
               中学生から社会人までの5レベル・7,700語をまとめた英単語学習アプリです。
