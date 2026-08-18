@@ -581,7 +581,7 @@ export default function Reading({
                 <div>
                   <div className="flex gap-1.5 items-center">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span className="text-[10px] font-black tracking-widest uppercase text-amber-300">Quest Completed Rewards</span>
+                    <span className="text-[10px] font-black tracking-widest uppercase text-amber-300">Reading Rewards</span>
                   </div>
                   <h4 className="text-lg font-black mt-2 leading-tight">このストーリーの読破を目指そう！</h4>
                   <p className="text-xs text-slate-300 mt-2 leading-relaxed">
@@ -712,7 +712,7 @@ export default function Reading({
           </span>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight mt-2 flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-indigo-600" />
-            <span>長文ストーリー読破 Quest</span>
+            <span>長文ストーリー読破</span>
           </h2>
           <p className="text-xs text-gray-400 font-medium">
             各レベルの収録語のみを用いた高品質な英語長文を読み、より実践的なリーディング力を養いましょう！

@@ -430,7 +430,7 @@ function TopicDetail({
           <h3 className="text-sm font-black text-emerald-800 dark:text-emerald-300">この文法が出てくる長文</h3>
           <p className="text-[11px] text-gray-500 dark:text-slate-400 leading-relaxed">
             解説を読んだら、実際の英文の中で見つけてみてください。
-            「長文読破 Quest」から読めます。
+            「長文ストーリー読破」から読めます。
           </p>
           <ul className="space-y-1.5 pt-1">
             {readings.map(p => (
