@@ -312,7 +312,7 @@ test("「調べる」タブから辞書・活用表・文法ガイドへ移れ�
 });
 
 /** 文字と背景の明暗差（WCAG のコントラスト比）。半透明の背景は下の色と重ねてから測る */
-const CONTRAST = () => {
+const CONTRAST = (selector: string) => {
   const cv = document.createElement("canvas");
   cv.width = cv.height = 1;
   const ctx = cv.getContext("2d")!;
@@ -341,9 +341,12 @@ const CONTRAST = () => {
     const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
     return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
   };
-  const el = [...document.querySelectorAll("span")]
-    .find(e => !e.children.length && /^[a-z' -]+$/i.test((e.textContent || "").trim())
-      && parseFloat(getComputedStyle(e).fontSize) >= 18);
+  // 測る相手は呼び出し側が指定する。
+  // 以前は「英字だけで 18px 以上の span のうち最初のもの」を拾っていたが、
+  // これはページ上に他の英字の見出しが無いことに頼っていた。
+  // アプリ名を Eigorira にした途端、ヘッダーのロゴ（グラデーション文字なので
+  // color は透明）を拾って 1.18 で落ちた。
+  const el = document.querySelector(selector);
   if (!el) return null;
   const fg = toRGBA(getComputedStyle(el).color);
   const bg = stack(el);
@@ -370,7 +373,7 @@ test("不正解のときの正しい綴りが、明暗どちらのテーマで�
     await input.press("Enter");
     await expect(page.getByText("おしい！正しい綴りはこちら")).toBeVisible();
 
-    const measured = await page.evaluate(CONTRAST);
+    const measured = await page.evaluate(CONTRAST, "#spelling_correct_answer");
     expect(measured, theme).not.toBeNull();
     // 大きな文字の基準は 3.0。ここは答えそのものなので余裕を持って確かめる
     expect(measured!.ratio, `${theme} / ${measured!.text}`).toBeGreaterThanOrEqual(4.5);

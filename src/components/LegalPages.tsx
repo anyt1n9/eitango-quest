@@ -61,7 +61,7 @@ export function PrivacyPolicy({ onBack }: { onBack: () => void }) {
   return (
     <Shell title="プライバシーポリシー" icon={<ShieldCheck className="w-6 h-6" />} onBack={onBack}>
       <p>
-        エイゴリラ（以下「本アプリ」）は、利用者のプライバシーを尊重します。本ポリシーは、本アプリが取り扱う情報とその目的を説明します。
+        Eigorira（以下「本アプリ」）は、利用者のプライバシーを尊重します。本ポリシーは、本アプリが取り扱う情報とその目的を説明します。
       </p>
 
       <h2>1. 収集しない情報</h2>
@@ -119,7 +119,7 @@ export function PrivacyPolicy({ onBack }: { onBack: () => void }) {
 export function TermsOfService({ onBack }: { onBack: () => void }) {
   return (
     <Shell title="利用規約" icon={<FileText className="w-6 h-6" />} onBack={onBack}>
-      <p>本利用規約（以下「本規約」）は、エイゴリラ（以下「本アプリ」）の利用条件を定めるものです。本アプリを利用した時点で、本規約に同意したものとみなします。</p>
+      <p>本利用規約（以下「本規約」）は、Eigorira（以下「本アプリ」）の利用条件を定めるものです。本アプリを利用した時点で、本規約に同意したものとみなします。</p>
 
       <h2>1. サービス内容</h2>
       <p>本アプリは英単語学習を目的としたウェブアプリケーションであり、無料で提供されます。</p>

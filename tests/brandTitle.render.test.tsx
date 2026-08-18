@@ -6,7 +6,7 @@ import { makeWord, makeStats } from "./fixtures";
 /**
  * アプリの名前と、そのうしろに置く2つのしるし。
  *
- * 「エイゴリラ」は英語＋ゴリラ、そしてエイの掛けことばで、
+ * 「Eigorira（エイゴリラ）」は英語＋ゴリラ、そしてエイの掛けことばで、
  * 名前だけでは由来が伝わらない。しるしはその説明にあたるので、
  * 名前を変えたときに片方だけ直して食い違うことがないよう固定する。
  *
@@ -45,9 +45,9 @@ function renderDashboard() {
 }
 
 describe("アプリの名前", () => {
-  it("見出しは「エイゴリラ」", () => {
+  it("見出しは「Eigorira」", () => {
     renderDashboard();
-    expect(screen.getByRole("heading", { name: /エイゴリラ/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Eigorira/ })).toBeInTheDocument();
   });
 
   it("古い名前が残っていない", () => {

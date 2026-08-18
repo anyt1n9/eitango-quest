@@ -452,7 +452,7 @@ export default function SpellingQuiz({
                     text-gray-900 は暗いテーマでは自動的に明るい色になる。
                     dark:text-slate-50 と書くと --color-slate-50 が
                     暗い紺（#020617）に置き換わっているので、逆に読めなくなる */}
-                <span className="font-mono font-black text-xl md:text-2xl tracking-wide text-gray-900 select-all">
+                <span className="font-mono font-black text-xl md:text-2xl tracking-wide text-gray-900 select-all" id="spelling_correct_answer">
                   {answer}
                 </span>
                 <button
