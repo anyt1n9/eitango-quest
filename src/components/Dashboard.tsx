@@ -40,6 +40,7 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
+import { RayIcon, GorillaIcon } from "./BrandIcons";
 
 /**
  * 「調べる」タブに並べる資料。
@@ -962,7 +963,14 @@ export default function Dashboard({
               Dashboard
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">英単語 Quest</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-2" id="app_title">
+            <span>エイゴリラ</span>
+            {/* 名前の由来（英語＋ゴリラ、そしてエイ）。読み上げには要らないので隠す */}
+            <span className="flex items-center gap-1.5 shrink-0" aria-hidden="true" data-testid="brand_icons">
+              <RayIcon className="w-6 h-6" />
+              <GorillaIcon className="w-6 h-6" />
+            </span>
+          </h1>
           <p className="text-indigo-100 text-sm max-w-md">
             中学から大学・社会人までの5レベル、7,730語。文法と長文もこの中で完結します。
           </p>
@@ -1102,7 +1110,7 @@ export default function Dashboard({
               </div>
               <div>
                 <h3 className="font-extrabold text-base flex items-center gap-2">
-                  長文ストーリー読破 Quest が新登場！
+                  長文ストーリーを読破しよう
                   <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">new</span>
                 </h3>
                 <p className="text-violet-100 text-xs mt-1 max-w-xl font-medium leading-relaxed">

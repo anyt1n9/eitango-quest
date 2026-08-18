@@ -14,8 +14,8 @@ export default defineConfig(() => {
         injectRegister: 'auto',
         includeAssets: ['icon.svg', 'icon-maskable.svg'],
         manifest: {
-          name: '英単語クエスト',
-          short_name: '英単語Quest',
+          name: 'エイゴリラ',
+          short_name: 'エイゴリラ',
           description: 'レベル別の英単語学習アプリ。間隔反復による復習、発音、AI機能を搭載。',
           lang: 'ja',
           theme_color: '#4f46e5',
