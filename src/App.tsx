@@ -595,7 +595,7 @@ export default function App() {
         <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-md">
           <BrainCircuit className="w-7 h-7" />
         </div>
-        <p className="text-sm font-black text-gray-700 dark:text-slate-200">エイゴリラ</p>
+        <p className="text-sm font-black text-gray-700 dark:text-slate-200">Eigorira</p>
         <p className="text-xs font-bold text-gray-400 dark:text-slate-500">単語データを読み込んでいます…</p>
       </div>
     );
@@ -618,7 +618,7 @@ export default function App() {
                 {/* しるしを足したぶん幅が要る。折り返しを許すと
                     「エイゴ / リラ」と切れて名前として読めなくなる */}
                 <span className="font-black text-lg tracking-tight whitespace-nowrap bg-gradient-to-r from-gray-900 via-indigo-950 to-indigo-700 dark:from-slate-100 dark:via-indigo-200 dark:to-indigo-400 bg-clip-text text-transparent font-sans">
-                  エイゴリラ
+                  Eigorira
                 </span>
                 {/* 名前の由来（エイとゴリラ）。読み上げには要らないので隠す。
                     グラデーションの span の中には置かない（文字色を透明にしているため） */}
@@ -628,7 +628,7 @@ export default function App() {
                 </span>
               </span>
               <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black font-mono tracking-widest uppercase mt-[-1px]">
-                eigorira english app
+                english study app
               </p>
             </div>
           </div>
@@ -1043,7 +1043,7 @@ export default function App() {
       {/* 謙虚でスタイリッシュなフッター */}
       <footer className="bg-white dark:bg-slate-900 border-t border-gray-150 dark:border-slate-800 py-6 px-4 transition-colors duration-300" id="global_footer">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 dark:text-slate-500 gap-4 font-semibold font-sans">
-          <p>© 2026 エイゴリラ. Built with Google AI Studio &amp; Claude.</p>
+          <p>© 2026 Eigorira. Built with Google AI Studio &amp; Claude.</p>
           {/* 狭い画面では折り返す。タップ領域を広げたときに whitespace-nowrap を
               付けたため、360〜390px で横にはみ出していた */}
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
@@ -1087,7 +1087,7 @@ export default function App() {
             id="about_app_panel"
           >
             <p className="font-black text-sm text-gray-900 dark:text-slate-100 mb-1.5">
-              エイゴリラ (Eigorira English Study)
+              Eigorira（エイゴリラ）
             </p>
             <p>
               中学生から社会人までの5レベル・7,700語をまとめた英単語学習アプリです。

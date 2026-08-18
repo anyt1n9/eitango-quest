@@ -964,7 +964,7 @@ export default function Dashboard({
             </span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-2" id="app_title">
-            <span>エイゴリラ</span>
+            <span>Eigorira</span>
             {/* 名前の由来（英語＋ゴリラ、そしてエイ）。読み上げには要らないので隠す */}
             <span className="flex items-center gap-1.5 shrink-0" aria-hidden="true" data-testid="brand_icons">
               <RayIcon className="w-6 h-6" />
