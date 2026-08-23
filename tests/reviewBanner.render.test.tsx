@@ -9,12 +9,14 @@ import { makeWord, makeStats } from "./fixtures";
  * 今日の復習の入口。
  *
  * 忘却曲線にもとづく復習はこのアプリでいちばん効く学習だが、
- * 入口はヘッダーの小さなボタン1つだけで、長文や AI日記のような
- * 目立つ案内が無かった。ダッシュボードに同じ大きさの案内を置く。
+ * 入口はヘッダーの小さなボタン1つだけだった時期がある。
+ * いまは長文・AI日記とともに「学習メニュー」にまとめ、
+ * 押したときに一覧として出す（3つを大きな案内として積むと
+ * スマホ幅で約800pxあり、その下の出題ボタンまで遠かったため）。
  *
- * 大きさそのものは見た目の話なので、ここでは
- *   - 他の案内と同じ形（見出し・説明・ボタン）を持つこと
- *   - 対象語数を出すこと
+ * まとめたことで復習が埋もれないよう、
+ *   - 畳んだままでも復習の語数が見えること
+ *   - 開けば他の2つと同じ並びにあり、見出し・説明・ボタンを持つこと
  *   - 押すと復習が始まること
  * を固定する。実際の見え方は e2e のコントラスト検査が見る。
  */
@@ -56,8 +58,13 @@ function renderDashboard(props: Partial<ComponentProps<typeof Dashboard>> = {}) 
   return { onStartSrsReview };
 }
 
+/** 学習メニューを開く */
+async function openMenu(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(document.getElementById("btn_toggle_study_menu")!);
+}
+
 function banner() {
-  return document.getElementById("srs_review_banner")!;
+  return screen.getByTestId("study_menu_srs");
 }
 
 beforeEach(() => {
@@ -65,33 +72,62 @@ beforeEach(() => {
 });
 
 describe("今日の復習の案内", () => {
-  it("長文・AI日記と同じ並びに置く", () => {
+  it("畳んでいる間も、復習する語数が見える", () => {
+    // まとめた結果いちばん効く学習が埋もれる、ということが起きないようにする
+    renderDashboard({ dueCount: 12 });
+    expect(screen.queryByTestId("study_menu_list")).toBeNull();
+    expect(within(document.getElementById("btn_toggle_study_menu")!).getByText(/復習 12 語/))
+      .toBeInTheDocument();
+  });
+
+  it("押すと長文・AI日記とともに一覧が出る", async () => {
+    const user = userEvent.setup();
     renderDashboard();
-    const reading = document.getElementById("reading_banner")!;
-    const diary = document.getElementById("diary_banner_dashboard")!;
-    expect(banner()).toBeInTheDocument();
-    // 3つとも同じ親の中に、この順で並ぶ
-    expect(reading.parentElement).toBe(banner().parentElement);
-    expect(diary.parentElement).toBe(banner().parentElement);
+    expect(document.getElementById("btn_toggle_study_menu")).toHaveAttribute("aria-expanded", "false");
+
+    await openMenu(user);
+    expect(document.getElementById("btn_toggle_study_menu")).toHaveAttribute("aria-expanded", "true");
+
+    const list = screen.getByTestId("study_menu_list");
+    const reading = screen.getByTestId("study_menu_reading");
+    const diary = screen.getByTestId("study_menu_diary");
+    // 3つとも同じ一覧の中に、この順で並ぶ
+    expect(list).toContainElement(reading);
+    expect(list).toContainElement(diary);
+    expect(list).toContainElement(banner());
     expect(diary.compareDocumentPosition(banner()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("他の案内と同じ形（見出し・説明・ボタン）を持つ", () => {
+  it("もう一度押すと畳む", async () => {
+    const user = userEvent.setup();
     renderDashboard();
+    await openMenu(user);
+    await openMenu(user);
+    expect(screen.queryByTestId("study_menu_list")).toBeNull();
+  });
+
+  it("他の案内と同じ形（見出し・説明・ボタン）を持つ", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await openMenu(user);
     expect(within(banner()).getByRole("heading")).toBeInTheDocument();
     expect(within(banner()).getByRole("button")).toBeInTheDocument();
     // 説明文があること（見出しとボタンだけの飾りにしない）
     expect(banner().textContent!.length).toBeGreaterThan(80);
   });
 
-  it("復習する語があれば語数を出す", () => {
+  it("復習する語があれば語数を出す", async () => {
+    const user = userEvent.setup();
     renderDashboard({ dueCount: 12 });
+    await openMenu(user);
     expect(within(banner()).getByText(/12 語が復習日/)).toBeInTheDocument();
     expect(within(banner()).getByRole("button", { name: /復習を始める/ })).toBeInTheDocument();
   });
 
-  it("無ければ完了と伝え、様子を見に行ける", () => {
+  it("無ければ完了と伝え、様子を見に行ける", async () => {
+    const user = userEvent.setup();
     renderDashboard({ dueCount: 0 });
+    await openMenu(user);
     expect(within(banner()).getByText("今日は完了")).toBeInTheDocument();
     expect(within(banner()).getByRole("button", { name: /復習の状況を見る/ })).toBeInTheDocument();
   });
@@ -99,15 +135,18 @@ describe("今日の復習の案内", () => {
   it("押すと復習が始まる", async () => {
     const user = userEvent.setup();
     const { onStartSrsReview } = renderDashboard({ dueCount: 3 });
+    await openMenu(user);
     await user.click(document.getElementById("dashboard_open_srs_review_btn")!);
     expect(onStartSrsReview).toHaveBeenCalledTimes(1);
   });
 
-  it("押せる大きさがある（スマホでも指で押せる）", () => {
+  it("押せる大きさがある（スマホでも指で押せる）", async () => {
+    const user = userEvent.setup();
     renderDashboard({ dueCount: 3 });
-    const btn = document.getElementById("dashboard_open_srs_review_btn")!;
-    // 他の案内のボタンと同じ最小の高さを使う
-    expect(btn.className).toContain("min-h-11");
+    await openMenu(user);
+    // 開くボタンと、中のボタンの両方
+    expect(document.getElementById("btn_toggle_study_menu")!.className).toContain("min-h-11");
+    expect(document.getElementById("dashboard_open_srs_review_btn")!.className).toContain("min-h-11");
   });
 });
 

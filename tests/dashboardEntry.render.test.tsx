@@ -192,8 +192,8 @@ describe("画面の詰まりを減らす", () => {
 
 describe("長文・AI日記への入口", () => {
   /**
-   * この2つは上部のナビからは外した（ダッシュボードに大きな案内カードがあり、
-   * 入口が二重になっていたため）。カード側のボタンが唯一の入口になるので、
+   * この2つは上部のナビからは外した（ダッシュボードに案内があり、
+   * 入口が二重になっていたため）。学習メニューの中のボタンが唯一の入口になるので、
    * ここが動かなくなると画面へ行けなくなる。
    *
    * AI日記のボタンは以前、消したナビのボタンを
@@ -213,6 +213,7 @@ describe("長文・AI日記への入口", () => {
         setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
       />
     );
+    await user.click(document.getElementById("btn_toggle_study_menu")!);
     await user.click(document.getElementById("dashboard_open_reading_btn")!);
     expect(onStartReading).toHaveBeenCalledTimes(1);
   });
@@ -230,6 +231,7 @@ describe("長文・AI日記への入口", () => {
         setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
       />
     );
+    await user.click(document.getElementById("btn_toggle_study_menu")!);
     await user.click(document.getElementById("dashboard_open_diary_btn")!);
     expect(onOpenDiary).toHaveBeenCalledTimes(1);
   });

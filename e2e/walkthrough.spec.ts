@@ -76,6 +76,7 @@ test("文法ガイドを開いて練習問題を解ける", async ({ page }) => 
 test("長文を読み、音読と文法の解説へ辿れる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
+  await page.locator("#btn_toggle_study_menu").click();
   await page.locator("#dashboard_open_reading_btn").click();
 
   await page.getByText("The Secret of the Old Library").first().click();
@@ -94,6 +95,7 @@ test("長文を読み、音読と文法の解説へ辿れる", async ({ page }) 
 test("長文の重要語を苦手単語に入れられる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
+  await page.locator("#btn_toggle_study_menu").click();
   await page.locator("#dashboard_open_reading_btn").click();
   await page.getByText("The Secret of the Old Library").first().click();
 
@@ -181,6 +183,7 @@ test("リンクから文法項目を直接開ける", async ({ page }) => {
 test("読んでいた長文は再読み込みしても開いたまま", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
+  await page.locator("#btn_toggle_study_menu").click();
   await page.locator("#dashboard_open_reading_btn").click();
   await page.getByText("The Secret of the Old Library").first().click();
   await expect(page).toHaveURL(/\/reading\/p1$/);
@@ -589,11 +592,34 @@ test("ビルド済みのファイルを配り、オフラインでも開ける",
 
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.waitForFunction(
-    async () => !!(await navigator.serviceWorker.getRegistration())?.active,
-    null,
-    { timeout: 30_000 }
-  );
+  // サービスワーカーが「配り終える」まで待ってから回線を切る。
+  //
+  // ここは以前 `waitForFunction(async () => ...)` で待っていたが、
+  // waitForFunction は async の述語を待たない。返ってきた Promise を
+  // そのまま「真」と見なすため、1回目の判定で必ず通っていた。
+  // つまり何も待っておらず、前の行までにたまたま時間が経っていたから
+  // 通っていただけだった（実測: 切った時点で 38 件中 10 件しか
+  // 入っていない）。非同期の判定は expect.poll を使う。
+  //
+  // 待つ条件は「オフラインで開ける」の前提そのもの:
+  //   - このページを制御下に置いている
+  //   - 新しいワーカーの入れ替えが済んでいる
+  //   - index.html が手元にある
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(async () => {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (!reg || reg.installing || reg.waiting) return false;
+          if (!navigator.serviceWorker.controller) return false;
+          const key = (await caches.keys()).find(k => k.includes("precache"));
+          if (!key) return false;
+          const cache = await caches.open(key);
+          return !!(await cache.match("/index.html", { ignoreSearch: true }));
+        }),
+      { timeout: 30_000, message: "サービスワーカーが配り終えない" }
+    )
+    .toBe(true);
 
   await context.setOffline(true);
   try {
