@@ -12,6 +12,7 @@ import {
   Activity, 
   Trash2,
   ChevronRight,
+  ChevronDown,
   BookOpen,
   Loader2,
   ThumbsUp,
@@ -678,6 +679,16 @@ export default function Dashboard({
   /** 単語の取り込み（AI・CSV・PDF）の手順を開いているか。既定は畳む */
   const [showImportPanel, setShowImportPanel] = useState(false);
 
+  /**
+   * 学習メニュー（長文・AI日記・今日の復習）を開いているか。既定は畳む。
+   *
+   * 3つを大きな案内カードとして縦に積んでいたときは、スマホ幅で
+   * 合わせて約800pxあり、その下にある出題ボタンまで遠かった。
+   * 畳んだままでも「今日の復習が何語あるか」は見出しの側に出す。
+   * 数が見えないと、いちばん効く復習に気づかないまま閉じられてしまう。
+   */
+  const [showStudyMenu, setShowStudyMenu] = useState(false);
+
   const [questionCount, setQuestionCount] = useState<number>(() => {
     const v = Number(localStorage.getItem("quest_question_count"));
     return QUESTION_COUNTS.some(c => c.count === v) ? v : 10;
@@ -1102,101 +1113,145 @@ export default function Dashboard({
             </div>
           )}
 
-          {/* 長文ストーリー読破ショートカットバナー */}
-          <div className="bg-gradient-to-r from-violet-600 to-indigo-700 text-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-violet-500/20" id="reading_banner">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/10 backdrop-blur-md text-white rounded-xl shadow-inner border border-white/10 shrink-0">
-                <Compass className="w-6 h-6 text-amber-300 animate-pulse" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-base flex items-center gap-2">
-                  長文ストーリーを読破しよう
-                  <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">new</span>
-                </h3>
-                <p className="text-violet-100 text-xs mt-1 max-w-xl font-medium leading-relaxed">
-                  各レベルの重要ターゲット英単語「のみ」を用いて丁寧に書き下ろされた長文を読んで、実践的なリーディング力を鍛えましょう！単語ホバーによる自動翻訳翻訳付き、完全読覇でボーナスポイント獲得！
-                </p>
-              </div>
-            </div>
-            {onStartReading && (
-              <button
-                onClick={onStartReading}
-                className="bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1 text-[11px] md:text-xs"
-                id="dashboard_open_reading_btn"
+          {/*
+            長文・AI日記・今日の復習の3つの入口。
+
+            それぞれを大きな案内カードとして縦に積んでいたときは、
+            スマホ幅で合わせて約800pxあり、その下の出題ボタンまで遠かった。
+            1つにまとめ、押したときだけ中身を出す。
+            畳んでいる間も、復習の語数だけは見出しの側に出しておく。
+          */}
+          <div
+            className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs"
+            id="study_menu"
+          >
+            <button
+              type="button"
+              onClick={() => setShowStudyMenu(v => !v)}
+              aria-expanded={showStudyMenu}
+              aria-controls="study_menu_list"
+              id="btn_toggle_study_menu"
+              className="w-full text-left px-4 py-3.5 min-h-11 flex items-center justify-between gap-3 hover:bg-gray-50 transition cursor-pointer"
+            >
+              <span className="flex items-center gap-3 min-w-0">
+                <span className="p-2 bg-indigo-600 text-white rounded-xl shrink-0 border border-indigo-500/20">
+                  <Compass className="w-5 h-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-extrabold text-sm text-gray-900">学習メニュー</span>
+                  <span className="block text-[11px] font-bold text-gray-500 truncate">
+                    長文ストーリー ・ AI 英語日記 ・ 今日の復習
+                  </span>
+                </span>
+              </span>
+              <span className="flex items-center gap-2 shrink-0">
+                {dueCount > 0 && (
+                  <span className="bg-rose-700 text-white text-[10px] font-black px-2 py-1 rounded-full whitespace-nowrap">
+                    復習 {dueCount} 語
+                  </span>
+                )}
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-500 transition-transform ${showStudyMenu ? "rotate-180" : ""}`}
+                  aria-hidden="true"
+                />
+              </span>
+            </button>
+
+            {showStudyMenu && (
+              <div
+                className="border-t border-gray-100 dark:border-slate-800 divide-y divide-gray-100 dark:divide-slate-800"
+                id="study_menu_list"
+                data-testid="study_menu_list"
               >
-                <span>長文を読む ➔</span>
-              </button>
+                {/* 1. 長文ストーリー */}
+                <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3" data-testid="study_menu_reading">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="p-2 bg-violet-600 text-white rounded-xl shrink-0 border border-violet-500/20">
+                      <Compass className="w-5 h-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-sm text-gray-900">長文ストーリーを読破しよう</h3>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed font-medium">
+                        各レベルの重要単語だけで書き下ろした長文を読みます。単語にふれると訳が出て、読み切るとボーナスポイントが入ります。
+                      </p>
+                    </div>
+                  </div>
+                  {onStartReading && (
+                    <button
+                      onClick={onStartReading}
+                      className="bg-violet-700 hover:bg-violet-800 text-white text-xs font-black px-4.5 min-h-11 rounded-xl shadow-2xs transition shrink-0 cursor-pointer"
+                      id="dashboard_open_reading_btn"
+                    >
+                      長文を読む ➔
+                    </button>
+                  )}
+                </div>
+
+                {/* 2. AI英語日記 */}
+                <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3" data-testid="study_menu_diary">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="p-2 bg-amber-600 text-white rounded-xl shrink-0 border border-amber-500/20">
+                      <Sparkles className="w-5 h-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2 flex-wrap">
+                        <span>AI 英語日記</span>
+                        {masteredTotal >= 200 ? (
+                          <span className="bg-emerald-700 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">解放済み</span>
+                        ) : (
+                          <span className="bg-gray-100 text-gray-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">習得200語で解放</span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed font-medium">
+                        覚えた単語を使って、AIが英語の日記を書き下ろします。読むだけでなく書く側に回る練習に。
+                        <span className="block mt-0.5 font-mono text-[10px] text-gray-400 font-extrabold">
+                          現在の習得数: {masteredTotal} / 200 単語
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onOpenDiary}
+                    className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-black px-4.5 min-h-11 rounded-xl shadow-2xs transition shrink-0 cursor-pointer"
+                    id="dashboard_open_diary_btn"
+                  >
+                    {masteredTotal >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}
+                  </button>
+                </div>
+
+                {/* 3. 今日の復習 */}
+                <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3" data-testid="study_menu_srs">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="p-2 bg-emerald-700 text-white rounded-xl shrink-0 border border-emerald-600/20">
+                      <RotateCcw className="w-5 h-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2 flex-wrap">
+                        <span>今日の復習</span>
+                        {dueCount > 0 ? (
+                          <span className="bg-rose-700 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            {dueCount} 語が復習日
+                          </span>
+                        ) : (
+                          <span className="bg-gray-100 text-gray-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">今日は完了</span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed font-medium">
+                        一度覚えた単語は時間とともに忘れます。忘れかけたころに出し直すのがいちばん効きます。
+                        正解するほど次に出るまでの間隔が延び、間違えるとすぐ戻ってきます。形式も選べます。
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onStartSrsReview}
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black px-4.5 min-h-11 rounded-xl shadow-2xs transition shrink-0 cursor-pointer"
+                    id="dashboard_open_srs_review_btn"
+                  >
+                    {dueCount > 0 ? "復習を始める ➔" : "復習の状況を見る ➔"}
+                  </button>
+                </div>
+              </div>
             )}
-          </div>
-
-          {/* AI英語日記解放ショートカットバナー */}
-          <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-amber-400/20" id="diary_banner_dashboard">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/10 backdrop-blur-md text-white rounded-xl shadow-inner border border-white/10 shrink-0">
-                <Sparkles className="w-6 h-6 text-yellow-300 fill-yellow-250/20 animate-pulse" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-base flex items-center gap-2">
-                  <span>AI 英語日記 (AI English Journal)</span>
-                  {masteredTotal >= 200 ? (
-                    <span className="bg-emerald-400 text-slate-900 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-bounce">解放済み (Unlocked)</span>
-                  ) : (
-                    <span className="bg-white/20 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">習得200語で解放</span>
-                  )}
-                </h3>
-                <p className="text-amber-50 text-xs mt-1 max-w-xl font-medium leading-relaxed leading-normal">
-                  あなたが単語テストや穴埋め問題で完璧に覚えた英単語をふんだんに使用して、AIがオシャレな200〜400文字の「英語日記」を全自動で書き下ろします。実践的なアウトプット学習に最適です！
-                  <span className="block mt-1 font-mono text-[10px] text-amber-200 font-extrabold">現在の習得数: {masteredTotal} / 200 単語</span>
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onOpenDiary}
-              // bg-white と text-gray-900 は暗いテーマで対になって入れ替わる（index.css）。
-              // text-slate-950 は入れ替わらないので、暗いテーマで紺地に紺の文字になっていた（実測 1.2）
-              className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
-              id="dashboard_open_diary_btn"
-            >
-              <span>{masteredTotal >= 200 ? "日記を書く/読む ➔" : "進捗を確認する ➔"}</span>
-            </button>
-          </div>
-
-          {/* 今日の復習ショートカットバナー。
-              ヘッダーの小さなボタンだけでは、いちばん効く学習である
-              「忘れかけた語の復習」に気づかれないため、他のバナーと同じ大きさで出す */}
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-emerald-500/20" id="srs_review_banner">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/10 backdrop-blur-md text-white rounded-xl shadow-inner border border-white/10 shrink-0">
-                <RotateCcw className={`w-6 h-6 text-lime-200 ${dueCount > 0 ? "animate-pulse" : ""}`} />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-base flex items-center gap-2 flex-wrap">
-                  <span>今日の復習 (Spaced Repetition)</span>
-                  {dueCount > 0 ? (
-                    <span className="bg-rose-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-bounce">
-                      {dueCount} 語が復習日
-                    </span>
-                  ) : (
-                    <span className="bg-white/20 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      今日は完了
-                    </span>
-                  )}
-                </h3>
-                <p className="text-emerald-50 text-xs mt-1 max-w-xl font-medium leading-relaxed">
-                  一度覚えた単語は時間とともに忘れます。忘れかけたころに出し直すのがいちばん効きます。
-                  正解するほど次に出るまでの間隔が延び、間違えるとすぐ戻ってきます。形式（四択・綴りなど）も選べます。
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onStartSrsReview}
-              // bg-white と text-gray-900 は暗いテーマで対になって入れ替わる（index.css）。
-              // text-slate-950 は入れ替わらないので、暗いテーマで紺地に紺の文字になっていた（実測 1.2）
-              className="bg-white hover:bg-gray-100 text-gray-900 text-xs font-black px-4.5 min-h-11 rounded-xl shadow-md transition-all shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
-              id="dashboard_open_srs_review_btn"
-            >
-              <span>{dueCount > 0 ? "復習を始める ➔" : "復習の状況を見る ➔"}</span>
-            </button>
           </div>
 
           {/* 単語辞書一覧ショートカットバナー */}
