@@ -190,6 +190,46 @@ describe("画面の詰まりを減らす", () => {
   });
 });
 
+describe("学習カレンダーのタブ", () => {
+  /**
+   * カレンダーは縦に443pxあり、「習熟度 & クイズ」の先頭に常時置いていた。
+   * 毎回見るものではないので、タブの1つにして押したときだけ出す。
+   */
+  it("「AIアドバイス」と「記録」の間に並ぶ", () => {
+    renderDashboard();
+    const ids = within(screen.getByTestId("dashboard_tabs"))
+      .getAllByRole("button")
+      .map(b => b.id);
+    expect(ids.indexOf("tab_btn_calendar")).toBe(ids.indexOf("tab_btn_ai") + 1);
+    expect(ids.indexOf("tab_btn_calendar")).toBe(ids.indexOf("tab_btn_ranking") - 1);
+  });
+
+  it("押すまでは出さない（習熟度 & クイズには置かない）", () => {
+    renderDashboard();
+    expect(screen.queryByTestId("calendar_tab")).toBeNull();
+    // 「学習カレンダー」の字はタブのボタンにあるだけで、見出しはまだ無い
+    expect(screen.queryByRole("heading", { name: "学習カレンダー" })).toBeNull();
+  });
+
+  it("押すとカレンダーが出る", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.click(document.getElementById("tab_btn_calendar")!);
+    const panel = screen.getByTestId("calendar_tab");
+    expect(within(panel).getByRole("heading", { name: "学習カレンダー" })).toBeInTheDocument();
+  });
+
+  it("他のタブに切り替えると閉じる", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.click(document.getElementById("tab_btn_calendar")!);
+    await user.click(document.getElementById("tab_btn_progress")!);
+    expect(screen.queryByTestId("calendar_tab")).toBeNull();
+    // 出題の入口には戻れている
+    expect(document.getElementById("btn_junior_word")).toBeInTheDocument();
+  });
+});
+
 describe("長文・AI日記への入口", () => {
   /**
    * この2つは上部のナビからは外した（ダッシュボードに案内があり、
