@@ -140,10 +140,19 @@ describe("5つの形式の入口", () => {
       const btn = document.getElementById(`btn_junior_${form}`)!;
       const svg = btn.querySelector("svg");
       expect(svg, `${form} に絵が無い`).not.toBeNull();
-      expect(btn.textContent, `${form} に絵文字が残っている`).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
       marks.push(svg!.innerHTML);
     }
     expect(new Set(marks).size, "2つの形式が同じ絵を使っている").toBe(2);
+  });
+
+  it("出題形式のボタンに絵文字を使わない", () => {
+    // 国旗（🇯🇵）は端末によっては字の並び（JP）で出るなど見え方が定まらない
+    renderDashboard();
+    for (const [, form] of FORMATS) {
+      const btn = document.getElementById(`btn_junior_${form}`)!;
+      expect(btn.textContent, `${form} に絵文字が残っている`)
+        .not.toMatch(/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
+    }
   });
 });
 

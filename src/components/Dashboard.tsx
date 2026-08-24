@@ -166,7 +166,7 @@ const QUIZ_FORMS: {
 }[] = [
   { form: "sentence", label: "例文穴埋めを解く" },
   { form: "listening", label: "リスニングを解く", Icon: ListeningIcon },
-  { form: "reverse", label: "🇯🇵 日本語→英単語" },
+  { form: "reverse", label: "日本語→英単語" },
   { form: "spelling", label: "綴りを書く", Icon: SpellingIcon }
 ];
 
