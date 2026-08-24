@@ -47,7 +47,7 @@ const AboutApp = lazy(() =>
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Compass, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked } from "lucide-react";
+import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
@@ -62,6 +62,11 @@ function ScreenLoading() {
 
 // 苦手単語を1語卒業したときのボーナス点
 const GRADUATION_BONUS = 50;
+
+/** ハンバーガーメニューの1行。指で押せるよう高さを 44px 以上にする */
+const MENU_ITEM =
+  "w-full flex items-center gap-2.5 px-3 min-h-11 rounded-xl text-sm font-bold " +
+  "text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer";
 
 
 // デフォルトのランキング架空ユーザー
@@ -156,6 +161,10 @@ export default function App() {
   // 以前は保存値が "dark" かどうかだけを見ていたため、OSをダークにしている人でも
   // 初回は必ずライトで開いていた。
   const [isDark, setIsDark] = useState<boolean>(() => prefersDarkTheme());
+
+  /** ハンバーガーメニューを開いているか */
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
   const [srsData, setSrsData] = useState<Record<string, SrsState>>(() =>
@@ -338,6 +347,22 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentScreen]);
+
+  // 画面が変わったらメニューを閉じる。
+  // 端末の戻るで移動したときも閉じないと、行き先の上に開いたまま残る
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [currentScreen]);
+
+  // Esc でも閉じられるようにする（開いたら本文が押せなくなるため）
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   /** 画面を切り替え、URLも進める */
   const navigate = useCallback((screen: Screen, param?: string | null) => {
@@ -603,17 +628,23 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
-      {/* ナビゲーションヘッダー */}
-      <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 py-4 px-6 sticky top-0 z-40 shadow-xs transition-colors duration-300" id="navigation_bar">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div 
+      {/*
+        ナビゲーションヘッダー。
+
+        以前は機能ボタンを7つ横に並べており、スマホでは2段に折り返して
+        高さが 150px 近くあった（本文に着くまでその分スクロールが要る）。
+        いまはアプリ名とハンバーガーだけを出し、中身は押したときに開く。
+      */}
+      <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 py-2.5 px-4 sticky top-0 z-40 shadow-xs transition-colors duration-300" id="navigation_bar">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+          <div
             onClick={handleBackToDashboard}
-            className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 select-none"
+            className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 select-none min-w-0"
           >
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-150-10">
+            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-150-10 shrink-0">
               <BrainCircuit className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <span className="flex items-center gap-1.5">
                 {/* しるしを足したぶん幅が要る。折り返しを許すと
                     「エイゴ / リラ」と切れて名前として読めなくなる */}
@@ -627,140 +658,123 @@ export default function App() {
                   <GorillaIcon className="w-4.5 h-4.5" />
                 </span>
               </span>
-              <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black font-mono tracking-widest uppercase mt-[-1px]">
-                english study app
-              </p>
             </div>
           </div>
 
-          {/* 機能への入口。スマホでは折り返さず横スクロールにする。
-              折り返すと10個で約300px を占め、本文に着くまで指1本ぶん送る必要があった。
-              高さは指針どおり44px以上にする（以前は30px） */}
-          <div className="flex flex-nowrap sm:flex-wrap items-center gap-2.5 overflow-x-auto sm:overflow-visible -mx-6 px-6 sm:mx-0 sm:px-0 pb-1 sm:pb-0">
-            {/* クイズなど集中画面では機能ボタン群を隠す */}
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            aria-expanded={menuOpen}
+            aria-controls="nav_menu_panel"
+            aria-label={menuOpen ? "メニューを閉じる" : "メニューを開く"}
+            id="btn_nav_menu"
+            className="relative shrink-0 w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-750 dark:text-slate-200 transition cursor-pointer"
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {/* 復習が溜まっていることは、開かなくても分かるようにする。
+                しまい込んだせいで気づかれないのでは、まとめた意味がない */}
+            {!menuOpen && dueWords.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-black">
+                {dueWords.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {menuOpen && (
+          <div
+            id="nav_menu_panel"
+            data-testid="nav_menu"
+            className="max-w-4xl mx-auto mt-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-2 shadow-lg flex flex-col gap-1"
+          >
+            {/* クイズなど集中画面では機能への入口を出さない */}
             {!isFocusScreen && (
-            <>
-            {/* AIつながりマップ・パズルボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "map_puzzle" ? "dashboard" : "map_puzzle")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "map_puzzle"
-                  ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-100 dark:shadow-none"
-                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-705"
-              }`}
-              id="nav_map_puzzle_toggle_btn"
-            >
-              <Network className="w-3.5 h-3.5" />
-              <span>AIつながりマップ・パズル</span>
-            </button>
+              <>
+                <button
+                  onClick={() => { closeMenu(); navigate(currentScreen === "srs_review" ? "dashboard" : "srs_review"); if (currentScreen !== "srs_review") setSrsSessionWords(dueWords); }}
+                  className={MENU_ITEM}
+                  id="nav_srs_review_btn"
+                >
+                  <RotateCcw className="w-4 h-4 shrink-0 text-emerald-700 dark:text-emerald-400" />
+                  <span className="flex-1 text-left">今日の復習</span>
+                  {dueWords.length > 0 && (
+                    <span className="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
+                      {dueWords.length} 語
+                    </span>
+                  )}
+                </button>
 
-            {/* 今日の復習(SRS)ボタン */}
-            <button
-              onClick={() => {
-                if (currentScreen === "srs_review") {
-                  handleBackToDashboard();
-                } else {
-                  // 復習セッション開始時点の対象単語を固定する
-                  setSrsSessionWords(dueWords);
-                  navigate("srs_review");
-                }
-              }}
-              className={`relative flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "srs_review"
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
-              }`}
-              id="nav_srs_review_btn"
-              title="忘却曲線に沿って、今日復習すべき単語を出題します"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>今日の復習</span>
-              {dueWords.length > 0 && (
-                <span className="ml-0.5 bg-rose-500 text-white text-[9px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-black">
-                  {dueWords.length}
-                </span>
-              )}
-            </button>
+                <button
+                  onClick={() => { closeMenu(); navigate(currentScreen === "map_puzzle" ? "dashboard" : "map_puzzle"); }}
+                  className={MENU_ITEM}
+                  id="nav_map_puzzle_toggle_btn"
+                >
+                  <Network className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                  <span className="flex-1 text-left">AIつながりマップ・パズル</span>
+                </button>
 
-            {/* ごほうびガチャボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "gacha" ? "dashboard" : "gacha")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "gacha"
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-slate-800 dark:to-slate-850 text-violet-800 dark:text-violet-300 hover:opacity-90 border-violet-200/55 dark:border-slate-700"
-              }`}
-              id="nav_gacha_btn"
-              title="貯めたポイントでアバターや称号を手に入れよう"
-            >
-              <Gift className="w-3.5 h-3.5" />
-              <span>ごほうびガチャ</span>
-            </button>
+                <button
+                  onClick={() => { closeMenu(); navigate(currentScreen === "gacha" ? "dashboard" : "gacha"); }}
+                  className={MENU_ITEM}
+                  id="nav_gacha_btn"
+                >
+                  <Gift className="w-4 h-4 shrink-0 text-violet-700 dark:text-violet-400" />
+                  <span className="flex-1 text-left">ごほうびガチャ</span>
+                </button>
 
-            {/* データ設定・バックアップボタン */}
-            <button
-              onClick={() => navigate(currentScreen === "settings" ? "dashboard" : "settings")}
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 rounded-xl text-xs font-bold transition shadow-2xs select-none border cursor-pointer whitespace-nowrap ${
-                currentScreen === "settings"
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700"
-              }`}
-              id="nav_settings_btn"
-              title="学習データのバックアップとデイリー目標の設定"
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>データ</span>
-            </button>
-            </>
+                <button
+                  onClick={() => { closeMenu(); navigate(currentScreen === "settings" ? "dashboard" : "settings"); }}
+                  className={MENU_ITEM}
+                  id="nav_settings_btn"
+                >
+                  <Database className="w-4 h-4 shrink-0 text-gray-500 dark:text-slate-400" />
+                  <span className="flex-1 text-left">データ（バックアップ・目標）</span>
+                </button>
+              </>
             )}
 
-            {/* 今日の学習目標チップ */}
-            <div
-              className={`flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 border rounded-xl text-xs font-bold font-mono shadow-inner whitespace-nowrap ${
-                goalReached
-                  ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300"
-                  : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400"
-              }`}
-              title="今日の学習目標の進捗"
-            >
-              {goalReached ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Target className="w-3.5 h-3.5" />}
-              <span>{todayCount}/{dailyGoal}</span>
-            </div>
-
-            <div className="hidden sm:flex shrink-0 items-center gap-1.5 px-3.5 min-h-11 bg-gray-50 dark:bg-slate-800 border rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 font-mono shadow-inner border-gray-200 dark:border-slate-700">
-              <Compass className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
-              <span>Ver 1.6.0</span>
-            </div>
-
-            {/* テーマ切り替えボタン (Sun/Moon Toggle) */}
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-750 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-750 dark:text-slate-200 transition cursor-pointer select-none"
-              title={isDark ? "ライトモードに切り替え" : "ダークモードに切り替え"}
-              id="theme_toggle_btn"
-            >
+            <button onClick={() => setIsDark(!isDark)} className={MENU_ITEM} id="theme_toggle_btn">
               {isDark ? (
-                <Sun className="w-4 h-4 text-amber-400 fill-amber-350" />
+                <Sun className="w-4 h-4 shrink-0 text-amber-400 fill-amber-350" />
               ) : (
-                <Moon className="w-4 h-4 text-indigo-700 fill-indigo-100" />
+                <Moon className="w-4 h-4 shrink-0 text-indigo-700 fill-indigo-100" />
               )}
+              <span className="flex-1 text-left">{isDark ? "明るいテーマにする" : "暗いテーマにする"}</span>
             </button>
-            
-            {/* 暗いテーマでは indigo の変数そのものを反転させている（index.css）。
-                dark: を重ねると二重に反転して、暗い地に暗い文字が載る
-                （「P」の実測 1.58）。ここでは変数の反転に任せる。 */}
-            <div
-              className="shrink-0 px-3.5 min-h-11 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center gap-1.5"
-              title="ごほうびガチャで使えるポイント"
-              data-testid="header_points"
-            >
-              <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-xs font-bold text-indigo-950 font-mono" aria-label={`使えるポイント ${availablePoints}`}>
-                {availablePoints} <span className="text-[10px] text-indigo-600 dark:text-indigo-400">P</span>
-              </span>
+
+            {/* ここから下は押すものではなく、いまの状態 */}
+            <div className="mt-1 pt-2 border-t border-gray-100 dark:border-slate-800 flex flex-wrap items-center gap-2 px-1.5 pb-1">
+              <div
+                className={`flex items-center gap-1.5 px-3 min-h-9 border rounded-xl text-xs font-bold font-mono ${
+                  goalReached
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300"
+                    : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400"
+                }`}
+                title="今日の学習目標の進捗"
+              >
+                {goalReached ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Target className="w-3.5 h-3.5" />}
+                <span>今日 {todayCount}/{dailyGoal}</span>
+              </div>
+
+              {/* 暗いテーマでは indigo の変数そのものを反転させている（index.css）。
+                  dark: を重ねると二重に反転して、暗い地に暗い文字が載る
+                  （「P」の実測 1.58）。ここでは変数の反転に任せる。 */}
+              <div
+                className="flex items-center gap-1.5 px-3 min-h-9 bg-indigo-50/70 border border-indigo-100 rounded-xl"
+                title="ごほうびガチャで使えるポイント"
+                data-testid="header_points"
+              >
+                <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span className="text-xs font-bold text-indigo-950 font-mono" aria-label={`使えるポイント ${availablePoints}`}>
+                  {availablePoints} <span className="text-[10px] text-indigo-600 dark:text-indigo-400">P</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-3 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 font-mono">
+                <span>Ver 1.6.0</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </nav>
 
       {/* メインステージ */}
