@@ -107,3 +107,25 @@ export function SpellingIcon({ className = "w-5 h-5" }: IconProps) {
     </svg>
   );
 }
+
+/** AIアドバイス ＝ 次に何をするかを言葉で示す。吹き出しの中で伸びていく線 */
+export function AdviceIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M20.4 13.6a2.6 2.6 0 0 1-2.6 2.6H9.2L5 19.6v-3.4h-.6A2.6 2.6 0 0 1 1.8 13.6V6.4a2.6 2.6 0 0 1 2.6-2.6h13.4a2.6 2.6 0 0 1 2.6 2.6Z" />
+      <path d="M6.2 12.6 9 9.8l2.2 2.2 4.4-4.4" />
+      <path d="M12.8 7.6h2.8v2.8" />
+    </svg>
+  );
+}
+
+/** 弱点分析 ＝ 溜まった間違いを並べて、いちばん低いところを見つける */
+export function WeaknessIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3.4 20.4h17.2" />
+      <path d="M6.2 17.4V9.6M12 17.4V5.4M17.8 17.4v-4.2" />
+      <circle cx="17.8" cy="9.6" r="2" />
+    </svg>
+  );
+}

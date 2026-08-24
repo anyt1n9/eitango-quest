@@ -40,9 +40,9 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
-import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon, ListeningIcon, SpellingIcon } from "./AppIcons";
+import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon, ListeningIcon, SpellingIcon, AdviceIcon, WeaknessIcon } from "./AppIcons";
 import { toFillInSentence } from "../fillIn";
-import { LEVEL_TONE, LEVEL_STYLE } from "../levelTheme";
+import { LEVEL_TONE, TONE_STYLE, ACCENT_TONE } from "../levelTheme";
 
 /**
  * 「調べる」タブに並べる資料。
@@ -103,57 +103,57 @@ const LEVELS: {
   {
     level: "junior", short: "中学", title: "初級 (中学生レベル)",
     examples: "beautiful, library, important, station...",
-    badge: `${LEVEL_TONE.junior} ${LEVEL_STYLE.badge}`,
-    rate: `${LEVEL_TONE.junior} ${LEVEL_STYLE.text}`,
-    bar: `${LEVEL_TONE.junior} ${LEVEL_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.junior} ${LEVEL_STYLE.solid}`,
-    subBtn: `${LEVEL_TONE.junior} ${LEVEL_STYLE.soft}`,
-    chip: `${LEVEL_TONE.junior} ${LEVEL_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.junior} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
+    badge: `${LEVEL_TONE.junior} ${TONE_STYLE.badge}`,
+    rate: `${LEVEL_TONE.junior} ${TONE_STYLE.text}`,
+    bar: `${LEVEL_TONE.junior} ${TONE_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.junior} ${TONE_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.junior} ${TONE_STYLE.soft}`,
+    chip: `${LEVEL_TONE.junior} ${TONE_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.junior} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "senior", short: "高1", title: "中級 (高校1年生レベル)",
     examples: "environment, achieve, technology, protect...",
-    badge: `${LEVEL_TONE.senior} ${LEVEL_STYLE.badge}`,
-    rate: `${LEVEL_TONE.senior} ${LEVEL_STYLE.text}`,
-    bar: `${LEVEL_TONE.senior} ${LEVEL_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.senior} ${LEVEL_STYLE.solid}`,
-    subBtn: `${LEVEL_TONE.senior} ${LEVEL_STYLE.soft}`,
-    chip: `${LEVEL_TONE.senior} ${LEVEL_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.senior} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
+    badge: `${LEVEL_TONE.senior} ${TONE_STYLE.badge}`,
+    rate: `${LEVEL_TONE.senior} ${TONE_STYLE.text}`,
+    bar: `${LEVEL_TONE.senior} ${TONE_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.senior} ${TONE_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.senior} ${TONE_STYLE.soft}`,
+    chip: `${LEVEL_TONE.senior} ${TONE_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.senior} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "senior2", short: "高2", title: "中級 (高校2年生レベル)",
     examples: "skill, tragedy, knowledge, establish...",
-    badge: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.badge}`,
-    rate: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.text}`,
-    bar: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.solid}`,
-    subBtn: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.soft}`,
-    chip: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
+    badge: `${LEVEL_TONE.senior2} ${TONE_STYLE.badge}`,
+    rate: `${LEVEL_TONE.senior2} ${TONE_STYLE.text}`,
+    bar: `${LEVEL_TONE.senior2} ${TONE_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.senior2} ${TONE_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.senior2} ${TONE_STYLE.soft}`,
+    chip: `${LEVEL_TONE.senior2} ${TONE_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.senior2} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "senior3", short: "高3", title: "中級 (高校3年生レベル)",
     examples: "significant, sacrifice, trigger, delight...",
-    badge: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.badge}`,
-    rate: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.text}`,
-    bar: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.solid}`,
-    subBtn: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.soft}`,
-    chip: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
+    badge: `${LEVEL_TONE.senior3} ${TONE_STYLE.badge}`,
+    rate: `${LEVEL_TONE.senior3} ${TONE_STYLE.text}`,
+    bar: `${LEVEL_TONE.senior3} ${TONE_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.senior3} ${TONE_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.senior3} ${TONE_STYLE.soft}`,
+    chip: `${LEVEL_TONE.senior3} ${TONE_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.senior3} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "advanced", short: "大学・社会人", title: "上級 (大学生・社会人)",
     examples: "comprehensive, architecture, constraint, execution...",
-    badge: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.badge}`,
-    rate: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.text}`,
-    bar: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.solid}`,
-    subBtn: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.soft}`,
-    chip: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
+    badge: `${LEVEL_TONE.advanced} ${TONE_STYLE.badge}`,
+    rate: `${LEVEL_TONE.advanced} ${TONE_STYLE.text}`,
+    bar: `${LEVEL_TONE.advanced} ${TONE_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.advanced} ${TONE_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.advanced} ${TONE_STYLE.soft}`,
+    chip: `${LEVEL_TONE.advanced} ${TONE_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.advanced} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
   }
 ];
 
@@ -1038,7 +1038,7 @@ export default function Dashboard({
           id="tab_btn_ai"
         >
           <div className="flex flex-col md:flex-row items-center justify-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-purple-500 fill-purple-100" />
+            <AdviceIcon className={`w-4 h-4 ${ACCENT_TONE.advice} ${TONE_STYLE.text}`} />
             <span>AIアドバイス</span>
           </div>
         </button>
@@ -1727,10 +1727,10 @@ export default function Dashboard({
       {activeTab === "ai" && (
         <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6" id="ai_advisor_section">
           <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 bg-purple-100 rounded-xl text-purple-700">
-              <Sparkles className="w-4 h-4 fill-purple-200" />
+            <span className={`p-1.5 rounded-xl ${ACCENT_TONE.advice} ${TONE_STYLE.badge}`}>
+              <AdviceIcon className="w-4 h-4" />
             </span>
-            <span className="text-xs font-black tracking-wider uppercase font-mono text-purple-700">AI Study Advisor</span>
+            <span className={`text-xs font-black tracking-wider uppercase font-mono ${ACCENT_TONE.advice} ${TONE_STYLE.text}`}>AI Study Advisor</span>
           </div>
           <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">AIパーソナル学習アドバイザリー</h2>
           <p className="text-sm text-gray-500 mt-1 max-w-xl">
@@ -1741,7 +1741,7 @@ export default function Dashboard({
           <div className="mt-6 border-t border-gray-100 pt-6">
             {advice ? (
               <div className="space-y-4">
-                <div className="bg-purple-50/50 border border-purple-100 rounded-2xl p-5 text-gray-800 text-sm leading-relaxed max-w-none">
+                <div className={`${ACCENT_TONE.advice} bg-[var(--lv-bg)] border border-[var(--lv-border)] rounded-2xl p-5 text-gray-800 text-sm leading-relaxed max-w-none`}>
                   <SimpleMarkdown text={advice} />
                 </div>
                 {adviceSource && (
@@ -1764,7 +1764,7 @@ export default function Dashboard({
               </div>
             ) : (
               <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <Sparkles className="w-12 h-12 text-indigo-300 mx-auto mb-3 animate-pulse" />
+                <AdviceIcon className={`w-12 h-12 mx-auto mb-3 ${ACCENT_TONE.advice} ${TONE_STYLE.text}`} />
                 <p className="text-gray-600 font-extrabold mb-1">あなたの回答傾向をAIが分析します</p>
                 <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
                   スタッツ、弱点、学習履歴をもとに最適化された効率的コーチングアドバイスを受け取りましょう。
@@ -1772,7 +1772,7 @@ export default function Dashboard({
                 <button
                   onClick={handleFetchAdvice}
                   disabled={isFetchingAdvice}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm"
+                  className={`${ACCENT_TONE.advice} ${TONE_STYLE.solid} font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm`}
                   id="btn_get_advice"
                 >
                   {isFetchingAdvice ? (
@@ -1782,7 +1782,7 @@ export default function Dashboard({
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4" />
+                      <AdviceIcon className="w-4 h-4" />
                       <span>AIアドバイスを受け取る</span>
                     </>
                   )}
@@ -1800,10 +1800,10 @@ export default function Dashboard({
           {/* 弱点分野の自動分析セクション */}
           <div className="mt-8 border-t border-gray-100 pt-6" id="weakness_analysis_section">
             <div className="flex items-center gap-2 mb-2">
-              <span className="p-1.5 bg-rose-100 rounded-xl text-rose-700">
-                <Brain className="w-4 h-4" />
+              <span className={`p-1.5 rounded-xl ${ACCENT_TONE.weakness} ${TONE_STYLE.badge}`}>
+                <WeaknessIcon className="w-4 h-4" />
               </span>
-              <span className="text-xs font-black tracking-wider uppercase font-mono text-rose-700">Weakness Analyzer</span>
+              <span className={`text-xs font-black tracking-wider uppercase font-mono ${ACCENT_TONE.weakness} ${TONE_STYLE.text}`}>Weakness Analyzer</span>
             </div>
             <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">弱点分野の自動分析</h2>
             <p className="text-sm text-gray-500 mt-1 max-w-xl">
@@ -1814,7 +1814,7 @@ export default function Dashboard({
             <div className="mt-6">
               {weaknessAnalysis ? (
                 <div className="space-y-5">
-                  <div className="bg-rose-50/60 border border-rose-100 rounded-2xl p-5">
+                  <div className={`${ACCENT_TONE.weakness} bg-[var(--lv-bg)] border border-[var(--lv-border)] rounded-2xl p-5`}>
                     <p className="text-sm text-gray-800 leading-relaxed font-semibold">
                       {weaknessAnalysis.summary}
                     </p>
@@ -1839,7 +1839,7 @@ export default function Dashboard({
                             </div>
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-rose-500 rounded-full"
+                                className={`h-full rounded-full ${ACCENT_TONE.weakness} ${TONE_STYLE.bar}`}
                                 style={{ width: `${Math.min(stat.percentage, 100)}%` }}
                               />
                             </div>
@@ -1859,7 +1859,7 @@ export default function Dashboard({
                             </div>
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-indigo-500 rounded-full"
+                                className={`h-full rounded-full ${ACCENT_TONE.advice} ${TONE_STYLE.bar}`}
                                 style={{ width: `${Math.min(stat.percentage, 100)}%` }}
                               />
                             </div>
@@ -1874,7 +1874,7 @@ export default function Dashboard({
                     <ul className="space-y-1.5">
                       {weaknessAnalysis.recommendations.map((rec, i) => (
                         <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
-                          <ThumbsUp className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
+                          <ThumbsUp className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${ACCENT_TONE.weakness} ${TONE_STYLE.text}`} />
                           <span>{rec}</span>
                         </li>
                       ))}
@@ -1894,7 +1894,7 @@ export default function Dashboard({
                 </div>
               ) : (
                 <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                  <Brain className="w-12 h-12 text-rose-300 mx-auto mb-3" />
+                  <WeaknessIcon className={`w-12 h-12 mx-auto mb-3 ${ACCENT_TONE.weakness} ${TONE_STYLE.text}`} />
                   <p className="text-gray-600 font-extrabold mb-1">間違えた単語の傾向を分析します</p>
                   <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
                     現在 <span className="font-mono font-bold">{wrongWords.length}語</span> の間違えた単語が記録されています。品詞や分野の傾向から、あなたの弱点分野を見つけます。
@@ -1902,7 +1902,7 @@ export default function Dashboard({
                   <button
                     onClick={handleFetchWeaknessAnalysis}
                     disabled={isFetchingWeakness}
-                    className="bg-rose-700 hover:bg-rose-800 text-white font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm"
+                    className={`${ACCENT_TONE.weakness} ${TONE_STYLE.solid} font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm`}
                     id="btn_get_weakness_analysis"
                   >
                     {isFetchingWeakness ? (
@@ -1912,7 +1912,7 @@ export default function Dashboard({
                       </>
                     ) : (
                       <>
-                        <Brain className="w-4 h-4" />
+                        <WeaknessIcon className="w-4 h-4" />
                         <span>弱点分野を分析する</span>
                       </>
                     )}

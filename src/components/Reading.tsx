@@ -7,7 +7,7 @@ import { sanitizePassage, sanitizePassages } from "../passageValidation";
 import { loadGrammar } from "../grammar";
 import { canUseSpeech, onVoicesChanged, speak, stopSpeaking } from "../speech";
 import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
-import { LEVEL_TONE, LEVEL_STYLE } from "../levelTheme";
+import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
 
 interface ReadingProps {
   stats: UserStats;
@@ -282,7 +282,7 @@ export default function Reading({
     // 色はレベルの色に合わせる（src/levelTheme.ts）。
     // 以前はここだけ独自の対応（初級＝緑）を持っており、
     // ダッシュボードの色（初級＝いちばん浅い色）と食い違っていた
-    const colorClass = `${LEVEL_TONE[level] || LEVEL_TONE.junior} border ${LEVEL_STYLE.soft}`;
+    const colorClass = `${LEVEL_TONE[level] || LEVEL_TONE.junior} border ${TONE_STYLE.soft}`;
 
     // ハイライト語は AI生成長文や localStorage 由来のこともあり、word を持たない
     // 要素が混ざりうる。そのまま .replace すると描画中に例外が投げられて画面が壊れる。

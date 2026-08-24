@@ -3,7 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Dashboard from "../src/components/Dashboard";
 import { makeWord, makeStats } from "./fixtures";
-import { LEVEL_TONE } from "../src/levelTheme";
+import { LEVEL_TONE, ACCENT_TONE } from "../src/levelTheme";
 
 /**
  * 出題の入口。
@@ -324,6 +324,45 @@ describe("長文・AI日記への入口", () => {
     await user.click(document.getElementById("btn_toggle_study_menu")!);
     await user.click(document.getElementById("dashboard_open_diary_btn")!);
     expect(onOpenDiary).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AIアドバイスのタブ", () => {
+  /**
+   * この2つの欄だけ紫と赤で塗られていて、森にも海にも合っていなかった。
+   * 色は他と同じ変数の組（--lv-*）で持ち、テーマごとに置き換わるようにする。
+   */
+  async function openAiTab(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(document.getElementById("tab_btn_ai")!);
+  }
+
+  it("アドバイスと弱点分析は、テーマの色を使う（紫・赤を直に書かない）", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await openAiTab(user);
+
+    const advice = document.getElementById("btn_get_advice")!;
+    const weakness = document.getElementById("btn_get_weakness_analysis")!;
+    expect(advice.className).toContain(ACCENT_TONE.advice);
+    expect(weakness.className).toContain(ACCENT_TONE.weakness);
+    for (const btn of [advice, weakness]) {
+      expect(btn.className, "色を直に書いている").not.toMatch(/-(purple|rose|fuchsia)-\d/);
+    }
+
+    const section = document.getElementById("ai_advisor_section")!;
+    expect(section.innerHTML, "紫が残っている").not.toMatch(/-purple-\d/);
+  });
+
+  it("2つの欄は、それぞれ違う絵を使う", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await openAiTab(user);
+
+    const advice = document.getElementById("btn_get_advice")!.querySelector("svg");
+    const weakness = document.getElementById("btn_get_weakness_analysis")!.querySelector("svg");
+    expect(advice, "アドバイスに絵が無い").not.toBeNull();
+    expect(weakness, "弱点分析に絵が無い").not.toBeNull();
+    expect(advice!.innerHTML === weakness!.innerHTML, "同じ絵を使っている").toBe(false);
   });
 });
 

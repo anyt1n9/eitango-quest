@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { LEVEL_TONE, CUSTOM_TONE, LEVEL_STYLE } from "../src/levelTheme";
+import { LEVEL_TONE, CUSTOM_TONE, ACCENT_TONE, TONE_STYLE } from "../src/levelTheme";
 import { LEVEL_ORDER } from "../src/grammar";
 
 /**
@@ -35,7 +35,7 @@ describe("レベルの色", () => {
   });
 
   it("明るいテーマ（森）と暗いテーマ（海）の両方に、必要な変数がそろっている", () => {
-    for (const tone of [...Object.values(LEVEL_TONE), CUSTOM_TONE]) {
+    for (const tone of [...Object.values(LEVEL_TONE), CUSTOM_TONE, ...Object.values(ACCENT_TONE)]) {
       for (const dark of [false, true]) {
         const body = block(tone, dark);
         expect(body, `${tone} の${dark ? "暗い" : "明るい"}テーマの色が無い`).not.toBeNull();
@@ -59,7 +59,7 @@ describe("レベルの色", () => {
   it("部品のクラスは、色を直に書かず変数を指す", () => {
     // ここに実際の色を書くと、明暗の2組をコンポーネント側で選ぶことになり、
     // 片方のテーマだけ直し忘れる形の不具合が入る
-    for (const [name, cls] of Object.entries(LEVEL_STYLE)) {
+    for (const [name, cls] of Object.entries(TONE_STYLE)) {
       expect(cls, name).toContain("var(--lv-");
       expect(cls, `${name} に色を直に書いている`).not.toMatch(/-(blue|emerald|purple|pink|amber|indigo)-\d/);
     }
