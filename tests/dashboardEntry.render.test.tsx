@@ -215,43 +215,43 @@ describe("画面の詰まりを減らす", () => {
   });
 });
 
-describe("学習カレンダーのタブ", () => {
+describe("学習カレンダーの置き場所", () => {
   /**
    * カレンダーは縦に443pxあり、「習熟度 & クイズ」の先頭に常時置いていた。
-   * 毎回見るものではないので、タブの1つにして押したときだけ出す。
+   * 毎日見るものではないので、毎日開くログインボーナスと並べて出す。
    */
-  it("「AIアドバイス」と「記録」の間に並ぶ", () => {
-    renderDashboard();
-    const ids = within(screen.getByTestId("dashboard_tabs"))
-      .getAllByRole("button")
-      .map(b => b.id);
-    expect(ids.indexOf("tab_btn_calendar")).toBe(ids.indexOf("tab_btn_ai") + 1);
-    expect(ids.indexOf("tab_btn_calendar")).toBe(ids.indexOf("tab_btn_ranking") - 1);
-  });
-
   it("押すまでは出さない（習熟度 & クイズには置かない）", () => {
     renderDashboard();
-    expect(screen.queryByTestId("calendar_tab")).toBeNull();
-    // 「学習カレンダー」の字はタブのボタンにあるだけで、見出しはまだ無い
+    expect(screen.queryByTestId("calendar_in_bonus")).toBeNull();
     expect(screen.queryByRole("heading", { name: "学習カレンダー" })).toBeNull();
   });
 
-  it("押すとカレンダーが出る", async () => {
+  it("ログインボーナスを開くと、その下に出る", async () => {
     const user = userEvent.setup();
     renderDashboard();
-    await user.click(document.getElementById("tab_btn_calendar")!);
-    const panel = screen.getByTestId("calendar_tab");
+    await user.click(document.getElementById("tab_btn_bonus")!);
+
+    const panel = screen.getByTestId("calendar_in_bonus");
     expect(within(panel).getByRole("heading", { name: "学習カレンダー" })).toBeInTheDocument();
+    // ログインボーナスの中身より後ろにある
+    const stamp = screen.getByText("デイリーログインスタンプ");
+    expect(stamp.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("他のタブに切り替えると閉じる", async () => {
     const user = userEvent.setup();
     renderDashboard();
-    await user.click(document.getElementById("tab_btn_calendar")!);
+    await user.click(document.getElementById("tab_btn_bonus")!);
     await user.click(document.getElementById("tab_btn_progress")!);
-    expect(screen.queryByTestId("calendar_tab")).toBeNull();
-    // 出題の入口には戻れている
+    expect(screen.queryByTestId("calendar_in_bonus")).toBeNull();
     expect(document.getElementById("btn_junior_word")).toBeInTheDocument();
+  });
+
+  it("カレンダー専用のタブは置かない", () => {
+    renderDashboard();
+    expect(document.getElementById("tab_btn_calendar")).toBeNull();
+    const ids = within(screen.getByTestId("dashboard_tabs")).getAllByRole("button").map(b => b.id);
+    expect(ids).toHaveLength(5);
   });
 });
 
