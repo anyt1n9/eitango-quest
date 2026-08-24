@@ -27,6 +27,12 @@ async function seedProgress(page: Page) {
   await waitForVocabulary(page);
 }
 
+/** ヘッダーのハンバーガーメニューを開く */
+async function openNavMenu(page: Page) {
+  await page.locator("#btn_nav_menu").click();
+  await expect(page.locator("#nav_menu_panel")).toBeVisible();
+}
+
 /** 単語データは遅延読み込みなので、ダッシュボードが出るまで待つ */
 async function waitForVocabulary(page: Page) {
   await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
@@ -139,6 +145,7 @@ test("苦手単語の復習を形式を選んで始められる", async ({ page 
 
 test("今日の復習でも形式を選べる", async ({ page }) => {
   await seedProgress(page);
+  await openNavMenu(page);
   await page.locator("#nav_srs_review_btn").click();
   await expect(page.locator('[data-testid="quiz_format_picker"]')).toBeVisible();
   await page.locator("#review_format_sentence").click();
@@ -217,6 +224,37 @@ test("アプリケーション説明は、利用規約と同じく1枚の画面�
   await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible({ timeout: 30_000 });
 });
 
+test("ヘッダーはハンバーガーにまとめ、開くと入口が並ぶ", async ({ page }) => {
+  // 以前は機能ボタンを7つ横に並べ、スマホでは2段に折り返して
+  // ヘッダーだけで 150px 近くあった
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/");
+  await waitForVocabulary(page);
+
+  const nav = page.locator("#navigation_bar");
+  expect((await nav.boundingBox())!.height).toBeLessThan(80);
+
+  // 畳んでいる間は入口が出ていない
+  await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
+  await expect(page.locator("#nav_srs_review_btn")).toHaveCount(0);
+
+  await openNavMenu(page);
+  for (const id of ["nav_srs_review_btn", "nav_map_puzzle_toggle_btn", "nav_gacha_btn", "nav_settings_btn", "theme_toggle_btn"]) {
+    await expect(page.locator("#" + id), id).toBeVisible();
+  }
+  await expect(page.getByTestId("header_points")).toBeVisible();
+
+  // Esc で閉じる
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
+
+  // 選ぶと閉じて、その画面へ移る
+  await openNavMenu(page);
+  await page.locator("#nav_gacha_btn").click();
+  await expect(page).toHaveURL(/\/gacha$/);
+  await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
+});
+
 test("知らないパスでも白い画面にならない", async ({ page }) => {
   await page.goto("/no-such-page");
   await expect(page.locator("#btn_junior_reverse")).toBeVisible({ timeout: 30_000 });
@@ -248,6 +286,7 @@ test("ヘッダーのポイントは、ガチャで使える額と一致する",
   await page.reload();
   await waitForVocabulary(page);
 
+  await openNavMenu(page);
   const header = page.getByTestId("header_points");
   await expect(header).toContainText("2550");
   await expect(header).not.toContainText("3000");
@@ -255,7 +294,8 @@ test("ヘッダーのポイントは、ガチャで使える額と一致する",
   // ガチャ画面の「使えるポイント」と同じ数字であること
   await page.locator("#nav_gacha_btn").click();
   await expect(page.locator("#gacha_shop_root")).toContainText("使えるポイント: 2550P");
-  await expect(header).toContainText("2550");
+  await openNavMenu(page);
+  await expect(page.getByTestId("header_points")).toContainText("2550");
 
   // 稼いだ合計は消さない。ダッシュボードの「合計スコア」が受け持つ
   await page.goto("/");
@@ -664,6 +704,7 @@ test("学習データを書き出すと、文法の進捗も含まれる", async
   await page.reload();
   await waitForVocabulary(page);
 
+  await openNavMenu(page);
   await page.locator("#nav_settings_btn").click();
   const download = page.waitForEvent("download");
   await page.getByText("エクスポート（書き出し）").click();
