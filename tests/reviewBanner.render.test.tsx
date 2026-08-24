@@ -181,25 +181,27 @@ describe("学習メニューのアイコン", () => {
 });
 
 describe("ログインボーナス", () => {
-  it("すばやく2回押しても、受け取りは1回だけ", async () => {
-    // checkCanClaimToday() は描画時点の stats を見るので、
-    // 再描画の前に2回押すとどちらも通ってしまう。
-    // 3連打で受け取りの処理が3回走り、お知らせも3つ出ていた
+  it("受け取りの入口はスタンプだけで、別のボタンは置かない", async () => {
+    // スタンプと「受け取る！」ボタンの2か所から受け取れると、
+    // 同じ操作の入口が分かれる。押す先はスタンプに一本化した
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
-    const setStats = vi.fn();
-    const setRanking = vi.fn();
-    renderDashboard({ setStats, setRanking });
-
+    renderDashboard();
     await user.click(document.getElementById("tab_btn_bonus")!);
-    const claim = document.getElementById("btn_claim_bonus")!;
-    claim.click();
-    claim.click();
-    claim.click();
 
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(setStats).toHaveBeenCalledTimes(1);
-    alertSpy.mockRestore();
+    expect(document.getElementById("btn_claim_bonus")).toBeNull();
+    // 光っているだけでは押せることが伝わらないので、言葉でも示す
+    expect(document.getElementById("claim_bonus_hint")).not.toBeNull();
+  });
+
+  it("受け取ったあとは、押す先の案内を出さない", async () => {
+    const user = userEvent.setup();
+    const today = new Date();
+    const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    renderDashboard({ stats: makeStats({ lastLoginDate: key }) });
+    await user.click(document.getElementById("tab_btn_bonus")!);
+
+    expect(document.getElementById("claim_bonus_hint")).toBeNull();
+    expect(document.body.textContent).toContain("本日のログインボーナスはすべて獲得済み");
   });
 
   it("加点は関数形で行う（前の値に足す）", async () => {
@@ -210,7 +212,7 @@ describe("ログインボーナス", () => {
     renderDashboard({ setStats });
 
     await user.click(document.getElementById("tab_btn_bonus")!);
-    await user.click(document.getElementById("btn_claim_bonus")!);
+    await user.click(document.getElementById("btn_claim_bonus_day_2")!);
 
     const updater = setStats.mock.calls[0][0];
     expect(typeof updater, "関数を渡していない").toBe("function");
@@ -256,6 +258,9 @@ describe("ログインボーナス", () => {
   });
 
   it("スタンプを連打しても、受け取りは1回だけ", async () => {
+    // checkCanClaimToday() は描画時点の stats を見るので、
+    // 再描画の前に2回押すとどちらも通ってしまう。
+    // 3連打で受け取りの処理が3回走り、お知らせも3つ出ていた
     const user = userEvent.setup();
     const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
     const setStats = vi.fn();

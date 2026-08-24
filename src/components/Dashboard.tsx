@@ -2026,7 +2026,7 @@ export default function Dashboard({
           </div>
           <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">デイリーログインスタンプ</h2>
           <p className="text-sm text-gray-500 mt-1 max-w-md">
-            1日に1回ログインボーナスを受け取ることができます。毎日継続して、大量ボーナスを獲得しましょう。
+            1日に1回、光っているスタンプを押すとログインボーナスを受け取れます。毎日継続して、大量ボーナスを獲得しましょう。
           </p>
 
           <div className="mt-8 grid grid-cols-2 md:grid-cols-7 gap-4">
@@ -2045,8 +2045,8 @@ export default function Dashboard({
                 status = "active";
               }
 
-              // 今日ぶんの日付は、それ自体を押しても受け取れるようにする。
-              // 下の「受け取る」ボタンまで目を移さずに済む。
+              // 受け取りは今日ぶんの日付を押して行う。別に「受け取る」ボタンを
+              // 置いていたが、押す先が2つあると同じ操作の入口が分かれるため外した。
               // 受け取り済みの日と、まだ先の日は押しても何も起きないので、
               // ボタンにせず今までどおりの枠のままにする
               const isClaimable = status === "active";
@@ -2090,14 +2090,15 @@ export default function Dashboard({
 
           <div className="mt-8 flex justify-center">
             {checkCanClaimToday() ? (
-              <button
-                onClick={handleClaimLoginBonus}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold px-10 py-4 rounded-2xl shadow-lg hover:shadow-xl transition flex items-center gap-2 transform active:scale-95 cursor-pointer text-base"
-                id="btn_claim_bonus"
+              /* 押す先はスタンプだけなので、どれを押すのかをここで言葉にする。
+                 光っているだけでは「押せる」ことが伝わらない */
+              <div
+                className="bg-indigo-50 rounded-2xl p-4 text-center border font-semibold border-indigo-200 text-indigo-700 inline-flex items-center gap-2 text-sm"
+                id="claim_bonus_hint"
               >
                 <Sparkles className="w-5 h-5 animate-pulse" />
-                <span>ログインボーナスを受け取る！</span>
-              </button>
+                <span>光っているスタンプを押すと、本日のボーナスを受け取れます。</span>
+              </div>
             ) : (
               <div className="bg-gray-100 rounded-2xl p-4 text-center border font-semibold border-gray-200 text-gray-500 inline-flex items-center gap-2 text-sm">
                 <ThumbsUp className="w-5 h-5 text-emerald-500" />
