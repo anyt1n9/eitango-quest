@@ -974,47 +974,42 @@ export default function Dashboard({
   return (
     <div className="space-y-6" id="dashboard_page">
       {/* ヒーローヘッダー */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center md:justify-between relative overflow-hidden" id="hero_banner">
+      {/* 「Dashboard」の札は、いま見ている画面の名前を繰り返すだけで
+          何も足していなかったので外した。あわせて余白を詰める
+          （縦を削るほど、下にある出題の入口が早く見える） */}
+      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 rounded-3xl p-5 text-white shadow-xl flex flex-col md:flex-row md:items-center md:justify-between gap-3 relative overflow-hidden" id="hero_banner">
         {/* 背景の装飾サークル */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
         <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
 
-        <div className="space-y-2 z-10">
-          <div className="flex items-center gap-2">
-            {/* 暗いテーマでは indigo の変数が反転するので、text-indigo-200 は
-                明るい藤色ではなく濃紺になる。青いチップの上で読めなくなるため、
-                明暗どちらでも明るいままの slate-100 を使う */}
-            <span className="bg-indigo-600/60 text-slate-100 text-xs px-3 py-1 rounded-full font-semibold border border-indigo-400/40 tracking-wider uppercase font-mono">
-              Dashboard
-            </span>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-2" id="app_title">
+        <div className="space-y-1 z-10">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2" id="app_title">
             <span>Eigorira</span>
             {/* 名前の由来（英語＋ゴリラ、そしてエイ）。読み上げには要らないので隠す */}
             <span className="flex items-center gap-1.5 shrink-0" aria-hidden="true" data-testid="brand_icons">
-              <RayIcon className="w-6 h-6" />
-              <GorillaIcon className="w-6 h-6" />
+              <RayIcon className="w-5 h-5 md:w-6 md:h-6" />
+              <GorillaIcon className="w-5 h-5 md:w-6 md:h-6" />
             </span>
           </h1>
-          <p className="text-indigo-100 text-sm max-w-md">
+          <p className="text-indigo-100 text-xs md:text-sm max-w-md leading-relaxed">
             中学から大学・社会人までの5レベル、7,730語。文法と長文もこの中で完結します。
           </p>
         </div>
 
         {/* コレクトスタッツ */}
-        <div className="mt-4 md:mt-0 flex gap-4 md:gap-8 items-center bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 z-10 justify-around">
-          <div className="text-center px-4 border-r border-white/10">
-            <p className="text-xs text-indigo-200 font-medium">合計スコア</p>
-            <div className="flex items-center gap-1 justify-center mt-1">
-              <Trophy className="w-5 h-5 text-amber-300 fill-amber-400" />
-              <span className="text-2xl font-black font-mono tracking-tight">{stats.score}</span>
+        <div className="flex gap-2 md:gap-6 items-center bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/15 z-10 justify-around shrink-0">
+          <div className="text-center px-3 border-r border-white/10">
+            <p className="text-[11px] text-indigo-200 font-medium">合計スコア</p>
+            <div className="flex items-center gap-1 justify-center">
+              <Trophy className="w-4 h-4 text-amber-300 fill-amber-400" />
+              <span className="text-xl font-black font-mono tracking-tight">{stats.score}</span>
             </div>
           </div>
-          <div className="text-center px-4">
-            <p className="text-xs text-indigo-200 font-medium">ログイン連続</p>
-            <div className="flex items-center gap-1 justify-center mt-1">
-              <Calendar className="w-5 h-5 text-pink-300 fill-pink-400/20 animate-pulse" />
-              <span className="text-2xl font-black font-mono tracking-tight">{stats.currentStreak}日</span>
+          <div className="text-center px-3">
+            <p className="text-[11px] text-indigo-200 font-medium">ログイン連続</p>
+            <div className="flex items-center gap-1 justify-center">
+              <Calendar className="w-4 h-4 text-pink-300 fill-pink-400/20 animate-pulse" />
+              <span className="text-xl font-black font-mono tracking-tight">{stats.currentStreak}日</span>
             </div>
           </div>
         </div>
