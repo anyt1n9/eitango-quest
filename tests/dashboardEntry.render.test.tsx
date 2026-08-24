@@ -129,6 +129,22 @@ describe("5つの形式の入口", () => {
     await user.click(document.getElementById("btn_junior_word")!);
     expect(document.getElementById("word_count_modal")).toBeNull();
   });
+
+  it("リスニングと綴りの絵は、他の画面と同じ線画を使う", () => {
+    // 絵文字（🎧 ✏️）は端末ごとに絵柄も色も違い、
+    // 学習メニューや「調べる」の線画と並ぶと浮く。
+    // 同じ描き方のアイコンに揃える（src/components/AppIcons.tsx）
+    renderDashboard();
+    const marks: string[] = [];
+    for (const form of ["listening", "spelling"]) {
+      const btn = document.getElementById(`btn_junior_${form}`)!;
+      const svg = btn.querySelector("svg");
+      expect(svg, `${form} に絵が無い`).not.toBeNull();
+      expect(btn.textContent, `${form} に絵文字が残っている`).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
+      marks.push(svg!.innerHTML);
+    }
+    expect(new Set(marks).size, "2つの形式が同じ絵を使っている").toBe(2);
+  });
 });
 
 describe("画面の詰まりを減らす", () => {
