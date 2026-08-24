@@ -32,6 +32,7 @@ export const BACKUP_KEYS = [
   "quest_equipped",
   "quest_grammar_progress",
   "quest_grammar_wrong",
+  "quest_puzzle_rewarded_words",
   "quest_reading_wrong",
 ] as const;
 
