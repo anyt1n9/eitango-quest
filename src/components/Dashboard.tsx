@@ -2045,17 +2045,20 @@ export default function Dashboard({
                 status = "active";
               }
 
-              return (
-                <div 
-                  key={bonus.day} 
-                  className={`border rounded-2xl p-4 flex flex-col items-center text-center transition-all ${
-                    status === "claimed"
-                      ? "bg-emerald-50 border-emerald-200" 
-                      : status === "active"
-                        ? "bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-md scale-102"
-                        : "bg-gray-50 border-gray-100 opacity-60"
-                  }`}
-                >
+              // 今日ぶんの日付は、それ自体を押しても受け取れるようにする。
+              // 下の「受け取る」ボタンまで目を移さずに済む。
+              // 受け取り済みの日と、まだ先の日は押しても何も起きないので、
+              // ボタンにせず今までどおりの枠のままにする
+              const isClaimable = status === "active";
+              const cardClass = `border rounded-2xl p-4 flex flex-col items-center text-center transition-all ${
+                status === "claimed"
+                  ? "bg-emerald-50 border-emerald-200"
+                  : status === "active"
+                    ? "bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20 shadow-md scale-102 hover:bg-indigo-100 cursor-pointer"
+                    : "bg-gray-50 border-gray-100 opacity-60"
+              }`;
+              const inner = (
+                <>
                   <span className="text-xs text-gray-600 font-bold">DAY {bonus.day}</span>
                   <div className="my-3 text-3xl">
                     {status === "claimed" ? "🎁" : idx === 6 ? "👑" : "💎"}
@@ -2063,6 +2066,23 @@ export default function Dashboard({
                   <span className={`text-[11px] font-black font-mono tracking-tight ${status === "claimed" ? "text-emerald-700" : "text-gray-700"}`}>
                     {status === "claimed" ? "受取済" : `+${bonus.points} P`}
                   </span>
+                </>
+              );
+
+              return isClaimable ? (
+                <button
+                  key={bonus.day}
+                  type="button"
+                  onClick={handleClaimLoginBonus}
+                  className={cardClass}
+                  id={`btn_claim_bonus_day_${bonus.day}`}
+                  aria-label={`DAY ${bonus.day} のログインボーナス ${bonus.points} ポイントを受け取る`}
+                >
+                  {inner}
+                </button>
+              ) : (
+                <div key={bonus.day} className={cardClass}>
+                  {inner}
                 </div>
               );
             })}
