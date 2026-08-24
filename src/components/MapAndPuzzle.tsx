@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "motion/react";
 import { 
   Sparkles, 
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { UserStats, RankingUser } from "../types";
 import { getAudioContext } from "../sound";
+import { readStoredArray, writeStored } from "../storage";
 
 // TTS用の簡易発音ヘルパー
 const speakWord = (text: string) => {
@@ -124,9 +125,41 @@ export default function MapAndPuzzle({
   const [isDoneAlready, setIsDoneAlready] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
+  /**
+   * いま待っている取得の番号。
+   *
+   * プリセットを続けて押すと取得が並行して走る。先に投げたほうの応答が
+   * 後から返ると、最後に解決したもので上書きされ、検索欄に出ている単語と
+   * 実際に出ているマップ・パズルが食い違う（進行状態もそこで消える）。
+   * 番号が変わっていたら、古い応答は捨てる。
+   */
+  const requestIdRef = useRef(0);
+
+  /**
+   * すでに初回ボーナスを渡した語。
+   *
+   * 画面の中の isDoneAlready だけでは、同じ語で「AI探査」をやり直すたびに
+   * 戻ってしまい、+100 を何度でも取れた。端末に残して語ごとに1回にする。
+   */
+  const [rewardedWords, setRewardedWords] = useState<Set<string>>(() =>
+    new Set(readStoredArray<string>("quest_puzzle_rewarded_words")
+      .filter(w => typeof w === "string")
+      .map(w => w.trim().toLowerCase()))
+  );
+
+  const rememberRewarded = (word: string) => {
+    const key = word.trim().toLowerCase();
+    setRewardedWords(prev => {
+      const next = new Set(prev).add(key);
+      writeStored("quest_puzzle_rewarded_words", [...next]);
+      return next;
+    });
+  };
+
   // AI 読み込みハンドラー
   const handleFetchMap = async (wordToQuery: string) => {
     if (!wordToQuery.trim()) return;
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setErrorStatus("");
     setData(null);
@@ -158,12 +191,39 @@ export default function MapAndPuzzle({
         throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
       }
 
-      setData(payload);
+      // 配列であることだけでは足りない。中の要素は word や meaning を
+      // 無条件に文字列として扱う（item.word.trim() など）ので、
+      // 1つでも欠けていると答え合わせや一覧の描画で例外になり、
+      // アプリ全体が「再読み込みが必要」な画面になる。
+      const isPuzzleItem = (item: any) =>
+        typeof item?.word === "string" && item.word.trim() !== "" &&
+        typeof item?.partOfSpeech === "string" &&
+        typeof item?.meaning === "string" &&
+        typeof item?.masked === "boolean";
+      const isConnection = (node: any) =>
+        typeof node?.word === "string" && typeof node?.meaning === "string";
+      if (
+        !payload.puzzle.every(isPuzzleItem) ||
+        !payload.connections.every(isConnection) ||
+        !payload.distractors.every((d: any) => typeof d === "string")
+      ) {
+        throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
+      }
+
+      if (requestId !== requestIdRef.current) return; // 追い越された古い応答は捨てる
+      setData({
+        ...payload,
+        // 見出しとボーナスの鍵に使うので、欠けていたら調べた語で補う
+        focusWord: typeof payload.focusWord === "string" && payload.focusWord.trim()
+          ? payload.focusWord
+          : wordToQuery.trim()
+      });
     } catch (err: any) {
       console.error(err);
+      if (requestId !== requestIdRef.current) return;
       setErrorStatus(err.message || "通信または生成エラーが発生しました。時間を置いて再度お試しください。");
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   };
 
@@ -232,10 +292,14 @@ export default function MapAndPuzzle({
 
     if (totalCorrect) {
       playSound("success");
-      const isFirstClear = !isDoneAlready;
+      // 同じ語で「AI探査」をやり直すと新しいパズルが作られ、その場の
+      // isDoneAlready も戻る。画面の中だけで覚えていると、同じ語を
+      // 引き直すたびに+100を何度でも取れてしまうので、語ごとに残す
+      const isFirstClear = !isDoneAlready && !rewardedWords.has(data.focusWord.trim().toLowerCase());
       setIsDoneAlready(true);
 
       if (isFirstClear) {
+        rememberRewarded(data.focusWord);
         // 初回正解ボーナス（同じパズルの再回答では加算しない）
         const bonusPoints = 100;
         setStats(prev => ({
@@ -327,7 +391,8 @@ export default function MapAndPuzzle({
                   key={word}
                   type="button"
                   onClick={() => { setSearchWord(word); handleFetchMap(word); }}
-                  className="px-2.5 py-1 bg-indigo-50/50 hover:bg-indigo-100 text-indigo-600 hover:text-indigo-800 border border-indigo-100 rounded-lg text-xs font-bold transition font-mono"
+                  disabled={isLoading}
+                  className="px-2.5 py-1 bg-indigo-50/50 hover:bg-indigo-100 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-default text-indigo-600 hover:text-indigo-800 border border-indigo-100 rounded-lg text-xs font-bold transition font-mono cursor-pointer"
                 >
                   {word}
                 </button>

@@ -68,6 +68,31 @@ interface DiaryEntry {
   usedWords: string[];
 }
 
+/**
+ * 保存済みの日記を、描画できる形か確かめてから使う。
+ *
+ * 以前は JSON.parse の結果をそのまま DiaryEntry として扱っていた。
+ * 描画側は diary.diaryText.length や diary.usedWords.length を無条件に読むので、
+ * 形の違う値（バックアップの手編集や、古い版で書いた記録）が入っていると
+ * 画面が例外で落ちる。しかも壊れた値は localStorage に残ったままなので、
+ * 開き直すたびに同じ例外を繰り返し、自力では抜け出せなくなる。
+ * 読めない記録は捨てて、日記が無い状態から始める。
+ */
+function asDiaryEntry(value: unknown): DiaryEntry | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  if (typeof v.diaryText !== "string") return null;
+  if (!Array.isArray(v.usedWords)) return null;
+  return {
+    id: typeof v.id === "string" ? v.id : "diary_" + Date.now(),
+    date: typeof v.date === "string" ? v.date : "",
+    title: typeof v.title === "string" ? v.title : "My diary",
+    diaryText: v.diaryText,
+    diaryTranslation: typeof v.diaryTranslation === "string" ? v.diaryTranslation : "",
+    usedWords: v.usedWords.filter((w): w is string => typeof w === "string")
+  };
+}
+
 interface AIDiaryProps {
   vocabulary: Word[];
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
@@ -93,7 +118,7 @@ export default function AIDiary({
   const [diary, setDiary] = useState<DiaryEntry | null>(() => {
     try {
       const saved = localStorage.getItem("quest_current_diary_cache");
-      return saved ? JSON.parse(saved) : null;
+      return saved ? asDiaryEntry(JSON.parse(saved)) : null;
     } catch (e) {
       return null;
     }
@@ -103,7 +128,10 @@ export default function AIDiary({
     try {
       const saved = localStorage.getItem("quest_diary_history");
       const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map(asDiaryEntry)
+        .filter((entry): entry is DiaryEntry => entry !== null);
     } catch (e) {
       return [];
     }

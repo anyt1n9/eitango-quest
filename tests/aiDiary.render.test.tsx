@@ -167,3 +167,53 @@ describe("AIの応答が壊れているとき", () => {
     expect(() => renderDiary()).not.toThrow();
   });
 });
+
+describe("保存済みの日記が壊れているとき", () => {
+  /**
+   * 保存値をそのまま DiaryEntry として使っていた。描画側は
+   * diary.diaryText.length や diary.usedWords.length を無条件に読むので、
+   * 形の違う値が入っていると開くたびに例外で落ちる。
+   * しかも壊れた値は消えないので、読み込み直しても同じ結果になり、
+   * 利用者は自力で抜け出せない。
+   */
+  const BROKEN = [
+    ["usedWords が無い", '{"id":"d1","diaryText":"Today I studied."}'],
+    ["diaryText が無い", '{"id":"d1","usedWords":["library"]}'],
+    ["diaryText が文字列でない", '{"id":"d1","diaryText":123,"usedWords":[]}'],
+    ["そもそも配列", "[1,2,3]"],
+    ["文字列だけ", '"日記"']
+  ];
+
+  it.each(BROKEN)("%s ときは、その記録を捨てて開ける", (_name, raw) => {
+    localStorage.setItem("quest_current_diary_cache", raw);
+    mockFetch(OK_RESPONSE);
+    expect(() => renderDiary()).not.toThrow();
+    // 壊れた記録を表示しようとしていない（作る前の画面が出る）
+    expect(document.body.textContent).not.toContain("Today I studied");
+  });
+
+  it("形が合っていれば、そのまま読み出す", () => {
+    localStorage.setItem(
+      "quest_current_diary_cache",
+      JSON.stringify({
+        id: "d1", date: "2026年8月24日", title: "My day",
+        diaryText: "Today I visited the library.", diaryTranslation: "今日は図書館に行った。",
+        usedWords: ["library"]
+      })
+    );
+    mockFetch(OK_RESPONSE);
+    renderDiary();
+    // 覚えた語は色を変えるため文が複数の要素に割れる。まとめた文字列で見る
+    expect(document.body.textContent).toContain("Today I visited the library.");
+    expect(screen.getByText("My day")).toBeInTheDocument();
+  });
+
+  it("履歴の中に壊れた記録が混ざっていても、残りは読める", () => {
+    localStorage.setItem("quest_diary_history", JSON.stringify([
+      { id: "ok", date: "2026年8月24日", title: "読める記録", diaryText: "Fine.", diaryTranslation: "", usedWords: [] },
+      { id: "ng", title: "壊れた記録" }
+    ]));
+    mockFetch(OK_RESPONSE);
+    expect(() => renderDiary()).not.toThrow();
+  });
+});

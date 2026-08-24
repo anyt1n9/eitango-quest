@@ -43,6 +43,7 @@ import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
 import { RayIcon, GorillaIcon } from "./BrandIcons";
 import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon } from "./AppIcons";
+import { toFillInSentence } from "../fillIn";
 
 /**
  * 「調べる」タブに並べる資料。
@@ -403,23 +404,21 @@ export default function Dashboard({
             }
           }
 
-          let sentence = row[3] ? row[3].trim() : "";
-          let sentenceTranslation = row[4] ? row[4].trim() : "";
-
-          if (!sentence) {
-            sentence = `I want to study [_____] today.`;
-            sentenceTranslation = `私は今日、[_____]を勉強したいです。`;
-          } else {
-            if (!sentence.includes("[_____]")) {
-              const escapedWord = rawWord.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-              const regex = new RegExp(escapedWord, "gi");
-              if (regex.test(sentence)) {
-                sentence = sentence.replace(regex, "[_____]");
-              } else {
-                sentence = sentence + " [_____]";
-              }
-            }
-          }
+          // 穴あけは共通の toFillInSentence に任せる。
+          // ここに独自の処理を持っていたため、次の2つが起きていた。
+          //   - 例文に最初から [_____] があると穴あけを丸ごと省き、
+          //     答えの綴りが本文に残ったまま出題されていた
+          //   - 単語境界を見ずに置換していたため、"art" を取り込むと
+          //     "start" の一部まで穴になっていた
+          const rawSentence = row[3] ? row[3].trim() : "";
+          const sentence = toFillInSentence(rawSentence, rawWord);
+          // 訳は、例文が空だったときだけ定型で補う。
+          // 例文があるのに定型の訳を付けると、本文と訳が食い違う
+          const sentenceTranslation = row[4]
+            ? row[4].trim()
+            : rawSentence
+              ? ""
+              : "私は今日、[_____]を勉強したいです。";
 
           const csvPos = inferPartOfSpeech(rawWord, rawTranslation);
           const options = shuffle([

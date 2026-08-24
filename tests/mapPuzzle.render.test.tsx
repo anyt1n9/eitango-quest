@@ -16,15 +16,17 @@ import { makeStats } from "./fixtures";
  * 「答えの並び順から正解が読めないこと」。
  */
 
+// サーバーが返す形に合わせる（server.ts の connection-map のスキーマ）
 const OK_RESPONSE = {
+  focusWord: "construct",
   connections: [
-    { word: "construct", meaning: "建設する", note: "基本形" },
-    { word: "structure", meaning: "構造", note: "名詞" }
+    { word: "construct", type: "動詞", meaning: "建設する", connectionReason: "基本形" },
+    { word: "structure", type: "名詞", meaning: "構造", connectionReason: "同じ語根" }
   ],
   puzzle: [
-    { word: "construct", pos: "動詞", masked: false },
-    { word: "construction", pos: "名詞", masked: true },
-    { word: "constructive", pos: "形容詞", masked: true }
+    { word: "construct", partOfSpeech: "動詞", meaning: "建設する", masked: false },
+    { word: "construction", partOfSpeech: "名詞", meaning: "建設", masked: true },
+    { word: "constructive", partOfSpeech: "形容詞", meaning: "建設的な", masked: true }
   ],
   distractors: ["destruction", "instructive"],
   explanation: "con（共に）+ struct（積む）"
@@ -69,6 +71,7 @@ function choiceLabels(): string[] {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -132,6 +135,130 @@ describe("AIの応答", () => {
     renderMap();
     await search();
     expect(await screen.findByText(/ネットワークに接続できません/)).toBeInTheDocument();
+  });
+});
+
+describe("壊れた応答から画面を守る", () => {
+  it("パズルの要素に word が無ければ断る", async () => {
+    // 配列であることだけ見ていたので、要素が欠けていると
+    // 答え合わせの data.puzzle[idx].word.trim() で落ちていた
+    mockFetch({
+      ...OK_RESPONSE,
+      puzzle: [
+        { word: "construct", partOfSpeech: "動詞", meaning: "建設する", masked: false },
+        { partOfSpeech: "名詞", meaning: "建設", masked: true }
+      ]
+    });
+    renderMap();
+    await search();
+    expect(await screen.findByText(/AIの応答を解釈できませんでした/)).toBeInTheDocument();
+    expect(document.getElementById("puzzle_game_board")).toBeNull();
+  });
+
+  it("つながりの要素に meaning が無ければ断る", async () => {
+    mockFetch({ ...OK_RESPONSE, connections: [{ word: "structure" }] });
+    renderMap();
+    await search();
+    expect(await screen.findByText(/AIの応答を解釈できませんでした/)).toBeInTheDocument();
+  });
+
+  it("ひっかけ語に文字列でないものが混ざれば断る", async () => {
+    mockFetch({ ...OK_RESPONSE, distractors: ["destruction", null] });
+    renderMap();
+    await search();
+    expect(await screen.findByText(/AIの応答を解釈できませんでした/)).toBeInTheDocument();
+  });
+});
+
+describe("続けて調べたとき", () => {
+  it("取得中はおすすめの語を押せない", async () => {
+    // 押せると2つ目の取得が並行して走り、応答の順番次第で
+    // 検索欄の語と画面の中身が食い違う
+    let resolve: (v: unknown) => void = () => {};
+    globalThis.fetch = vi.fn().mockImplementation(
+      () => new Promise(r => { resolve = r; })
+    ) as unknown as typeof fetch;
+    renderMap();
+    await search();
+
+    const preset = screen.getByRole("button", { name: "act" });
+    expect(preset).toBeDisabled();
+
+    resolve({ ok: true, json: async () => OK_RESPONSE });
+  });
+
+  it("取得中は2つ目の取得を投げない", async () => {
+    // 2つ並行して走ると、先に投げたほうが後から返ったときに上書きされ、
+    // 検索欄の語と画面の中身が食い違う。
+    // （念のため、応答側でも取得の番号を見て古いものは捨てている）
+    let resolve: (v: unknown) => void = () => {};
+    const fetchMock = vi.fn().mockImplementation(
+      () => new Promise(r => { resolve = r; })
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const user = userEvent.setup();
+    renderMap();
+    await search("construct");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 取得中に別の語を入れて押しても、2つ目は飛ばない
+    await user.clear(document.getElementById("input_map_search_word")!);
+    await user.type(document.getElementById("input_map_search_word")!, "press");
+    await user.click(document.getElementById("btn_map_search_submit")!);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resolve({ ok: true, json: async () => OK_RESPONSE });
+  });
+});
+
+describe("初回正解ボーナス", () => {
+  /**
+   * 「同じパズルの再回答では加算しない」という作りだったが、
+   * 判定を画面の中の state だけで持っていた。同じ語で「AI探査」を
+   * やり直すと新しいパズルが作られて state が戻るため、
+   * 同じ語で何度でも +100 を取れた。語ごとに端末に残して1回にする。
+   */
+  /** 候補を押すと空いている空欄に順に入る。正しい順で2つ入れて答え合わせする */
+  async function solveCorrectly() {
+    const user = userEvent.setup();
+    await screen.findByText("structure");
+    for (const word of ["construction", "constructive"]) {
+      await user.click(screen.getByRole("button", { name: word }));
+    }
+    await user.click(document.getElementById("btn_submit_puzzle_answers")!);
+  }
+
+  it("同じ語を調べ直しても、ボーナスは1回だけ", async () => {
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+    mockFetch(OK_RESPONSE);
+    const { updateRankingScore, setStats } = renderMap();
+
+    await search("construct");
+    await solveCorrectly();
+    expect(updateRankingScore).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("quest_puzzle_rewarded_words")).toContain("construct");
+
+    // 同じ語をもう一度調べて、もう一度解く
+    const user = userEvent.setup();
+    await user.clear(document.getElementById("input_map_search_word")!);
+    await user.type(document.getElementById("input_map_search_word")!, "construct");
+    await user.click(document.getElementById("btn_map_search_submit")!);
+    await solveCorrectly();
+
+    expect(updateRankingScore, "同じ語で2回もらえてしまう").toHaveBeenCalledTimes(1);
+    expect(setStats).toHaveBeenCalledTimes(1);
+  });
+
+  it("覚えているのは語ごと（別の語なら受け取れる）", async () => {
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+    localStorage.setItem("quest_puzzle_rewarded_words", JSON.stringify(["press"]));
+    mockFetch(OK_RESPONSE);
+    const { updateRankingScore } = renderMap();
+
+    await search("construct");
+    await solveCorrectly();
+    expect(updateRankingScore).toHaveBeenCalledTimes(1);
   });
 });
 
