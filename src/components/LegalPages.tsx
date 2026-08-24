@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ShieldCheck, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, ShieldCheck, FileText, ExternalLink, BookOpen } from "lucide-react";
 
 // お問い合わせ用 Google フォームの共有URL
 const CONTACT_FORM_URL = "https://forms.gle/ntH2Pgirb1vhgLbh8";
@@ -28,11 +28,14 @@ function Shell({
   icon,
   onBack,
   children,
+  /** 規約とポリシーだけに出す。アプリの説明には更新日の意味が無い */
+  showUpdated = true,
 }: {
   title: string;
   icon: React.ReactNode;
   onBack: () => void;
   children: React.ReactNode;
+  showUpdated?: boolean;
 }) {
   return (
     <div className="max-w-3xl mx-auto">
@@ -48,7 +51,10 @@ function Shell({
           <span className="text-indigo-600 dark:text-indigo-400">{icon}</span>
           <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-slate-100">{title}</h1>
         </div>
-        <p className="text-xs text-gray-400 dark:text-slate-500 mb-6">最終更新日: {LAST_UPDATED}</p>
+        {showUpdated && (
+          <p className="text-xs text-gray-400 dark:text-slate-500 mb-6">最終更新日: {LAST_UPDATED}</p>
+        )}
+        {!showUpdated && <div className="mb-6" />}
         <div className="space-y-5 text-sm leading-relaxed text-gray-700 dark:text-slate-300 [&_h2]:font-black [&_h2]:text-gray-900 dark:[&_h2]:text-slate-100 [&_h2]:text-base [&_h2]:mt-6 [&_h2]:mb-1.5 [&_a]:text-indigo-600 dark:[&_a]:text-indigo-400 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1">
           {children}
         </div>
@@ -149,6 +155,95 @@ export function TermsOfService({ onBack }: { onBack: () => void }) {
       <p>本規約は予告なく変更されることがあります。変更後に本アプリを利用した場合、変更後の規約に同意したものとみなします。</p>
 
       <h2>7. お問い合わせ</h2>
+      <ContactBlock />
+    </Shell>
+  );
+}
+
+
+/**
+ * アプリケーション説明。
+ *
+ * 以前はフッターの中で開く小さなパネルに、6行の文章を詰め込んでいた。
+ * 何がどれだけ入っていて、どう使うのかが読み取れなかったので、
+ * 規約・ポリシーと同じ1枚の画面にして、項目ごとに分けて書く。
+ * 数値は実際の収録データを数えたもの。
+ */
+export function AboutApp({ onBack }: { onBack: () => void }) {
+  return (
+    <Shell
+      title="Eigorira（エイゴリラ）とは"
+      icon={<BookOpen className="w-6 h-6" />}
+      onBack={onBack}
+      showUpdated={false}
+    >
+      <p>
+        中学生から社会人までが使える、英単語の学習アプリです。
+        単語を覚えるだけで終わらせず、<strong>文法・長文・語法</strong>までこの中で完結します。
+        登録もお金も要らず、学習の記録は端末の中だけに保存されます。
+      </p>
+
+      <h2>収録しているもの</h2>
+      <ul>
+        <li><strong>英単語 7,730語</strong> — 中学1,062 / 高1 1,189 / 高2 1,425 / 高3 1,620 / 大学・社会人 2,434</li>
+        <li><strong>例文</strong> — 全ての語に、その語を使った英文と和訳が付いています</li>
+        <li><strong>語義 7,377語ぶん</strong> — 多義語の意味を並べ、品詞ごとの実際の使われ方の割合も示します</li>
+        <li><strong>語法 5,091語ぶん</strong> — 動詞がとる文の形、よく一緒に使う語、同じ語源の仲間</li>
+        <li><strong>文法 34項目</strong> — 中学から大学レベルまで。説明・例文・よくある間違い・練習問題つき</li>
+        <li><strong>長文 25本</strong> — そのレベルの単語だけで書かれた読み物。設問と音読つき</li>
+      </ul>
+
+      <h2>1. 覚える（5つの出題形式）</h2>
+      <p>
+        レベルと1回の問題数（10問・50問・100問）を選んで始めます。同じ単語でも、形式が変わると
+        問われる力が変わります。
+      </p>
+      <ul>
+        <li><strong>一問一答</strong> — 英単語を見て意味を4択で選ぶ。まず意味を覚える段階に</li>
+        <li><strong>例文穴埋め</strong> — 文の空所に入る語を選ぶ。使われ方まで含めて覚えられます</li>
+        <li><strong>リスニング</strong> — 綴りを見ずに音だけで答える。読めるが聞き取れない語が分かります</li>
+        <li><strong>日本語→英単語</strong> — 訳を見て英語を選ぶ。「意味は分かるが出てこない」を減らします</li>
+        <li><strong>綴りを書く</strong> — 実際に入力する。どの文字から間違えたかを色分けで返します</li>
+      </ul>
+
+      <h2>2. 忘れる前に戻す（今日の復習）</h2>
+      <p>
+        一度覚えた単語も時間が経てば忘れます。正解した語は次に出るまでの間隔が延び、
+        間違えた語はすぐ戻ってくる仕組み（間隔反復）で出題日を決めています。
+        その日に出す語は「今日の復習」にまとまり、こちらも5つの形式から選べます。
+      </p>
+      <p>
+        クイズで間違えた語は自動で「苦手単語」に貯まります。正解すると卒業していくので、
+        苦手なものだけを集中して潰せます。
+      </p>
+
+      <h2>3. 調べる</h2>
+      <ul>
+        <li><strong>辞書</strong> — 全7,730語を検索。意味・例文・発音・語義・語法を見られます</li>
+        <li><strong>動詞の活用表</strong> — 不規則動詞を含む変化形の一覧</li>
+        <li><strong>文法ガイド</strong> — 34項目の解説。その形をとる動詞を収録語から引いて示します</li>
+      </ul>
+
+      <h2>4. AIを使う機能</h2>
+      <p>
+        単語の追加・つながりマップ・英語日記・長文生成・頻度分析・類義語・PDFからの取り込みは、
+        Gemini APIキーを設定したときだけ使えます。設定が無いときは、それらしい中身を作って返すことはせず、
+        使えない旨をお伝えします。苦手分析と学習アドバイスはAI無しでも動き、
+        どちらで作った文章かを結果に明記します。
+      </p>
+
+      <h2>5. データの保存</h2>
+      <p>
+        学習の記録はすべて、お使いの端末（ブラウザ）の中だけに保存されます。サーバーには送られません。
+        端末を変えるときや消えてしまうのが心配なときは、「データ」の画面から書き出して、
+        別の端末で読み込めます。
+      </p>
+      <p>
+        インターネットに繋がらない場所でも、一度開いたことがあれば学習を続けられます
+        （AIを使う機能を除く）。
+      </p>
+
+      <h2>お問い合わせ</h2>
       <ContactBlock />
     </Shell>
   );

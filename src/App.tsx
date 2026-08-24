@@ -41,6 +41,9 @@ const PrivacyPolicy = lazy(() =>
 const TermsOfService = lazy(() =>
   import("./components/LegalPages").then(m => ({ default: m.TermsOfService }))
 );
+const AboutApp = lazy(() =>
+  import("./components/LegalPages").then(m => ({ default: m.AboutApp }))
+);
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
@@ -153,9 +156,6 @@ export default function App() {
   // 以前は保存値が "dark" かどうかだけを見ていたため、OSをダークにしている人でも
   // 初回は必ずライトで開いていた。
   const [isDark, setIsDark] = useState<boolean>(() => prefersDarkTheme());
-
-  // フッターの「アプリケーション説明」を開いているか
-  const [showAbout, setShowAbout] = useState(false);
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
   const [srsData, setSrsData] = useState<Record<string, SrsState>>(() =>
@@ -1031,6 +1031,10 @@ export default function App() {
           <PrivacyPolicy onBack={handleBackToDashboard} />
         )}
 
+        {currentScreen === "about" && (
+          <AboutApp onBack={handleBackToDashboard} />
+        )}
+
         {currentScreen === "terms" && (
           <TermsOfService onBack={handleBackToDashboard} />
         )}
@@ -1047,13 +1051,11 @@ export default function App() {
           {/* 狭い画面では折り返す。タップ領域を広げたときに whitespace-nowrap を
               付けたため、360〜390px で横にはみ出していた */}
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-            {/* 隣の2つと同じボタンにする。
-                href="#" のリンクは高さ16pxしかなく、指では押しづらかった。
-                説明も alert ではなく画面の中に出す（ホーム画面に追加して使うと、
-                ブラウザのダイアログは前後の文脈を隠してしまう） */}
+            {/* 規約・ポリシーと同じく1枚の画面にする。
+                以前はフッターの中で開く小さなパネルで、
+                長い説明を読むには向いていなかった（URLも持てない） */}
             <button
-              onClick={() => setShowAbout(v => !v)}
-              aria-expanded={showAbout}
+              onClick={() => navigate("about")}
               className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
               id="btn_about_app"
             >
@@ -1081,24 +1083,6 @@ export default function App() {
           </div>
         </div>
 
-        {showAbout && (
-          <div
-            className="max-w-4xl mx-auto mt-4 bg-gray-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 rounded-2xl p-4 text-xs leading-relaxed text-gray-700 dark:text-slate-200"
-            id="about_app_panel"
-          >
-            <p className="font-black text-sm text-gray-900 dark:text-slate-100 mb-1.5">
-              Eigorira（エイゴリラ）
-            </p>
-            <p>
-              中学生から社会人までの5レベル・7,700語をまとめた英単語学習アプリです。
-              一問一答・例文穴埋め・リスニング・日本語→英単語・綴りの5つの形式で出題し、
-              間違えた語は忘却曲線にもとづいて復習に回します。
-              辞書では語義・品詞ごとの使用割合・語法を、文法ガイドでは34項目の解説を読めます。
-              長文25本と、AIを使った単語の追加・英語日記・つながりマップも入っています。
-              学習の記録は端末の中だけに保存され、「データ」の画面から書き出して持ち運べます。
-            </p>
-          </div>
-        )}
       </footer>
     </div>
   );
