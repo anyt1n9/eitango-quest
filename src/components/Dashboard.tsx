@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Trophy, 
   Calendar, 
+  CalendarDays,
   Sparkles, 
   Plus, 
   ArrowRight, 
@@ -665,7 +666,7 @@ export default function Dashboard({
   const [isFetchingWeakness, setIsFetchingWeakness] = useState(false);
   const [weaknessError, setWeaknessError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"progress" | "reference" | "ranking" | "bonus" | "ai">("progress");
+  const [activeTab, setActiveTab] = useState<"progress" | "reference" | "ai" | "calendar" | "ranking" | "bonus">("progress");
 
   // 出題単語数選択用のステート
   /**
@@ -1007,7 +1008,7 @@ export default function Dashboard({
       </div>
 
       {/* タブ切り替え（Bento Gridスタイッシュ） */}
-      <div className="grid grid-cols-3 lg:grid-cols-5 bg-gray-100 p-1 rounded-xl gap-1" data-testid="dashboard_tabs">
+      <div className="grid grid-cols-3 lg:grid-cols-6 bg-gray-100 p-1 rounded-xl gap-1" data-testid="dashboard_tabs">
         <button
           onClick={() => setActiveTab("progress")}
           className={`py-3 text-xs md:text-sm font-bold rounded-lg transition-all ${
@@ -1051,6 +1052,20 @@ export default function Dashboard({
           </div>
         </button>
         <button
+          onClick={() => setActiveTab("calendar")}
+          className={`py-3 text-xs md:text-sm font-bold rounded-lg transition-all ${
+            activeTab === "calendar"
+              ? "bg-white text-indigo-700 shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/50"
+          }`}
+          id="tab_btn_calendar"
+        >
+          <div className="flex flex-col md:flex-row items-center justify-center gap-1.5">
+            <CalendarDays className="w-4 h-4 text-teal-600" />
+            <span>学習カレンダー</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab("ranking")}
           className={`py-3 text-xs md:text-sm font-bold rounded-lg transition-all ${
             activeTab === "ranking" 
@@ -1081,11 +1096,17 @@ export default function Dashboard({
       </div>
 
       {/* タブコンテンツ */}
+      {/* 学習カレンダー（日別解答数のヒートマップ）。
+          縦に443pxあり、毎回見るものでもないので、
+          「習熟度 & クイズ」に常時置かずタブの1つにする */}
+      {activeTab === "calendar" && (
+        <div className="space-y-6" data-testid="calendar_tab">
+          <StudyCalendar dailyLog={dailyLog} dailyGoal={dailyGoal} />
+        </div>
+      )}
+
       {activeTab === "progress" && (
         <div className="space-y-6">
-          {/* 学習カレンダー（日別解答数のヒートマップ） */}
-          <StudyCalendar dailyLog={dailyLog} dailyGoal={dailyGoal} />
-
           {/* 復習セクション (間違えた単語がある場合のみ表示) */}
           {wrongWords.length > 0 && (
             <div className="bg-rose-50 border border-rose-200/60 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4" id="review_banner">
