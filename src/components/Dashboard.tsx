@@ -41,7 +41,6 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
-import { RayIcon, GorillaIcon } from "./BrandIcons";
 import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon } from "./AppIcons";
 import { toFillInSentence } from "../fillIn";
 
@@ -976,29 +975,13 @@ export default function Dashboard({
       {/* 「Dashboard」の札は、いま見ている画面の名前を繰り返すだけで
           何も足していなかったので外した。あわせて余白を詰める
           （縦を削るほど、下にある出題の入口が早く見える） */}
-      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 rounded-3xl p-5 text-white shadow-xl flex flex-col md:flex-row md:items-center md:justify-between gap-3 relative overflow-hidden" id="hero_banner">
-        {/* 背景の装飾サークル */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
-        <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
-
-        <div className="space-y-1 z-10">
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2" id="app_title">
-            <span>Eigorira</span>
-            {/* 名前の由来（英語＋ゴリラ、そしてエイ）。読み上げには要らないので隠す */}
-            <span className="flex items-center gap-1.5 shrink-0" aria-hidden="true" data-testid="brand_icons">
-              <RayIcon className="w-5 h-5 md:w-6 md:h-6" />
-              <GorillaIcon className="w-5 h-5 md:w-6 md:h-6" />
-            </span>
-          </h1>
-          <p className="text-indigo-100 text-xs md:text-sm max-w-md leading-relaxed">
-            中学から大学・社会人までの5レベル、7,730語。文法と長文もこの中で完結します。
-          </p>
-        </div>
-
-        {/* 合計スコアと連続日数はヘッダーへ移した。
-            スクロールしても見えるようにするため（ヘッダーは貼り付いている）。
-            ここに残すと同じ数字が同じ画面に2つ並ぶ */}
-      </div>
+      {/*
+        先頭の帯（アプリ名・説明・スコア）は外した。
+        名前とエイ・ゴリラのしるしはヘッダーに、合計スコアと連続日数も
+        ヘッダーに出している。どの画面でも見えるぶん、
+        ダッシュボードでは同じものを繰り返すことになっていた。
+        アプリの説明は「アプリケーション説明」の画面が受け持つ。
+      */}
 
       {/* タブ切り替え（Bento Gridスタイッシュ） */}
       <div className="grid grid-cols-3 lg:grid-cols-6 bg-gray-100 p-1 rounded-xl gap-1" data-testid="dashboard_tabs">
