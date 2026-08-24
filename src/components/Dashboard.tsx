@@ -40,7 +40,7 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
-import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon } from "./AppIcons";
+import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon, ListeningIcon, SpellingIcon } from "./AppIcons";
 import { toFillInSentence } from "../fillIn";
 import { LEVEL_TONE, LEVEL_STYLE } from "../levelTheme";
 
@@ -158,11 +158,16 @@ const LEVELS: {
 ];
 
 /** レベルの中で選べる出題形式。並びは5レベルで共通 */
-const QUIZ_FORMS: { form: "sentence" | "listening" | "reverse" | "spelling"; label: string }[] = [
+const QUIZ_FORMS: {
+  form: "sentence" | "listening" | "reverse" | "spelling";
+  label: string;
+  /** 絵。他の画面と同じ線画を使う（src/components/AppIcons.tsx） */
+  Icon?: (props: { className?: string }) => React.ReactElement;
+}[] = [
   { form: "sentence", label: "例文穴埋めを解く" },
-  { form: "listening", label: "🎧 リスニングを解く" },
+  { form: "listening", label: "リスニングを解く", Icon: ListeningIcon },
   { form: "reverse", label: "🇯🇵 日本語→英単語" },
-  { form: "spelling", label: "✏️ 綴りを書く" }
+  { form: "spelling", label: "綴りを書く", Icon: SpellingIcon }
 ];
 
 /** 1回のクイズで出す問題数の選択肢 */
@@ -1348,10 +1353,11 @@ export default function Dashboard({
                       <button
                         key={f.form}
                         onClick={() => onStartQuiz(conf.level, f.form, questionCount)}
-                        className={`${conf.subBtn} font-bold min-h-11 px-2 rounded-xl text-xs transition border`}
+                        className={`${conf.subBtn} font-bold min-h-11 px-2 rounded-xl text-xs transition border flex items-center justify-center gap-1.5`}
                         id={`btn_${conf.level}_${f.form}`}
                       >
-                        {f.label}
+                        {f.Icon && <f.Icon className="w-4 h-4 shrink-0" />}
+                        <span>{f.label}</span>
                       </button>
                     ))}
                   </div>

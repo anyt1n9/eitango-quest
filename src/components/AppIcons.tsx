@@ -84,3 +84,26 @@ export function DictionaryIcon({ className = "w-5 h-5" }: IconProps) {
     </svg>
   );
 }
+
+/** リスニング ＝ 聞いて答える。綴りは隠すので、耳で受け取ることを描く */
+export function ListeningIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4.6 14.2v-2a7.4 7.4 0 0 1 14.8 0v2" />
+      <path d="M4.6 13.4h1.6a1.4 1.4 0 0 1 1.4 1.4v3a1.4 1.4 0 0 1-1.4 1.4H5.8a1.6 1.6 0 0 1-1.6-1.6v-3.2a1 1 0 0 1 .4-1Z" />
+      <path d="M19.4 13.4h-1.6a1.4 1.4 0 0 0-1.4 1.4v3a1.4 1.4 0 0 0 1.4 1.4h.4a1.6 1.6 0 0 0 1.6-1.6v-3.2a1 1 0 0 0-.4-1Z" />
+    </svg>
+  );
+}
+
+/** 綴りを書く ＝ 自分で書く。書いている行と、その上を走る鉛筆 */
+export function SpellingIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3.6 20.6h16.8" />
+      <path d="M15.6 3.4a1.9 1.9 0 0 1 2.7 2.7l-8.5 8.5-3.6.9.9-3.6Z" />
+      <path d="M13.9 5.1l2.7 2.7" />
+      <path d="M3.6 16.6h5.6" />
+    </svg>
+  );
+}
