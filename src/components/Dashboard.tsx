@@ -1009,7 +1009,7 @@ export default function Dashboard({
           id="tab_btn_reference"
         >
           <div className="flex flex-col md:flex-row items-center justify-center gap-1.5">
-            <BookMarked className="w-4 h-4 text-sky-600" />
+            <DictionaryIcon className="w-4 h-4 text-sky-600" />
             <span>調べる</span>
           </div>
         </button>
@@ -1251,29 +1251,8 @@ export default function Dashboard({
             )}
           </div>
 
-          {/* 単語辞書一覧ショートカットバナー */}
-          <div className="bg-indigo-50/45 border border-indigo-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm" id="dictionary_banner">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-2xs shrink-0 border border-indigo-500/20">
-                <DictionaryIcon className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-extrabold text-indigo-950 flex items-center gap-1.5">
-                  全レベル単語の辞書・組み合わせリスト一覧
-                </h4>
-                <p className="text-xs text-indigo-700/80 mt-0.5 font-medium leading-relaxed">
-                  初級から上級まで、すべての英単語＆日本語の組み合わせリスト。キーワード検索や発音再生、例文の確認が可能です！
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onOpenDictionary}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4.5 min-h-11 rounded-xl shadow-xs hover:shadow-md cursor-pointer transition whitespace-nowrap"
-              id="dashboard_open_dict_btn"
-            >
-              辞書一覧を開く
-            </button>
-          </div>
+          {/* 辞書へのバナーは外した。「調べる」タブから開けるので、
+              同じ入口を2つ置いていることになっていた */}
 
           {/* 1回の問題数。5形式すべてに効く。
               以前は一問一答だけモーダルで毎回選ばせ、他の4形式は10問固定だった */}

@@ -663,7 +663,8 @@ test("起動時に、まだ開いていない画面の JS を読み込まない"
   }
 
   // 開いたときに初めて取りに行く
-  await page.locator("#dashboard_open_dict_btn").click();
+  await page.locator("#tab_btn_reference").click();
+  await page.locator("#btn_reference_dictionary").click();
   await expect(page.locator("#dictionary_words_container")).toBeVisible();
   expect(loaded.some(f => f.startsWith("Dictionary")), "辞書を開いても読み込まれない").toBe(true);
 });
