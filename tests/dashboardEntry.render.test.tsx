@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Dashboard from "../src/components/Dashboard";
 import { makeWord, makeStats } from "./fixtures";
+import { LEVEL_TONE } from "../src/levelTheme";
 
 /**
  * 出題の入口。
@@ -174,27 +175,26 @@ describe("画面の詰まりを減らす", () => {
 
   it("レベルのボタンは、そのレベルの色を使う", async () => {
     // カードの見出し・進捗バー・出題ボタンと同じ色にしておくと、
-    // どのレベルを開いているかが色でも分かる
+    // どのレベルを開いているかが色でも分かる。
+    // 色そのものは CSS 側（.level-*）にあり、明るいテーマは森・暗いテーマは海で
+    // 置き換わる。ここでは「レベルごとに違う色の組を指しているか」を見る
     const user = userEvent.setup();
     renderDashboard();
-    const COLORS: [string, string][] = [
-      ["junior", "blue"],
-      ["senior", "emerald"],
-      ["senior2", "purple"],
-      ["senior3", "pink"],
-      ["advanced", "amber"]
-    ];
-    for (const [level, color] of COLORS) {
-      expect(document.getElementById(`btn_level_${level}`)!.className, level)
-        .toContain(`-${color}-`);
+    const tones = new Set<string>();
+    for (const level of ["junior", "senior", "senior2", "senior3", "advanced"] as const) {
+      const cls = document.getElementById(`btn_level_${level}`)!.className;
+      expect(cls, level).toContain(LEVEL_TONE[level]);
+      tones.add(LEVEL_TONE[level]);
     }
+    expect(tones.size, "2つのレベルが同じ色を指している").toBe(5);
+
     // 選んでいるものは塗りつぶし、他は淡い地
-    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-blue-700");
-    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-emerald-50");
+    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-[var(--lv-solid)]");
+    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-[var(--lv-bg)]");
 
     await user.click(document.getElementById("btn_level_senior")!);
-    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-emerald-700");
-    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-blue-50");
+    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-[var(--lv-solid)]");
+    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-[var(--lv-bg)]");
   });
 
   it("選んだレベルを覚えておく（毎回選び直させない）", async () => {

@@ -7,6 +7,7 @@ import { sanitizePassage, sanitizePassages } from "../passageValidation";
 import { loadGrammar } from "../grammar";
 import { canUseSpeech, onVoicesChanged, speak, stopSpeaking } from "../speech";
 import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
+import { LEVEL_TONE, LEVEL_STYLE } from "../levelTheme";
 
 interface ReadingProps {
   stats: UserStats;
@@ -278,14 +279,10 @@ export default function Reading({
 
   // 英単語のハイライトレンダリング
   const renderEnglishWithHighlights = (text: string, highlightList: { word: string; translation: string }[], level: Level) => {
-    const colorMap: Record<Level, string> = {
-      junior: "border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100",
-      senior: "border-blue-200 bg-blue-50/70 text-blue-800 hover:bg-blue-100",
-      senior2: "border-purple-200 bg-purple-50/70 text-purple-800 hover:bg-purple-100",
-      senior3: "border-pink-200 bg-pink-50/70 text-pink-800 hover:bg-pink-100",
-      advanced: "border-amber-200 bg-amber-50/70 text-amber-800 hover:bg-amber-100"
-    };
-    const colorClass = colorMap[level] || "border-indigo-200 bg-indigo-50 text-indigo-800";
+    // 色はレベルの色に合わせる（src/levelTheme.ts）。
+    // 以前はここだけ独自の対応（初級＝緑）を持っており、
+    // ダッシュボードの色（初級＝いちばん浅い色）と食い違っていた
+    const colorClass = `${LEVEL_TONE[level] || LEVEL_TONE.junior} border ${LEVEL_STYLE.soft}`;
 
     // ハイライト語は AI生成長文や localStorage 由来のこともあり、word を持たない
     // 要素が混ざりうる。そのまま .replace すると描画中に例外が投げられて画面が壊れる。
