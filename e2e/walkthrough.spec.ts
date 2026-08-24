@@ -590,6 +590,14 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
       expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${name}`).toEqual([]);
     }
 
+    // ログインボーナスの欄（スタンプ・受け取りの案内・学習カレンダー）。
+    // ダッシュボードは最初のタブしか出ていないので、開いてから測る
+    await page.goto("/");
+    await waitForVocabulary(page);
+    await page.locator("#tab_btn_bonus").click();
+    await expect(page.locator("#bonus_section")).toBeVisible();
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / ログインボーナス`).toEqual([]);
+
     // 出題中と、答え合わせの直後
     await page.goto("/");
     await waitForVocabulary(page);
