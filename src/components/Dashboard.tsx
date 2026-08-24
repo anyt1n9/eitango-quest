@@ -96,41 +96,54 @@ const LEVELS: {
   bar: string;
   primaryBtn: string;
   subBtn: string;
+  /** レベルを選ぶボタン（選んでいないとき／選んでいるとき） */
+  chip: string;
+  chipOn: string;
 }[] = [
   {
     level: "junior", short: "中学", title: "初級 (中学生レベル)",
     examples: "beautiful, library, important, station...",
     badge: "bg-blue-100 text-blue-700", rate: "text-blue-700", bar: "bg-blue-600",
     primaryBtn: "bg-blue-700 hover:bg-blue-800",
-    subBtn: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200/50"
+    subBtn: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200/50",
+    chip: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
+    chipOn: "bg-blue-700 text-white border-blue-700"
   },
   {
     level: "senior", short: "高1", title: "中級 (高校1年生レベル)",
     examples: "environment, achieve, technology, protect...",
     badge: "bg-emerald-100 text-emerald-700", rate: "text-emerald-700", bar: "bg-emerald-600",
     primaryBtn: "bg-emerald-700 hover:bg-emerald-800",
-    subBtn: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50"
+    subBtn: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50",
+    chip: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+    chipOn: "bg-emerald-700 text-white border-emerald-700"
   },
   {
     level: "senior2", short: "高2", title: "中級 (高校2年生レベル)",
     examples: "skill, tragedy, knowledge, establish...",
     badge: "bg-purple-100 text-purple-700", rate: "text-purple-700", bar: "bg-purple-600",
     primaryBtn: "bg-purple-700 hover:bg-purple-800",
-    subBtn: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200/50"
+    subBtn: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200/50",
+    chip: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
+    chipOn: "bg-purple-700 text-white border-purple-700"
   },
   {
     level: "senior3", short: "高3", title: "中級 (高校3年生レベル)",
     examples: "significant, sacrifice, trigger, delight...",
     badge: "bg-pink-100 text-pink-700", rate: "text-pink-700", bar: "bg-pink-600",
     primaryBtn: "bg-pink-700 hover:bg-pink-800",
-    subBtn: "bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200/50"
+    subBtn: "bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200/50",
+    chip: "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
+    chipOn: "bg-pink-700 text-white border-pink-700"
   },
   {
     level: "advanced", short: "大学・社会人", title: "上級 (大学生・社会人)",
     examples: "comprehensive, architecture, constraint, execution...",
     badge: "bg-amber-100 text-amber-700", rate: "text-amber-700", bar: "bg-amber-600",
     primaryBtn: "bg-amber-700 hover:bg-amber-800",
-    subBtn: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200/50"
+    subBtn: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200/50",
+    chip: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+    chipOn: "bg-amber-700 text-white border-amber-700"
   }
 ];
 
@@ -1317,14 +1330,16 @@ export default function Dashboard({
                   onClick={() => setSelectedLevel(item.level)}
                   id={`btn_level_${item.level}`}
                   aria-pressed={selectedLevel === item.level}
+                  // ボタンの色はレベルの色に合わせる（中学は青、高1は緑…）。
+                  // カードの見出し・進捗バー・出題ボタンと同じ色にしておくと、
+                  // どのレベルを開いているかが色でも分かる
                   className={`min-h-11 px-3 rounded-xl text-xs font-black border transition cursor-pointer whitespace-nowrap ${
-                    selectedLevel === item.level
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100"
+                    selectedLevel === item.level ? item.chipOn : item.chip
                   }`}
                 >
                   {item.short}
-                  <span className="ml-1.5 font-bold opacity-70 font-mono">
+                  {/* 習熟度。opacity で薄くすると、色の付いた地の上で読みにくくなる */}
+                  <span className="ml-1.5 font-bold font-mono">
                     {getLevelCounts(item.level).masterRate}%
                   </span>
                 </button>

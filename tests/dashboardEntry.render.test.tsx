@@ -172,6 +172,31 @@ describe("画面の詰まりを減らす", () => {
     expect(onStartQuiz).toHaveBeenCalledWith("advanced", "spelling", 10);
   });
 
+  it("レベルのボタンは、そのレベルの色を使う", async () => {
+    // カードの見出し・進捗バー・出題ボタンと同じ色にしておくと、
+    // どのレベルを開いているかが色でも分かる
+    const user = userEvent.setup();
+    renderDashboard();
+    const COLORS: [string, string][] = [
+      ["junior", "blue"],
+      ["senior", "emerald"],
+      ["senior2", "purple"],
+      ["senior3", "pink"],
+      ["advanced", "amber"]
+    ];
+    for (const [level, color] of COLORS) {
+      expect(document.getElementById(`btn_level_${level}`)!.className, level)
+        .toContain(`-${color}-`);
+    }
+    // 選んでいるものは塗りつぶし、他は淡い地
+    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-blue-700");
+    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-emerald-50");
+
+    await user.click(document.getElementById("btn_level_senior")!);
+    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-emerald-700");
+    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-blue-50");
+  });
+
   it("選んだレベルを覚えておく（毎回選び直させない）", async () => {
     const user = userEvent.setup();
     renderDashboard();
