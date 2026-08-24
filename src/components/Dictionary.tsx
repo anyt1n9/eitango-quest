@@ -27,6 +27,7 @@ import WordSenses from "./WordSenses";
 import WordUsageInfo from "./WordUsage";
 import { SrsState } from "../srs";
 import { isMastered } from "../mastery";
+import { LEVEL_TONE, LEVEL_STYLE, CUSTOM_TONE } from "../levelTheme";
 
 interface DictionaryProps {
   vocabulary: Word[];
@@ -317,24 +318,20 @@ export default function Dictionary({
 
   // 各種のバッジ表示用の文言とクラス関数
   const getLevelBadgeProps = (level: Level, isCustom: boolean) => {
+    // 色はレベルの色に合わせる（src/levelTheme.ts）。
+    // 追加単語はレベルを持たないので、5段階のどれとも重ならない色にする
+    const badge = `${LEVEL_STYLE.badge} border-[var(--lv-border)]`;
     if (isCustom) {
-      return {
-        text: "追加単語",
-        className: "bg-pink-100 text-pink-700 border-pink-200"
-      };
+      return { text: "追加単語", className: `${CUSTOM_TONE} ${badge}` };
     }
-    switch (level) {
-      case "junior":
-        return { text: "初級 (中学)", className: "bg-blue-100 text-blue-700 border-blue-200" };
-      case "senior":
-        return { text: "中級1 (高1)", className: "bg-emerald-100 text-emerald-700 border-emerald-200" };
-      case "senior2":
-        return { text: "中級2 (高2)", className: "bg-purple-100 text-purple-700 border-purple-200" };
-      case "senior3":
-        return { text: "中級3 (高3)", className: "bg-pink-100 text-pink-700 border-pink-200" };
-      case "advanced":
-        return { text: "上級 (社会人)", className: "bg-amber-100 text-amber-700 border-amber-200" };
-    }
+    const label: Record<Level, string> = {
+      junior: "初級 (中学)",
+      senior: "中級1 (高1)",
+      senior2: "中級2 (高2)",
+      senior3: "中級3 (高3)",
+      advanced: "上級 (社会人)"
+    };
+    return { text: label[level], className: `${LEVEL_TONE[level]} ${badge}` };
   };
 
   return (

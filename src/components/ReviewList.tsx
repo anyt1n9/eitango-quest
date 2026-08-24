@@ -4,6 +4,7 @@ import { ArrowLeft, Brain, Volume2, Trash2, CheckCircle2, ChevronRight, Graduati
 import { Word, Level } from "../types";
 import { QuizFormat } from "../quizFormats";
 import QuizFormatPicker from "./QuizFormatPicker";
+import { LEVEL_TONE, LEVEL_STYLE } from "../levelTheme";
 
 interface ReviewListProps {
   vocabulary: Word[];
@@ -141,17 +142,10 @@ export default function ReviewList({
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
+                        {/* 色はレベルの色に合わせる（src/levelTheme.ts） */}
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase font-mono ${
-                          word.level === "junior"
-                            ? "bg-blue-100 text-blue-700"
-                            : word.level === "senior"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : word.level === "senior2"
-                                ? "bg-purple-100 text-purple-700"
-                                : word.level === "senior3"
-                                  ? "bg-pink-100 text-pink-700"
-                                  : "bg-amber-100 text-amber-700"
-                        }`}>
+                          LEVEL_TONE[word.level] || LEVEL_TONE.junior
+                        } ${LEVEL_STYLE.badge}`}>
                           {word.level === "junior" ? "初級" : word.level === "senior" ? "中級1" : word.level === "senior2" ? "中級2" : word.level === "senior3" ? "中級3" : "上級"}
                         </span>
                         <span className="font-extrabold text-base tracking-wide text-gray-900 font-mono select-all">

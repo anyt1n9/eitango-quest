@@ -42,6 +42,7 @@ import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
 import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon } from "./AppIcons";
 import { toFillInSentence } from "../fillIn";
+import { LEVEL_TONE, LEVEL_STYLE } from "../levelTheme";
 
 /**
  * 「調べる」タブに並べる資料。
@@ -102,47 +103,57 @@ const LEVELS: {
   {
     level: "junior", short: "中学", title: "初級 (中学生レベル)",
     examples: "beautiful, library, important, station...",
-    badge: "bg-blue-100 text-blue-700", rate: "text-blue-700", bar: "bg-blue-600",
-    primaryBtn: "bg-blue-700 hover:bg-blue-800",
-    subBtn: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200/50",
-    chip: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
-    chipOn: "bg-blue-700 text-white border-blue-700"
+    badge: `${LEVEL_TONE.junior} ${LEVEL_STYLE.badge}`,
+    rate: `${LEVEL_TONE.junior} ${LEVEL_STYLE.text}`,
+    bar: `${LEVEL_TONE.junior} ${LEVEL_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.junior} ${LEVEL_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.junior} ${LEVEL_STYLE.soft}`,
+    chip: `${LEVEL_TONE.junior} ${LEVEL_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.junior} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "senior", short: "高1", title: "中級 (高校1年生レベル)",
     examples: "environment, achieve, technology, protect...",
-    badge: "bg-emerald-100 text-emerald-700", rate: "text-emerald-700", bar: "bg-emerald-600",
-    primaryBtn: "bg-emerald-700 hover:bg-emerald-800",
-    subBtn: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200/50",
-    chip: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
-    chipOn: "bg-emerald-700 text-white border-emerald-700"
+    badge: `${LEVEL_TONE.senior} ${LEVEL_STYLE.badge}`,
+    rate: `${LEVEL_TONE.senior} ${LEVEL_STYLE.text}`,
+    bar: `${LEVEL_TONE.senior} ${LEVEL_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.senior} ${LEVEL_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.senior} ${LEVEL_STYLE.soft}`,
+    chip: `${LEVEL_TONE.senior} ${LEVEL_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.senior} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "senior2", short: "高2", title: "中級 (高校2年生レベル)",
     examples: "skill, tragedy, knowledge, establish...",
-    badge: "bg-purple-100 text-purple-700", rate: "text-purple-700", bar: "bg-purple-600",
-    primaryBtn: "bg-purple-700 hover:bg-purple-800",
-    subBtn: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200/50",
-    chip: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
-    chipOn: "bg-purple-700 text-white border-purple-700"
+    badge: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.badge}`,
+    rate: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.text}`,
+    bar: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.soft}`,
+    chip: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.senior2} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "senior3", short: "高3", title: "中級 (高校3年生レベル)",
     examples: "significant, sacrifice, trigger, delight...",
-    badge: "bg-pink-100 text-pink-700", rate: "text-pink-700", bar: "bg-pink-600",
-    primaryBtn: "bg-pink-700 hover:bg-pink-800",
-    subBtn: "bg-pink-50 text-pink-700 hover:bg-pink-100 border-pink-200/50",
-    chip: "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100",
-    chipOn: "bg-pink-700 text-white border-pink-700"
+    badge: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.badge}`,
+    rate: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.text}`,
+    bar: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.soft}`,
+    chip: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.senior3} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
   },
   {
     level: "advanced", short: "大学・社会人", title: "上級 (大学生・社会人)",
     examples: "comprehensive, architecture, constraint, execution...",
-    badge: "bg-amber-100 text-amber-700", rate: "text-amber-700", bar: "bg-amber-600",
-    primaryBtn: "bg-amber-700 hover:bg-amber-800",
-    subBtn: "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200/50",
-    chip: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
-    chipOn: "bg-amber-700 text-white border-amber-700"
+    badge: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.badge}`,
+    rate: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.text}`,
+    bar: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.bar}`,
+    primaryBtn: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.solid}`,
+    subBtn: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.soft}`,
+    chip: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.soft}`,
+    chipOn: `${LEVEL_TONE.advanced} ${LEVEL_STYLE.solid} border-[var(--lv-solid)]`
   }
 ];
 

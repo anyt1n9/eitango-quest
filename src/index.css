@@ -2,69 +2,155 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-/* Configure beautiful dark mode variables that automatically transition the whole tailwind suite */
+/* ── 明るいテーマは「森」 ────────────────────────────────
+   主役の色（indigo / violet）を深い緑に置き換え、地は苔色がかった生成りにする。
+   Tailwind の色変数ごと置き換えるので、utility の書き方は変えなくてよい。 */
+:root {
+  --color-indigo-50: #eef6ee;
+  --color-indigo-100: #daecdb;
+  --color-indigo-200: #b7dcba;
+  --color-indigo-300: #8ac590;
+  --color-indigo-400: #55a660;
+  --color-indigo-500: #278036;
+  --color-indigo-600: #1f7a33;
+  --color-indigo-700: #17632a;
+  --color-indigo-800: #125024;
+  --color-indigo-900: #0e401d;
+  --color-indigo-950: #062711;
+  --color-violet-50: #f1f7ea;
+  --color-violet-100: #e0efd4;
+  --color-violet-500: #40802a;
+  --color-violet-600: #35701f;
+  --color-violet-700: #2b5c18;
+  --color-slate-50: #f1f6ec;
+  --color-gray-50: #f4f8f0;
+  /* 補助の文字。地を生成りに寄せたぶん、灰のままでは
+     淡い地（bg-gray-50）の上で 4.5 に届かなくなる（実測 4.41）ので、
+     苔色がかった濃いめの灰にする */
+  --color-gray-500: #566152;
+}
+
+/* ── レベルの色 ──────────────────────────────────────
+   5段階を、明るいテーマでは森（若草→新緑→常緑→幹→木漏れ日）、
+   暗いテーマでは海（浅瀬→波間→沖→深海→深淵）で表す。
+   コンポーネントは色を持たず、この変数を指すだけにしてある
+   （src/levelTheme.ts）。 */
+.level-junior {
+  --lv-fg: #3f6212; --lv-bg: #f4f9e6; --lv-bg-strong: #e8f3cd; --lv-border: #cfe6a6;
+  --lv-solid: #3f6b0d; --lv-solid-hover: #33570a;
+}
+.level-senior {
+  --lv-fg: #15803d; --lv-bg: #e9f7ec; --lv-bg-strong: #d5efdb; --lv-border: #b3e2be;
+  --lv-solid: #15803d; --lv-solid-hover: #116632;
+}
+.level-senior2 {
+  --lv-fg: #0f6d66; --lv-bg: #e2f4f1; --lv-bg-strong: #cbebe6; --lv-border: #a3dbd3;
+  --lv-solid: #0f766e; --lv-solid-hover: #0d5f59;
+}
+.level-senior3 {
+  --lv-fg: #7a4420; --lv-bg: #f8f1ea; --lv-bg-strong: #f0e2d3; --lv-border: #ddc6ae;
+  --lv-solid: #7a4420; --lv-solid-hover: #653718;
+}
+.level-advanced {
+  --lv-fg: #7a6200; --lv-bg: #fbf7e2; --lv-bg-strong: #f5eec4; --lv-border: #e6dba0;
+  --lv-solid: #856a00; --lv-solid-hover: #6b5500;
+}
+/* 追加単語。5段階のどれとも重ならない色にする */
+.level-custom {
+  --lv-fg: #6b4f8a; --lv-bg: #f5f0fa; --lv-bg-strong: #eae0f4; --lv-border: #d6c6e6;
+  --lv-solid: #6b4f8a; --lv-solid-hover: #573f70;
+}
+
+/* ── 暗いテーマは「海」 ────────────────────────────────
+   Tailwind の色変数ごと置き換えて、地を深海の紺、主役の色を水面の青緑にする。
+   （この仕組みのため、暗いテーマ用に `dark:` を書き足すと二重に反転する） */
 .dark {
-  --color-white: #0f172a;         /* bg-white becomes beautiful deep-navy slate-900 card */
-  --color-slate-50: #020617;      /* bg-slate-50 becomes dark slate-950 background */
-  --color-gray-50: #090d1a;       /* bg-gray-50 becomes dark deep-slate */
-  --color-zinc-50: #090d1a;
-  --color-zinc-100: #1e293b;
-  --color-zinc-200: #334155;
-  --color-zinc-900: #f8fafc;
-  --color-gray-100: #1e293b;      /* border, background etc. */
-  --color-gray-150: #26354a;
-  --color-gray-200: #1e293b;      /* border colors soften */
-  --color-gray-250: #2d3d54;
-  --color-gray-300: #334155;
-  --color-gray-400: #475569;
-  --color-gray-500: #94a3b8;      /* muted texts become slate-400 */
-  --color-gray-600: #cbd5e1;      /* light texts */
-  --color-gray-700: #e2e8f0;
-  --color-gray-800: #f1f5f9;      /* body text */
-  --color-gray-900: #f8fafc;      /* bold headings */
-  --color-slate-100: #f8fafc;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #818cf8;
-  --color-slate-500: #6366f1;
-  --color-slate-600: #4f46e5;
-  --color-slate-700: #a5b4fc;
-  --color-slate-850: #1e293b;
-  --color-slate-900: #0f172a;
-  --color-slate-950: #020617;
+  --color-white: #0b2030;         /* bg-white は深い海のカードになる */
+  --color-slate-50: #03121d;      /* いちばん奥の地 */
+  --color-gray-50: #051a27;
+  --color-zinc-50: #051a27;
+  --color-zinc-100: #123246;
+  --color-zinc-200: #1c4459;
+  --color-zinc-900: #f2fbff;
+  --color-gray-100: #123246;      /* 枠線・区切り */
+  --color-gray-150: #16394f;
+  --color-gray-200: #123246;
+  --color-gray-250: #1a4257;
+  --color-gray-300: #1c4459;
+  --color-gray-400: #2b5b73;
+  --color-gray-500: #8fb3c4;      /* 補助の文字 */
+  --color-gray-600: #c4dbe6;
+  --color-gray-700: #d9ebf3;
+  --color-gray-800: #eaf6fb;
+  --color-gray-900: #f2fbff;      /* 見出し */
+  --color-slate-100: #f2fbff;
+  --color-slate-200: #d9ebf3;
+  --color-slate-300: #c4dbe6;
+  --color-slate-400: #7dd3fc;
+  --color-slate-500: #38bdf8;
+  --color-slate-600: #0ea5e9;
+  --color-slate-700: #7dd3fc;
+  --color-slate-850: #0e2b3d;
+  --color-slate-900: #0b2030;
+  --color-slate-950: #03121d;
 
-  /* Indigo adjustments for contrast, readability */
-  --color-indigo-50: #141b2f;     /* bg-indigo-50 */
-  --color-indigo-100: #1e294b;    /* bg-indigo-100 */
-  --color-indigo-200: #2e3e6b;
-  --color-indigo-300: #3f5188;
-  --color-indigo-400: #a5b4fc;
-  --color-indigo-500: #818cf8;
-  --color-indigo-600: #6366f1;    /* keep primary button look clean and electric */
-  --color-indigo-700: #818cf8;
-  --color-indigo-800: #a5b4fc;
-  --color-indigo-900: #e2e8f0;
-  --color-indigo-950: #f8fafc;
+  /* 主役の色。水面の青緑にする（明るいテーマの緑と対になる） */
+  --color-indigo-50: #0a2434;
+  --color-indigo-100: #0e3346;
+  --color-indigo-200: #14506a;
+  --color-indigo-300: #1d6e8e;
+  --color-indigo-400: #7dd3fc;
+  --color-indigo-500: #38bdf8;
+  --color-indigo-600: #0ea5e9;
+  --color-indigo-700: #7dd3fc;
+  --color-indigo-800: #bae6fd;
+  --color-indigo-900: #e0f2fe;
+  --color-indigo-950: #f0f9ff;
 
-  /* Neutral dark tones for cards and details */
-  --color-neutral-50: #090d1a;
-  --color-neutral-100: #1e293b;
-  --color-neutral-800: #f1f5f9;
-  --color-neutral-900: #f8fafc;
+  --color-neutral-50: #051a27;
+  --color-neutral-100: #123246;
+  --color-neutral-800: #eaf6fb;
+  --color-neutral-900: #f2fbff;
+}
+
+/* レベルの色（海）。浅瀬→波間→沖→深海→深淵 */
+.dark .level-junior {
+  --lv-fg: #7dd3fc; --lv-bg: rgba(56, 189, 248, 0.16); --lv-bg-strong: rgba(56, 189, 248, 0.26);
+  --lv-border: rgba(56, 189, 248, 0.45); --lv-solid: #0369a1; --lv-solid-hover: #075985;
+}
+.dark .level-senior {
+  --lv-fg: #5eead4; --lv-bg: rgba(45, 212, 191, 0.16); --lv-bg-strong: rgba(45, 212, 191, 0.26);
+  --lv-border: rgba(45, 212, 191, 0.45); --lv-solid: #0f766e; --lv-solid-hover: #115e59;
+}
+.dark .level-senior2 {
+  --lv-fg: #93c5fd; --lv-bg: rgba(59, 130, 246, 0.16); --lv-bg-strong: rgba(59, 130, 246, 0.26);
+  --lv-border: rgba(59, 130, 246, 0.45); --lv-solid: #1d4ed8; --lv-solid-hover: #1e40af;
+}
+.dark .level-senior3 {
+  --lv-fg: #a5b4fc; --lv-bg: rgba(129, 140, 248, 0.16); --lv-bg-strong: rgba(129, 140, 248, 0.26);
+  --lv-border: rgba(129, 140, 248, 0.45); --lv-solid: #4338ca; --lv-solid-hover: #3730a3;
+}
+.dark .level-advanced {
+  --lv-fg: #c4b5fd; --lv-bg: rgba(167, 139, 250, 0.16); --lv-bg-strong: rgba(167, 139, 250, 0.26);
+  --lv-border: rgba(167, 139, 250, 0.45); --lv-solid: #6d28d9; --lv-solid-hover: #5b21b6;
+}
+.dark .level-custom {
+  --lv-fg: #f0abfc; --lv-bg: rgba(232, 121, 249, 0.16); --lv-bg-strong: rgba(232, 121, 249, 0.26);
+  --lv-border: rgba(232, 121, 249, 0.45); --lv-solid: #a21caf; --lv-solid-hover: #86198f;
 }
 
 /* Base custom interactive states in dark mode to ensure comfortable reading */
 .dark input, 
 .dark select, 
 .dark textarea {
-  background-color: #0c1222 !important;
-  color: #f8fafc !important;
-  border-color: #22314d !important;
+  background-color: #071c2a !important;
+  color: #eaf6fb !important;
+  border-color: #15405a !important;
 }
 
 .dark input::placeholder, 
 .dark textarea::placeholder {
-  color: #4a5f80 !important;
+  color: #5a819a !important;
 }
 
 /* Gentle transitions for theme mode changes */
@@ -80,15 +166,15 @@
   height: 8px;
 }
 .dark ::-webkit-scrollbar-track {
-  background: #020617;
+  background: #03121d;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #123246;
   border-radius: 9999px;
-  border: 2px solid #020617;
+  border: 2px solid #03121d;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #1c4459;
 }
 
 /* Eye-safe highlight popups adaptation for dark mode text */
@@ -116,7 +202,7 @@
 .dark .text-pink-700 { color: #f472b6 !important; }
 .dark .text-amber-700 { color: #fbbf24 !important; }
 .dark .text-sky-700 { color: #38bdf8 !important; }
-.dark .text-indigo-700 { color: #a5b4fc !important; }
+.dark .text-indigo-700 { color: #7dd3fc !important; }
 .dark .text-violet-700 { color: #c4b5fd !important; }
 .dark .text-teal-700 { color: #2dd4bf !important; }
 .dark .text-orange-700 { color: #fb923c !important; }
@@ -125,27 +211,27 @@
 .dark .text-yellow-700 { color: #facc15 !important; }
 .dark .text-slate-700 { color: #cbd5e1 !important; }
 
-/* 暗いテーマは --color-white を紺(#0f172a)に置き換えている。
+/* 暗いテーマは --color-white を深い海(#0b2030)に置き換えている。
    bg-white を紺のカードにするためだが、text-white も同じ変数を見るので、
    色付きボタンの白文字が紺になっていた（実測 3.22）。
    文字だけ白に戻す（背景の置き換えはそのまま）。 */
-.dark .text-white { color: #f8fafc !important; }
+.dark .text-white { color: #f2fbff !important; }
 
 /* 補助的な小さい文字。明るいテーマで 2.60、暗いテーマで 2.36 しかなかった。
    text- だけを対象にする（border-gray-400 / bg-gray-400 には触らない）。 */
-.text-gray-400 { color: #6b7280 !important; }
+.text-gray-400 { color: #62705f !important; }
 .dark .text-gray-400 { color: #94a3b8 !important; }
 
 /* キーボードで操作している場所を見えるようにする。
    ブラウザ既定の outline は auto 1px rgb(16,16,16) で、
    暗いテーマではほぼ見えなかった。 */
 :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid #1f7a33;
   outline-offset: 2px;
   border-radius: 6px;
 }
 .dark :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline-color: #a5b4fc;
+  outline-color: #7dd3fc;
 }
 
 /* Eye-safe backgrounds for levels highlights.
@@ -187,7 +273,7 @@
 .dark .bg-pink-100 { background-color: rgba(236, 72, 153, 0.22) !important; }
 .dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.22) !important; }
 .dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.22) !important; }
-.dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.22) !important; }
+.dark .bg-indigo-100 { background-color: rgba(56, 189, 248, 0.22) !important; }
 .dark .bg-sky-100 { background-color: rgba(14, 165, 233, 0.22) !important; }
 .dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.22) !important; }
 /* 例文の穴埋め記号（bg-yellow-100 text-yellow-900）。実測 1.23 */
@@ -198,17 +284,17 @@
    同じ変数を見る bg-indigo-* は暗いテーマで逆に明るくなる。
    その上に白文字を載せていたので、主要なボタンが軒並み基準割れしていた
    （実測 4.27。12px の文字に必要なのは 4.5）。背景だけここで暗くする。 */
-.dark .bg-indigo-500 { background-color: #4f46e5 !important; }
+.dark .bg-indigo-500 { background-color: #0369a1 !important; }
 /* 透過つき（bg-indigo-600/60 など）は別のクラス名になるのでここでは拾わない。
    グラデーションの上に重ねる飾りを不透明にすると、重ねた意味が失われる */
-.dark .bg-indigo-600 { background-color: #4338ca !important; }
-.dark .bg-indigo-700 { background-color: #3730a3 !important; }
-.dark .hover\:bg-indigo-700:hover { background-color: #3730a3 !important; }
-.dark .hover\:bg-indigo-800:hover { background-color: #312e81 !important; }
+.dark .bg-indigo-600 { background-color: #0369a1 !important; }
+.dark .bg-indigo-700 { background-color: #075985 !important; }
+.dark .hover\:bg-indigo-700:hover { background-color: #075985 !important; }
+.dark .hover\:bg-indigo-800:hover { background-color: #0c4a6e !important; }
 
 /* 同じ理由で、文字色も暗いテーマでは -600 が沈む（実測 4.00）。
    -700 以上は上の一覧で明るくしてあるので、-600 をここで揃える。 */
-.dark .text-indigo-600 { color: #818cf8 !important; }
+.dark .text-indigo-600 { color: #38bdf8 !important; }
 
 /* -50 の背景に載せる -950 の文字。emerald 系は変数を反転していないので、
    背景（.dark .bg-emerald-50）だけが暗くなり文字は暗いままだった（実測 1.08）。 */
