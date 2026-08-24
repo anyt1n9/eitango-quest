@@ -192,6 +192,31 @@ test("読んでいた長文は再読み込みしても開いたまま", async ({
   await expect(page.locator("#passage_text_container")).toBeVisible({ timeout: 30_000 });
 });
 
+test("アプリケーション説明は、利用規約と同じく1枚の画面で開く", async ({ page }) => {
+  // 以前はフッターの中で開く小さなパネルだった。長い説明を読むには向かず、
+  // URLを持てないので人に送ることもできなかった
+  await page.goto("/");
+  await waitForVocabulary(page);
+
+  await page.locator("#btn_about_app").click();
+  await expect(page).toHaveURL(/\/about$/);
+  await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible({ timeout: 30_000 });
+  // 中身が「何がどれだけ入っているか」まで書いてある
+  await expect(page.getByText(/英単語 7,730語/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /5つの出題形式/ })).toBeVisible();
+
+  // 規約と同じ戻り方。「ダッシュボードに戻る」で帰れて、端末の戻るで開き直せる
+  await page.getByRole("button", { name: "ダッシュボードに戻る" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#btn_junior_reverse")).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible();
+
+  // 再読み込みしても説明のまま
+  await page.reload();
+  await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible({ timeout: 30_000 });
+});
+
 test("知らないパスでも白い画面にならない", async ({ page }) => {
   await page.goto("/no-such-page");
   await expect(page.locator("#btn_junior_reverse")).toBeVisible({ timeout: 30_000 });
