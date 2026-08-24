@@ -255,6 +255,31 @@ test("ヘッダーはハンバーガーにまとめ、開くと入口が並ぶ",
   await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
 });
 
+test("合計スコアと連続日数は、どの画面でもヘッダーに出る", async ({ page }) => {
+  // ダッシュボードの帯に置いていたので、他の画面へ移ると見えなくなり、
+  // 同じ画面を下へスクロールしても見えなくなっていた
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("quest_stats", JSON.stringify({
+      score: 3550, currentStreak: 4, lastLoginDate: null,
+      completedQuestions: 0, correctAnswers: 0
+    }));
+  });
+  await page.reload();
+  await waitForVocabulary(page);
+
+  const stats = page.getByTestId("header_stats");
+  await expect(stats).toContainText("3550");
+  await expect(stats).toContainText("4日");
+  // 同じ数字がダッシュボードの帯にも並んでいない
+  await expect(page.locator("#hero_banner")).not.toContainText("3550");
+
+  // 別の画面でも見えたまま
+  await page.goto("/dictionary");
+  await expect(page.getByTestId("header_stats")).toContainText("3550");
+});
+
 test("知らないパスでも白い画面にならない", async ({ page }) => {
   await page.goto("/no-such-page");
   await expect(page.locator("#btn_junior_reverse")).toBeVisible({ timeout: 30_000 });
@@ -297,11 +322,10 @@ test("ヘッダーのポイントは、ガチャで使える額と一致する",
   await openNavMenu(page);
   await expect(page.getByTestId("header_points")).toContainText("2550");
 
-  // 稼いだ合計は消さない。ダッシュボードの「合計スコア」が受け持つ
+  // 稼いだ合計は消さない。ヘッダーの合計スコアが受け持つ
   await page.goto("/");
   await waitForVocabulary(page);
-  const totalScore = page.locator("#main_payload").getByText("合計スコア").locator("..");
-  await expect(totalScore).toContainText("3000");
+  await expect(page.getByTestId("header_stats")).toContainText("3000");
 });
 
 test("どの幅でも、見出しとその選択肢が同じ行に並ぶ", async ({ page }) => {

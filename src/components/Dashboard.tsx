@@ -995,23 +995,9 @@ export default function Dashboard({
           </p>
         </div>
 
-        {/* コレクトスタッツ */}
-        <div className="flex gap-2 md:gap-6 items-center bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/15 z-10 justify-around shrink-0">
-          <div className="text-center px-3 border-r border-white/10">
-            <p className="text-[11px] text-indigo-200 font-medium">合計スコア</p>
-            <div className="flex items-center gap-1 justify-center">
-              <Trophy className="w-4 h-4 text-amber-300 fill-amber-400" />
-              <span className="text-xl font-black font-mono tracking-tight">{stats.score}</span>
-            </div>
-          </div>
-          <div className="text-center px-3">
-            <p className="text-[11px] text-indigo-200 font-medium">ログイン連続</p>
-            <div className="flex items-center gap-1 justify-center">
-              <Calendar className="w-4 h-4 text-pink-300 fill-pink-400/20 animate-pulse" />
-              <span className="text-xl font-black font-mono tracking-tight">{stats.currentStreak}日</span>
-            </div>
-          </div>
-        </div>
+        {/* 合計スコアと連続日数はヘッダーへ移した。
+            スクロールしても見えるようにするため（ヘッダーは貼り付いている）。
+            ここに残すと同じ数字が同じ画面に2つ並ぶ */}
       </div>
 
       {/* タブ切り替え（Bento Gridスタイッシュ） */}

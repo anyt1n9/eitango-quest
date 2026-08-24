@@ -47,7 +47,7 @@ const AboutApp = lazy(() =>
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X } from "lucide-react";
+import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
@@ -653,10 +653,40 @@ export default function App() {
                 </span>
                 {/* 名前の由来（エイとゴリラ）。読み上げには要らないので隠す。
                     グラデーションの span の中には置かない（文字色を透明にしているため） */}
-                <span className="flex items-center gap-1 text-indigo-700 dark:text-indigo-300 shrink-0" aria-hidden="true" data-testid="brand_icons_header">
+                <span className="hidden sm:flex items-center gap-1 text-indigo-700 dark:text-indigo-300 shrink-0" aria-hidden="true" data-testid="brand_icons_header">
                   <RayIcon className="w-4.5 h-4.5" />
                   <GorillaIcon className="w-4.5 h-4.5" />
                 </span>
+              </span>
+            </div>
+          </div>
+
+          {/* 合計スコアと連続日数。ダッシュボードの帯に置いていたが、
+              ヘッダーは貼り付いているので、どの画面でも・スクロールしても見える。
+              狭い画面では名前の横のしるしを引っ込めて、こちらに幅を回す */}
+          <div className="flex items-center gap-1.5 ml-auto mr-1 shrink-0" data-testid="header_stats">
+            <div
+              className="flex items-center gap-1 px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
+              title="これまでに稼いだ合計スコア"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-200 shrink-0" />
+              <span
+                className="text-xs font-black font-mono text-gray-700 dark:text-slate-200"
+                aria-label={`合計スコア ${stats.score}`}
+              >
+                {stats.score}
+              </span>
+            </div>
+            <div
+              className="flex items-center gap-1 px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
+              title="連続ログイン日数"
+            >
+              <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span
+                className="text-xs font-black font-mono text-gray-700 dark:text-slate-200"
+                aria-label={`ログイン連続 ${stats.currentStreak}日`}
+              >
+                {stats.currentStreak}日
               </span>
             </div>
           </div>
