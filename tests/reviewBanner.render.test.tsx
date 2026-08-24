@@ -150,6 +150,36 @@ describe("今日の復習の案内", () => {
   });
 });
 
+describe("学習メニューのアイコン", () => {
+  /**
+   * lucide の汎用アイコンを当てていたとき、「学習メニュー」の見出しと
+   * その中の「長文ストーリー」がどちらも同じコンパスの絵だった。
+   * 見出しと中の1項目が見分けられず、AIを使う機能はどれもキラキラで
+   * 何をする場所なのかも分からなかった。
+   * いまは場所ごとに描き起こしてある（src/components/AppIcons.tsx）。
+   */
+  function glyph(testId: string) {
+    return screen.getByTestId(testId).querySelector("svg")!.innerHTML;
+  }
+
+  it("見出しと3つの項目が、それぞれ違う絵を使う", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await openMenu(user);
+
+    const header = document.getElementById("btn_toggle_study_menu")!
+      .querySelector("svg")!.innerHTML;
+    const marks = [
+      header,
+      glyph("study_menu_reading"),
+      glyph("study_menu_diary"),
+      glyph("study_menu_srs")
+    ];
+    expect(new Set(marks).size, "同じ絵が2か所に出ている").toBe(4);
+    for (const m of marks) expect(m.length).toBeGreaterThan(0);
+  });
+});
+
 describe("ログインボーナス", () => {
   it("すばやく2回押しても、受け取りは1回だけ", async () => {
     // checkCanClaimToday() は描画時点の stats を見るので、

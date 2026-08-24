@@ -17,7 +17,6 @@ import {
   BookOpen,
   Loader2,
   ThumbsUp,
-  Compass,
   FileSpreadsheet,
   FileText,
   Upload,
@@ -43,6 +42,7 @@ import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
 import { RayIcon, GorillaIcon } from "./BrandIcons";
+import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon } from "./AppIcons";
 
 /**
  * 「調べる」タブに並べる資料。
@@ -1164,7 +1164,7 @@ export default function Dashboard({
             >
               <span className="flex items-center gap-3 min-w-0">
                 <span className="p-2 bg-indigo-600 text-white rounded-xl shrink-0 border border-indigo-500/20">
-                  <Compass className="w-5 h-5" />
+                  <StudyListIcon className="w-5 h-5" />
                 </span>
                 <span className="min-w-0">
                   <span className="block font-extrabold text-sm text-gray-900">学習メニュー</span>
@@ -1196,7 +1196,7 @@ export default function Dashboard({
                 <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3" data-testid="study_menu_reading">
                   <div className="flex items-start gap-3 min-w-0">
                     <span className="p-2 bg-violet-600 text-white rounded-xl shrink-0 border border-violet-500/20">
-                      <Compass className="w-5 h-5" />
+                      <ReadingIcon className="w-5 h-5" />
                     </span>
                     <div className="min-w-0">
                       <h3 className="font-extrabold text-sm text-gray-900">長文ストーリーを読破しよう</h3>
@@ -1220,7 +1220,7 @@ export default function Dashboard({
                 <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3" data-testid="study_menu_diary">
                   <div className="flex items-start gap-3 min-w-0">
                     <span className="p-2 bg-amber-600 text-white rounded-xl shrink-0 border border-amber-500/20">
-                      <Sparkles className="w-5 h-5" />
+                      <DiaryIcon className="w-5 h-5" />
                     </span>
                     <div className="min-w-0">
                       <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2 flex-wrap">
@@ -1252,7 +1252,7 @@ export default function Dashboard({
                 <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3" data-testid="study_menu_srs">
                   <div className="flex items-start gap-3 min-w-0">
                     <span className="p-2 bg-emerald-700 text-white rounded-xl shrink-0 border border-emerald-600/20">
-                      <RotateCcw className="w-5 h-5" />
+                      <ReviewIcon className="w-5 h-5" />
                     </span>
                     <div className="min-w-0">
                       <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2 flex-wrap">
@@ -1287,7 +1287,7 @@ export default function Dashboard({
           <div className="bg-indigo-50/45 border border-indigo-100 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm" id="dictionary_banner">
             <div className="flex items-center gap-2.5">
               <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-2xs shrink-0 border border-indigo-500/20">
-                <BookOpen className="w-5 h-5" />
+                <DictionaryIcon className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-extrabold text-indigo-950 flex items-center gap-1.5">
