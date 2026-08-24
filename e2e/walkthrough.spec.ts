@@ -224,6 +224,23 @@ test("アプリケーション説明は、利用規約と同じく1枚の画面�
   await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible({ timeout: 30_000 });
 });
 
+test("アプリの名前とエイ・ゴリラのしるしはヘッダーに出る", async ({ page }) => {
+  // ダッシュボードの帯にも同じ名前を出していたが、帯ごと外したので
+  // ここが唯一の出どころになる。名前が消えても誰も気づけない状態にしない
+  await page.goto("/");
+  await waitForVocabulary(page);
+
+  const nav = page.locator("#navigation_bar");
+  await expect(nav).toContainText("Eigorira");
+  // 由来のしるしは2つとも出ている（読み上げには渡さない飾り）
+  const marks = page.getByTestId("brand_icons_header");
+  await expect(marks.locator("svg")).toHaveCount(2);
+  await expect(marks).toHaveAttribute("aria-hidden", "true");
+
+  // 古い名前が残っていない
+  await expect(page.locator("body")).not.toContainText("英単語 Quest");
+});
+
 test("ヘッダーはハンバーガーにまとめ、開くと入口が並ぶ", async ({ page }) => {
   // 以前は機能ボタンを7つ横に並べ、スマホでは2段に折り返して
   // ヘッダーだけで 150px 近くあった
@@ -272,8 +289,8 @@ test("合計スコアと連続日数は、どの画面でもヘッダーに出�
   const stats = page.getByTestId("header_stats");
   await expect(stats).toContainText("3550");
   await expect(stats).toContainText("4日");
-  // 同じ数字がダッシュボードの帯にも並んでいない
-  await expect(page.locator("#hero_banner")).not.toContainText("3550");
+  // 同じ数字がダッシュボードの本文にも並んでいない
+  await expect(page.locator("#main_payload")).not.toContainText("3550");
 
   // 別の画面でも見えたまま
   await page.goto("/dictionary");
