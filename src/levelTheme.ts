@@ -24,8 +24,19 @@ export const LEVEL_TONE: Record<Level, string> = {
 /** 追加単語（レベルを持たない）の色。5段階のどれとも重ならないようにする */
 export const CUSTOM_TONE = "level-custom";
 
-/** レベルの色を使う部品。`LEVEL_TONE[level]` と組にして使う */
-export const LEVEL_STYLE = {
+/**
+ * レベル以外の色分け。同じ変数の組（`--lv-*`）を使う。
+ * AIアドバイスと弱点分析は紫と赤で塗られていて、森にも海にも合わなかった。
+ */
+export const ACCENT_TONE = {
+  /** AIアドバイス。森では主役の緑、海では水面の青緑 */
+  advice: "tone-advice",
+  /** 弱点分析。森では朽ち葉の茶、海では深海の紫 */
+  weakness: "tone-weakness"
+} as const;
+
+/** 色の組を使う部品。`LEVEL_TONE[level]` や `ACCENT_TONE.*` と組にして使う */
+export const TONE_STYLE = {
   /** 見出しのラベル（淡い地に濃い文字） */
   badge: "bg-[var(--lv-bg-strong)] text-[var(--lv-fg)]",
   /** 数字などの強調文字 */

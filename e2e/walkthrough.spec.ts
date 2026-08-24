@@ -590,6 +590,14 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
       expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${name}`).toEqual([]);
     }
 
+    // AIアドバイスと弱点分析の欄。紫と赤で塗られていた場所なので、
+    // テーマの色に替えたあとも読めることを見る
+    await page.goto("/");
+    await waitForVocabulary(page);
+    await page.locator("#tab_btn_ai").click();
+    await expect(page.locator("#ai_advisor_section")).toBeVisible();
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / AIアドバイス`).toEqual([]);
+
     // ログインボーナスの欄（スタンプ・受け取りの案内・学習カレンダー）。
     // ダッシュボードは最初のタブしか出ていないので、開いてから測る
     await page.goto("/");

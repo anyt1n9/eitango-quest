@@ -27,7 +27,7 @@ import WordSenses from "./WordSenses";
 import WordUsageInfo from "./WordUsage";
 import { SrsState } from "../srs";
 import { isMastered } from "../mastery";
-import { LEVEL_TONE, LEVEL_STYLE, CUSTOM_TONE } from "../levelTheme";
+import { LEVEL_TONE, TONE_STYLE, CUSTOM_TONE } from "../levelTheme";
 
 interface DictionaryProps {
   vocabulary: Word[];
@@ -320,7 +320,7 @@ export default function Dictionary({
   const getLevelBadgeProps = (level: Level, isCustom: boolean) => {
     // 色はレベルの色に合わせる（src/levelTheme.ts）。
     // 追加単語はレベルを持たないので、5段階のどれとも重ならない色にする
-    const badge = `${LEVEL_STYLE.badge} border-[var(--lv-border)]`;
+    const badge = `${TONE_STYLE.badge} border-[var(--lv-border)]`;
     if (isCustom) {
       return { text: "追加単語", className: `${CUSTOM_TONE} ${badge}` };
     }

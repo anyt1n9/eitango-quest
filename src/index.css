@@ -61,6 +61,17 @@
   --lv-solid: #6b4f8a; --lv-solid-hover: #573f70;
 }
 
+/* レベル以外の色分けも、同じ変数の組で持つ。
+   AIアドバイスと弱点分析は紫と赤で塗られていて、森にも海にも合わなかった */
+.tone-advice {
+  --lv-fg: #17632a; --lv-bg: #eef6ee; --lv-bg-strong: #daecdb; --lv-border: #b7dcba;
+  --lv-solid: #1f7a33; --lv-solid-hover: #17632a;
+}
+.tone-weakness {
+  --lv-fg: #8a4326; --lv-bg: #faf0ea; --lv-bg-strong: #f3e0d4; --lv-border: #e3c3ae;
+  --lv-solid: #8a4326; --lv-solid-hover: #71351c;
+}
+
 /* ── 暗いテーマは「海」 ────────────────────────────────
    Tailwind の色変数ごと置き換えて、地を深海の紺、主役の色を水面の青緑にする。
    （この仕組みのため、暗いテーマ用に `dark:` を書き足すと二重に反転する） */
@@ -137,6 +148,16 @@
 .dark .level-custom {
   --lv-fg: #f0abfc; --lv-bg: rgba(232, 121, 249, 0.16); --lv-bg-strong: rgba(232, 121, 249, 0.26);
   --lv-border: rgba(232, 121, 249, 0.45); --lv-solid: #a21caf; --lv-solid-hover: #86198f;
+}
+
+/* AIアドバイス＝水面、弱点分析＝深海の紫 */
+.dark .tone-advice {
+  --lv-fg: #7dd3fc; --lv-bg: rgba(56, 189, 248, 0.16); --lv-bg-strong: rgba(56, 189, 248, 0.26);
+  --lv-border: rgba(56, 189, 248, 0.45); --lv-solid: #0369a1; --lv-solid-hover: #075985;
+}
+.dark .tone-weakness {
+  --lv-fg: #c4b5fd; --lv-bg: rgba(167, 139, 250, 0.16); --lv-bg-strong: rgba(167, 139, 250, 0.26);
+  --lv-border: rgba(167, 139, 250, 0.45); --lv-solid: #6d28d9; --lv-solid-hover: #5b21b6;
 }
 
 /* Base custom interactive states in dark mode to ensure comfortable reading */
