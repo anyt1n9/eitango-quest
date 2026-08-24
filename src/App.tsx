@@ -636,10 +636,10 @@ export default function App() {
         いまはアプリ名とハンバーガーだけを出し、中身は押したときに開く。
       */}
       <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 py-2.5 px-4 sticky top-0 z-40 shadow-xs transition-colors duration-300" id="navigation_bar">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           <div
             onClick={handleBackToDashboard}
-            className="flex items-center gap-2.5 cursor-pointer hover:opacity-85 select-none min-w-0"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer hover:opacity-85 select-none min-w-0"
           >
             <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-150-10 shrink-0">
               <BrainCircuit className="w-5 h-5" />
@@ -648,7 +648,7 @@ export default function App() {
               <span className="flex items-center gap-1.5">
                 {/* しるしを足したぶん幅が要る。折り返しを許すと
                     「エイゴ / リラ」と切れて名前として読めなくなる */}
-                <span className="font-black text-lg tracking-tight whitespace-nowrap bg-gradient-to-r from-gray-900 via-indigo-950 to-indigo-700 dark:from-slate-100 dark:via-indigo-200 dark:to-indigo-400 bg-clip-text text-transparent font-sans">
+                <span className="hidden min-[390px]:inline font-black text-base sm:text-lg tracking-tight whitespace-nowrap bg-gradient-to-r from-gray-900 via-indigo-950 to-indigo-700 dark:from-slate-100 dark:via-indigo-200 dark:to-indigo-400 bg-clip-text text-transparent font-sans">
                   Eigorira
                 </span>
                 {/* 名前の由来（エイとゴリラ）。読み上げには要らないので隠す。
@@ -664,9 +664,25 @@ export default function App() {
           {/* 合計スコアと連続日数。ダッシュボードの帯に置いていたが、
               ヘッダーは貼り付いているので、どの画面でも・スクロールしても見える。
               狭い画面では名前の横のしるしを引っ込めて、こちらに幅を回す */}
-          <div className="flex items-center gap-1.5 ml-auto mr-1 shrink-0" data-testid="header_stats">
+          {/* テーマの切り替え。メニューの中に入れていたが、
+              明るさは学習中でも切りたいので、開かずに押せる場所に出す */}
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="ml-auto mr-1 shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition cursor-pointer"
+            title={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
+            aria-label={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
+            id="theme_toggle_btn"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 text-amber-400 fill-amber-350" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-700 fill-indigo-100" />
+            )}
+          </button>
+
+          <div className="flex items-center gap-1 sm:gap-1.5 mr-0.5 sm:mr-1 shrink-0" data-testid="header_stats">
             <div
-              className="flex items-center gap-1 px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
+              className="flex items-center gap-1 px-1.5 sm:px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
               title="これまでに稼いだ合計スコア"
             >
               <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-200 shrink-0" />
@@ -678,7 +694,7 @@ export default function App() {
               </span>
             </div>
             <div
-              className="flex items-center gap-1 px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
+              className="flex items-center gap-1 px-1.5 sm:px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
               title="連続ログイン日数"
             >
               <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
@@ -761,15 +777,6 @@ export default function App() {
                 </button>
               </>
             )}
-
-            <button onClick={() => setIsDark(!isDark)} className={MENU_ITEM} id="theme_toggle_btn">
-              {isDark ? (
-                <Sun className="w-4 h-4 shrink-0 text-amber-400 fill-amber-350" />
-              ) : (
-                <Moon className="w-4 h-4 shrink-0 text-indigo-700 fill-indigo-100" />
-              )}
-              <span className="flex-1 text-left">{isDark ? "明るいテーマにする" : "暗いテーマにする"}</span>
-            </button>
 
             {/* ここから下は押すものではなく、いまの状態 */}
             <div className="mt-1 pt-2 border-t border-gray-100 dark:border-slate-800 flex flex-wrap items-center gap-2 px-1.5 pb-1">

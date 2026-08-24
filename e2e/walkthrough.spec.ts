@@ -255,8 +255,11 @@ test("ヘッダーはハンバーガーにまとめ、開くと入口が並ぶ",
   await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
   await expect(page.locator("#nav_srs_review_btn")).toHaveCount(0);
 
+  // テーマの切り替えは開かずに押せる場所（ヘッダー）にある
+  await expect(page.locator("#theme_toggle_btn")).toBeVisible();
+
   await openNavMenu(page);
-  for (const id of ["nav_srs_review_btn", "nav_map_puzzle_toggle_btn", "nav_gacha_btn", "nav_settings_btn", "theme_toggle_btn"]) {
+  for (const id of ["nav_srs_review_btn", "nav_map_puzzle_toggle_btn", "nav_gacha_btn", "nav_settings_btn"]) {
     await expect(page.locator("#" + id), id).toBeVisible();
   }
   await expect(page.getByTestId("header_points")).toBeVisible();

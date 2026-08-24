@@ -223,4 +223,63 @@ describe("ログインボーナス", () => {
     expect(updater({ ...before, lastLoginDate: key }).score).toBe(500);
     alertSpy.mockRestore();
   });
+
+  it("その日のスタンプを押しても受け取れる", async () => {
+    // 「受け取る」ボタンはスタンプ7個の下にあり、
+    // スマホでは今日のスタンプを押してから目と指を下に運ぶことになる。
+    // 今日ぶんのスタンプ自体を押しても受け取れるようにした
+    const user = userEvent.setup();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const setStats = vi.fn();
+    renderDashboard({ setStats });
+
+    await user.click(document.getElementById("tab_btn_bonus")!);
+    // 連続1日目なので、DAY1 は受取済み・DAY2 が今日ぶん
+    await user.click(document.getElementById("btn_claim_bonus_day_2")!);
+
+    expect(setStats).toHaveBeenCalledTimes(1);
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    alertSpy.mockRestore();
+  });
+
+  it("受け取り済みの日と、まだ先の日は押せない", async () => {
+    // 押しても何も起きないものをボタンにすると、
+    // 読み上げにも「ボタン」と伝わり、押せると誤解させる
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.click(document.getElementById("tab_btn_bonus")!);
+
+    expect(document.getElementById("btn_claim_bonus_day_1"), "受取済みの日が押せる").toBeNull();
+    expect(document.getElementById("btn_claim_bonus_day_3"), "先の日が押せる").toBeNull();
+    const buttons = Array.from(document.querySelectorAll('[id^="btn_claim_bonus_day_"]'));
+    expect(buttons.map(b => b.id), "押せるのは今日ぶんだけ").toEqual(["btn_claim_bonus_day_2"]);
+  });
+
+  it("スタンプを連打しても、受け取りは1回だけ", async () => {
+    const user = userEvent.setup();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const setStats = vi.fn();
+    renderDashboard({ setStats });
+
+    await user.click(document.getElementById("tab_btn_bonus")!);
+    const stamp = document.getElementById("btn_claim_bonus_day_2")!;
+    stamp.click();
+    stamp.click();
+    stamp.click();
+
+    expect(setStats).toHaveBeenCalledTimes(1);
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    alertSpy.mockRestore();
+  });
+
+  it("受け取り済みの日には、その日ぶんのスタンプが無い", async () => {
+    // 今日ぶんを受け取ったあとは、押せるスタンプが1つも無い状態になる
+    const user = userEvent.setup();
+    const today = new Date();
+    const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    renderDashboard({ stats: makeStats({ lastLoginDate: key }) });
+
+    await user.click(document.getElementById("tab_btn_bonus")!);
+    expect(document.querySelectorAll('[id^="btn_claim_bonus_day_"]').length).toBe(0);
+  });
 });
