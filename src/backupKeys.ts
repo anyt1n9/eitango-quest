@@ -45,4 +45,7 @@ export const BACKUP_KEYS = [
 export const NON_BACKUP_KEYS: Record<string, string> = {
   // 外部の辞書APIから取り直せる。復元しても学習の記録は増えない
   quest_phonetics_cache: "取り直せるキャッシュのため",
+  // 端末ごとの見た目の設定。学習の記録ではない（テーマと同じ扱いにしたいが、
+  // テーマは以前からバックアップに入れているので、新しい方だけ外す）
+  quest_bg_motion: "端末ごとの見た目の設定のため",
 };

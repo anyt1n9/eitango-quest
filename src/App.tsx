@@ -10,7 +10,7 @@ import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
 import QuizFormatPicker from "./components/QuizFormatPicker";
 import { QuizFormat, QUIZ_FORMAT_LABELS, wordsForFormat } from "./quizFormats";
-import { Screen, Route, pathToRoute, routeToPath, resolveOnEntry } from "./routes";
+import { Screen, Route, pathToRoute, routeToPath, resolveOnEntry, isTransient } from "./routes";
 import AdBanner from "./components/AdBanner";
 
 /*
@@ -47,8 +47,9 @@ const AboutApp = lazy(() =>
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar } from "lucide-react";
+import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
+import BackgroundScene from "./components/BackgroundScene";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
 function ScreenLoading() {
@@ -161,6 +162,16 @@ export default function App() {
   // 以前は保存値が "dark" かどうかだけを見ていたため、OSをダークにしている人でも
   // 初回は必ずライトで開いていた。
   const [isDark, setIsDark] = useState<boolean>(() => prefersDarkTheme());
+
+  /** 背景の飾りを動かすか。
+      動くものが視界にあると落ち着かない人もいるので、切り替えを持たせる
+      （端末の「視差効果を減らす」設定は CSS 側で常に効く） */
+  const [bgMotion, setBgMotion] = useState<boolean>(
+    () => localStorage.getItem("quest_bg_motion") !== "off"
+  );
+  useEffect(() => {
+    writeStored("quest_bg_motion", bgMotion ? "on" : "off");
+  }, [bgMotion]);
 
   /** ハンバーガーメニューを開いているか */
   const [menuOpen, setMenuOpen] = useState(false);
@@ -628,6 +639,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
+      {/* 背景の飾り（明るいテーマ＝ジャングル／暗いテーマ＝海）。
+          出題中は出さない。視界のすみで何かが動くと、単語より先にそちらへ目が行く */}
+      {!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} />}
       {/*
         ナビゲーションヘッダー。
 
@@ -775,6 +789,20 @@ export default function App() {
                   <Database className="w-4 h-4 shrink-0 text-gray-500 dark:text-slate-400" />
                   <span className="flex-1 text-left">データ（バックアップ・目標）</span>
                 </button>
+
+                {/* 背景の飾りの動き。動くものが視界にあると落ち着かない人もいる */}
+                <button
+                  onClick={() => setBgMotion(!bgMotion)}
+                  className={MENU_ITEM}
+                  id="nav_bg_motion_btn"
+                  aria-pressed={bgMotion}
+                >
+                  <Leaf className="w-4 h-4 shrink-0 text-emerald-700 dark:text-emerald-400" />
+                  <span className="flex-1 text-left">背景の動き</span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                    {bgMotion ? "動かす" : "止める"}
+                  </span>
+                </button>
               </>
             )}
 
@@ -815,7 +843,7 @@ export default function App() {
       </nav>
 
       {/* メインステージ */}
-      <main className="flex-1 py-8 px-4 max-w-4xl w-full mx-auto" id="main_payload">
+      <main className="relative z-10 flex-1 py-8 px-4 max-w-4xl w-full mx-auto" id="main_payload">
         {/* 遅延読み込みの画面を開いている間の待ち。
             画面が入れ替わるだけで、ヘッダーとフッターは出たまま */}
         <Suspense fallback={<ScreenLoading />}>
@@ -1096,7 +1124,7 @@ export default function App() {
       <AdBanner />
 
       {/* 謙虚でスタイリッシュなフッター */}
-      <footer className="bg-white dark:bg-slate-900 border-t border-gray-150 dark:border-slate-800 py-6 px-4 transition-colors duration-300" id="global_footer">
+      <footer className="relative z-10 bg-white dark:bg-slate-900 border-t border-gray-150 dark:border-slate-800 py-6 px-4 transition-colors duration-300" id="global_footer">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 dark:text-slate-500 gap-4 font-semibold font-sans">
           <p>© 2026 Eigorira. Built with Google AI Studio &amp; Claude.</p>
           {/* 狭い画面では折り返す。タップ領域を広げたときに whitespace-nowrap を
