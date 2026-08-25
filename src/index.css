@@ -333,3 +333,194 @@
 .dark .border-rose-250, .dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.45) !important; }
 .dark .border-rose-300 { border-color: rgba(244, 63, 94, 0.55) !important; }
 
+/* ── 背景の飾り（明るいテーマ＝ジャングル／暗いテーマ＝海） ──────────
+   画面の中身には触れない。カードは不透明のままなので、
+   文字と地のコントラストはこれまでと変わらない。
+   動かすのは transform と opacity だけ、画像は使わない。 */
+.bg-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bg-scene span, .bg-scene svg { display: block; }
+.bg-scene svg { width: 100%; height: auto; overflow: visible; fill: currentColor; }
+
+/* テーマで入れ替える。両方を描いておき、片方だけ出す */
+.bg-ocean { display: none; }
+.dark .bg-jungle { display: none; }
+.dark .bg-ocean { display: block; }
+
+/* 動きを止める。端末の設定（視差効果を減らす）にも従う */
+.bg-scene[data-motion="off"] * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .bg-scene * { animation: none !important; }
+}
+
+/* ジャングル ────────────────────────────────── */
+.bg-jungle { position: absolute; inset: 0; }
+
+/* 地面（茂み）は動かさない。動くと画面全体が傾いて見える */
+.bg-canopy { position: absolute; left: 0; right: 0; bottom: 0; }
+.bg-canopy svg { height: 100%; }
+.bg-canopy--far { height: 30%; color: #9dbd84; opacity: 0.5; }
+.bg-canopy--near { height: 15%; color: #6d9a5c; opacity: 0.6; }
+.dark .bg-canopy { display: none; }
+
+/* 上から差し込む葉。葉柄を支点に揺れる */
+.bg-frond {
+  position: absolute;
+  color: #2f5a2a;
+  animation: bg-frond-sway ease-in-out infinite;
+  will-change: transform;
+}
+.bg-frond--tl {
+  top: -3%; left: -6%; width: 34%;
+  transform-origin: 0 50%; rotate: 14deg;
+  opacity: 0.5; animation-duration: 9s;
+}
+.bg-frond--tr {
+  top: -4%; right: -6%; width: 28%;
+  transform-origin: 100% 50%; rotate: -12deg;
+  opacity: 0.42; animation-duration: 11s; animation-delay: -3s;
+}
+.bg-frond--tr svg { transform: scaleX(-1); }
+@keyframes bg-frond-sway {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50% { transform: rotate(1.6deg); }
+}
+
+/* 垂れ下がるつる。上を支点に振り子のように揺れる */
+.bg-vine {
+  position: absolute;
+  top: -1%;
+  color: #6d9a5c;
+  transform-origin: 50% 0;
+  animation: bg-vine-sway ease-in-out infinite;
+}
+.bg-vine--v1 { left: 14%; width: 3%; opacity: 0.5; animation-duration: 7s; }
+.bg-vine--v2 { left: 63%; width: 3.6%; opacity: 0.5; color: #2f5a2a; animation-duration: 9s; animation-delay: -4s; }
+.bg-vine--v3 { left: 86%; width: 2.6%; opacity: 0.42; animation-duration: 6s; animation-delay: -2s; }
+@keyframes bg-vine-sway {
+  0%, 100% { transform: rotate(-2.4deg); }
+  50% { transform: rotate(2.4deg); }
+}
+
+/* 木漏れ日 */
+.bg-sunbeam {
+  position: absolute;
+  top: -20%;
+  height: 140%;
+  background: linear-gradient(180deg, rgba(255, 252, 214, 0.7), rgba(255, 252, 214, 0));
+  filter: blur(12px);
+  animation: bg-dapple ease-in-out infinite;
+}
+.bg-sunbeam--1 { left: 12%; width: 12%; animation-duration: 12s; }
+.bg-sunbeam--2 { left: 46%; width: 8%; animation-duration: 15s; animation-delay: -6s; }
+.bg-sunbeam--3 { left: 74%; width: 14%; animation-duration: 18s; animation-delay: -10s; }
+@keyframes bg-dapple {
+  0%, 100% { opacity: 0.3; transform: rotate(-14deg) translateX(-12px); }
+  50% { opacity: 0.7; transform: rotate(-14deg) translateX(12px); }
+}
+
+/* 落ち葉 */
+.bg-leaf {
+  position: absolute;
+  top: -8%;
+  color: #7fa85f;
+  opacity: 0.45;
+  animation: bg-fall linear infinite;
+}
+@keyframes bg-fall {
+  0% { transform: translate3d(0, -40px, 0) rotate(0deg); }
+  100% { transform: translate3d(60px, 105vh, 0) rotate(420deg); }
+}
+
+/* 海 ──────────────────────────────────────── */
+.bg-ocean { position: absolute; inset: 0; }
+
+.bg-shaft {
+  position: absolute;
+  top: -20%;
+  height: 150%;
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.22), rgba(125, 211, 252, 0));
+  filter: blur(8px);
+  animation: bg-shimmer ease-in-out infinite;
+}
+.bg-shaft--1 { left: 12%; width: 12%; animation-duration: 11s; }
+.bg-shaft--2 { left: 46%; width: 8%; animation-duration: 14s; animation-delay: -5s; }
+.bg-shaft--3 { left: 74%; width: 15%; animation-duration: 17s; animation-delay: -9s; }
+@keyframes bg-shimmer {
+  0%, 100% { opacity: 0.35; transform: rotate(12deg) translateX(-10px); }
+  50% { opacity: 0.85; transform: rotate(12deg) translateX(10px); }
+}
+
+/* エイ。ただ横に流すと絵が動いているだけに見えるので、
+   周期の違う4つ（横切る・うねる・ひとかき・胸びれ）を重ねる */
+.bg-ray { position: absolute; animation: bg-cross linear infinite; will-change: transform; }
+.bg-ray-wander { animation: bg-wander ease-in-out infinite; }
+.bg-ray-tilt { transform: perspective(900px) rotateX(34deg); }
+.bg-ray-surge { animation: bg-surge ease-in-out infinite; }
+.bg-manta { transform: rotate(90deg); }
+.bg-manta .bg-wing { transform-box: fill-box; animation: bg-flap ease-in-out infinite; }
+.bg-manta .bg-wing--l { transform-origin: 100% 22%; }
+.bg-manta .bg-wing--r { transform-origin: 0 22%; animation-name: bg-flap-r; }
+.bg-manta .bg-tail { transform-box: fill-box; transform-origin: 100% 50%; animation: bg-swish ease-in-out infinite; }
+
+@keyframes bg-cross {
+  from { transform: translate3d(-170%, 0, 0); }
+  to { transform: translate3d(var(--bg-travel), 0, 0); }
+}
+@keyframes bg-wander {
+  0% { transform: translateY(0) rotate(-3deg); }
+  28% { transform: translateY(-9%) rotate(2.5deg); }
+  54% { transform: translateY(4%) rotate(-2deg); }
+  78% { transform: translateY(-5%) rotate(3deg); }
+  100% { transform: translateY(0) rotate(-3deg); }
+}
+@keyframes bg-surge {
+  0%, 100% { transform: translateX(-2.5%) scale(0.985); }
+  40% { transform: translateX(2.5%) scale(1.015); }
+}
+@keyframes bg-flap {
+  0%, 100% { transform: scaleX(1) translateY(0) rotate(0deg); }
+  35% { transform: scaleX(0.78) translateY(4px) rotate(2.5deg); }
+  70% { transform: scaleX(1.05) translateY(-3px) rotate(-1.5deg); }
+}
+@keyframes bg-flap-r {
+  0%, 100% { transform: scaleX(1) translateY(0) rotate(0deg); }
+  35% { transform: scaleX(0.78) translateY(4px) rotate(-2.5deg); }
+  70% { transform: scaleX(1.05) translateY(-3px) rotate(1.5deg); }
+}
+@keyframes bg-swish {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+.bg-ray--r1 { top: 8%; width: 11%; --bg-travel: 1000%; color: #7dd3fc; opacity: 0.3; animation-duration: 30s; }
+.bg-ray--r1 .bg-ray-wander { animation-duration: 9s; }
+.bg-ray--r1 .bg-ray-surge, .bg-ray--r1 .bg-wing, .bg-ray--r1 .bg-tail { animation-duration: 3s; }
+
+.bg-ray--r2 { top: 52%; width: 15%; --bg-travel: 780%; color: #1d5b7d; opacity: 0.75; animation-duration: 38s; animation-delay: -14s; }
+.bg-ray--r2 .bg-ray-wander { animation-duration: 11s; animation-delay: -3s; }
+.bg-ray--r2 .bg-ray-surge, .bg-ray--r2 .bg-wing, .bg-ray--r2 .bg-tail { animation-duration: 3.6s; }
+.bg-ray--r2 .bg-wing--r { animation-delay: -0.08s; }
+
+.bg-ray--r3 { top: 30%; width: 8%; --bg-travel: 1400%; color: #14425f; opacity: 0.8; animation-duration: 52s; animation-delay: -30s; }
+.bg-ray--r3 .bg-ray-wander { animation-duration: 8s; animation-delay: -5s; }
+.bg-ray--r3 .bg-ray-surge, .bg-ray--r3 .bg-wing, .bg-ray--r3 .bg-tail { animation-duration: 2.6s; }
+
+.bg-bubble {
+  position: absolute;
+  bottom: -4%;
+  border-radius: 999px;
+  border: 1px solid rgba(186, 230, 253, 0.5);
+  opacity: 0.5;
+  animation: bg-rise linear infinite;
+}
+@keyframes bg-rise {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  12% { opacity: 0.5; }
+  100% { transform: translate3d(18px, -105vh, 0); opacity: 0; }
+}

@@ -300,6 +300,24 @@ test("合計スコアと連続日数は、どの画面でもヘッダーに出�
   await expect(page.getByTestId("header_stats")).toContainText("3550");
 });
 
+test("背景の飾りは出るが、出題中は出さない", async ({ page }) => {
+  // 視界のすみで何かが動くと、単語より先にそちらへ目が行く。
+  // 飾りは押す操作も奪わない（pointer-events: none）
+  await page.goto("/");
+  await waitForVocabulary(page);
+  const scene = page.locator('[data-testid="background_scene"]');
+  await expect(scene).toHaveCount(1);
+  expect(await scene.evaluate(e => getComputedStyle(e).pointerEvents)).toBe("none");
+
+  await page.locator("#btn_junior_word").click();
+  await expect(page.locator("#quiz_options_container")).toBeVisible();
+  await expect(scene, "出題中に背景が出ている").toHaveCount(0);
+
+  // 戻れば また出る
+  await page.locator("#btn_quit_quiz").click();
+  await expect(page.locator('[data-testid="background_scene"]')).toHaveCount(1);
+});
+
 test("知らないパスでも白い画面にならない", async ({ page }) => {
   await page.goto("/no-such-page");
   await expect(page.locator("#btn_junior_reverse")).toBeVisible({ timeout: 30_000 });

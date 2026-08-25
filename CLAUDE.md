@@ -253,6 +253,24 @@ CI でも走る。`vite preview` ではなくビルド済みの `dist/server.cjs
 
 いずれも上の `LOW_CONTRAST` が落ちる形で気づけるようにしてある。
 
+## 背景の飾り（明るい＝ジャングル／暗い＝海）
+
+`src/components/BackgroundScene.tsx` を `App.tsx` の最上位に1枚だけ敷く。
+図形（SVG）は component に焼いてあり、画像は使わない。
+
+- **出題中は出さない**（`isTransient(screen)`）。視界のすみで何かが動くと、
+  単語より先にそちらへ目が行く。
+- **カードは不透明のまま**にして、飾りはその外側にだけ見せる。
+  こうすればコントラストの実測値（明暗とも4.5以上）は変わらない。
+- **動かすのは `transform` と `opacity` だけ**。`prefers-reduced-motion` で自動的に止め、
+  メニューの「背景の動き」（`quest_bg_motion`）でも止められる。
+- 飾りは `pointer-events: none` と `aria-hidden` を付け、押す操作も読み上げも奪わない。
+- 中身が飾りに隠れないよう、`#main_payload` と `#global_footer` に `relative z-10` を付けている。
+  背景は `position: fixed` の別レイヤー（`.bg-scene`、`z-index: 0`）。
+
+`tests/backgroundScene.render.test.tsx` と e2e の
+「背景の飾りは出るが、出題中は出さない」で上の決まりを固定している。
+
 ## 画面とURL
 
 画面ごとに URL を持つ（`src/routes.ts`）。持たせていなかったときは、
