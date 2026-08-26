@@ -10,19 +10,23 @@
  * 端末の「視差効果を減らす」設定と、メニューの切り替えで止まる。
  */
 
+import type { VeilLevel } from "../backgroundImage";
+
 interface Props {
   /** 動かすか。端末の設定で止める場合は false を渡す */
   motion: boolean;
   /** 利用者が選んだ背景画像（data URL）。あるときは、はじめからの飾りの代わりに出す */
   image?: string | null;
+  /** 画像の上にかける幕の濃さ */
+  veil?: VeilLevel;
 }
 
-export default function BackgroundScene({ motion, image }: Props) {
+export default function BackgroundScene({ motion, image, veil = "normal" }: Props) {
   // 写真を選んでいるときは、その上に薄い幕をかける。
   // 幕が無いと、カードの外に出ている小さな文字が写真の柄に紛れて読めなくなる
   if (image) {
     return (
-      <div className="bg-scene" data-testid="background_scene" data-kind="image" aria-hidden="true">
+      <div className="bg-scene" data-testid="background_scene" data-kind="image" data-veil={veil} aria-hidden="true">
         <div className="bg-photo" style={{ backgroundImage: `url(${image})` }} />
         <div className="bg-photo-veil" />
       </div>

@@ -51,7 +51,7 @@ import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf, Image as ImageIcon } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
-import { readBackgroundImage } from "./backgroundImage";
+import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
 function ScreenLoading() {
@@ -167,6 +167,13 @@ export default function App() {
 
   /** 利用者が選んだ背景画像（無ければ、はじめからの飾りを出す） */
   const [bgImage, setBgImage] = useState<string | null>(() => readBackgroundImage());
+
+  /** 背景画像の上にかける幕の濃さ */
+  const [bgVeil, setBgVeil] = useState<VeilLevel>(() => readVeilLevel());
+  const changeBgVeil = useCallback((v: VeilLevel) => {
+    setBgVeil(v);
+    saveVeilLevel(v);
+  }, []);
 
   /** 背景の飾りを動かすか。
       動くものが視界にあると落ち着かない人もいるので、切り替えを持たせる
@@ -646,7 +653,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
       {/* 背景の飾り（明るいテーマ＝ジャングル／暗いテーマ＝海）。
           出題中は出さない。視界のすみで何かが動くと、単語より先にそちらへ目が行く */}
-      {!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} />}
+      {!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}
       {/*
         ナビゲーションヘッダー。
 
@@ -1128,6 +1135,8 @@ export default function App() {
           <BackgroundSettings
             image={bgImage}
             onChange={setBgImage}
+            veil={bgVeil}
+            onVeilChange={changeBgVeil}
             onBack={handleBackToDashboard}
           />
         )}
