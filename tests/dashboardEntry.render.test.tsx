@@ -222,6 +222,23 @@ describe("画面の詰まりを減らす", () => {
     expect(document.getElementById("btn_level_junior")!.className).toContain("bg-[var(--lv-bg)]");
   });
 
+  it("1回の問題数も、選んでいるレベルの色になる", async () => {
+    // レベルの列と問題数の列が別々の色だと、
+    // 「いま何を何問解こうとしているのか」が2か所に散る
+    const user = userEvent.setup();
+    renderDashboard();
+    const count = () => document.getElementById("btn_question_count_50")!;
+    expect(count().className).toContain(LEVEL_TONE.junior);
+
+    await user.click(document.getElementById("btn_level_advanced")!);
+    expect(count().className).toContain(LEVEL_TONE.advanced);
+    expect(count().className, "色を直に書いている").not.toMatch(/-(indigo|blue|amber)-\d/);
+
+    // 選んでいる問題数は塗りつぶし、他は淡い地（レベルの色で）
+    expect(document.getElementById("btn_question_count_10")!.className).toContain("bg-[var(--lv-solid)]");
+    expect(count().className).toContain("bg-[var(--lv-bg)]");
+  });
+
   it("選んだレベルを覚えておく（毎回選び直させない）", async () => {
     const user = userEvent.setup();
     renderDashboard();

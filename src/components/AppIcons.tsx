@@ -129,3 +129,26 @@ export function WeaknessIcon({ className = "w-5 h-5" }: IconProps) {
     </svg>
   );
 }
+
+/** 単語リストの拡張 ＝ 自分の単語を足していく。札の束に「＋」 */
+export function ExpandIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6.4 7.4h9.2a1.6 1.6 0 0 1 1.6 1.6v9.4a1.6 1.6 0 0 1-1.6 1.6H6.4a1.6 1.6 0 0 1-1.6-1.6V9a1.6 1.6 0 0 1 1.6-1.6Z" />
+      <path d="M8.4 4.6h9a1.6 1.6 0 0 1 1.6 1.6v9" />
+      <path d="M11 13.7h4.4M13.2 11.5v4.4" />
+    </svg>
+  );
+}
+
+/** つながりマップ＆派生語パズル ＝ 語と語をつなぐ。線で結んだ点と、はまるピース */
+export function PuzzleIcon({ className = "w-5 h-5" }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="5.4" cy="6.2" r="2.2" />
+      <circle cx="18.6" cy="5.6" r="2" />
+      <path d="M7.4 7.2 11 9.4M16.8 6.6 13.6 9" />
+      <path d="M9.6 10.4h2.2a1.4 1.4 0 1 1 2.8 0h2.2v2.2a1.4 1.4 0 1 0 0 2.8v2.2h-2.2a1.4 1.4 0 1 0-2.8 0H9.6v-2.4a1.4 1.4 0 1 1 0-2.6Z" />
+    </svg>
+  );
+}

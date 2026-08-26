@@ -40,7 +40,7 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
 import StudyCalendar from "./StudyCalendar";
-import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon, ListeningIcon, SpellingIcon, AdviceIcon, WeaknessIcon } from "./AppIcons";
+import { StudyListIcon, ReadingIcon, DiaryIcon, ReviewIcon, DictionaryIcon, ListeningIcon, SpellingIcon, AdviceIcon, WeaknessIcon, ExpandIcon } from "./AppIcons";
 import { toFillInSentence } from "../fillIn";
 import { LEVEL_TONE, TONE_STYLE, ACCENT_TONE } from "../levelTheme";
 
@@ -1288,10 +1288,12 @@ export default function Dashboard({
                   onClick={() => setQuestionCount(item.count)}
                   id={`btn_question_count_${item.count}`}
                   aria-pressed={questionCount === item.count}
-                  className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
+                  /* 色は選んでいるレベルに合わせる。レベルを選ぶ列と同じ色で並ぶので、
+                     いま何を何問解こうとしているのかが色でも分かる */
+                  className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${LEVEL_TONE[selectedLevel]} ${
                     questionCount === item.count
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100"
+                      ? `${TONE_STYLE.solid} border-[var(--lv-solid)]`
+                      : TONE_STYLE.soft
                   }`}
                 >
                   {item.label}
@@ -1369,13 +1371,13 @@ export default function Dashboard({
           {/* AI単語・CSVインポートセクション (Explore and Learn) */}
           <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 mt-6 relative overflow-hidden" id="ai_word_creation_bento">
             <div className="absolute right-0 bottom-0 opacity-10 blur-sm flex scale-150 rotate-12 pointer-events-none">
-              <Sparkles className="w-32 h-32 text-indigo-500" />
+              <ExpandIcon className="w-32 h-32 text-indigo-500" />
             </div>
             
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="p-1.5 bg-indigo-100 rounded-xl text-indigo-700">
-                  <Sparkles className="w-4 h-4 fill-indigo-200" />
+                  <ExpandIcon className="w-4 h-4" />
                 </span>
                 <span className="text-xs font-black tracking-wider uppercase font-mono text-indigo-700">Explore and Learn</span>
               </div>
