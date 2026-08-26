@@ -48,9 +48,10 @@ const AboutApp = lazy(() =>
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf, Image as ImageIcon } from "lucide-react";
+import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf, Image as ImageIcon } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
+import { PuzzleIcon } from "./components/AppIcons";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
@@ -780,7 +781,7 @@ export default function App() {
                   className={MENU_ITEM}
                   id="nav_map_puzzle_toggle_btn"
                 >
-                  <Network className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                  <PuzzleIcon className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
                   <span className="flex-1 text-left">AIつながりマップ・パズル</span>
                 </button>
 

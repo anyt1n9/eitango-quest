@@ -19,6 +19,7 @@ import {
 import { UserStats, RankingUser } from "../types";
 import { getAudioContext } from "../sound";
 import { readStoredArray, writeStored } from "../storage";
+import { PuzzleIcon } from "./AppIcons";
 
 // TTS用の簡易発音ヘルパー
 const speakWord = (text: string) => {
@@ -338,7 +339,7 @@ export default function MapAndPuzzle({
         </button>
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-            <Sparkles className="w-5 h-5 fill-indigo-100" />
+            <PuzzleIcon className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-xl font-black text-gray-900 tracking-tight">AI単語つながり＆派生語パズル</h1>
