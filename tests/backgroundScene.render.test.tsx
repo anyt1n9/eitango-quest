@@ -39,6 +39,24 @@ describe("背景の飾り", () => {
     expect(screen.getByTestId("background_scene").dataset.motion).toBe("off");
   });
 
+  it("画像を選んでいるときは、その画像を出す（飾りは出さない）", () => {
+    const url = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+    const { container } = render(<BackgroundScene motion={true} image={url} />);
+    const photo = container.querySelector(".bg-photo") as HTMLElement;
+    expect(photo, "画像の層が無い").not.toBeNull();
+    expect(photo.style.backgroundImage).toContain(url);
+    expect(container.querySelector(".bg-jungle"), "飾りと画像が二重に出ている").toBeNull();
+    expect(container.querySelector(".bg-ocean"), "飾りと画像が二重に出ている").toBeNull();
+  });
+
+  it("画像の上には幕をかける", () => {
+    // 幕が無いと、カードの外に出ている小さな文字が写真の柄に紛れて読めなくなる
+    const { container } = render(
+      <BackgroundScene motion={true} image="data:image/png;base64,iVBORw0KGgo=" />
+    );
+    expect(container.querySelector(".bg-photo-veil"), "幕が無い").not.toBeNull();
+  });
+
   it("画像を使わず、図形だけで描く", () => {
     // 画像を足すと最初の読み込みが増える。飾りのために遅くしない
     const { container } = render(<BackgroundScene motion={true} />);

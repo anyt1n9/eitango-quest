@@ -524,3 +524,23 @@
   12% { opacity: 0.5; }
   100% { transform: translate3d(18px, -105vh, 0); opacity: 0; }
 }
+
+/* 利用者が選んだ背景画像。
+   写真の上には薄い幕をかける。幕が無いと、カードの外に出ている
+   小さな文字（説明文など）が写真の柄に紛れて読めなくなる。 */
+.bg-photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bg-photo-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(241, 246, 236, 0.72);
+  backdrop-filter: blur(2px);
+}
+.dark .bg-photo-veil {
+  background: rgba(3, 18, 29, 0.76);
+}
