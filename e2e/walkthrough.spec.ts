@@ -349,9 +349,27 @@ test("背景の画像はメニューから選べ、消せば もとの飾りに�
     const parts = m[1].split(",").map(v => Number(v.trim()));
     return parts.length > 3 ? parts[3] : 1;
   });
-  expect(veil, "写真の上の幕が無い・薄すぎる").toBeGreaterThanOrEqual(0.6);
+  // 既定は写真が見える濃さにする（濃すぎると、何の画像か分からなくなる）
+  expect(veil, "写真の上の幕が無い").not.toBeNull();
+  expect(veil, "既定の幕が濃すぎて写真が見えない").toBeLessThanOrEqual(0.45);
+  expect(veil, "既定の幕が薄すぎる").toBeGreaterThanOrEqual(0.2);
   // カードの中の文字は、これまでどおり読める
   expect(await page.evaluate(LOW_CONTRAST), "画像の背景で文字が読めない").toEqual([]);
+
+  // 読みにくいときは濃くできる
+  await openNavMenu(page);
+  await page.locator("#nav_background_btn").click();
+  await page.locator("#btn_veil_strong").click();
+  await page.goto("/");
+  await waitForVocabulary(page);
+  const strong = await page.evaluate(() => {
+    const el = document.querySelector(".bg-photo-veil");
+    const m = el && getComputedStyle(el).backgroundColor.match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    const parts = m[1].split(",").map(v => Number(v.trim()));
+    return parts.length > 3 ? parts[3] : 1;
+  });
+  expect(strong, "「しっかり」にしても濃くならない").toBeGreaterThanOrEqual(0.55);
 
   // 消せば もとの飾りに戻る
   await openNavMenu(page);

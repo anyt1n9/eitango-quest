@@ -57,6 +57,16 @@ describe("背景の飾り", () => {
     expect(container.querySelector(".bg-photo-veil"), "幕が無い").not.toBeNull();
   });
 
+  it("幕の濃さを選べる（既定はふつう）", () => {
+    // 濃いままだと写真がぼやけて見え、何を選んだのか分からなくなる。
+    // 逆に薄すぎると、カードの外の文字が柄に紛れる。利用者が決められるようにする
+    const url = "data:image/png;base64,iVBORw0KGgo=";
+    const { rerender } = render(<BackgroundScene motion={true} image={url} />);
+    expect(screen.getByTestId("background_scene").dataset.veil).toBe("normal");
+    rerender(<BackgroundScene motion={true} image={url} veil="light" />);
+    expect(screen.getByTestId("background_scene").dataset.veil).toBe("light");
+  });
+
   it("画像を使わず、図形だけで描く", () => {
     // 画像を足すと最初の読み込みが増える。飾りのために遅くしない
     const { container } = render(<BackgroundScene motion={true} />);

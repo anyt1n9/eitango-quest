@@ -538,9 +538,14 @@
 .bg-photo-veil {
   position: absolute;
   inset: 0;
-  background: rgba(241, 246, 236, 0.72);
-  backdrop-filter: blur(2px);
+  /* ぼかしはかけない。かけると写真がモザイクのように見えて、
+     何の画像を選んだのか分からなくなる */
+  background: rgba(241, 246, 236, 0.3);
 }
-.dark .bg-photo-veil {
-  background: rgba(3, 18, 29, 0.76);
-}
+.dark .bg-photo-veil { background: rgba(3, 18, 29, 0.34); }
+
+/* 幕の濃さ。画像をはっきり見せたい人と、文字を読みやすくしたい人がいる */
+.bg-scene[data-veil="light"] .bg-photo-veil { background: rgba(241, 246, 236, 0.12); }
+.dark .bg-scene[data-veil="light"] .bg-photo-veil { background: rgba(3, 18, 29, 0.16); }
+.bg-scene[data-veil="strong"] .bg-photo-veil { background: rgba(241, 246, 236, 0.6); }
+.dark .bg-scene[data-veil="strong"] .bg-photo-veil { background: rgba(3, 18, 29, 0.64); }

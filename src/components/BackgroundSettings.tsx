@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { ArrowLeft, Image as ImageIcon, Trash2, Upload } from "lucide-react";
 import {
   checkFile, fileToScaledDataUrl, saveBackgroundImage, clearBackgroundImage,
-  MAX_EDGE, MAX_FILE_BYTES
+  MAX_EDGE, MAX_FILE_BYTES, VEIL_CHOICES, VeilLevel
 } from "../backgroundImage";
 
 /**
@@ -17,10 +17,13 @@ interface Props {
   /** いま使っている背景画像（無ければ null） */
   image: string | null;
   onChange: (image: string | null) => void;
+  /** 画像の上にかける幕の濃さ */
+  veil: VeilLevel;
+  onVeilChange: (veil: VeilLevel) => void;
   onBack: () => void;
 }
 
-export default function BackgroundSettings({ image, onChange, onBack }: Props) {
+export default function BackgroundSettings({ image, onChange, veil, onVeilChange, onBack }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -79,7 +82,6 @@ export default function BackgroundSettings({ image, onChange, onBack }: Props) {
         <p className="text-sm text-gray-500 mt-1 max-w-xl">
           お好きな画像を背景にできます。画像は<strong>この端末の中だけ</strong>に保存され、どこにも送信されません。
           選んだ画像は長辺 {MAX_EDGE}px まで縮めてから保存します（{Math.round(MAX_FILE_BYTES / 1024 / 1024)}MB まで）。
-          文字が読みにくくならないよう、画像の上には薄い幕をかけます。
         </p>
 
         <div className="mt-6 border-t border-gray-100 pt-6">
@@ -129,6 +131,36 @@ export default function BackgroundSettings({ image, onChange, onBack }: Props) {
               </button>
             )}
           </div>
+
+          {image && (
+            <div className="mt-6 pt-5 border-t border-gray-100" data-testid="veil_picker">
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">画像の上の幕</h3>
+              <p className="text-xs text-gray-500 mb-3 max-w-md">
+                カードの外に出ている小さな文字（辞書の語数や文法のレベルなど）は、
+                画像の柄に紛れることがあります。読みにくいときは濃くしてください。
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {VEIL_CHOICES.map(c => (
+                  <button
+                    key={c.level}
+                    onClick={() => onVeilChange(c.level)}
+                    aria-pressed={veil === c.level}
+                    id={`btn_veil_${c.level}`}
+                    className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
+                      veil === c.level
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                    }`}
+                  >
+                    {c.label}
+                    <span className={`ml-1.5 font-bold ${veil === c.level ? "text-indigo-100" : "text-gray-400"}`}>
+                      {c.note}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && (
             <p

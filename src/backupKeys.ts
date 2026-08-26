@@ -51,4 +51,5 @@ export const NON_BACKUP_KEYS: Record<string, string> = {
   // 画像そのもの（数百KB）。書き出したJSONが写真で膨らみ、
   // 学習の記録を移すという本来の用途を邪魔する
   quest_bg_image: "端末ごとの見た目の設定で、容量も大きいため",
+  quest_bg_veil: "端末ごとの見た目の設定のため",
 };

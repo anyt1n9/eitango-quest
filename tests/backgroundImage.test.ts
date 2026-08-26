@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import {
-  BG_IMAGE_KEY, MAX_FILE_BYTES, MAX_EDGE, MAX_STORED_CHARS,
-  checkFile, fitSize, readBackgroundImage, saveBackgroundImage, clearBackgroundImage
+  BG_IMAGE_KEY, MAX_FILE_BYTES, MAX_EDGE, MAX_STORED_CHARS, VEIL_KEY, VEIL_CHOICES,
+  checkFile, fitSize, readBackgroundImage, saveBackgroundImage, clearBackgroundImage,
+  readVeilLevel, saveVeilLevel
 } from "../src/backgroundImage";
 
 /**
@@ -91,5 +92,25 @@ describe("保存と読み出し", () => {
 
   it("画像として読めない文字列は保存しない", () => {
     expect(saveBackgroundImage("data:text/html,<script>").ok).toBe(false);
+  });
+});
+
+describe("画像の上の幕", () => {
+  it("既定はふつう。知らない値が入っていてもふつうに落とす", () => {
+    expect(readVeilLevel()).toBe("normal");
+    store.setItem(VEIL_KEY, "とても濃い");
+    expect(readVeilLevel()).toBe("normal");
+  });
+
+  it("選んだ濃さを覚えている", () => {
+    saveVeilLevel("light");
+    expect(readVeilLevel()).toBe("light");
+    saveVeilLevel("strong");
+    expect(readVeilLevel()).toBe("strong");
+  });
+
+  it("選択肢は3つで、それぞれ違う濃さを指す", () => {
+    expect(VEIL_CHOICES.map(c => c.level)).toEqual(["light", "normal", "strong"]);
+    expect(new Set(VEIL_CHOICES.map(c => c.label)).size).toBe(3);
   });
 });

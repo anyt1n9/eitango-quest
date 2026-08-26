@@ -113,3 +113,28 @@ export function fileToScaledDataUrl(file: File, quality = 0.78): Promise<string>
     reader.readAsDataURL(file);
   });
 }
+
+/** 画像の上にかける幕の濃さ */
+export type VeilLevel = "light" | "normal" | "strong";
+
+export const VEIL_KEY = "quest_bg_veil";
+
+/** 濃さの選択肢。画面に出す文言もここに持つ */
+export const VEIL_CHOICES: { level: VeilLevel; label: string; note: string }[] = [
+  { level: "light", label: "うすい", note: "画像がはっきり見える" },
+  { level: "normal", label: "ふつう", note: "既定" },
+  { level: "strong", label: "しっかり", note: "文字が読みやすい" }
+];
+
+export function readVeilLevel(): VeilLevel {
+  try {
+    const saved = localStorage.getItem(VEIL_KEY);
+    return saved === "light" || saved === "strong" ? saved : "normal";
+  } catch {
+    return "normal";
+  }
+}
+
+export function saveVeilLevel(level: VeilLevel): void {
+  writeStored(VEIL_KEY, level);
+}
