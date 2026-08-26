@@ -318,6 +318,49 @@ test("背景の飾りは出るが、出題中は出さない", async ({ page }) 
   await expect(page.locator('[data-testid="background_scene"]')).toHaveCount(1);
 });
 
+test("背景の画像はメニューから選べ、消せば もとの飾りに戻る", async ({ page }) => {
+  // 画像は端末の中だけに置く（どこにも送らない）。
+  // 選ぶところはファイル選択なので、ここでは保存済みの状態から見る
+  const photo = "data:image/svg+xml;base64," + Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#c026d3"/></svg>'
+  ).toString("base64");
+
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await openNavMenu(page);
+  await page.locator("#nav_background_btn").click();
+  await expect(page.locator("#background_settings_screen")).toBeVisible();
+  await expect(page).toHaveURL(/\/background$/);
+
+  // 画像を入れた状態にして、背景が画像に替わることを見る
+  await page.evaluate(url => localStorage.setItem("quest_bg_image", url), photo);
+  await page.goto("/");
+  await waitForVocabulary(page);
+  const scene = page.locator('[data-testid="background_scene"]');
+  await expect(scene).toHaveAttribute("data-kind", "image");
+  // 写真の上には幕をかける。
+  // コントラストの実測（LOW_CONTRAST）は背景が画像の要素を測れない
+  // （何色の上にあるか決まらないため飛ばす）ので、幕の濃さを直接見る
+  const veil = await page.evaluate(() => {
+    const el = document.querySelector(".bg-photo-veil");
+    if (!el) return null;
+    const m = getComputedStyle(el).backgroundColor.match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    const parts = m[1].split(",").map(v => Number(v.trim()));
+    return parts.length > 3 ? parts[3] : 1;
+  });
+  expect(veil, "写真の上の幕が無い・薄すぎる").toBeGreaterThanOrEqual(0.6);
+  // カードの中の文字は、これまでどおり読める
+  expect(await page.evaluate(LOW_CONTRAST), "画像の背景で文字が読めない").toEqual([]);
+
+  // 消せば もとの飾りに戻る
+  await openNavMenu(page);
+  await page.locator("#nav_background_btn").click();
+  await page.locator("#btn_clear_background").click();
+  await expect(page.locator('[data-testid="background_scene"]')).toHaveAttribute("data-kind", "scene");
+  expect(await page.evaluate(() => localStorage.getItem("quest_bg_image"))).toBeNull();
+});
+
 test("知らないパスでも白い画面にならない", async ({ page }) => {
   await page.goto("/no-such-page");
   await expect(page.locator("#btn_junior_reverse")).toBeVisible({ timeout: 30_000 });

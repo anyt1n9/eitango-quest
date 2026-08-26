@@ -35,6 +35,7 @@ const VerbFormsScreen = lazy(() => import("./components/VerbForms"));
 const Grammar = lazy(() => import("./components/Grammar"));
 const DataBackup = lazy(() => import("./components/DataBackup"));
 const GachaShop = lazy(() => import("./components/GachaShop"));
+const BackgroundSettings = lazy(() => import("./components/BackgroundSettings"));
 const PrivacyPolicy = lazy(() =>
   import("./components/LegalPages").then(m => ({ default: m.PrivacyPolicy }))
 );
@@ -47,9 +48,10 @@ const AboutApp = lazy(() =>
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf } from "lucide-react";
+import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Network, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf, Image as ImageIcon } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
+import { readBackgroundImage } from "./backgroundImage";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
 function ScreenLoading() {
@@ -162,6 +164,9 @@ export default function App() {
   // 以前は保存値が "dark" かどうかだけを見ていたため、OSをダークにしている人でも
   // 初回は必ずライトで開いていた。
   const [isDark, setIsDark] = useState<boolean>(() => prefersDarkTheme());
+
+  /** 利用者が選んだ背景画像（無ければ、はじめからの飾りを出す） */
+  const [bgImage, setBgImage] = useState<string | null>(() => readBackgroundImage());
 
   /** 背景の飾りを動かすか。
       動くものが視界にあると落ち着かない人もいるので、切り替えを持たせる
@@ -641,7 +646,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
       {/* 背景の飾り（明るいテーマ＝ジャングル／暗いテーマ＝海）。
           出題中は出さない。視界のすみで何かが動くと、単語より先にそちらへ目が行く */}
-      {!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} />}
+      {!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} />}
       {/*
         ナビゲーションヘッダー。
 
@@ -788,6 +793,15 @@ export default function App() {
                 >
                   <Database className="w-4 h-4 shrink-0 text-gray-500 dark:text-slate-400" />
                   <span className="flex-1 text-left">データ（バックアップ・目標）</span>
+                </button>
+
+                <button
+                  onClick={() => { closeMenu(); navigate(currentScreen === "background" ? "dashboard" : "background"); }}
+                  className={MENU_ITEM}
+                  id="nav_background_btn"
+                >
+                  <ImageIcon className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                  <span className="flex-1 text-left">背景の画像</span>
                 </button>
 
                 {/* 背景の飾りの動き。動くものが視界にあると落ち着かない人もいる */}
@@ -1108,6 +1122,14 @@ export default function App() {
 
         {currentScreen === "privacy" && (
           <PrivacyPolicy onBack={handleBackToDashboard} />
+        )}
+
+        {currentScreen === "background" && (
+          <BackgroundSettings
+            image={bgImage}
+            onChange={setBgImage}
+            onBack={handleBackToDashboard}
+          />
         )}
 
         {currentScreen === "about" && (

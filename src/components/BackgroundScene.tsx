@@ -13,14 +13,28 @@
 interface Props {
   /** 動かすか。端末の設定で止める場合は false を渡す */
   motion: boolean;
+  /** 利用者が選んだ背景画像（data URL）。あるときは、はじめからの飾りの代わりに出す */
+  image?: string | null;
 }
 
-export default function BackgroundScene({ motion }: Props) {
+export default function BackgroundScene({ motion, image }: Props) {
+  // 写真を選んでいるときは、その上に薄い幕をかける。
+  // 幕が無いと、カードの外に出ている小さな文字が写真の柄に紛れて読めなくなる
+  if (image) {
+    return (
+      <div className="bg-scene" data-testid="background_scene" data-kind="image" aria-hidden="true">
+        <div className="bg-photo" style={{ backgroundImage: `url(${image})` }} />
+        <div className="bg-photo-veil" />
+      </div>
+    );
+  }
+
   return (
     <div
       className="bg-scene"
       data-motion={motion ? "on" : "off"}
       data-testid="background_scene"
+      data-kind="scene"
       aria-hidden="true"
     >
       {/* ジャングル（明るいテーマ） */}

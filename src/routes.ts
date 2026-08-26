@@ -22,7 +22,7 @@ export type Screen =
   | "dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz"
   | "reverse_quiz" | "review" | "review_quiz" | "dictionary" | "grammar"
   | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review"
-  | "settings" | "gacha" | "privacy" | "terms" | "about";
+  | "settings" | "gacha" | "privacy" | "terms" | "about" | "background";
 
 export interface Route {
   screen: Screen;
@@ -51,7 +51,8 @@ const PATHS: Record<Screen, string> = {
   gacha: "/gacha",
   privacy: "/privacy",
   terms: "/terms",
-  about: "/about"
+  about: "/about",
+  background: "/background"
 };
 
 /**
