@@ -38,6 +38,50 @@ describe("セキュリティヘッダ", () => {
     const res = await request(app).post("/api/gemini/word-frequency").send({});
     expect(res.headers["x-powered-by"]).toBeUndefined();
   });
+
+  /**
+   * HSTS は本番でだけ付ける。
+   * 判定を `NODE_ENV === "production"` で書いていたが、`npm start`
+   * （node dist/server.cjs）は NODE_ENV を設定しないため、本番で動かしても
+   * このヘッダが1度も付いていなかった。開発サーバーの判定と同じ
+   * 「TypeScript のまま実行しているか」で見る。
+   */
+  it("本番（ビルド済みを実行）では HTTPS への固定を伝える", async () => {
+    const argv = process.argv[1];
+    const env = process.env.NODE_ENV;
+    delete process.env.NODE_ENV;
+    process.argv[1] = "/app/dist/server.cjs";
+    try {
+      // 既定のIPは1分40回の枠を他のテストと分け合っているので、専用のIPで叩く
+      const res = await request(app)
+        .post("/api/gemini/word-frequency")
+        .set("X-Forwarded-For", "192.0.2.7")
+        .send({});
+      expect(res.headers["strict-transport-security"]).toBe("max-age=15552000; includeSubDomains");
+    } finally {
+      process.argv[1] = argv;
+      if (env === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = env;
+    }
+  });
+
+  it("開発サーバー（TypeScript のまま実行）では付けない", async () => {
+    const argv = process.argv[1];
+    const env = process.env.NODE_ENV;
+    delete process.env.NODE_ENV;
+    process.argv[1] = "/app/server.ts";
+    try {
+      const res = await request(app)
+        .post("/api/gemini/word-frequency")
+        .set("X-Forwarded-For", "192.0.2.8")
+        .send({});
+      expect(res.headers["strict-transport-security"]).toBeUndefined();
+    } finally {
+      process.argv[1] = argv;
+      if (env === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = env;
+    }
+  });
 });
 
 describe("入力検証", () => {

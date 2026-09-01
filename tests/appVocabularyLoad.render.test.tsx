@@ -12,6 +12,7 @@ import userEvent from "@testing-library/user-event";
  */
 
 const loadVocabulary = vi.fn();
+const reload = vi.fn();
 vi.mock("../src/vocabulary", () => ({
   loadVocabulary: () => loadVocabulary(),
   loadedVocabulary: () => null
@@ -29,6 +30,12 @@ const WORDS = [
 beforeEach(() => {
   localStorage.clear();
   loadVocabulary.mockReset();
+  reload.mockReset();
+  // jsdom の location.reload は呼ぶと未実装エラーになるので差し替える
+  Object.defineProperty(window, "location", {
+    configurable: true,
+    value: { ...window.location, reload }
+  });
 });
 
 afterEach(() => {
@@ -50,14 +57,15 @@ describe("単語データの読み込みに失敗したとき", () => {
     // 待ち続けている文言に戻っていないこと
     expect(screen.queryByText("単語データを読み込んでいます…")).toBeNull();
 
-    // 押し直すと、もう一度読みに行く
-    loadVocabulary.mockResolvedValueOnce(WORDS);
+    /*
+     * 押し直しは画面ごと開き直す。
+     * 取得に失敗した動的 import はブラウザの module map に「失敗」として残り、
+     * 同じ画面のまま import() を呼び直しても再取得されない
+     * （実測: 押し直しでは通信が1回も出ず、開き直すと2回目の取得が走った）。
+     * そのため「loadVocabulary をもう一度呼ぶ」ではなく reload を確かめる。
+     */
     await userEvent.click(screen.getByRole("button", { name: "もう一度読み込む" }));
-
-    await waitFor(() => {
-      expect(document.getElementById("vocabulary_loading_screen")).toBeNull();
-    });
-    expect(loadVocabulary).toHaveBeenCalledTimes(2);
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it("読み込めているあいだは失敗の表示を出さない", async () => {

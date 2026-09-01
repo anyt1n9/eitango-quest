@@ -108,13 +108,11 @@ export default function App() {
   // 初期収録単語のID（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使う）
   const initialVocabIdsRef = useRef<Set<string>>(new Set());
 
-  // 読み込みに失敗したときの表示と、押し直しのための世代番号
+  // 読み込みに失敗したときの表示
   const [vocabularyFailed, setVocabularyFailed] = useState(false);
-  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
-    setVocabularyFailed(false);
     loadVocabulary().then(words => {
       if (!alive) return;
       initialVocabIdsRef.current = new Set(words.map(w => w.id));
@@ -128,7 +126,7 @@ export default function App() {
       setVocabularyFailed(true);
     });
     return () => { alive = false; };
-  }, [loadAttempt]);
+  }, []);
 
   const [wrongWords, setWrongWords] = useState<string[]>(() =>
     readStoredArray<string>("quest_wrong_words")
@@ -658,13 +656,22 @@ export default function App() {
         <p className="text-sm font-black text-gray-700 dark:text-slate-200">Eigorira</p>
         {vocabularyFailed ? (
           <div className="flex flex-col items-center gap-3 px-6 text-center">
-            <p className="text-xs font-bold text-rose-600" id="vocabulary_load_error" role="alert">
+            {/* 森の地（生成り）の上では rose-600 が 4.28 でAAに届かない。
+                濃い rose-700（実測 5.73／海では 7.04）にする */}
+            <p className="text-xs font-bold text-rose-700" id="vocabulary_load_error" role="alert">
               単語データを読み込めませんでした。<br />通信の状態を確かめて、もう一度お試しください。
             </p>
+            {/*
+              読み直しは画面ごと開き直す。
+              取得に失敗した動的 import はブラウザの module map に
+              「失敗」として残り、同じ画面のまま import() を呼び直しても
+              再取得されない（実測: 押し直しでは通信が1回も出ず、
+              開き直すと2回目の取得が走って読み込めた）。
+            */}
             <button
               type="button"
               id="btn_retry_vocabulary"
-              onClick={() => setLoadAttempt(n => n + 1)}
+              onClick={() => window.location.reload()}
               className="min-h-11 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black cursor-pointer transition"
             >
               もう一度読み込む

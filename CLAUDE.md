@@ -32,6 +32,10 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 `App.tsx` は待機画面に理由と「もう一度読み込む」を出す。控えを残すと、
 読み直しても同じ失敗した約束が返るだけで、待機画面から永久に出られない。
 
+「もう一度読み込む」は**画面ごと開き直す**（`location.reload()`）。取得に失敗した
+動的 import はブラウザの module map に「失敗」として残るため、同じ画面のまま
+`import()` を呼び直しても**通信が1回も出ない**（実測。開き直すと2回目の取得が走る）。
+
 `scripts/` が `src/data/vocabulary.ts` を書き換えるときは、単語配列の範囲を
 `scripts/vocabularyFile.ts`（`readVocabularyFile` / `writeVocabularyFile`）で探す。
 3.1MB の1行データなので、`indexOf("[{")` のような素朴な検索で境界を決めると、
@@ -251,6 +255,13 @@ CI でも走る。`vite preview` ではなくビルド済みの `dist/server.cjs
 コンポーネントは色を持たず `src/levelTheme.ts` の `LEVEL_TONE` / `LEVEL_STYLE` を
 組にして使う（`tests/levelTheme.test.ts` が CSS と突き合わせる。
 片方のテーマだけ書き忘れると、その色が「変数が無い＝透明」になって画面から消える）。
+
+テーマは **`index.html` の先頭のスクリプトで決める**（判定は `src/storage.ts` の
+`prefersDarkTheme()` と同じ）。React の効果で `.dark` を付けていたときは、
+暗いテーマでも最初の描画が明るい地で、しかも地の色には200msの遷移が掛かっているため
+（`*` の `transition-property: background-color`）文字だけ先に明るくなり、
+「明るい地に明るい文字」で読めない瞬間があった（待機画面のアプリ名で実測 1.51）。
+`html, body` にも地の色を置いてあるので、根の div が描かれる前も白くならない。
 
 そのため次の点に注意する。
 
