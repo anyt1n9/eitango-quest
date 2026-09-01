@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { pickDistractors, Candidate } from "../src/distractors";
 import { shuffle } from "../src/shuffle";
+import { VOCABULARY_FILE, readVocabularyFile, writeVocabularyFile } from "./vocabularyFile";
 
 /**
  * 収録語の品詞を1語ずつ直す（src/data/vocabulary.ts の pos を書き換える）。
@@ -243,17 +244,14 @@ const TRANSLATION_FIXES: Record<string, string> = {
  */
 const KEPT_ON_PURPOSE = ["desert", "orient", "downtown", "solvent"];
 
-const file = path.join(process.cwd(), "src/data/vocabulary.ts");
-const source = fs.readFileSync(file, "utf8");
-
-const start = source.indexOf("[{");
-const end = source.indexOf("}];") + 2;
-if (start < 0 || end < 2) {
-  console.error("vocabulary.ts の単語配列を見つけられませんでした");
-  process.exit(1);
-}
-
-const words: any[] = JSON.parse(source.slice(start, end));
+/*
+ * 単語配列の範囲は共通処理に任せる。
+ * ここだけ `indexOf("[{")` と `indexOf("}];")` でファイル全体を探していたため、
+ * 例文や訳の中に同じ並びが現れると境界を取り違え、
+ * 誤った範囲を丸ごと書き戻して収録データを壊す恐れがあった。
+ */
+const file = VOCABULARY_FILE;
+const { source, words } = readVocabularyFile(file);
 const changed: string[] = [];
 const targets: any[] = [];
 /** 直す前の訳。訳を書き換えた語を誤答に使っている語も作り直すために控えておく */
@@ -308,7 +306,7 @@ for (const w of rebuild) {
   w.sentenceOptions = shuffle([w.word, ...pickDistractors(target, pool, 3, "word")]);
 }
 
-fs.writeFileSync(file, source.slice(0, start) + JSON.stringify(words) + source.slice(end), "utf8");
+writeVocabularyFile(source, words, file);
 
 /*
  * 品詞を変えると、品詞に結び付いた他のデータも合わなくなる。

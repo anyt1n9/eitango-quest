@@ -27,6 +27,16 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 読み込みが終わるまで単語は0語なので、その状態で保存の副作用を走らせないこと。
 走らせると、保存済みの追加単語（AI・CSV・PDF由来）を空で上書きしてしまう。
 
+別のチャンクなので**取りに行けないことがある**（通信断、サービスワーカー更新後の
+チャンク不整合）。失敗したときは `loadVocabulary()` が控え（`loading`）を捨て、
+`App.tsx` は待機画面に理由と「もう一度読み込む」を出す。控えを残すと、
+読み直しても同じ失敗した約束が返るだけで、待機画面から永久に出られない。
+
+`scripts/` が `src/data/vocabulary.ts` を書き換えるときは、単語配列の範囲を
+`scripts/vocabularyFile.ts`（`readVocabularyFile` / `writeVocabularyFile`）で探す。
+3.1MB の1行データなので、`indexOf("[{")` のような素朴な検索で境界を決めると、
+例文や訳の中の同じ並びを拾って**誤った範囲を丸ごと書き戻し**、収録データを壊す。
+
 ## サーバーの起動
 
 `npm run dev` は `tsx server.ts`、本番は `npm start`（`node dist/server.cjs`）。
@@ -197,6 +207,15 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 - **発音記号のテスト** — `tests/phonetics.test.ts`。通信エラーが続いたときの休止を検査する。
   時計は `__setPhoneticsClock` で差し替える。休止の判定は待ち行列の前後の両方で行う
   （辞書は1ページに50語を同時に描くので、最初の失敗が返る前に50件並んでしまう）。
+- **起動時の読み込みのテスト** — `tests/vocabularyLoad.test.ts` と
+  `tests/appVocabularyLoad.render.test.tsx`。単語データの読み込みが失敗したときに、
+  控えを捨てて読み直せること・待機画面が理由と押し直しを出すことを固定する。
+  失敗そのものは `src/data/vocabulary` を差し替えて起こす
+  （値の取り出しで投げる getter にすると、同じモジュール実体のまま2回試せる）。
+- **生成スクリプトの共通処理のテスト** — `tests/vocabularyFile.test.ts`。
+  単語配列の境界の見つけ方を検査する。壊れ方が「JSON の解析に失敗する」だけとは
+  限らない（誤った範囲を書き戻す）ので、実物の `vocabulary.ts` に加えて
+  例文や訳に `[{` `}];` を含む作りものでも試す。
 
 `tests/*.test.ts` は node 環境、`tests/*.test.tsx` は jsdom 環境で走る
 （`vitest.config.ts` の `projects`）。どちらも `npm test` でまとめて実行される。

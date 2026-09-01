@@ -754,6 +754,12 @@ app.post("/api/gemini/diary", async (req, res) => {
       .map((w: string) => w.trim()),
     300
   );
+  // 形式の検査で全部落ちることがある（数字だけ、空文字、長すぎる文字列など）。
+  // ここで弾かないと、利用者の単語に基づかない日記を書かせたうえに
+  // 1時間あたりの呼び出し予算まで使ってしまう
+  if (words.length === 0) {
+    return res.status(400).json({ error: "習得した英単語リストがありません。" });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
 
