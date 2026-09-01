@@ -24,9 +24,15 @@ export function loadVocabulary(): Promise<Word[]> {
   if (cache) return Promise.resolve(cache);
   // 同時に呼ばれても読み込みは1回にする
   if (!loading) {
+    // 失敗したら控えを捨てる。捨てないと、一度きりの通信の失敗や
+    // サービスワーカー更新後のチャンク不整合で reject した約束が残り続け、
+    // 読み直しても同じ失敗を返すだけになる（＝待機画面から出られない）
     loading = import("./data/vocabulary").then(m => {
       cache = m.initialVocabulary;
       return cache;
+    }).catch(err => {
+      loading = null;
+      throw err;
     });
   }
   return loading;

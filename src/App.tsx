@@ -108,16 +108,27 @@ export default function App() {
   // 初期収録単語のID（ユーザー追加分＝AI/CSV/PDF由来の単語の判定に使う）
   const initialVocabIdsRef = useRef<Set<string>>(new Set());
 
+  // 読み込みに失敗したときの表示と、押し直しのための世代番号
+  const [vocabularyFailed, setVocabularyFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+
   useEffect(() => {
     let alive = true;
+    setVocabularyFailed(false);
     loadVocabulary().then(words => {
       if (!alive) return;
       initialVocabIdsRef.current = new Set(words.map(w => w.id));
       setVocabulary([...words, ...readStoredArray<Word>("quest_vocab_custom")]);
       setVocabularyReady(true);
+    }).catch(() => {
+      // 単語データは別のチャンクなので、通信断やサービスワーカー更新の直後は
+      // 取りに行けないことがある。黙って待ち続けると待機画面から出られないので、
+      // 失敗したことを伝えて押し直せるようにする
+      if (!alive) return;
+      setVocabularyFailed(true);
     });
     return () => { alive = false; };
-  }, []);
+  }, [loadAttempt]);
 
   const [wrongWords, setWrongWords] = useState<string[]>(() =>
     readStoredArray<string>("quest_wrong_words")
@@ -645,7 +656,23 @@ export default function App() {
           <BrainCircuit className="w-7 h-7" />
         </div>
         <p className="text-sm font-black text-gray-700 dark:text-slate-200">Eigorira</p>
-        <p className="text-xs font-bold text-gray-400 dark:text-slate-500">単語データを読み込んでいます…</p>
+        {vocabularyFailed ? (
+          <div className="flex flex-col items-center gap-3 px-6 text-center">
+            <p className="text-xs font-bold text-rose-600" id="vocabulary_load_error" role="alert">
+              単語データを読み込めませんでした。<br />通信の状態を確かめて、もう一度お試しください。
+            </p>
+            <button
+              type="button"
+              id="btn_retry_vocabulary"
+              onClick={() => setLoadAttempt(n => n + 1)}
+              className="min-h-11 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black cursor-pointer transition"
+            >
+              もう一度読み込む
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs font-bold text-gray-400 dark:text-slate-500">単語データを読み込んでいます…</p>
+        )}
       </div>
     );
   }
