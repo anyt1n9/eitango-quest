@@ -661,7 +661,13 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
       ["辞書", "/dictionary", "#dictionary_words_container"],
       ["文法ガイド", "/grammar", "#grammar_screen"],
       ["長文一覧", "/reading", "#passages_grid_container"],
-      ["活用表", "/verb-forms", "#verb_forms_screen"]
+      ["活用表", "/verb-forms", "#verb_forms_screen"],
+      // 以下は測っていなかった画面。地に色を付けたあと、
+      // 白いカードの上ではなく地の上に置かれた文字が基準を割ることがある
+      ["つながりマップ", "/map", "#map_puzzle_screen_wrapper"],
+      ["英語日記", "/diary", "#ai_diary_view"],
+      ["ガチャ", "/gacha", "#gacha_shop_root"],
+      ["背景の画像", "/background", "#background_settings_screen"]
     ]) {
       await page.goto(path);
       await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
@@ -695,6 +701,80 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
     await page.waitForTimeout(500);
     expect(await page.evaluate(LOW_CONTRAST), `${theme} / 答え合わせ`).toEqual([]);
   }
+});
+
+/**
+ * 単語データ（3.1MB の別チャンク）が取りに行けなかったときの待機画面。
+ *
+ * 以前は読み込みの失敗を誰も受け取らず、「読み込んでいます…」のまま
+ * 何も起きなかった。ここでは実際にチャンクの取得を落として、
+ *   - 理由と押し直しが出ること
+ *   - 押すと取りに行き直して先へ進めること
+ *   - その画面の文字が明暗どちらのテーマでも読めること
+ * を本物のブラウザで確かめる。
+ */
+test.describe("単語データを取りに行けなかったとき", () => {
+  // サービスワーカーが控えから返すと、わざと落とす仕掛けが素通りしてしまう
+  // （実測でも、控えが効いた回だけ失敗の画面が出なかった）
+  test.use({ serviceWorkers: "block" });
+
+  for (const theme of ["light", "dark"] as const) {
+    test(`理由が出て読み直せる（${theme}）`, async ({ page }) => {
+      // 待機画面は localStorage を読む前に描かれるので、OSの設定でテーマを決める
+      await page.emulateMedia({ colorScheme: theme });
+
+      // 1回目だけ落とす（押し直しで読めるようにする）
+      let attempts = 0;
+      await page.route("**/assets/vocabulary-*.js", route => {
+        attempts++;
+        return attempts === 1 ? route.abort("failed") : route.continue();
+      });
+
+      await page.goto("/");
+      await expect(page.locator("#vocabulary_load_error")).toBeVisible();
+      await expect(page.locator("#btn_retry_vocabulary")).toBeVisible();
+      expect(await page.evaluate(LOW_CONTRAST), `${theme} / 読み込み失敗`).toEqual([]);
+
+      // 押し直すと取りに行き直して、先へ進める。
+      // 取得に失敗した動的 import はブラウザの module map に「失敗」として残るため、
+      // 同じ画面のまま import() を呼び直しても通信が発生しない
+      // （実測で1回も出なかった）。押し直しは画面ごと開き直す作りにしてある
+      await page.locator("#btn_retry_vocabulary").click();
+      await waitForVocabulary(page);
+      expect(attempts, "押し直しで取りに行っていない").toBeGreaterThan(1);
+    });
+  }
+});
+
+/**
+ * 暗いテーマの利用者に、起動の一瞬だけ明るい地を見せない。
+ *
+ * テーマの切り替えを React の効果でやっていたため、暗いテーマでも
+ * 最初の描画は明るい地だった。地の色には200msの遷移が掛かっている
+ * （index.css の transition-property: background-color）ので、
+ * 文字だけ先に明るくなり「明るい地に明るい文字」で読めない瞬間ができていた
+ * （待機画面のアプリ名で実測 1.51／要 4.5）。
+ * いまは index.html の先頭で地の色を決める。
+ */
+test.describe("起動直後のテーマ", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("アプリの JS が動く前から暗いテーマで描く", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    // React を止めて、HTML だけで決まっている状態を見る
+    await page.route("**/assets/index-*.js", route => route.abort("failed"));
+    await page.goto("/");
+    expect(await page.evaluate(() => document.documentElement.className)).toContain("dark");
+    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+      .toBe("rgb(3, 18, 29)");
+  });
+
+  test("明るいテーマの端末では暗くしない", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.route("**/assets/index-*.js", route => route.abort("failed"));
+    await page.goto("/");
+    expect(await page.evaluate(() => document.documentElement.className)).not.toContain("dark");
+  });
 });
 
 test("キーボードで移動した先が分かる", async ({ page }) => {

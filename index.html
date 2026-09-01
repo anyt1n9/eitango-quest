@@ -58,6 +58,34 @@
       ※アプリ内の広告表示自体は adConfig.ts の設定で自動的に動作します。
     -->
     <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+
+    <!--
+      テーマは JS が動く前に決める。
+      React が .dark を付けるのを待つと、暗いテーマの利用者には
+      起動のたびに明るい地が一瞬見える。しかも地の色には200msの遷移が
+      掛かっているため（index.css の transition-property: background-color）、
+      文字だけ先に明るくなり、明るい地に明るい文字という読めない瞬間ができる
+      （待機画面のアプリ名で実測 1.51／要 4.5）。
+      判定は src/storage.ts の prefersDarkTheme() と同じ。
+    -->
+    <script>
+      (function () {
+        var dark = null;
+        try {
+          var saved = localStorage.getItem("quest_theme");
+          if (saved === "dark") dark = true;
+          else if (saved === "light") dark = false;
+        } catch (e) {}
+        if (dark === null) {
+          try {
+            dark = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          } catch (e) {
+            dark = false;
+          }
+        }
+        if (dark) document.documentElement.classList.add("dark");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

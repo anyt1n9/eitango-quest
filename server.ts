@@ -33,8 +33,11 @@ app.use((_req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   // 使用しないブラウザ機能を明示的に無効化
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  if (process.env.NODE_ENV === "production") {
-    // Render は常時TLSのため、HTTPへのダウングレードを禁止（180日）
+  // Render は常時TLSのため、HTTPへのダウングレードを禁止（180日）。
+  // 本番かどうかは isDevServer() で見る。`NODE_ENV === "production"` で見ていたが、
+  // `npm start`（node dist/server.cjs）は NODE_ENV を設定しないため、
+  // 本番で動かしてもこのヘッダが1度も付かなかった（実測で欠落を確認）。
+  if (!isDevServer()) {
     res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
   }
   next();
