@@ -86,6 +86,13 @@ npm run build   # vite build + server.ts のバンドル
    `.env` 内の `GEMINI_API_KEY` を、ご自身の API キーに置き換えてください。
    （API キーは [Google AI Studio](https://ai.studio/) で取得できます）
 
+   Googleドライブとの同期を使う場合は `VITE_GOOGLE_CLIENT_ID` も設定します
+   （未設定なら同期の欄は出ず、ファイルでの書き出し・読み込みだけになります）。
+   Google Cloud で「OAuth クライアントID（ウェブアプリケーション）」を発行し、
+   承認済みの JavaScript 生成元に配布URLと `http://localhost:3000` を登録してください。
+   求める権限は `drive.appdata`（このアプリが作ったファイルのみ）で、
+   学習データはサーバーを通らず利用者自身のドライブに保存されます。
+
 3. 開発サーバーを起動:
    ```bash
    npm run dev

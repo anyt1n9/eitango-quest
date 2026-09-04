@@ -667,7 +667,8 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
       ["つながりマップ", "/map", "#map_puzzle_screen_wrapper"],
       ["英語日記", "/diary", "#ai_diary_view"],
       ["ガチャ", "/gacha", "#gacha_shop_root"],
-      ["背景の画像", "/background", "#background_settings_screen"]
+      ["背景の画像", "/background", "#background_settings_screen"],
+      ["データ", "/settings", "#data_backup_root"]
     ]) {
       await page.goto(path);
       await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
