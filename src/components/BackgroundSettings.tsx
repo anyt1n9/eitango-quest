@@ -4,6 +4,7 @@ import {
   checkFile, fileToScaledDataUrl, saveBackgroundImage, clearBackgroundImage,
   MAX_EDGE, MAX_FILE_BYTES, VEIL_CHOICES, VeilLevel
 } from "../backgroundImage";
+import { GLASS_CHOICES, GlassLevel } from "../glass";
 
 /**
  * 背景の画像を選ぶ画面。
@@ -20,10 +21,13 @@ interface Props {
   /** 画像の上にかける幕の濃さ */
   veil: VeilLevel;
   onVeilChange: (veil: VeilLevel) => void;
+  /** カードとボタンの透明感（ガラス） */
+  glass: GlassLevel;
+  onGlassChange: (glass: GlassLevel) => void;
   onBack: () => void;
 }
 
-export default function BackgroundSettings({ image, onChange, veil, onVeilChange, onBack }: Props) {
+export default function BackgroundSettings({ image, onChange, veil, onVeilChange, glass, onGlassChange, onBack }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -153,7 +157,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
                     }`}
                   >
                     {c.label}
-                    <span className={`ml-1.5 font-bold ${veil === c.level ? "text-indigo-100" : "text-gray-400"}`}>
+                    <span className={`ml-1.5 font-bold ${veil === c.level ? "text-white" : "text-gray-400"}`}>
                       {c.note}
                     </span>
                   </button>
@@ -161,6 +165,37 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
               </div>
             </div>
           )}
+
+          {/* カードとボタンの透明感。
+              画像を選んでいなくても、はじめからの飾り（ジャングル／海）が
+              背後にあるので、常に出す */}
+          <div className="mt-6 pt-5 border-t border-gray-100" data-testid="glass_picker">
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">カードとボタンの透明感</h3>
+            <p className="text-xs text-gray-500 mb-3 max-w-md">
+              ダッシュボードのレベルのカードと、その中のボタンを半透明にして、背景を透かします。
+              透かすほど背景は見えますが、文字は読みにくくなります。
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {GLASS_CHOICES.map(c => (
+                <button
+                  key={c.level}
+                  onClick={() => onGlassChange(c.level)}
+                  aria-pressed={glass === c.level}
+                  id={`btn_glass_${c.level}`}
+                  className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
+                    glass === c.level
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  {c.label}
+                  <span className={`ml-1.5 font-bold ${glass === c.level ? "text-white" : "text-gray-400"}`}>
+                    {c.note}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {error && (
             <p

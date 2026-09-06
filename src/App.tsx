@@ -53,6 +53,7 @@ import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
 import { PuzzleIcon } from "./components/AppIcons";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
+import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
 function ScreenLoading() {
@@ -184,6 +185,20 @@ export default function App() {
     setBgVeil(v);
     saveVeilLevel(v);
   }, []);
+
+  /** カードとボタンの透明感（ガラス）。
+      背景を見せるために面を薄くするほど文字は読みにくくなるので、
+      既定は「オフ」（不透明）にして、選んだ人にだけ効かせる */
+  const [glass, setGlass] = useState<GlassLevel>(() => readGlassLevel());
+  const changeGlass = useCallback((g: GlassLevel) => {
+    setGlass(g);
+    saveGlassLevel(g);
+  }, []);
+  useEffect(() => {
+    // 濃さは CSS 側（:root[data-glass]）が持つ。
+    // 起動直後のちらつきを避けるため、初期値は index.html の先頭でも当てている
+    document.documentElement.dataset.glass = glass;
+  }, [glass]);
 
   /** 背景の飾りを動かすか。
       動くものが視界にあると落ち着かない人もいるので、切り替えを持たせる
@@ -1172,6 +1187,8 @@ export default function App() {
             onChange={setBgImage}
             veil={bgVeil}
             onVeilChange={changeBgVeil}
+            glass={glass}
+            onGlassChange={changeGlass}
             onBack={handleBackToDashboard}
           />
         )}

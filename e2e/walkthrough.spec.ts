@@ -748,6 +748,51 @@ test.describe("単語データを取りに行けなかったとき", () => {
 });
 
 /**
+ * カードとボタンの透明感（ガラス）。
+ *
+ * 面を半透明にすると、その上の文字は**背景しだいで**読めなくなる。
+ * 背景は利用者が選んだ写真にもなるので、何色が来るかは分からない。
+ * そこで飾りを外し、ガラスの下に**最悪の色（黒と白）**を敷いて、
+ * 明暗どちらのテーマでも、どの段階でも基準（WCAG AA）を満たすことを見る。
+ *
+ * ふだんの検査（LOW_CONTRAST）はこの状況を測れない。
+ * 背景は `position: fixed` の別レイヤーで、文字の祖先ではないため、
+ * 半透明のカードを重ねても「地は不透明な地の色」として計算されてしまう。
+ */
+test.describe("ガラスの下に最悪の色を敷いても読める", () => {
+  test.use({ serviceWorkers: "block" });
+
+  for (const theme of ["light", "dark"] as const) {
+    for (const glass of ["off", "light", "strong"] as const) {
+      test(`${theme} / ${glass}`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: theme });
+        await page.addInitScript(g => localStorage.setItem("quest_glass", g), glass);
+        await page.goto("/");
+        await waitForVocabulary(page);
+
+        for (const [name, color] of [["黒", "#000000"], ["白", "#ffffff"]]) {
+          await page.evaluate(c => {
+            // 飾りの絵は色が1つに決まらないので外し、地を最悪の色で塗る。
+            // インラインの !important で置く（後から足したスタイルシートでは
+            // 地の色に効いている規則を越えられないことがある）
+            for (const el of [document.documentElement, document.body,
+                              document.getElementById("app_root_container")]) {
+              if (el) el.style.setProperty("background-color", c, "important");
+            }
+            const scene = document.querySelector(".bg-scene");
+            if (scene) (scene as HTMLElement).style.setProperty("display", "none", "important");
+          }, color);
+          // 地の色には200msの遷移が掛かっている。待たずに測ると、
+          // まだ元の色のままの値で「基準を満たす」と出てしまう（実測で空振りした）
+          await page.waitForTimeout(500);
+          expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${glass} / 下地=${name}`).toEqual([]);
+        }
+      });
+    }
+  }
+});
+
+/**
  * 暗いテーマの利用者に、起動の一瞬だけ明るい地を見せない。
  *
  * テーマの切り替えを React の効果でやっていたため、暗いテーマでも

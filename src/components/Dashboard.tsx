@@ -106,10 +106,10 @@ const LEVELS: {
     badge: `${LEVEL_TONE.junior} ${TONE_STYLE.badge}`,
     rate: `${LEVEL_TONE.junior} ${TONE_STYLE.text}`,
     bar: `${LEVEL_TONE.junior} ${TONE_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.junior} ${TONE_STYLE.solid}`,
+    primaryBtn: `glass-chip ${LEVEL_TONE.junior} ${TONE_STYLE.solid}`,
     subBtn: `${LEVEL_TONE.junior} ${TONE_STYLE.soft}`,
     chip: `${LEVEL_TONE.junior} ${TONE_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.junior} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
+    chipOn: `${LEVEL_TONE.junior} ${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
   },
   {
     level: "senior", short: "高1", title: "中級 (高校1年生レベル)",
@@ -117,10 +117,10 @@ const LEVELS: {
     badge: `${LEVEL_TONE.senior} ${TONE_STYLE.badge}`,
     rate: `${LEVEL_TONE.senior} ${TONE_STYLE.text}`,
     bar: `${LEVEL_TONE.senior} ${TONE_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.senior} ${TONE_STYLE.solid}`,
+    primaryBtn: `glass-chip ${LEVEL_TONE.senior} ${TONE_STYLE.solid}`,
     subBtn: `${LEVEL_TONE.senior} ${TONE_STYLE.soft}`,
     chip: `${LEVEL_TONE.senior} ${TONE_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.senior} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
+    chipOn: `${LEVEL_TONE.senior} ${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
   },
   {
     level: "senior2", short: "高2", title: "中級 (高校2年生レベル)",
@@ -128,10 +128,10 @@ const LEVELS: {
     badge: `${LEVEL_TONE.senior2} ${TONE_STYLE.badge}`,
     rate: `${LEVEL_TONE.senior2} ${TONE_STYLE.text}`,
     bar: `${LEVEL_TONE.senior2} ${TONE_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.senior2} ${TONE_STYLE.solid}`,
+    primaryBtn: `glass-chip ${LEVEL_TONE.senior2} ${TONE_STYLE.solid}`,
     subBtn: `${LEVEL_TONE.senior2} ${TONE_STYLE.soft}`,
     chip: `${LEVEL_TONE.senior2} ${TONE_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.senior2} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
+    chipOn: `${LEVEL_TONE.senior2} ${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
   },
   {
     level: "senior3", short: "高3", title: "中級 (高校3年生レベル)",
@@ -139,10 +139,10 @@ const LEVELS: {
     badge: `${LEVEL_TONE.senior3} ${TONE_STYLE.badge}`,
     rate: `${LEVEL_TONE.senior3} ${TONE_STYLE.text}`,
     bar: `${LEVEL_TONE.senior3} ${TONE_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.senior3} ${TONE_STYLE.solid}`,
+    primaryBtn: `glass-chip ${LEVEL_TONE.senior3} ${TONE_STYLE.solid}`,
     subBtn: `${LEVEL_TONE.senior3} ${TONE_STYLE.soft}`,
     chip: `${LEVEL_TONE.senior3} ${TONE_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.senior3} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
+    chipOn: `${LEVEL_TONE.senior3} ${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
   },
   {
     level: "advanced", short: "大学・社会人", title: "上級 (大学生・社会人)",
@@ -150,10 +150,10 @@ const LEVELS: {
     badge: `${LEVEL_TONE.advanced} ${TONE_STYLE.badge}`,
     rate: `${LEVEL_TONE.advanced} ${TONE_STYLE.text}`,
     bar: `${LEVEL_TONE.advanced} ${TONE_STYLE.bar}`,
-    primaryBtn: `${LEVEL_TONE.advanced} ${TONE_STYLE.solid}`,
+    primaryBtn: `glass-chip ${LEVEL_TONE.advanced} ${TONE_STYLE.solid}`,
     subBtn: `${LEVEL_TONE.advanced} ${TONE_STYLE.soft}`,
     chip: `${LEVEL_TONE.advanced} ${TONE_STYLE.soft}`,
-    chipOn: `${LEVEL_TONE.advanced} ${TONE_STYLE.solid} border-[var(--lv-solid)]`
+    chipOn: `${LEVEL_TONE.advanced} ${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
   }
 ];
 
@@ -1252,7 +1252,7 @@ export default function Dashboard({
               「1回の問題数」だけをレベルの行の末尾に置いていたときは、
               画面の幅によって見出しと選択肢が別の行に離れていた */}
           <div
-            className="flex items-start gap-x-6 gap-y-3 flex-wrap bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-4 py-3"
+            className="glass-panel flex items-start gap-x-6 gap-y-3 flex-wrap bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl px-4 py-3"
             data-testid="question_count_picker"
           >
             {/* レベルを選ぶ。選んだレベルのカードだけを下に出す */}
@@ -1292,7 +1292,7 @@ export default function Dashboard({
                      いま何を何問解こうとしているのかが色でも分かる */
                   className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${LEVEL_TONE[selectedLevel]} ${
                     questionCount === item.count
-                      ? `${TONE_STYLE.solid} border-[var(--lv-solid)]`
+                      ? `${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
                       : TONE_STYLE.soft
                   }`}
                 >
@@ -1310,7 +1310,7 @@ export default function Dashboard({
             const s = getLevelCounts(conf.level);
             return (
               <div
-                className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between"
+                className="glass-panel bg-white border border-gray-100 rounded-2xl p-5 shadow-sm relative flex flex-col justify-between"
                 id="level_selection_section"
                 data-testid={`level_card_${conf.level}`}
               >
