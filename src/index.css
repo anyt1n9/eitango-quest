@@ -344,6 +344,75 @@ html, body {
 .dark .border-rose-250, .dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.45) !important; }
 .dark .border-rose-300 { border-color: rgba(244, 63, 94, 0.55) !important; }
 
+/* ── カードとボタンの透明感（ガラス） ─────────────────────────
+   背景の飾りや写真は、その上に載る不透明なカードでほとんど隠れる。
+   面を半透明にして背後をぼかすと、背景を見せながら文字も読める。
+
+   既定は `off`＝これまでどおり不透明。濃さは `<html data-glass="...">` で決め、
+   値は `src/glass.ts` の GlassLevel と対になる。
+   どこまで薄くしてよいかは見た目では決められないので、
+   e2e「ガラスの下に最悪の色を敷いても読める」で明暗とも実測している。 */
+:root {
+  --glass-alpha: 1;        /* カードの地の残り具合 */
+  --glass-chip-alpha: 1;   /* 塗りつぶしボタンの地の残り具合 */
+  --glass-blur: 0px;
+}
+:root[data-glass="light"] {
+  --glass-alpha: 0.86;
+  --glass-chip-alpha: 0.94;
+  --glass-blur: 12px;
+}
+:root[data-glass="strong"] {
+  --glass-alpha: 0.82;
+  --glass-chip-alpha: 0.88;
+  --glass-blur: 18px;
+}
+
+/* カード（レベルの台）。地は `bg-white` と同じ変数から作るので、
+   森なら白、海なら深い海の色がそのまま薄くなる */
+:root[data-glass="light"] .glass-panel,
+:root[data-glass="strong"] .glass-panel {
+  background-color: color-mix(in srgb, var(--color-white) calc(var(--glass-alpha) * 100%), transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+  /* 縁を明るくして面の輪郭を出す。背景に溶けると、どこまでがカードか分からなくなる */
+  border-color: color-mix(in srgb, var(--color-white) 60%, transparent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+}
+
+/* 淡い色の面（見出しラベル・補助ボタン）。
+   海（暗いテーマ）の淡色は半透明の色かぶせ（rgba 0.16 / 0.26）なので、
+   その下のカードまで透けると色が抜けて文字が沈む。
+   カードの色と混ぜて不透明にし、ガラスでないときと同じ読みやすさに戻す。
+   森（明るいテーマ）の淡色はもともと不透明なので、触らない
+   （混ぜ直すと地が濃くなり、濃い文字とのコントラストがかえって下がる。実測 4.05）。 */
+:root.dark[data-glass="light"] .glass-panel [class*="level-"],
+:root.dark[data-glass="strong"] .glass-panel [class*="level-"] {
+  --lv-bg: color-mix(in srgb, var(--lv-solid) 16%, var(--color-white));
+  --lv-bg-strong: color-mix(in srgb, var(--lv-solid) 26%, var(--color-white));
+}
+
+/* 補助の灰色は、透けていない地でようやく基準を満たす濃さ（実測 4.5 前後）なので、
+   少しでも透かすと必ず下回る。ガラスのときだけ濃くする */
+:root[data-glass="light"] .glass-panel .text-gray-400,
+:root[data-glass="light"] .glass-panel .text-gray-500,
+:root[data-glass="strong"] .glass-panel .text-gray-400,
+:root[data-glass="strong"] .glass-panel .text-gray-500 {
+  color: var(--color-gray-800) !important;
+}
+
+/* 塗りつぶしのボタン（文字が白）。ここは薄くしすぎると白い文字が沈むので、
+   カードよりも地を多く残す */
+:root[data-glass="light"] .glass-chip,
+:root[data-glass="strong"] .glass-chip {
+  background-color: color-mix(in srgb, var(--lv-solid) calc(var(--glass-chip-alpha) * 100%), transparent);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.5)) saturate(1.2);
+}
+/* 上の規則は Tailwind の hover 指定より強いので、押せる感じを別途戻す */
+:root[data-glass="light"] .glass-chip:hover,
+:root[data-glass="strong"] .glass-chip:hover {
+  background-color: var(--lv-solid-hover);
+}
+
 /* ── 背景の飾り（明るいテーマ＝ジャングル／暗いテーマ＝海） ──────────
    画面の中身には触れない。カードは不透明のままなので、
    文字と地のコントラストはこれまでと変わらない。

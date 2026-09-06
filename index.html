@@ -84,6 +84,14 @@
           }
         }
         if (dark) document.documentElement.classList.add("dark");
+
+        // カードの透明感も、React を待たずに当てる（面の色が後から変わると
+        // 背景色に掛かる200msの遷移でちらつく）。値は src/glass.ts と対
+        try {
+          var glass = localStorage.getItem("quest_glass");
+          document.documentElement.dataset.glass =
+            glass === "light" || glass === "strong" ? glass : "off";
+        } catch (e) {}
       })();
     </script>
   </head>
