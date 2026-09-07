@@ -16,7 +16,7 @@ import { makeWord, makeStats } from "./fixtures";
  * を見る。印が外れると、設定を変えても何も起きないのに気づけない。
  */
 
-function renderSettings(glass: "off" | "light" | "strong" = "off") {
+function renderSettings(glass: "off" | "light" | "strong" | "clear" = "off") {
   const onGlassChange = vi.fn();
   render(
     <BackgroundSettings
@@ -89,6 +89,24 @@ describe("透明感を選ぶ", () => {
     const { onGlassChange } = renderSettings();
     await user.click(document.getElementById("btn_glass_light")!);
     expect(onGlassChange).toHaveBeenCalledWith("light");
+  });
+
+  /**
+   * 「透明」だけは、読みやすさを測って保証できない
+   * （文字の地が背景の写真そのものになるため）。
+   * 黙って選ばせると「急に読めなくなった」としか分からないので、選んだら伝える。
+   */
+  it("透明を選んでいるときだけ、読みにくくなり得ることを伝える", () => {
+    renderSettings("clear");
+    expect(document.getElementById("glass_clear_note")).toBeTruthy();
+  });
+
+  it("保証のある段階では、その注意書きは出さない", () => {
+    for (const level of ["off", "light", "strong"] as const) {
+      cleanup();
+      renderSettings(level);
+      expect(document.getElementById("glass_clear_note"), level).toBeNull();
+    }
   });
 });
 

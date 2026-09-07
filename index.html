@@ -90,7 +90,7 @@
         try {
           var glass = localStorage.getItem("quest_glass");
           document.documentElement.dataset.glass =
-            glass === "light" || glass === "strong" ? glass : "off";
+            glass === "light" || glass === "strong" || glass === "clear" ? glass : "off";
         } catch (e) {}
       })();
     </script>
