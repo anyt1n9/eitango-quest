@@ -195,6 +195,19 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
                 </button>
               ))}
             </div>
+            {/* 「透明」だけは、読みやすさを測って保証できない
+                （文字の地が背景の写真そのものになるため）。選ぶ前に伝える */}
+            {glass === "clear" && (
+              <p
+                className="text-xs text-gray-700 font-bold mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 max-w-md"
+                id="glass_clear_note"
+                role="status"
+              >
+                「透明」はカードの地を置かないため、背景の画像によっては文字が読みにくくなります
+                （明るい写真の上では明るい文字が、暗い写真の上では暗い文字が沈みます）。
+                読みにくいときは「しっかり透ける」に戻すか、背景の画像を変えてください。
+              </p>
+            )}
           </div>
 
           {error && (

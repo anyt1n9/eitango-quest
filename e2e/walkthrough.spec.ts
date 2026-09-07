@@ -758,6 +758,12 @@ test.describe("単語データを取りに行けなかったとき", () => {
  * ふだんの検査（LOW_CONTRAST）はこの状況を測れない。
  * 背景は `position: fixed` の別レイヤーで、文字の祖先ではないため、
  * 半透明のカードを重ねても「地は不透明な地の色」として計算されてしまう。
+ *
+ * 4段目の「透明」（`clear`）は**ここでは測らない**。地をまったく置かないので、
+ * 文字の地は背景の写真そのものになり、どんな色が来るかは決められない。
+ * 実測でも、明るい写真の上で 1.73、暗い写真の上で 1.14 まで落ちる。
+ * 保証できないことを承知で選ぶ段階なので、画面に注意書きを出したうえで
+ * 「地を置いていないこと・縁取りが付いていること」だけを別に確かめる。
  */
 test.describe("ガラスの下に最悪の色を敷いても読める", () => {
   test.use({ serviceWorkers: "block" });
@@ -790,6 +796,41 @@ test.describe("ガラスの下に最悪の色を敷いても読める", () => {
       });
     }
   }
+});
+
+/**
+ * 「透明」は保証の外にある段階。
+ *
+ * 地を置かない代わりに、背後を強くぼかし、文字に縁取りを付けて輪郭を残している。
+ * この2つが黙って外れると、写真によっては文字が完全に消える。
+ * コントラストの数値では捉えられないので、作りそのものを固定する。
+ */
+test.describe("透明のときの作り", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("地を置かず、ぼかしと縁取りで輪郭を残す", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("quest_glass", "clear"));
+    await page.goto("/");
+    await waitForVocabulary(page);
+
+    const panel = await page.evaluate(() => {
+      const el = document.getElementById("level_selection_section")!;
+      const s = getComputedStyle(el);
+      return { bg: s.backgroundColor, blur: s.backdropFilter, shadow: s.textShadow };
+    });
+    // 地はまったく置かない（半透明ですらない）
+    expect(panel.bg).toBe("rgba(0, 0, 0, 0)");
+    expect(panel.blur).toContain("blur(");
+    expect(panel.shadow).not.toBe("none");
+
+    // 塗りつぶしボタンの縁取りは、文字（白）と反対の暗い色にする。
+    // カードの縁取り（明るいテーマでは白）をそのまま継ぐと、白い文字に白い縁が付いて意味がない
+    const chip = await page.evaluate(() => {
+      const el = document.getElementById("btn_junior_word")!;
+      return getComputedStyle(el).textShadow;
+    });
+    expect(chip).toContain("rgba(0, 0, 0");
+  });
 });
 
 /**

@@ -367,6 +367,13 @@ html, body {
   --glass-chip-alpha: 0.88;
   --glass-blur: 18px;
 }
+/* 透明。地をまったく置かない（＝背後の写真がそのまま文字の地になる）。
+   ここだけは基準を保証できないので、e2e の実測でも別扱いにしている */
+:root[data-glass="clear"] {
+  --glass-alpha: 0;
+  --glass-chip-alpha: 0.35;
+  --glass-blur: 24px;
+}
 
 /* カード（レベルの台）。地は `bg-white` と同じ変数から作るので、
    森なら白、海なら深い海の色がそのまま薄くなる */
@@ -386,7 +393,8 @@ html, body {
    森（明るいテーマ）の淡色はもともと不透明なので、触らない
    （混ぜ直すと地が濃くなり、濃い文字とのコントラストがかえって下がる。実測 4.05）。 */
 :root.dark[data-glass="light"] .glass-panel [class*="level-"],
-:root.dark[data-glass="strong"] .glass-panel [class*="level-"] {
+:root.dark[data-glass="strong"] .glass-panel [class*="level-"],
+:root.dark[data-glass="clear"] .glass-panel [class*="level-"] {
   --lv-bg: color-mix(in srgb, var(--lv-solid) 16%, var(--color-white));
   --lv-bg-strong: color-mix(in srgb, var(--lv-solid) 26%, var(--color-white));
 }
@@ -396,16 +404,46 @@ html, body {
 :root[data-glass="light"] .glass-panel .text-gray-400,
 :root[data-glass="light"] .glass-panel .text-gray-500,
 :root[data-glass="strong"] .glass-panel .text-gray-400,
-:root[data-glass="strong"] .glass-panel .text-gray-500 {
+:root[data-glass="strong"] .glass-panel .text-gray-500,
+:root[data-glass="clear"] .glass-panel .text-gray-400,
+:root[data-glass="clear"] .glass-panel .text-gray-500 {
   color: var(--color-gray-800) !important;
+}
+
+/* 透明のときのカード。地を置かず、背後を強くぼかすだけにする。
+   輪郭が消えると「どこまでがカードか」が分からなくなるので、縁だけは残す */
+:root[data-glass="clear"] .glass-panel {
+  background-color: transparent;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+  border-color: color-mix(in srgb, var(--color-white) 45%, transparent);
+  box-shadow: none;
+}
+
+/* 透明のときの文字の縁取り。
+   地が無いぶん、写真の柄に文字が紛れる。カードの地の色
+   （森なら白、海なら深い海の色）で細い縁を作ると、どんな写真の上でも輪郭が残る。
+   ただしこれは**保証ではない**（コントラストの計算に縁取りは効かない）。 */
+:root[data-glass="clear"] .glass-panel {
+  text-shadow:
+    0 0 2px var(--color-white),
+    0 0 4px var(--color-white),
+    0 1px 6px var(--color-white);
 }
 
 /* 塗りつぶしのボタン（文字が白）。ここは薄くしすぎると白い文字が沈むので、
    カードよりも地を多く残す */
 :root[data-glass="light"] .glass-chip,
-:root[data-glass="strong"] .glass-chip {
+:root[data-glass="strong"] .glass-chip,
+:root[data-glass="clear"] .glass-chip {
   background-color: color-mix(in srgb, var(--lv-solid) calc(var(--glass-chip-alpha) * 100%), transparent);
   backdrop-filter: blur(calc(var(--glass-blur) * 0.5)) saturate(1.2);
+}
+
+/* 塗りつぶしボタンの文字は明暗どちらのテーマでも白なので、
+   縁取りは常に暗い色にする（カードの縁取りを継いでしまうと、
+   森では白い文字に白い縁が付いて何も起きない） */
+:root[data-glass="clear"] .glass-chip {
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 /* 上の規則は Tailwind の hover 指定より強いので、押せる感じを別途戻す */
 :root[data-glass="light"] .glass-chip:hover,

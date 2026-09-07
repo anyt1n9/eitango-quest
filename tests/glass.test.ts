@@ -27,7 +27,7 @@ describe("透明感の設定", () => {
   });
 
   it("選んだ濃さを覚える", () => {
-    for (const level of ["light", "strong", "off"] as const) {
+    for (const level of ["light", "strong", "clear", "off"] as const) {
       saveGlassLevel(level);
       expect(store.getItem(GLASS_KEY)).toBe(level);
       expect(readGlassLevel()).toBe(level);
@@ -35,7 +35,7 @@ describe("透明感の設定", () => {
   });
 
   it("知らない値が入っていてもオフとして扱う（読めない状態にしない）", () => {
-    for (const bad of ["", "on", "MAX", "0.5", "null"]) {
+    for (const bad of ["", "on", "MAX", "0.5", "null", "transparent"]) {
       store.setItem(GLASS_KEY, bad);
       expect(readGlassLevel(), bad).toBe("off");
     }
@@ -53,7 +53,7 @@ describe("透明感の設定", () => {
   });
 
   it("選択肢はオフを先頭に、薄い順で並ぶ", () => {
-    expect(GLASS_CHOICES.map(c => c.level)).toEqual(["off", "light", "strong"]);
+    expect(GLASS_CHOICES.map(c => c.level)).toEqual(["off", "light", "strong", "clear"]);
     // 画面に出す文言が欠けていると、何を選んでいるのか分からない
     expect(GLASS_CHOICES.every(c => c.label.length > 0 && c.note.length > 0)).toBe(true);
   });
