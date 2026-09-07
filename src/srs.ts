@@ -16,8 +16,6 @@ export interface SrsState {
 const INTERVAL_DAYS = [1, 1, 2, 4, 7, 14, 30, 60];
 const MAX_BOX = INTERVAL_DAYS.length - 1;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /** 端末のローカル日付を YYYY-MM-DD 文字列で返す */
 export function todayStr(date: Date = new Date()): string {
   const y = date.getFullYear();
@@ -26,10 +24,19 @@ export function todayStr(date: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
-/** 基準日に days 日を加えた日付の YYYY-MM-DD を返す */
+/**
+ * 基準日に days 日を加えた日付の YYYY-MM-DD を返す。
+ *
+ * ミリ秒（24時間 × 日数）で足してはいけない。夏時間を採る地域では
+ * 時計が1時間戻る日が25時間あり、24時間を足しても暦日が進まない
+ * （実測: TZ=America/New_York で addDays("2026-11-01", 1) が同じ日を返した）。
+ * その日に正解した語は次回の期日が「今日のまま」になり、
+ * isDue() が即日 true を返し続けて、同じ語がその日のうちに何度も出題される。
+ */
 function addDays(base: string, days: number): string {
   const d = new Date(base + "T00:00:00");
-  return todayStr(new Date(d.getTime() + days * DAY_MS));
+  d.setDate(d.getDate() + days);
+  return todayStr(d);
 }
 
 /** 解答結果から次の SRS 状態を計算する */

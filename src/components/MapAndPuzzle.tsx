@@ -273,6 +273,20 @@ export default function MapAndPuzzle({
       .filter(({ item }) => item.masked)
       .map(({ idx }) => idx);
     
+    /*
+     * 空欄が1つも無いパズルは、解いたことにしない。
+     *
+     * masked を2〜3個にするようプロンプトで頼んではいるが、
+     * AIに渡している JSON スキーマは masked が真偽値であることしか求めておらず、
+     * 「1つ以上 true」は保証されない。空の配列に対する every は必ず true を返すので、
+     * このまま進むと誰も選んでいないのに全問正解と判定され、
+     * 「AI探査」を押しただけで初回ボーナス(+100P)が入ってしまう。
+     */
+    if (maskedIndices.length === 0) {
+      setErrorStatus("パズルを作れませんでした（空欄がありません）。もう一度「AI探査」をやり直してください。");
+      return;
+    }
+
     const allFilled = maskedIndices.every(idx => userSelections[idx]);
     if (!allFilled) {
       alert("すべての空欄に単語を当てはめてください！");

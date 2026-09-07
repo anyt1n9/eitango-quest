@@ -6,6 +6,7 @@ import Phonetic from "./Phonetic";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { SrsState } from "../srs";
+import { canAnswerInEnglish, canChooseMeaning } from "../quizFormats";
 import { selectQuizWords } from "../selectQuestions";
 import { canUseSpeech, onVoicesChanged } from "../speech";
 import { DominantSenseHint } from "./WordSenses";
@@ -132,10 +133,17 @@ export default function Quiz({
 
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
-    // customWords が渡された場合（SRS復習）はそれを出題プールにする
+    // customWords が渡された場合（SRS復習）はそれを出題プールにする。
+    // 復習の対象は呼び出し側が wordsForFormat で形式に合う語だけに絞っている。
+    //
+    // レベル別の出題では、その形式で問えない語を落とす。
+    // 取り込んだ単語（CSV・AI・PDF）は同じ品詞の候補が足りないと
+    // 誤答が0〜1件しか作れず、そのまま出すと
+    // 「選択肢が1つだけ＝常に正解」の設問になる（誤答生成が取れた分だけ返すため）
+    const canAsk = reverseMode ? canAnswerInEnglish : canChooseMeaning;
     const levelWords = (customWords && customWords.length > 0)
       ? customWords
-      : vocabulary.filter(w => w.level === level);
+      : vocabulary.filter(w => w.level === level && canAsk(w));
     // 復習期日を過ぎた語・まだ解いていない語を優先して選ぶ
     // （SRS復習セッションは既に対象が絞られているのでそのまま使う）
     const picked = (customWords && customWords.length > 0)

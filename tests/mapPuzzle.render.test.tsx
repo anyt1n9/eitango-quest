@@ -32,6 +32,12 @@ const OK_RESPONSE = {
   explanation: "con（共に）+ struct（積む）"
 };
 
+/** 空欄（masked: true）が1つも無い応答。プロンプトで頼んでいるだけで保証は無い */
+const NO_MASKED_RESPONSE = {
+  ...OK_RESPONSE,
+  puzzle: OK_RESPONSE.puzzle.map(p => ({ ...p, masked: false }))
+};
+
 function mockFetch(body: unknown, ok = true) {
   const fn = vi.fn().mockResolvedValue({
     ok,
@@ -301,5 +307,39 @@ describe("派生語パズル", () => {
     expect(within(board).getByText("construct")).toBeInTheDocument();
     // 隠した語は盤面に出さない（出したら答えが見える）
     expect(within(board).queryByText("construction")).not.toBeInTheDocument();
+  });
+});
+
+describe("空欄が1つも無いパズル", () => {
+  /**
+   * masked を2〜3個にするようプロンプトで頼んでいるだけで、
+   * AIに渡すスキーマは「masked が真偽値であること」しか求めていない。
+   * 空欄が0個の応答が来ると maskedIndices が空配列になり、
+   * 空配列の every は必ず true を返すので、誰も選んでいないのに
+   * 全問正解と判定されて初回ボーナス(+100P)が入ってしまっていた。
+   */
+  it("誰も選んでいないのに正解扱いにしない", async () => {
+    mockFetch(NO_MASKED_RESPONSE);
+    const { updateRankingScore, setStats } = renderMap();
+    await search();
+
+    const submit = await screen.findByText(/答え合わせをする/);
+    const user = userEvent.setup();
+    await user.click(submit);
+
+    // 正解の演出も、ボーナスの加算も起きない
+    expect(document.body.textContent).not.toContain("大正解");
+    expect(updateRankingScore).not.toHaveBeenCalled();
+    expect(setStats).not.toHaveBeenCalled();
+  });
+
+  it("やり直せばよいことを伝える", async () => {
+    mockFetch(NO_MASKED_RESPONSE);
+    renderMap();
+    await search();
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByText(/答え合わせをする/));
+    expect(await screen.findByText(/もう一度「AI探査」をやり直してください/)).toBeInTheDocument();
   });
 });
