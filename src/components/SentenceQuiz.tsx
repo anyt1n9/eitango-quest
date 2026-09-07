@@ -6,6 +6,7 @@ import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
+import { canFillSentence } from "../quizFormats";
 // 例文を穴埋めにする処理は共有する（綴りクイズ・取り込みでも同じ扱いが要る）
 import { toFillInSentence } from "../fillIn";
 
@@ -118,10 +119,14 @@ export default function SentenceQuiz({
 
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
-    // customWords が渡された場合（復習）はそれを出題プールにする
+    // customWords が渡された場合（復習）はそれを出題プールにする。
+    // 復習の対象は呼び出し側が wordsForFormat で形式に合う語だけに絞っている。
+    //
+    // レベル別の出題では、例文が無い語・英語の選択肢が足りない語を落とす。
+    // 落とさないと、穴だけがあって選ぶものが無い設問が出る
     const levelWords = (customWords && customWords.length > 0)
       ? customWords
-      : vocabulary.filter(w => w.level === level);
+      : vocabulary.filter(w => w.level === level && canFillSentence(w));
     // 復習期日を過ぎた語・まだ解いていない語を優先して選ぶ
     // （復習セッションは既に対象が絞られているのでそのまま使う）
     const picked = (customWords && customWords.length > 0)

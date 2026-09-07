@@ -6,8 +6,21 @@ interface StudyCalendarProps {
   dailyGoal: number;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKS = 17; // 直近17週間 (約4ヶ月) を表示
+
+/**
+ * 暦日で日数を足した Date を返す。
+ *
+ * ミリ秒（24時間 × 日数）で足してはいけない。夏時間を採る地域では
+ * 時計が1時間戻る日が25時間あり、24時間ずつ足すと同じ暦日が2度現れて
+ * 最後の1日が押し出される（実測: TZ=America/New_York で 2026-11-01 が2回出た）。
+ * 4ヶ月ぶんを並べるこの表は、そうした地域では必ず切り替え日をまたぐ。
+ */
+function addDays(base: Date, days: number): Date {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d;
+}
 
 /**
  * GitHubの草スタイルの学習カレンダー。
@@ -18,15 +31,15 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
   today.setHours(0, 0, 0, 0);
 
   // 表示範囲: 今週の日曜日から WEEKS 週間さかのぼる
-  const endSunday = new Date(today.getTime() - today.getDay() * DAY_MS);
-  const startDate = new Date(endSunday.getTime() - (WEEKS - 1) * 7 * DAY_MS);
+  const endSunday = addDays(today, -today.getDay());
+  const startDate = addDays(endSunday, -(WEEKS - 1) * 7);
 
   // 週ごとの列を構築（列=週、行=曜日）
   const weeks: { date: Date; key: string }[][] = [];
   for (let w = 0; w < WEEKS; w++) {
     const days: { date: Date; key: string }[] = [];
     for (let d = 0; d < 7; d++) {
-      const date = new Date(startDate.getTime() + (w * 7 + d) * DAY_MS);
+      const date = addDays(startDate, w * 7 + d);
       days.push({ date, key: todayStr(date) });
     }
     weeks.push(days);
@@ -61,13 +74,13 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
   {
     let cursor = new Date(today);
     if (!dailyLog[todayKey] || dailyLog[todayKey].count === 0) {
-      cursor = new Date(today.getTime() - DAY_MS); // 今日まだ未学習なら昨日から数える
+      cursor = addDays(today, -1); // 今日まだ未学習なら昨日から数える
     }
     while (true) {
       const key = todayStr(cursor);
       if (dailyLog[key] && dailyLog[key].count > 0) {
         streak++;
-        cursor = new Date(cursor.getTime() - DAY_MS);
+        cursor = addDays(cursor, -1);
       } else {
         break;
       }

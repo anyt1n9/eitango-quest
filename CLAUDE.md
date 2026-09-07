@@ -200,6 +200,20 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   手がかりの無い四択になる。`src/speech.ts` の判定は3値で、音声の一覧が空のときは
   `unknown`（＝塞がない）。多くのブラウザが最初の呼び出しで空を返すため、
   ここで「使えない」と断じると実際には鳴る端末からリスニングを取り上げてしまう。
+- **日付のテスト** — `tests/srsDst.test.ts` と `tests/studyCalendar.render.test.tsx`。
+  日付は**ミリ秒（24時間 × 日数）で足さない**こと。夏時間を採る地域には
+  25時間の日と23時間の日があり、24時間ずつ足すと暦日が進まない・同じ日が2度出る・
+  1日飛ぶ。必ず `Date.setDate()` で暦日として足す。
+  実測（`TZ=America/New_York`）では、復習の期日が「今日のまま」になって同じ語が
+  その日のうちに何度も出題され、学習カレンダーでは 2026-11-01 が2度並んで
+  最後の1日が押し出されていた。日本に夏時間は無いが、時計は利用者の地域に従う。
+  テストは `process.env.TZ` を差し替えて確かめる（時刻は `vi.useFakeTimers` で固定し、
+  次のテストへ持ち越さないよう `afterEach` で `useRealTimers()` を呼ぶ）。
+- **出題プールのテスト** — `tests/quizPool.render.test.tsx`。
+  レベル別の出題は、レベルで絞るだけでなく**その形式で問える語だけ**に絞る
+  （`src/quizFormats.ts` の `canChooseMeaning` / `canAnswerInEnglish` / `canFillSentence`）。
+  取り込んだ単語（CSV・AI・PDF）は同じ品詞の候補が足りないと誤答が0〜1件しか作れず、
+  そのまま出すと「選択肢が1つだけ＝必ず正解」「穴はあるが選ぶものが無い」設問になる。
 - **画面とURLのテスト** — `tests/routes.test.ts`。画面とパスが往復すること、
   知らないパスでも白い画面にならないことを検査する。
 - **入口のテスト** — `tests/dashboardEntry.render.test.tsx`。1回の問題数は
