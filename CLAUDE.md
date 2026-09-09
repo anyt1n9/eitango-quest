@@ -394,6 +394,29 @@ iOSでホーム画面から開くとポップアップが戻らない）でも�
 `tests/driveSync.render.test.tsx`（画面から選べること、上書き前の確認、
 未設定・未連携のときの振る舞い）。通信は `fetch` を差し替えて確かめる。
 
+## 依存パッケージの脆弱性
+
+`npm audit` は `npm run lint` などと同じく、コードを変えたら見ること。
+
+`package.json` の **`overrides` にある `qs: ^6.16.0` は消さないこと。**
+`express@4.22.2`（4系の最新）が `qs@~6.15.1` を要求しており、修正版の 6.16.0 へは
+自力で上がれない（`npm audit fix` も直せない）。express 側が対応版を出したら外してよい。
+
+このとき報告されていた2件は、**このアプリでは到達しない経路**にあった。
+記録として残しておく（同じ勧告がまた出たときに調べ直さないため）。
+
+- 「isBuffer の DoS」… 該当の関数は `qs` の `stringify.js` からしか呼ばれない。
+  express と body-parser が使うのは `parse` だけで、アプリ自身も `qs` を import していない。
+- 「arrayLimit の迂回」… 修正箇所は `throwOnLimitExceeded` と `comma` を
+  両方有効にしたときだけ通る。express（`allowPrototypes` と `arrayLimit` のみ）も
+  body-parser（＋`depth` `strictDepth` `parameterLimit`）も設定していない。
+
+到達しなくても直すのは、警告が残っていると**次に本当に危ないものが出たときに埋もれる**ため。
+
+`vitest` の勧告（`@vitest/mocker` の path traversal）だけは残してある。
+直すには 3.2.7 から 5.0.0 へのメジャー更新が要り、テスト基盤の入れ替えになる。
+開発とCIでしか動かず、配布物には入らない。
+
 ## 画面とURL
 
 画面ごとに URL を持つ（`src/routes.ts`）。持たせていなかったときは、
