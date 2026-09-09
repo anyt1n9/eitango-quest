@@ -42,5 +42,8 @@
     "vite": "^6.2.3",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }
