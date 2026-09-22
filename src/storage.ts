@@ -12,6 +12,24 @@
  * 「壊れたデータがあっても初期値で起動できる」状態を保証する。
  */
 
+/**
+ * 文字列として保存された値を読み出す。
+ *
+ * `localStorage.getItem` は**アクセスそのものが例外を投げる**ことがある
+ * （Cookie を完全に塞いだ設定のブラウザ、埋め込み表示など）。
+ * useState の初期化子で生のまま呼ぶと、そこで投げた例外を
+ * ErrorBoundary が受け止めて「再読み込み」の画面になるが、
+ * 読み直しても同じ初期化子がまた投げるので、利用者は二度と先へ進めない。
+ */
+export function readStoredString(key: string, fallback: string | null = null): string | null {
+  try {
+    // 保存が無いときも fallback を返す（既定の null は getItem と同じ振る舞い）
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** 配列として保存された値を読み出す。配列でなければ fallback を返す */
 export function readStoredArray<T>(key: string, fallback: T[] = []): T[] {
   try {

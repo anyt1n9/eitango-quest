@@ -70,6 +70,12 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 本文に答えの綴りが残っていると問題にならない。
 穴あけは `src/fillIn.ts` の `toFillInSentence()` にまとめてあり、
 答えのある位置を穴にする（無ければ末尾に足す）。
+
+**穴は1つとは限らない。** 答えが例文に2回以上出てくれば、その数だけ穴ができる。
+戻すときは必ず `showHoles()`（`split(HOLE).join(...)`）を使うこと。
+`replace("[_____]", …)` は最初の1つしか戻さないため、結果一覧や苦手単語カードに
+`[_____]` が文字として残り、読み上げにもその記号が渡る。
+収録済みの語にこの形は無いが、取り込んだ単語（AI・CSV・PDF）では起こりうる。
 「穴の記号があればそのまま使う」にしてはいけない。取り込んだ単語
 （AI・CSV・PDF）は答えを含む例文の末尾に穴を足した形で保存されるため、
 穴はあるのに答えも見えている例文をそのまま出してしまう。
@@ -89,7 +95,12 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 - **動詞の活用のテスト** — `tests/verbForms.test.ts`。`src/verbForms.ts` の不規則動詞表と
   規則変化の綴りを検査する。語末の子音を重ねるかは強勢の位置で決まり綴りからは分からないため
   （prefer→preferred だが offer→offered）、`DOUBLE_FINAL` の一覧で持っている。
+  強勢が中間にある語を入れてはいけない（prohibit は pro-HIB-it なので prohibited）。
   規則変化は米つづりに揃える（travel→traveled）。
+  語末の `e` を落とすと**別の語の活用形**になる動詞は `KEEP_E_BEFORE_ING` で除ける
+  （dye→dyeing。落とすと die の、singe→singeing は sing の ing 形になる）。
+  1語ずつ見ていては気づけないので、**収録の動詞1,529語を総当たり**して
+  ing形・過去形が他の動詞と重ならないことも検査している。
 - **語義のテスト** — `tests/senses.test.ts`。`src/data/senses.ts`（多義語の語義と
   品詞ごとの使用割合）を検査する。生成は `scripts/bake_senses.ts`（通信が必要。
   取得結果は `.cache/` に置かれる。WordNet は `cntlist.rev` に加えて
@@ -214,6 +225,21 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   （`src/quizFormats.ts` の `canChooseMeaning` / `canAnswerInEnglish` / `canFillSentence`）。
   取り込んだ単語（CSV・AI・PDF）は同じ品詞の候補が足りないと誤答が0〜1件しか作れず、
   そのまま出すと「選択肢が1つだけ＝必ず正解」「穴はあるが選ぶものが無い」設問になる。
+- **localStorage が使えない環境のテスト** — `tests/storageBlocked.render.test.tsx`。
+  Cookie を完全に塞いだ設定のブラウザや埋め込み表示では、`localStorage.getItem` を
+  呼んだだけで例外になる。`useState` の初期化子で**生のまま呼んではいけない**。
+  そこで投げると ErrorBoundary の「再読み込み」画面になるが、読み直しても
+  同じ初期化子がまた投げるため、利用者は二度と先へ進めない。
+  文字列は `src/storage.ts` の `readStoredString()` を通すこと
+  （`readStoredArray` / `readStoredObject` / `prefersDarkTheme` と同じ扱い）。
+- **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」。
+  `disabled` が効くのは再描画のあとなので、押した回数だけ処理が走る。
+  状態は必ず**関数形**で書き戻し（`setOwned(prev => …)`）、
+  さらに `useRef` で同期的に二重実行を止める（ログインボーナスの `claimingRef` と同じ）。
+  配列を丸ごと渡すと、待っているあいだに増えた分を消す。
+  テストで連打を再現するときは `fireEvent` を並べても意味が無い
+  （1回ごとに再描画が挟まり、2回目は disabled が効いてしまう）。
+  同じ `act` の中で `element.click()` を続けて呼ぶこと。
 - **画面とURLのテスト** — `tests/routes.test.ts`。画面とパスが往復すること、
   知らないパスでも白い画面にならないことを検査する。
 - **入口のテスト** — `tests/dashboardEntry.render.test.tsx`。1回の問題数は

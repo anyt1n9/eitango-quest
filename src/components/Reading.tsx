@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Level, UserStats, RankingUser, Word } from "../types";
 import { passages, Passage, PassageQuestion } from "../data/passages";
 import { shuffleQuestion } from "../readingQuiz";
-import { readStoredArray, writeStored } from "../storage";
+import { readStoredArray, readStoredString, writeStored } from "../storage";
 import { sanitizePassage, sanitizePassages } from "../passageValidation";
 import { loadGrammar } from "../grammar";
 import { canUseSpeech, onVoicesChanged, speak, stopSpeaking } from "../speech";
@@ -46,7 +46,7 @@ export default function Reading({
   // 日本語訳を出すかどうかは学習の仕方そのもの（暗記確認は隠して読む）。
   // 毎回「表示する」に戻ると、開くたびに切り直すことになる
   const [showJapanese, setShowJapanese] = useState<boolean>(
-    () => localStorage.getItem("quest_reading_show_ja") !== "false"
+    () => readStoredString("quest_reading_show_ja") !== "false"
   );
 
   useEffect(() => {

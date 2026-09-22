@@ -252,3 +252,53 @@ describe("出題のやり直し", () => {
     expect(optionLabels().join(",")).not.toMatch(/alpha|bravo/);
   });
 });
+
+/**
+ * 例文に答えの語が2回以上出てくる場合。
+ *
+ * 穴あけ（`toFillInSentence`）はすべての出現箇所を穴にするので、穴は複数できる。
+ * 一方、その穴を戻す側は最初の1つしか置き換えていなかったため、
+ * 結果一覧や読み上げに `[_____]` という記号がそのまま残っていた。
+ * 収録済みの語にこの形は無いが、取り込んだ単語（AI・CSV・PDF）では起こりうる。
+ */
+describe("答えが例文に2回以上出てくるとき", () => {
+  const TWICE = makeWord({
+    id: "twice",
+    word: "cat",
+    translation: "猫",
+    sentence: "The cat chased another cat down the street.",
+    sentenceTranslation: "その猫は別の猫を追いかけた。",
+    sentenceOptions: ["cat", "dog", "bird", "fish"]
+  });
+
+  it("出題中の例文に穴の記号が読み物として出ない", () => {
+    renderQuiz([TWICE]);
+    // 穴は「＿＿＿」のような表示用の記号に置き換わっている
+    expect(questionText()).not.toContain("[_____]");
+  });
+
+  it("答え合わせのあとの一覧にも記号が残らない", () => {
+    // 解答したあと、6秒で結果画面へ自動で進む
+    vi.useFakeTimers();
+    try {
+      renderQuiz([TWICE]);
+      fireEvent.click(optionButtons()[0]);
+      act(() => { vi.advanceTimersByTime(6500); });
+      expect(document.getElementById("sentence_result_card")).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain("[_____]");
+      // 答えの語は【 】で囲んで見せる（穴が2つとも戻っている）
+      expect(document.body.textContent).toContain("【 cat 】 chased another 【 cat 】");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("読み上げに穴の記号を渡さない", () => {
+    renderQuiz([TWICE]);
+    const calls = (window.speechSynthesis.speak as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    for (const [utterance] of calls) {
+      expect(utterance.text, utterance.text).not.toContain("_____");
+    }
+  });
+});

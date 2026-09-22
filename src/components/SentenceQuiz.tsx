@@ -8,7 +8,7 @@ import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
 import { canFillSentence } from "../quizFormats";
 // 例文を穴埋めにする処理は共有する（綴りクイズ・取り込みでも同じ扱いが要る）
-import { toFillInSentence } from "../fillIn";
+import { showHoles, toFillInSentence } from "../fillIn";
 
 // クイズ回答時の効果音（シンセ）
 const playSentenceSound = (isCorrect: boolean) => {
@@ -174,7 +174,7 @@ export default function SentenceQuiz({
     if (currentQuestion && !isFinished) {
       try {
         if ("speechSynthesis" in window) {
-          const cleanText = currentQuestion.sentence.replace("[_____]", "something");
+          const cleanText = showHoles(currentQuestion.sentence, "something");
           window.speechSynthesis.cancel();
           const u = new SpeechSynthesisUtterance(cleanText);
           u.lang = "en-US";
@@ -292,7 +292,7 @@ export default function SentenceQuiz({
     try {
       if ("speechSynthesis" in window) {
         // [_____] を何かしらの単語、またはそのままポーズとして発音させるために読み上げ
-        const cleanText = text.replace("[_____]", "something");
+        const cleanText = showHoles(text, "something");
         const u = new SpeechSynthesisUtterance(cleanText);
         u.lang = "en-US";
         u.rate = 0.85;
@@ -562,7 +562,7 @@ export default function SentenceQuiz({
                   </div>
 
                   <p className="text-[13px] font-semibold text-gray-800 leading-relaxed font-sans">
-                    {item.word.sentence.replace("[_____]", `【 ${item.word.word} 】`)}
+                    {showHoles(item.word.sentence, `【 ${item.word.word} 】`)}
                   </p>
                   <p className="text-xs text-gray-500 font-semibold leading-relaxed">
                     訳: {item.word.sentenceTranslation}

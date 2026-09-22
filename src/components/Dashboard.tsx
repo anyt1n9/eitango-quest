@@ -35,7 +35,7 @@ import SimpleMarkdown from "./SimpleMarkdown";
 import { todayStr, SrsState } from "../srs";
 import { isMastered, countMastered } from "../mastery";
 import { parseCSV, buildDistractors, normalizeImportedWord } from "../importWords";
-import { writeStored } from "../storage";
+import { readStoredString, writeStored } from "../storage";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { getWordPos, inferPartOfSpeech } from "../pos";
@@ -717,7 +717,7 @@ export default function Dashboard({
   const [showStudyMenu, setShowStudyMenu] = useState(false);
 
   const [questionCount, setQuestionCount] = useState<number>(() => {
-    const v = Number(localStorage.getItem("quest_question_count"));
+    const v = Number(readStoredString("quest_question_count"));
     return QUESTION_COUNTS.some(c => c.count === v) ? v : 10;
   });
 
@@ -732,7 +732,7 @@ export default function Dashboard({
    * アプリを開くたびに選び直すことになる。
    */
   const [selectedLevel, setSelectedLevel] = useState<Level>(() => {
-    const saved = localStorage.getItem("quest_selected_level");
+    const saved = readStoredString("quest_selected_level");
     return LEVELS.some(l => l.level === saved) ? (saved as Level) : "junior";
   });
 

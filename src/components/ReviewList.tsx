@@ -5,6 +5,7 @@ import { Word, Level } from "../types";
 import { QuizFormat } from "../quizFormats";
 import QuizFormatPicker from "./QuizFormatPicker";
 import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
+import { showHoles } from "../fillIn";
 
 interface ReviewListProps {
   vocabulary: Word[];
@@ -192,7 +193,7 @@ export default function ReviewList({
                                 <span>英文穴埋めでの例:</span>
                               </p>
                               <p className="font-sans font-semibold text-gray-800 italic pr-4 pl-1">
-                                {word.sentence.replace("[_____]", `【 ${word.word} 】`)}
+                                {showHoles(word.sentence, `【 ${word.word} 】`)}
                               </p>
                               <p className="text-[11px] text-gray-500 font-medium pl-1">
                                 訳: {word.sentenceTranslation}

@@ -140,3 +140,28 @@ describe("苦手克服テストの入口", () => {
     expect(onStartReviewQuiz).toHaveBeenCalledWith("word");
   });
 });
+
+/**
+ * 例文に答えの語が2回以上出てくる場合。
+ *
+ * 穴あけはすべての出現箇所を穴にするので、穴は複数できる。
+ * 戻す側が最初の1つしか置き換えていないと、
+ * 苦手単語のカードに `[_____]` という記号がそのまま見えることになる。
+ */
+describe("答えが例文に2回以上出てくるとき", () => {
+  const TWICE = makeWord({
+    id: "w9",
+    word: "cat",
+    translation: "猫",
+    sentence: "The [_____] chased another [_____] down the street.",
+    sentenceTranslation: "その猫は別の猫を追いかけた。"
+  });
+
+  it("穴の記号を残さず、すべて答えで埋めて見せる", async () => {
+    const user = userEvent.setup();
+    renderList({ vocabulary: [...WORDS, TWICE], wrongWords: ["w9"] });
+    await user.click(screen.getByText("cat"));
+    expect(document.body.textContent).not.toContain("[_____]");
+    expect(screen.getByText(/【 cat 】 chased another 【 cat 】/)).toBeInTheDocument();
+  });
+});

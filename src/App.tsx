@@ -46,7 +46,7 @@ const AboutApp = lazy(() =>
   import("./components/LegalPages").then(m => ({ default: m.AboutApp }))
 );
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
-import { readStoredArray, readStoredObject, writeStored, prefersDarkTheme } from "./storage";
+import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf, Image as ImageIcon } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
@@ -151,7 +151,7 @@ export default function App() {
 
   // ランキングのCPUを最後に成長させた日（YYYY-MM-DD）
   const [rivalGrowthDate, setRivalGrowthDate] = useState<string>(
-    () => localStorage.getItem("quest_rival_growth_date") || todayStr()
+    () => readStoredString("quest_rival_growth_date") || todayStr()
   );
 
   // 起動時に、前回からの経過日数ぶんCPUのスコアを伸ばす。
@@ -204,7 +204,7 @@ export default function App() {
       動くものが視界にあると落ち着かない人もいるので、切り替えを持たせる
       （端末の「視差効果を減らす」設定は CSS 側で常に効く） */
   const [bgMotion, setBgMotion] = useState<boolean>(
-    () => localStorage.getItem("quest_bg_motion") !== "off"
+    () => readStoredString("quest_bg_motion") !== "off"
   );
   useEffect(() => {
     writeStored("quest_bg_motion", bgMotion ? "on" : "off");
@@ -226,7 +226,7 @@ export default function App() {
 
   // 1日の学習目標（問題数）
   const [dailyGoal, setDailyGoal] = useState<number>(() => {
-    const v = Number(localStorage.getItem("quest_daily_goal"));
+    const v = Number(readStoredString("quest_daily_goal"));
     return v > 0 ? v : 20;
   });
 
@@ -320,7 +320,7 @@ export default function App() {
 
   // これまでにガチャで消費したポイントの累計（stats.score自体は減算しない）
   const [gachaSpent, setGachaSpent] = useState<number>(() => {
-    const v = Number(localStorage.getItem("quest_gacha_spent"));
+    const v = Number(readStoredString("quest_gacha_spent"));
     return v > 0 ? v : 0;
   });
 

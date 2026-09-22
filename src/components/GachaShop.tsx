@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Sparkles, Gift, Lock, Check, Coins } from "lucide-react";
 import {
@@ -55,18 +55,34 @@ export default function GachaShop({
   const [activeTab, setActiveTab] = useState<"avatar" | "title">("avatar");
   const [pullError, setPullError] = useState("");
 
+  /*
+   * 連打を同期的に止める。
+   *
+   * isPulling（＝ボタンの disabled）が効くのは再描画のあとなので、
+   * その前に2回押されると handlePull が2本走る。どちらも押した時点の
+   * ownedRewardIds を抱えたまま900ms待つため、あとから終わったほうが
+   * 先に当たった新アイテムを**消した状態**で上書きしていた。
+   * ポイントは関数形の更新で両方きちんと引かれるので、
+   * 「払ったのに片方の排出物が残らない」という取り返しのつかない形になる。
+   * ログインボーナス（Dashboard の claimingRef）と同じ作りで塞ぐ。
+   */
+  const pullingRef = useRef(false);
+
   const handlePull = (count: 1 | 10) => {
+    if (pullingRef.current) return;
     const cost = count === 1 ? SINGLE_COST : TEN_COST;
     if (availablePoints < cost) {
       setPullError(`ポイントが足りません（必要: ${cost}P / 現在: ${availablePoints}P）`);
       return;
     }
     setPullError("");
+    pullingRef.current = true;
     setIsPulling(true);
 
     // 抽選演出のためわずかに待ってから結果を表示する
     setTimeout(() => {
       const ownedSet = new Set(ownedRewardIds);
+      const gained: string[] = [];
       let netCost = cost;
       const results: PulledResult[] = [];
 
@@ -77,14 +93,19 @@ export default function GachaShop({
           netCost -= DUPLICATE_REFUND;
         } else {
           ownedSet.add(drawn.id);
+          gained.push(drawn.id);
         }
         results.push({ ...drawn, isDuplicate });
       }
 
-      setOwnedRewardIds(Array.from(ownedSet));
+      // 手に入れた分を「足す」形で書き戻す。配列を丸ごと差し替えると、
+      // 待っているあいだに他で増えた分を消してしまう。
+      // 和集合なので、同じ更新が二度呼ばれても結果は変わらない
+      setOwnedRewardIds(prev => Array.from(new Set([...prev, ...gained])));
       setGachaSpent(prev => prev + netCost);
       setPullResults(results);
       setIsPulling(false);
+      pullingRef.current = false;
     }, 900);
   };
 
