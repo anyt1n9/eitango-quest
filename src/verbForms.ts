@@ -121,7 +121,9 @@ const DOUBLE_FINAL = new Set([
   "begin", "forget", "forbid", "regret", "upset", "beset", "offset", "reset",
   "control", "patrol", "propel", "compel", "expel", "repel", "excel", "dispel", "extol",
   "equip", "format", "allot", "rebut", "unwrap", "entrap", "outfit", "befit",
-  "occurred", "prohibit"
+  "occurred"
+  // prohibit は入れない。強勢が中間の音節（pro-HIB-it）にあるため語末を重ねず、
+  // 正しくは prohibited / prohibiting（visit → visited と同じ形）
 ]);
 
 /**
@@ -153,9 +155,22 @@ export function regularPast(base: string): string {
   return b + "ed";
 }
 
+/**
+ * `e` を落とさずに `ing` を付ける動詞。
+ *
+ * 語末の `e` は落とすのが規則だが（like → liking）、落とすと**別の語の ing 形**に
+ * なってしまう語がある。dye（染める）を dying にすると die（死ぬ）の ing 形、
+ * singe（焦がす）を singing にすると sing（歌う）の ing 形で、
+ * 教材として誤った綴りを教えることになる。
+ * 収録の動詞1,529語を走査して衝突するのはこの2語だけ
+ * （`tests/verbForms.test.ts` が同じ走査を行い、語を足したときに気づけるようにしてある）。
+ */
+const KEEP_E_BEFORE_ING = new Set(["dye", "singe"]);
+
 /** 規則変化の ing 形をつくる */
 export function regularIng(base: string): string {
   const b = base.toLowerCase();
+  if (KEEP_E_BEFORE_ING.has(b)) return b + "ing";            // dye → dyeing
   if (b.endsWith("ie")) return b.slice(0, -2) + "ying";      // lie → lying
   if (b.endsWith("ee")) return b + "ing";                    // see → seeing
   if (b.endsWith("e")) return b.slice(0, -1) + "ing";        // like → liking

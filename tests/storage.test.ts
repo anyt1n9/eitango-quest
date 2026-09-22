@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import {
-  readStoredArray, readStoredObject, writeStored, setStorageErrorHandler, prefersDarkTheme
+  readStoredArray, readStoredObject, readStoredString, writeStored,
+  setStorageErrorHandler, prefersDarkTheme
 } from "../src/storage";
 
 /** localStorage の最小実装（node 環境には存在しないため） */
@@ -206,5 +207,42 @@ describe("prefersDarkTheme", () => {
     setMatchMedia(true);
     expect(prefersDarkTheme()).toBe(true);
     clearMatchMedia();
+  });
+});
+
+/**
+ * localStorage へのアクセス自体が例外を投げる環境。
+ *
+ * Cookie を完全に塞いだ設定のブラウザや、埋め込み表示では
+ * `localStorage.getItem` を呼んだだけで例外になる。
+ * useState の初期化子で生のまま呼ぶと、そこで投げた例外を ErrorBoundary が
+ * 受け止めて「再読み込み」の画面になるが、読み直しても同じ初期化子がまた投げるので、
+ * 利用者はその画面から二度と抜け出せない。
+ */
+describe("readStoredString", () => {
+  it("保存された文字列をそのまま返す", () => {
+    store.setItem("quest_daily_goal", "30");
+    expect(readStoredString("quest_daily_goal")).toBe("30");
+  });
+
+  it("保存が無ければ null（既定の fallback）", () => {
+    expect(readStoredString("quest_daily_goal")).toBeNull();
+    expect(readStoredString("quest_daily_goal", "20")).toBe("20");
+  });
+
+  it("localStorage が例外を投げても落ちない", () => {
+    const original = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = {
+      get length(): number { throw new Error("blocked"); },
+      getItem() { throw new Error("blocked"); },
+      setItem() { throw new Error("blocked"); }
+    };
+    try {
+      expect(() => readStoredString("quest_daily_goal")).not.toThrow();
+      expect(readStoredString("quest_daily_goal")).toBeNull();
+      expect(readStoredString("quest_daily_goal", "20")).toBe("20");
+    } finally {
+      (globalThis as any).localStorage = original;
+    }
   });
 });

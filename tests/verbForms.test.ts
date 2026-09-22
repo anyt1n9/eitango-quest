@@ -254,3 +254,87 @@ describe("型の説明", () => {
     }
   });
 });
+
+/**
+ * 綴りの規則が「別の語」を作ってしまう場合。
+ *
+ * 語末の e を落として ing を付けるのが規則だが（like → liking）、
+ * それで**別の語の ing 形**になってしまう語がある。
+ * dye（染める）を dying にすると die（死ぬ）の、
+ * singe（焦がす）を singing にすると sing（歌う）の ing 形で、
+ * 学習者には誤った綴りとして示されることになる。
+ *
+ * 強勢の位置も綴りからは分からない。prohibit は pro-HIB-it と
+ * 中間の音節に強勢があるので語末を重ねない（visit → visited と同じ）。
+ */
+describe("別の語と衝突する綴り", () => {
+  it("e を落とすと別の語になる動詞は e を残す", () => {
+    expect(regularIng("dye")).toBe("dyeing");
+    expect(regularIng("singe")).toBe("singeing");
+    expect(conjugate("dye").ing).toBe("dyeing");
+    expect(conjugate("singe").ing).toBe("singeing");
+  });
+
+  it("もとの規則（e を落とす）は変わらない", () => {
+    expect(regularIng("like")).toBe("liking");
+    expect(regularIng("die")).toBe("dying");
+    expect(regularIng("lie")).toBe("lying");
+    expect(regularIng("sing")).toBe("singing");
+    expect(regularIng("see")).toBe("seeing");
+  });
+
+  it("過去形は e を残す規則の影響を受けない", () => {
+    expect(regularPast("dye")).toBe("dyed");
+    expect(regularPast("singe")).toBe("singed");
+  });
+
+  it("強勢が語末に無い語は子音を重ねない", () => {
+    expect(regularPast("prohibit")).toBe("prohibited");
+    expect(regularIng("prohibit")).toBe("prohibiting");
+    // 比較: 語末に強勢がある語はこれまでどおり重ねる
+    expect(regularPast("prefer")).toBe("preferred");
+    expect(regularPast("admit")).toBe("admitted");
+    expect(regularPast("stop")).toBe("stopped");
+    // 中間に強勢がある語（もともと正しかったもの）
+    expect(regularPast("visit")).toBe("visited");
+  });
+});
+
+/**
+ * 収録の動詞すべてを突き合わせる。
+ *
+ * dye → dying（die の ing形）と singe → singing（sing の ing形）は、
+ * 1語ずつ見ていては気づけなかった。綴りの規則が別の語を作ってしまう例は
+ * 語を足したときにまた現れるので、1529語を総当たりで確かめる。
+ */
+describe("収録の動詞どうしで形が重ならない", () => {
+  const verbs = [...new Set(
+    initialVocabulary
+      .filter(w => w.pos === "verb")
+      .map(w => String(w.word).toLowerCase())
+  )];
+
+  it("ing形が別の動詞と一致しない", () => {
+    const byForm = new Map<string, string[]>();
+    for (const v of verbs) {
+      const ing = conjugate(v).ing;
+      byForm.set(ing, [...(byForm.get(ing) || []), v]);
+    }
+    const collisions = [...byForm.entries()]
+      .filter(([, vs]) => vs.length > 1)
+      .map(([form, vs]) => `${form} ← ${vs.join(" / ")}`);
+    expect(collisions).toEqual([]);
+  });
+
+  it("過去形が別の動詞と一致しない", () => {
+    const byForm = new Map<string, string[]>();
+    for (const v of verbs) {
+      const past = conjugate(v).past;
+      byForm.set(past, [...(byForm.get(past) || []), v]);
+    }
+    const collisions = [...byForm.entries()]
+      .filter(([, vs]) => vs.length > 1)
+      .map(([form, vs]) => `${form} ← ${vs.join(" / ")}`);
+    expect(collisions).toEqual([]);
+  });
+});

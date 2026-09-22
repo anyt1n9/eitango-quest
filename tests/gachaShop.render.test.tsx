@@ -55,6 +55,17 @@ function spentFrom(setGachaSpent: ReturnType<typeof vi.fn>): number {
   return typeof updater === "function" ? updater(0) : updater;
 }
 
+/**
+ * setOwnedRewardIds(prev => ...) に渡された更新関数を、いまの所持一覧から適用した結果。
+ *
+ * 所持一覧は「足す」形で書き戻す（配列を丸ごと渡すと、待っているあいだに
+ * 増えた分を消してしまう）。テスト側もその形に合わせて中身を取り出す。
+ */
+function ownedFrom(setOwnedRewardIds: ReturnType<typeof vi.fn>, prev: string[] = []): string[] {
+  const updater = setOwnedRewardIds.mock.calls.at(-1)![0];
+  return typeof updater === "function" ? updater(prev) : updater;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
@@ -114,7 +125,7 @@ describe("結果", () => {
     const { setOwnedRewardIds } = renderShop();
     fireEvent.click(document.getElementById("btn_gacha_single")!);
     finishPull();
-    const owned = setOwnedRewardIds.mock.calls.at(-1)![0] as string[];
+    const owned = ownedFrom(setOwnedRewardIds);
     expect(owned).toHaveLength(1);
     expect(REWARD_POOL.map(r => r.id)).toContain(owned[0]);
   });
@@ -129,7 +140,7 @@ describe("結果", () => {
 
     expect(spentFrom(setGachaSpent)).toBe(TEN_COST - DUPLICATE_REFUND * 10);
     // 持ち物は増えない
-    const owned = setOwnedRewardIds.mock.calls.at(-1)![0] as string[];
+    const owned = ownedFrom(setOwnedRewardIds, REWARD_POOL.map(r => r.id));
     expect(owned).toHaveLength(REWARD_POOL.length);
   });
 
@@ -158,5 +169,77 @@ describe("コレクション", () => {
     const cell = within(grid).getByText(first.value);
     fireEvent.click(cell);
     expect(setEquipped).toHaveBeenCalled();
+  });
+});
+
+/**
+ * 連打したとき。
+ *
+ * disabled が効くのは再描画のあとなので、その前に2回押されると
+ * handlePull が2本走る。どちらも押した時点の所持一覧を抱えたまま900ms待つため、
+ * あとから終わったほうが先に当たった新アイテムを消した状態で上書きしていた。
+ * ポイントは関数形の更新で両方きちんと引かれるので、
+ * 「払ったのに片方の排出物が残らない」という取り返しのつかない形になる。
+ */
+describe("連打", () => {
+  /**
+   * 再描画を挟まずに2回押す。
+   *
+   * fireEvent は1回ごとに React を再描画させてしまい、2回目は
+   * disabled が効いた状態になる＝連打の再現にならない。
+   * 同じ act の中で続けて押すと、押した時点ではまだ
+   * disabled が当たっておらず、実際の連打と同じ形になる。
+   */
+  function doubleClick(id: string, times = 2) {
+    const btn = document.getElementById(id)!;
+    act(() => {
+      for (let i = 0; i < times; i++) btn.click();
+    });
+  }
+
+  it("2回押しても抽選は1回だけ", () => {
+    const { setGachaSpent, setOwnedRewardIds } = renderShop();
+    doubleClick("btn_gacha_single");
+    finishPull();
+
+    expect(setGachaSpent).toHaveBeenCalledTimes(1);
+    expect(setOwnedRewardIds).toHaveBeenCalledTimes(1);
+    expect(spentFrom(setGachaSpent)).toBeLessThanOrEqual(SINGLE_COST);
+  });
+
+  it("所持一覧は「足す」形で書き戻す（先に手に入れた分を消さない）", () => {
+    const { setOwnedRewardIds } = renderShop();
+    fireEvent.click(document.getElementById("btn_gacha_single")!);
+    finishPull();
+
+    const updater = setOwnedRewardIds.mock.calls.at(-1)![0];
+    expect(typeof updater, "配列を丸ごと渡すと、待っているあいだに増えた分を消す").toBe("function");
+
+    // 待っているあいだに別の経路で増えた分が残ること
+    const merged: string[] = updater(["earlier_reward"]);
+    expect(merged).toContain("earlier_reward");
+    expect(merged.length).toBeGreaterThan(1);
+
+    // 同じ更新が二度呼ばれても結果が変わらない（和集合）
+    expect(updater(merged).sort()).toEqual(merged.sort());
+  });
+
+  it("10連でも連打は1回分だけ引く", () => {
+    const { setGachaSpent } = renderShop();
+    doubleClick("btn_gacha_ten", 3);
+    finishPull();
+
+    expect(setGachaSpent).toHaveBeenCalledTimes(1);
+    expect(spentFrom(setGachaSpent)).toBeLessThanOrEqual(TEN_COST);
+  });
+
+  it("引き終わればまた引ける", () => {
+    const { setGachaSpent } = renderShop();
+    const btn = document.getElementById("btn_gacha_single")!;
+    fireEvent.click(btn);
+    finishPull();
+    fireEvent.click(btn);
+    finishPull();
+    expect(setGachaSpent).toHaveBeenCalledTimes(2);
   });
 });
