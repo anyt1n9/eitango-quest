@@ -34,6 +34,16 @@ function captureExport(): () => any {
 }
 
 /** ファイル選択の内容を読み込ませる */
+/** 正しいバックアップの形にする（名札と版は書き出し側が必ず入れる） */
+function backupFile(data: Record<string, string>) {
+  return JSON.stringify({
+    app: "eitango-quest",
+    version: 1,
+    exportedAt: "2026-10-02T00:00:00.000Z",
+    data
+  });
+}
+
 async function importJson(body: string) {
   const user = userEvent.setup();
   const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -79,7 +89,7 @@ describe("読み込み", () => {
   it("上書きの前に確かめる", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     renderBackup();
-    await importJson(JSON.stringify({ data: { quest_stats: '{"score":999}' } }));
+    await importJson(backupFile({ quest_stats: '{"score":999}' }));
 
     await waitFor(() => expect(confirm).toHaveBeenCalled());
     // 取り消したら書き換えない
@@ -95,7 +105,7 @@ describe("読み込み", () => {
       value: { ...window.location, reload }
     });
     renderBackup();
-    await importJson(JSON.stringify({ data: { quest_stats: '{"score":999}' } }));
+    await importJson(backupFile({ quest_stats: '{"score":999}' }));
 
     await waitFor(() => expect(localStorage.getItem("quest_stats")).toBe('{"score":999}'));
     expect(reload).toHaveBeenCalled();
@@ -108,7 +118,7 @@ describe("読み込み", () => {
       value: { ...window.location, reload: vi.fn() }
     });
     renderBackup();
-    await importJson(JSON.stringify({ data: { quest_stats: "{}", "悪意のキー": "x" } }));
+    await importJson(backupFile({ quest_stats: "{}", "悪意のキー": "x" }));
 
     await waitFor(() => expect(localStorage.getItem("quest_stats")).toBe("{}"));
     expect(localStorage.getItem("悪意のキー")).toBeNull();
@@ -124,6 +134,33 @@ describe("読み込み", () => {
     renderBackup();
     await importJson(JSON.stringify({ app: "eitango-quest" }));
     expect(await screen.findByText(/ファイルの形式が正しくありません/)).toBeInTheDocument();
+  });
+
+  /**
+   * 名札（app）と版（version）の無いJSONを断る。
+   *
+   * 書き戻しは載っているキーだけを触るので、通してしまうと
+   * 「一部だけ空文字で消える」形になる。しかも画面には「復元しました」と出るため、
+   * 利用者は学習の記録が消えたことに気づけない。
+   */
+  it("別のアプリのJSONを、学習データに触れずに断る", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    localStorage.setItem("quest_srs", '{"j1":{"box":3}}');
+    renderBackup();
+    await importJson(JSON.stringify({ data: { quest_srs: "" } }));
+
+    expect(await screen.findByText(/ファイルの形式が正しくありません/)).toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(localStorage.getItem("quest_srs")).toBe('{"j1":{"box":3}}');
+  });
+
+  it("中身が空のJSONも断る", async () => {
+    localStorage.setItem("quest_srs", '{"j1":{"box":3}}');
+    renderBackup();
+    await importJson(JSON.stringify({ data: {} }));
+
+    expect(await screen.findByText(/ファイルの形式が正しくありません/)).toBeInTheDocument();
+    expect(localStorage.getItem("quest_srs")).toBe('{"j1":{"box":3}}');
   });
 });
 

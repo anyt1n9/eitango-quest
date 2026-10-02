@@ -35,10 +35,18 @@ export function buildBackupPayload(now: Date = new Date()): BackupPayload {
  * ドライブから取ってきたものは、こちらが書いたとは限らない
  * （利用者が別のアプリで置き換えることもできる）ので、
  * ファイルから読んだときと同じだけ疑ってかかる。
+ *
+ * **名札（`app`）と版（`version`）を必ず見ること。**
+ * 中身の形だけを見ていたときは、`{"data":{"quest_srs":""}}` のような
+ * 無関係なJSONでも通ってしまい、復習の期日が空文字で黙って上書きされた。
+ * 書き戻しは `applyBackupPayload()` が載っているキーだけを触るので
+ * 「一部だけ消える」形になり、画面には「復元しました」と出る。
+ * 利用者は学習の記録が消えたことに気づけない。
  */
 export function isBackupPayload(value: unknown): value is BackupPayload {
   if (!value || typeof value !== "object") return false;
   const v = value as Partial<BackupPayload>;
+  if (v.app !== BACKUP_APP || typeof v.version !== "number") return false;
   if (!v.data || typeof v.data !== "object" || Array.isArray(v.data)) return false;
   // 中身は「キー→文字列（または null）」だけを認める
   return Object.values(v.data).every(x => x === null || typeof x === "string");

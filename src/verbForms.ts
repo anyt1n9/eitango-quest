@@ -171,6 +171,8 @@ const KEEP_E_BEFORE_ING = new Set(["dye", "singe"]);
 export function regularIng(base: string): string {
   const b = base.toLowerCase();
   if (KEEP_E_BEFORE_ING.has(b)) return b + "ing";            // dye → dyeing
+  // e を落とすと語幹が1文字しか残らない語は落とさない（be → being。落とすと bing）
+  if (b.length <= 2 && b.endsWith("e")) return b + "ing";
   if (b.endsWith("ie")) return b.slice(0, -2) + "ying";      // lie → lying
   if (b.endsWith("ee")) return b + "ing";                    // see → seeing
   if (b.endsWith("e")) return b.slice(0, -1) + "ing";        // like → liking
@@ -210,12 +212,28 @@ export function conjugate(base: string): VerbForms {
  * 見出しに空白を含む句動詞（give up など）は、活用するのが先頭の語だけで
  * 表の形に収まらないため除く。
  */
+/**
+ * 原形ではない見出し。活用表には出さない。
+ *
+ * 収録データは be動詞の各形（am / is / are / was / were / been）を
+ * 1語ずつ持っている。辞書の見出しとしては要るが、これらは be の活用形であって
+ * 原形ではない。規則変化として扱うと amed / ised / wassed / wered / beened の
+ * ような実在しない綴りを活用表に並べることになる（実測で7語ぶん出ていた）。
+ * 活用表は「原形 → 過去形 → 過去分詞」を見る場なので、be の行だけを出す。
+ *
+ * ここに入れてよいのは**他の語の活用形でしかない見出し**だけ。
+ * lay（置く）・bore（退屈させる）・bound（跳ねる）のように、
+ * たまたま別の語の活用形と同じ綴りでも、それ自体が原形の動詞なら残す。
+ */
+const NOT_BASE_FORMS = new Set(["am", "is", "are", "was", "were", "been", "being"]);
+
 export function buildVerbTable(vocabulary: Word[]): (VerbForms & { word: Word })[] {
   const seen = new Set<string>();
   const out: (VerbForms & { word: Word })[] = [];
   for (const w of vocabulary) {
     if (w.pos !== "verb" || /\s/.test(w.word.trim())) continue;
     const key = w.word.trim().toLowerCase();
+    if (NOT_BASE_FORMS.has(key)) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ ...conjugate(w.word), word: w });
