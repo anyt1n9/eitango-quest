@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, within, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Reading from "../src/components/Reading";
 import { passages } from "../src/data/passages";
@@ -211,5 +211,62 @@ describe("文法ガイドへの導線", () => {
     const focus = passages[0].grammarFocus![0];
     expect(document.getElementById(`btn_passage_grammar_${focus}`)).toBeNull();
     expect(screen.getByTestId("passage_grammar")).toBeInTheDocument();
+  });
+});
+
+/**
+ * 「AIで長文を書き下ろす」の連打。
+ *
+ * isGenerating（＝ボタンの disabled）が効くのは再描画のあとなので、
+ * ダブルクリックでは生成が2本走る。どちらも成功すると同じような長文が
+ * 一覧に2本並び、AIの呼び出しも1回ぶん無駄になる
+ * （長文の生成はいちばん重い呼び出しで、1時間あたりの上限を他の機能と分け合っている）。
+ */
+describe("AI長文の生成の連打", () => {
+  const GENERATED = {
+    id: "aip_x1",
+    level: "senior",
+    title: "The Lighthouse",
+    englishParagraphs: ["The lighthouse stood alone.", "Nobody had visited it for years."],
+    japaneseParagraphs: ["灯台はひとりで立っていた。", "何年も誰も訪れていなかった。"],
+    vocabularyHighlight: [{ word: "lighthouse", translation: "灯台" }],
+    description: "静かな灯台の話",
+    pointReward: 150,
+    questions: [{ question: "灯台はどうなっていましたか。", options: ["孤立していた", "壊れていた"], correctIndex: 0 }]
+  };
+
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...GENERATED }) });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("2回続けて押しても、AIの呼び出しは1回だけ", async () => {
+    renderReading();
+    const btn = document.getElementById("btn_generate_passage")!;
+    // 再描画を挟まずに2回押す（fireEvent を並べると2回目は disabled になり再現にならない）
+    act(() => {
+      btn.click();
+      btn.click();
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("一覧に増える長文も1本だけ", async () => {
+    renderReading();
+    const btn = document.getElementById("btn_generate_passage")!;
+    act(() => {
+      btn.click();
+      btn.click();
+    });
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem("quest_custom_passages") || "[]");
+      expect(saved.length).toBeGreaterThan(0);
+    });
+    const saved = JSON.parse(localStorage.getItem("quest_custom_passages") || "[]");
+    expect(saved).toHaveLength(1);
   });
 });

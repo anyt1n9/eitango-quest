@@ -135,10 +135,23 @@ export default function SpellingQuiz({
     }
   };
 
+  /*
+   * 解答の二度押しを同期的に止める。
+   *
+   * 「一度答えたら選び直せない」は state で守っているが、state が効くのは
+   * 再描画のあとなので、同じ瞬間に2回押されると（スマホのダブルタップなど）両方が通る。
+   * 解答の記録は学習データそのもので、1回の解答が2回分として記録されると
+   * 間隔反復の箱が2段上がり、まだ覚えていない語が「習得済み」になる。
+   * 別の選択肢を続けて押した場合は、両方が解答として記録される。
+   * state の解答状態を消すのと同じ場所で、この印も消す（次の問題では押せるように）。
+   */
+  const answeredRef = useRef(false);
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (judged !== null || !currentQuestion) return;
-    if (input.trim() === "") return;
+    if (answeredRef.current || judged !== null || !currentQuestion) return;
+    if (input.trim() === "") return; // 空のまま送っても、解答済みにはしない
+    answeredRef.current = true;
 
     const isCorrect = isSpellingCorrect(input, currentQuestion.word);
     playSpellSound(isCorrect);
@@ -171,6 +184,7 @@ export default function SpellingQuiz({
   const handleNext = () => {
     const finalScore = score;
     setJudged(null);
+    answeredRef.current = false;
     setInput("");
     setShowHint(false);
     if (currentIndex + 1 < questions.length) {
@@ -198,6 +212,7 @@ export default function SpellingQuiz({
     setCurrentIndex(0);
     setInput("");
     setJudged(null);
+    answeredRef.current = false;
     setShowHint(false);
     setScore(0);
     setDetails([]);

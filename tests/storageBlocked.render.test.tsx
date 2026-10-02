@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup, screen } from "@testing-library/react";
 import Dashboard from "../src/components/Dashboard";
 import Reading from "../src/components/Reading";
+import AIDiary from "../src/components/AIDiary";
 import { makeWord, makeStats } from "./fixtures";
 
 /**
@@ -116,4 +117,27 @@ describe("localStorage が使えない環境", () => {
       restore();
     }
   });
+
+  it("英語日記の画面が開ける", () => {
+    // 開いた直後、保存中の日記が無ければキャッシュを消しに行く。
+    // そこで生の removeItem を呼ぶと、塞がれた環境では画面ごと落ちる
+    const restore = blockStorage();
+    try {
+      expect(() =>
+        render(
+          <AIDiary
+            vocabulary={VOCAB}
+            solvedHistory={{}}
+            srsData={{}}
+            setSolvedHistory={vi.fn()}
+            onBackToDashboard={vi.fn()}
+          />
+        )
+      ).not.toThrow();
+      expect(document.getElementById("ai_diary_view")).toBeTruthy();
+    } finally {
+      restore();
+    }
+  });
 });
+

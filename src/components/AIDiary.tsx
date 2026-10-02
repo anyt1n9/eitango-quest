@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { writeStored } from "../storage";
+import React, { useState, useEffect, useRef } from "react";
+import { removeStored, writeStored } from "../storage";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   ArrowLeft, 
@@ -147,7 +147,7 @@ export default function AIDiary({
     if (diary) {
       writeStored("quest_current_diary_cache", diary);
     } else {
-      localStorage.removeItem("quest_current_diary_cache");
+      removeStored("quest_current_diary_cache");
     }
   }, [diary]);
 
@@ -180,9 +180,21 @@ export default function AIDiary({
     }
   };
 
+  /*
+   * 生成の連打を同期的に止める。
+   *
+   * loading（＝ボタンの disabled）が効くのは再描画のあとなので、
+   * ダブルクリックでは生成が2本走る。どちらも成功すると同じ日の日記が
+   * 履歴に2件積まれ、AIの呼び出しも1回ぶん無駄になる
+   * （呼び出しには1時間あたりの上限があり、他の機能と枠を分け合っている）。
+   * ガチャの pullingRef・単語追加の addingRef と同じ作り。
+   */
+  const generatingRef = useRef(false);
+
   // 生成APIの呼び出し
   const handleGenerateDiary = async () => {
-    if (!isUnlocked) return;
+    if (generatingRef.current || !isUnlocked) return;
+    generatingRef.current = true;
     setLoading(true);
     setError("");
     
@@ -228,6 +240,7 @@ export default function AIDiary({
       setError(err.message || "通信または生成エラーが発生しました。");
     } finally {
       setLoading(false);
+      generatingRef.current = false;
     }
   };
 

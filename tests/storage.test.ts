@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import {
-  readStoredArray, readStoredObject, readStoredString, writeStored,
+  readStoredArray, readStoredObject, readStoredString, writeStored, removeStored,
   setStorageErrorHandler, prefersDarkTheme
 } from "../src/storage";
 
@@ -246,3 +246,23 @@ describe("readStoredString", () => {
     }
   });
 });
+
+describe("removeStored", () => {
+  it("保存した値を消す", () => {
+    store.setItem("quest_current_diary_cache", "{}");
+    expect(removeStored("quest_current_diary_cache")).toBe(true);
+    expect(store.getItem("quest_current_diary_cache")).toBeNull();
+  });
+
+  it("localStorage が例外を投げても落ちない", () => {
+    const original = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = { removeItem() { throw new Error("blocked"); } };
+    try {
+      expect(() => removeStored("quest_current_diary_cache")).not.toThrow();
+      expect(removeStored("quest_current_diary_cache")).toBe(false);
+    } finally {
+      (globalThis as any).localStorage = original;
+    }
+  });
+});
+

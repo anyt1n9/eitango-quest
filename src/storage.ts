@@ -107,6 +107,25 @@ export function writeStored(key: string, value: unknown): boolean {
   }
 }
 
+/**
+ * 保存した値を消す。
+ *
+ * 読み書きと同じく、`localStorage` へのアクセス自体が例外を投げる環境がある。
+ * 消せなくても困ることは無い（もともと残っていない環境なので）ので、握って false を返す。
+ * 英語日記の画面は開いた直後にキャッシュを消しに行くため、ここを生のまま呼ぶと
+ * 塞がれた環境では画面ごと落ちていた。
+ *
+ * @returns 消せたかどうか
+ */
+export function removeStored(key: string): boolean {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** オブジェクト(辞書)として保存された値を読み出す。オブジェクトでなければ fallback を返す */
 export function readStoredObject<T extends object>(key: string, fallback: T): T {
   try {

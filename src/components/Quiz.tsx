@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Loader2, RotateCcw } from "lucide-react";
 import { Level, Word, UserStats, QuizHistory } from "../types";
@@ -109,6 +109,18 @@ export default function Quiz({
 
   // タイマーとスキップ管理用
   const timerRef = React.useRef<any>(null);
+
+  /*
+   * 解答の二度押しを同期的に止める。
+   *
+   * 「一度答えたら選び直せない」は state で守っているが、state が効くのは
+   * 再描画のあとなので、同じ瞬間に2回押されると（スマホのダブルタップなど）両方が通る。
+   * 解答の記録は学習データそのもので、1回の解答が2回分として記録されると
+   * 間隔反復の箱が2段上がり、まだ覚えていない語が「習得済み」になる。
+   * 別の選択肢を続けて押した場合は、両方が解答として記録される。
+   * state の解答状態を消すのと同じ場所で、この印も消す（次の問題では押せるように）。
+   */
+  const answeredRef = useRef(false);
   const nextCallbackRef = React.useRef<(() => void) | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
 
@@ -180,6 +192,7 @@ export default function Quiz({
     setCurrentIndex(0);
     setSelectedOption(null);
     setShowFeedback(null);
+    answeredRef.current = false;
     setScore(0);
     setDetails([]);
     setCountdown(0);
@@ -226,8 +239,10 @@ export default function Quiz({
     return () => window.removeEventListener("keydown", onKey);
   });
 
+
   const handleSelectOption = (option: string) => {
-    if (selectedOption !== null || showFeedback !== null) return;
+    if (answeredRef.current || selectedOption !== null || showFeedback !== null) return;
+    answeredRef.current = true;
     
     setSelectedOption(option);
     const isCorrect = option === (reverseMode ? currentQuestion.word : currentQuestion.translation);
@@ -276,6 +291,7 @@ export default function Quiz({
     const onNext = () => {
       setShowFeedback(null);
       setSelectedOption(null);
+      answeredRef.current = false;
       setCountdown(0);
       nextCallbackRef.current = null;
       if (currentIndex + 1 < questions.length) {
