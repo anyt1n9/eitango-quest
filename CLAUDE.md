@@ -241,8 +241,21 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   同じ初期化子がまた投げるため、利用者は二度と先へ進めない。
   文字列は `src/storage.ts` の `readStoredString()` を通すこと
   （`readStoredArray` / `readStoredObject` / `prefersDarkTheme` と同じ扱い）。
-- **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」と
-  `tests/aiWordAdd.render.test.tsx`（AIで単語を1件ずつ追加）。
+  消すときも同じで、`removeStored()` を使う。英語日記は開いた直後にキャッシュを
+  消しに行くため、生の `removeItem` だと塞がれた環境で画面ごと落ちていた。
+- **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」、
+  `tests/aiWordAdd.render.test.tsx`（AIで単語を1件ずつ追加）、
+  `tests/aiDiary.render.test.tsx` と `tests/reading.render.test.tsx` の「生成の連打」、
+  `tests/answerDoubleTap.render.test.tsx`（クイズの解答の二度押し）。
+  **成功時に一覧へ足す・点数を足す・学習の記録を進める処理には、必ず `useRef` の同期ガードを置く。**
+  解答の二度押しは特に重い。四択・例文穴埋め・綴りのいずれも、スマホのダブルタップで
+  1回の解答が2回分として記録され、間隔反復の箱が2段上がっていた（まだ覚えていない語が
+  「習得済み」になる）。解答の印（`answeredRef`）は、state の解答状態を消すのと
+  **同じ場所で**消すこと。effect で消すと、描画と effect の間に押された次の問題の解答を
+  取りこぼす。逆に消し忘れると2問目以降が押せなくなるので、両方向をテストで見ている。
+  表示を差し替えるだけの処理（学習アドバイス・弱点分析・辞書の補足）は、二重に走っても
+  結果が同じなのでガードを置いていない（AIの呼び出しが1回ぶん増えるだけ）。
+  長文の設問と文法の練習も、更新が関数形で重複を弾くので、二度押しでは何も変わらない。
   `disabled` が効くのは再描画のあとなので、押した回数だけ処理が走る。
   状態は必ず**関数形**で書き戻し（`setOwned(prev => …)`）、
   さらに `useRef` で同期的に二重実行を止める（ログインボーナスの `claimingRef` と同じ）。

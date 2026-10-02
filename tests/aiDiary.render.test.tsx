@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AIDiary from "../src/components/AIDiary";
 import { makeWord } from "./fixtures";
@@ -215,5 +215,43 @@ describe("保存済みの日記が壊れているとき", () => {
     ]));
     mockFetch(OK_RESPONSE);
     expect(() => renderDiary()).not.toThrow();
+  });
+});
+
+/**
+ * 生成ボタンの連打。
+ *
+ * disabled が効くのは再描画のあとなので、ダブルクリックでは生成が2本走る。
+ * どちらも成功すると、同じ日の日記が履歴に2件積まれ、
+ * AIの呼び出しも1回ぶん無駄になる（呼び出しには1時間あたりの上限がある）。
+ */
+describe("生成の連打", () => {
+  it("2回続けて押しても、AIの呼び出しは1回だけ", async () => {
+    const fetchMock = mockFetch({ diaryText: "Today I studied hard.", usedWords: ["study"] });
+    renderDiary();
+    const btn = document.getElementById("generator_diary_btn")!;
+    // 再描画を挟まずに2回押す（fireEvent を並べると2回目は disabled になり再現にならない）
+    act(() => {
+      btn.click();
+      btn.click();
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("履歴に積まれる日記も1件だけ", async () => {
+    mockFetch({ diaryText: "Today I studied hard.", usedWords: ["study"] });
+    renderDiary();
+    const btn = document.getElementById("generator_diary_btn")!;
+    act(() => {
+      btn.click();
+      btn.click();
+    });
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem("quest_diary_history") || "[]");
+      expect(saved.length).toBeGreaterThan(0);
+    });
+    const saved = JSON.parse(localStorage.getItem("quest_diary_history") || "[]");
+    expect(saved).toHaveLength(1);
   });
 });

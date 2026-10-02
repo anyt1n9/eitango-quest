@@ -189,7 +189,20 @@ export default function Reading({
   }, [selectedPassage]);
 
   // AIによる長文の新規生成
+  /*
+   * 生成の連打を同期的に止める。
+   *
+   * isGenerating（＝ボタンの disabled）が効くのは再描画のあとなので、
+   * ダブルクリックでは生成が2本走る。どちらも成功すると同じような長文が
+   * 一覧に2本並び（実測ではAIが同じ id を返して全く同じものが2本になった）、
+   * AIの呼び出しも1回ぶん無駄になる。長文の生成はいちばん重い呼び出しで、
+   * 1時間あたりの上限を他の機能と分け合っている。
+   */
+  const generatingRef = useRef(false);
+
   const handleGeneratePassage = async () => {
+    if (generatingRef.current) return;
+    generatingRef.current = true;
     setIsGenerating(true);
     setGenError("");
     try {
@@ -216,6 +229,7 @@ export default function Reading({
       setGenError(err.message || "AI長文の生成に失敗しました。");
     } finally {
       setIsGenerating(false);
+      generatingRef.current = false;
     }
   };
 
