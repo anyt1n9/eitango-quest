@@ -819,9 +819,23 @@ export default function Dashboard({
   };
 
   // AI単語追加
+  /*
+   * 追加の連打を同期的に止める。
+   *
+   * isAdding（＝ボタンの disabled）が効くのは再描画のあとなので、
+   * ダブルクリックや Enter の連打では handleAddAIWord が2本走る。
+   * どちらも押した時点の vocabulary を抱えているため、重複の確認
+   * （vocabulary.some(...)）は両方とも素通りし、同じ単語が別々のIDで
+   * 2件登録される。クイズにも2件出て、+50のボーナスも二重に入り、
+   * AIの呼び出しも1回ぶん無駄になる。
+   * ガチャの pullingRef・ログインボーナスの claimingRef と同じ作りで塞ぐ。
+   */
+  const addingRef = useRef(false);
+
   const handleAddAIWord = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWord.trim()) return;
+    if (addingRef.current || !newWord.trim()) return;
+    addingRef.current = true;
     setIsAdding(true);
     setAddingError("");
     
@@ -879,6 +893,7 @@ export default function Dashboard({
       setAddingError(err.message || "ネットワークに接続できない、またはAPIの制限により取得に失敗しました。");
     } finally {
       setIsAdding(false);
+      addingRef.current = false;
     }
   };
 

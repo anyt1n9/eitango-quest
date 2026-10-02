@@ -118,7 +118,18 @@ describe("ドライブから取ってくる", () => {
   });
 
   it("形が違うものは中身として受け取らない（学習データを壊さない）", async () => {
-    for (const broken of [{ note: "別のアプリのファイル" }, { data: [1, 2, 3] }, { data: { quest_stats: 42 } }, null]) {
+    const broken_list: unknown[] = [
+      { note: "別のアプリのファイル" }, { data: [1, 2, 3] }, { data: { quest_stats: 42 } }, null,
+      // 名札（app）と版（version）が無いもの。形だけ見ていたときは素通りし、
+      // 載っているキーだけが空文字で黙って上書きされていた
+      { data: {} },
+      { data: { quest_srs: "" } },
+      { data: { quest_stats: "{}" } },
+      { app: "other-app", version: 1, data: { quest_srs: "" } },
+      { app: "eitango-quest", data: { quest_srs: "" } },
+      { app: "eitango-quest", version: "1", data: { quest_srs: "" } }
+    ];
+    for (const broken of broken_list) {
       const { impl } = stubFetch([
         (url) => url.includes("/drive/v3/files?") ? okJson({ files: [{ id: "f1", name: DRIVE_FILE_NAME }] }) : undefined,
         (url) => url.includes("alt=media") ? okJson(broken) : undefined
@@ -188,5 +199,46 @@ describe("writeBackupFile の中身", () => {
     expect(body.endsWith(`--${boundary}--`)).toBe(true);
     // メタデータ → 中身 の順
     expect(body.indexOf('"name"')).toBeLessThan(body.indexOf('"hello"'));
+  });
+});
+
+/**
+ * 復元してよいファイルかどうかの見分け。
+ *
+ * 書き戻しは載っているキーだけを触るので、無関係なJSONを通すと
+ * 「一部だけ空文字で消える」形になる。画面には「復元しました」と出るため、
+ * 利用者は学習の記録が消えたことに気づけない。
+ * 名札（app）と版（version）は書き出し側が必ず入れているので、必ず見る。
+ */
+describe("復元してよいファイルかどうか", () => {
+  it("自分で書き出したものは通る", () => {
+    for (const key of BACKUP_KEYS) store.setItem(key, "v");
+    expect(isBackupPayload(buildBackupPayload())).toBe(true);
+  });
+
+  it("名札が無い・違うものは通さない", () => {
+    const data = { quest_srs: "{}" };
+    expect(isBackupPayload({ data })).toBe(false);
+    expect(isBackupPayload({ version: 1, data })).toBe(false);
+    expect(isBackupPayload({ app: "other-app", version: 1, data })).toBe(false);
+  });
+
+  it("版が数でなければ通さない", () => {
+    const data = { quest_srs: "{}" };
+    expect(isBackupPayload({ app: "eitango-quest", version: "1", data })).toBe(false);
+    expect(isBackupPayload({ app: "eitango-quest", data })).toBe(false);
+  });
+
+  it("中身が空でも、名札が無ければ通さない", () => {
+    expect(isBackupPayload({ data: {} })).toBe(false);
+  });
+
+  it("通さなかったものは、学習データに触れない", () => {
+    store.setItem("quest_srs", '{"j1":{"box":3}}');
+    const fake = { data: { quest_srs: "" } };
+    expect(isBackupPayload(fake)).toBe(false);
+    // 画面側は isBackupPayload を通らなければ applyBackupPayload を呼ばない。
+    // 仮に呼んでしまったら上書きされることを、ここで見せておく
+    expect(store.getItem("quest_srs")).toBe('{"j1":{"box":3}}');
   });
 });

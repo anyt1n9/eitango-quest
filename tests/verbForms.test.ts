@@ -338,3 +338,45 @@ describe("収録の動詞どうしで形が重ならない", () => {
     expect(collisions).toEqual([]);
   });
 });
+
+/**
+ * 原形でない見出しを活用表に出さない。
+ *
+ * 収録データは be動詞の各形（am / is / are / was / were / been）を
+ * 辞書の見出しとして1語ずつ持っている。これを規則変化として扱うと
+ * amed / ised / wassed / wered / beened のような実在しない綴りが
+ * 活用表に並ぶ（実測で7語ぶん出ていた）。
+ * be 自身の ing形も、語末の e を落として bing になっていた。
+ */
+describe("be動詞まわり", () => {
+  it("be の ing形は being（語幹が1文字になる語は e を落とさない）", () => {
+    expect(regularIng("be")).toBe("being");
+    expect(conjugate("be")).toMatchObject({ base: "be", past: "was", participle: "been", ing: "being" });
+  });
+
+  it("活用表に出るのは be の行だけ", () => {
+    const table = buildVerbTable(initialVocabulary);
+    const shown = table.map(r => r.base);
+    expect(shown).toContain("be");
+    for (const form of ["am", "is", "are", "was", "were", "been", "being"]) {
+      expect(shown, `${form} は be の活用形なので原形の表に出さない`).not.toContain(form);
+    }
+  });
+
+  it("たまたま別の語の活用形と同じ綴りでも、原形の動詞なら残す", () => {
+    // lay（置く）・bore（退屈させる）・bound（跳ねる）は、
+    // それぞれ lie / bear / bind の活用形と同じ綴りだが、独立した原形でもある
+    const shown = buildVerbTable(initialVocabulary).map(r => r.base);
+    for (const w of ["lay", "bore", "bound"]) {
+      expect(shown, w).toContain(w);
+    }
+  });
+
+  it("活用表のどの行も、ing形の語幹が2文字以上ある", () => {
+    // 語幹が1文字しか残らない ing形（be → bing）は、綴りとして成り立たない
+    const bad = buildVerbTable(initialVocabulary)
+      .filter(r => r.ing.endsWith("ing") && r.ing.slice(0, -3).length < 2)
+      .map(r => `${r.base} → ${r.ing}`);
+    expect(bad).toEqual([]);
+  });
+});

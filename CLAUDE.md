@@ -99,8 +99,17 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   規則変化は米つづりに揃える（travel→traveled）。
   語末の `e` を落とすと**別の語の活用形**になる動詞は `KEEP_E_BEFORE_ING` で除ける
   （dye→dyeing。落とすと die の、singe→singeing は sing の ing 形になる）。
-  1語ずつ見ていては気づけないので、**収録の動詞1,529語を総当たり**して
-  ing形・過去形が他の動詞と重ならないことも検査している。
+  `e` を落とすと語幹が1文字しか残らない語も落とさない（be→being。落とすと bing）。
+  1語ずつ見ていては気づけないので、**収録の動詞を総当たり**して
+  ing形・過去形が他の動詞と重ならないこと、ing形の語幹が2文字以上あることも検査している。
+
+  **活用表には原形だけを出す**（`NOT_BASE_FORMS`）。収録データは be動詞の各形
+  （am / is / are / was / were / been）を辞書の見出しとして持っているが、
+  これらを規則変化として扱うと amed / ised / wassed / wered / beened のような
+  実在しない綴りが並ぶ（実測で7語ぶん出ていた）。
+  ここに入れてよいのは**他の語の活用形でしかない見出し**だけで、
+  lay（置く）・bore（退屈させる）・bound（跳ねる）のように、
+  たまたま別の語の活用形と同じ綴りでも、それ自体が原形の動詞なら残す。
 - **語義のテスト** — `tests/senses.test.ts`。`src/data/senses.ts`（多義語の語義と
   品詞ごとの使用割合）を検査する。生成は `scripts/bake_senses.ts`（通信が必要。
   取得結果は `.cache/` に置かれる。WordNet は `cntlist.rev` に加えて
@@ -232,14 +241,17 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   同じ初期化子がまた投げるため、利用者は二度と先へ進めない。
   文字列は `src/storage.ts` の `readStoredString()` を通すこと
   （`readStoredArray` / `readStoredObject` / `prefersDarkTheme` と同じ扱い）。
-- **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」。
+- **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」と
+  `tests/aiWordAdd.render.test.tsx`（AIで単語を1件ずつ追加）。
   `disabled` が効くのは再描画のあとなので、押した回数だけ処理が走る。
   状態は必ず**関数形**で書き戻し（`setOwned(prev => …)`）、
   さらに `useRef` で同期的に二重実行を止める（ログインボーナスの `claimingRef` と同じ）。
   配列を丸ごと渡すと、待っているあいだに増えた分を消す。
   テストで連打を再現するときは `fireEvent` を並べても意味が無い
   （1回ごとに再描画が挟まり、2回目は disabled が効いてしまう）。
-  同じ `act` の中で `element.click()` を続けて呼ぶこと。
+  同じ `act` の中で `element.click()`（フォームなら `form.requestSubmit()`）を
+  続けて呼ぶこと。
+  非同期の処理（AI呼び出しなど）でも同じで、`await` を挟むとその間に再描画が入る。
 - **画面とURLのテスト** — `tests/routes.test.ts`。画面とパスが往復すること、
   知らないパスでも白い画面にならないことを検査する。
 - **入口のテスト** — `tests/dashboardEntry.render.test.tsx`。1回の問題数は
@@ -411,6 +423,11 @@ iOSでホーム画面から開くとポップアップが戻らない）でも�
   新しい方に自動で寄せると、2台で学習している人の片方の記録が黙って消える。
 - ドライブから取ってきたものは `isBackupPayload()` を通すまで信用しない。
   利用者が別のアプリで置き換えることもできるため、ファイルから読んだときと同じだけ疑う。
+  **名札（`app`）と版（`version`）を必ず見ること。** 中身の形だけを見ていたときは
+  `{"data":{"quest_srs":""}}` のような無関係なJSONでも通り、復習の期日が
+  空文字で黙って上書きされた。書き戻し（`applyBackupPayload`）は載っているキーだけを
+  触るので「一部だけ消える」形になり、画面には「復元しました」と出る。
+  利用者は学習の記録が消えたことに気づけない。
 - **使ったことのない端末からは Google に一切問い合わせない**（`quest_drive_linked` の印を見る）。
   同期を使うつもりのない人の端末から、画面を開いただけで外部通信が出るのを避ける。
 - クライアントID（`VITE_GOOGLE_CLIENT_ID`）が未設定なら、同期の欄ごと出さない。
