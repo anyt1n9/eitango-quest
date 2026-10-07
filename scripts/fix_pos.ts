@@ -338,7 +338,13 @@ const TRANSLATION_FIXES: Record<string, string> = {
   // overtime（超過勤務）の訳が付いていた。over time は「時間がたつにつれて」
   "over time": "時間とともに，やがて",
   // 「恐ろしい」は frightening の意味。frightened は自分がおびえている側
-  frightened: "おびえた，怖がった"
+  frightened: "おびえた，怖がった",
+  // concussion は「脳しんとう」。「振動」は訳語の取り違え
+  concussion: "脳しんとう，激しい衝撃",
+  // 教材の例は vitamin deficiency（不足）。「欠点」だけでは主な意味が抜ける
+  deficiency: "不足，欠乏，欠陥",
+  // act on は「…に従って行動する・…に作用する」。「決定する，決議する」は act の別の意味
+  "act on": "に従って行動する，に作用する"
 };
 
 /**
