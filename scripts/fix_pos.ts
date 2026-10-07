@@ -296,7 +296,13 @@ const POS_FIXES: Record<string, string> = {
   // 語義分別クイズのために多義語を1語ずつ見ていて見つかった。
   utter: "adjective",          // 訳「純然たる，全くの」は形容詞なのに動詞として出題していた
   back: "adverb",              // 訳「戻って」（He came back home.）は副詞
-  hail: "noun"                 // 訳の先頭「あられ、ひょう」も例文（Hail fell heavily...）も名詞
+  hail: "noun",                // 訳の先頭「あられ、ひょう」も例文（Hail fell heavily...）も名詞
+
+  // 訳が動詞なのに名詞として教えていた語。語義の品詞の判定を辞書（WordNet）に合わせたことで、
+  // 「教えている品詞の語義が1つも無い」形で見えるようになった
+  smile: "verb",               // ほほえむ
+  grab: "verb",                // ぐいとつかむ
+  falter: "verb"               // ためらう、よろめく
 };
 
 /**
@@ -378,6 +384,7 @@ const SENTENCE_FIXES: Record<string, { sentence: string; sentenceTranslation: st
   spin: { sentence: "The wheels began to [_____] faster and faster.", sentenceTranslation: "車輪はどんどん速く回転し始めました。" },
   row: { sentence: "We sat in the front [_____] of the theater.", sentenceTranslation: "私たちは劇場の最前列に座りました。" },
   utter: { sentence: "The plan ended in [_____] failure.", sentenceTranslation: "その計画は全くの失敗に終わりました。" },
+  smile: { sentence: "Please [_____] for the camera!", sentenceTranslation: "カメラに向かってほほえんでください！" },
   // 自動詞の文枠に入っていた（「She decided to commit as soon as possible.」）
   commit: { sentence: "She decided to [_____] herself to her studies.", sentenceTranslation: "彼女は勉強に専念することにしました。" }
 };
