@@ -173,6 +173,9 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   （訳の誤字は `TRANSLATION_FIXES`。capability の訳が「容量」、vision が「資格」だった）。
   `fix_pos.ts` が四択を作り直すのは**その回に品詞か訳が変わった語だけ**。
   以前は直し終えた語まで毎回作り直しており、回すたびに数百語の選択肢が並べ替わった。
+  訳だけを直した語は**意味の四択（訳が並ぶ方）だけ**を作り直し、例文穴埋めの誤答には触れない。
+  綴りも品詞も変わらないので作り直す理由が無く、作り直すと例文に合わせて選んだ誤答
+  （下の「例文の書き直し」）が入れ替わってしまう。
   「辞書がその品詞を記録しているか」は語義データの使用割合からは推し量れない
   （割合 0 は「実測に出てこなかった」で、辞書に無いのとは違う）。
   `tests/data/wordnetPos.ts`（`scripts/bake_wordnet_pos.ts` が書き出す WordNet の品詞一覧）と
@@ -242,6 +245,26 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   `scripts/rewrite_template_sentences.ts` の文枠を検査する。枠を足すときは
   「穴埋め記号はちょうど1つ」「a/an の直後に穴埋めを置かない」「連体専用の枠は
   穴埋めの直後に名詞が来る」といった決まりをここで確認する。
+- **例文の書き直しのテスト** — `tests/sentenceRewrites.data.test.ts`。
+  文枠から作った例文は、品詞が正しくても枠と語の意味が噛み合わない
+  （resolve … "The council decided to [_____] the old bridge."、
+  spin … "They gathered to [_____] as a group."）。和訳も訳語をかぎ括弧で差し込んだだけだった。
+  そこで語ごとに例文を**書き下ろして置き換えている**（`scripts/sentences/<レベル>.ts` に
+  `[例文, 和訳]` で書き、`scripts/apply_sentences.ts` で反映する）。
+  決まり（穴は1つ・直前に a/an を置かない・穴の直後の語尾は s/es/d/ed/'s だけ・
+  和訳に訳語を差し込まない）は `checkRewrite()` が見る。
+  **機械で見られないのは「誤答を入れても文が成り立たないこと」**。例文穴埋めは
+  同じ品詞の語を4つ並べるので、"Many shops are closed on [_____]." は誤答の Monday でも
+  正しい文になる。`npx tsx scripts/apply_sentences.ts --list <レベル>` で誤答つきの一覧を出し、
+  誤答を見ながらその語でしか埋まらない文にする。誤答に同じ意味の語があって
+  どう書いても埋まる語（because of と on account of）は、3つ目の要素で誤答を差し替える。
+  A・B を含む句（between A and B）や間に目的語が入る句（remind of）は、そのままでは
+  文に置けないので「`We use [_____] ..., as in "..."`」の形で使い方を示す。
+  `fix_pos.ts` を回すときは**その後に** `apply_sentences.ts` を回す
+  （品詞を直すと誤答が作り直されるため。差し替えた誤答はこちらで戻る）。
+  書き直しを終えたレベルは `DONE_LEVELS` に入れ、定型文の残りの上限
+  （`MAX_TEMPLATE_SENTENCES`）を下げる。見出しそのものが英語として成り立たず
+  例文を書けない語（be threatened to / in tough）は `NOT_WRITABLE` に理由を書いて残している。
 
 - **出題形式のテスト** — `tests/quizFormats.test.ts` と `tests/reviewFormat.render.test.tsx`。
   復習（今日の復習・苦手単語の復習）は四択に固定されていたが、形式を選べるようにした

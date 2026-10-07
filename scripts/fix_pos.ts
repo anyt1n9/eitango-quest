@@ -331,7 +331,14 @@ const TRANSLATION_FIXES: Record<string, string> = {
   // 「回転する」の誤字
   spin: "回す，回転する",
   // 名詞として教えているのに訳が動詞「こぐ」だった（例文は「その村は『こぐ』で有名です」）
-  row: "列、並び"
+  row: "列、並び",
+  // 以下は定型文の例文を書き直していて見つかったもの（scripts/apply_sentences.ts）
+  // 「たまたま」の誤字
+  "by chance": "偶然に，たまたま",
+  // overtime（超過勤務）の訳が付いていた。over time は「時間がたつにつれて」
+  "over time": "時間とともに，やがて",
+  // 「恐ろしい」は frightening の意味。frightened は自分がおびえている側
+  frightened: "おびえた，怖がった"
 };
 
 /**
@@ -416,6 +423,8 @@ const oldTranslations = new Set<string>();
 
 /** 品詞か訳が今回変わった語。四択を作り直すのはこれだけにする */
 const rebuilt: any[] = [];
+/** そのうち品詞が変わった語。例文穴埋めの誤答（同じ品詞の英単語）まで作り直すのはこちらだけ */
+const posChanged: any[] = [];
 /** どれかの一覧に当たった語の数（品詞・訳・例文のどれか） */
 let matched = 0;
 for (const w of words) {
@@ -442,6 +451,7 @@ for (const w of words) {
     changed.push(`${w.word}: ${w.pos} → ${want}`);
     w.pos = want;
     modified = true;
+    posChanged.push(w);
   }
   if (modified) rebuilt.push(w);
 }
@@ -462,14 +472,21 @@ if (matched === 0) {
  *
  * 対象は今回の実行で品詞か訳が変わった語に限る。以前に直し終えた語まで
  * 毎回作り直すと、回すたびに数百語の選択肢が並べ替わり、差分から何を直したのか読めなくなる。
+ *
+ * 訳だけを直した語は、意味の四択（訳が並ぶ）だけを作り直す。綴りも品詞も変わっていないので、
+ * 例文穴埋めの誤答（英単語が並ぶ）は今のままで正しい。作り直すと、例文に合わせて
+ * 選んだ誤答（scripts/apply_sentences.ts）が入れ替わり、誤答でも文が成り立つ設問に戻りうる。
  */
 const fixedWords = new Set(rebuilt.map(w => String(w.word)));
+const posFixedWords = new Set(posChanged.map(w => String(w.word)));
 const fixedTranslations = new Set([...rebuilt.map(w => String(w.translation)), ...oldTranslations]);
-const rebuild = words.filter(w =>
+const rebuildOptions = (w: any) =>
   fixedWords.has(String(w.word))
-  || (Array.isArray(w.options) && w.options.some((o: string) => fixedTranslations.has(o)))
-  || (Array.isArray(w.sentenceOptions) && w.sentenceOptions.some((o: string) => fixedWords.has(o)))
-);
+  || (Array.isArray(w.options) && w.options.some((o: string) => fixedTranslations.has(o)));
+const rebuildSentenceOptions = (w: any) =>
+  posFixedWords.has(String(w.word))
+  || (Array.isArray(w.sentenceOptions) && w.sentenceOptions.some((o: string) => posFixedWords.has(o)));
+const rebuild = words.filter(w => rebuildOptions(w) || rebuildSentenceOptions(w));
 
 const candidates: Candidate[] = words.map(w => ({
   word: w.word,
@@ -480,8 +497,8 @@ const candidates: Candidate[] = words.map(w => ({
 for (const w of rebuild) {
   const target: Candidate = { word: w.word, translation: w.translation, level: w.level, pos: w.pos };
   const pool = candidates.filter(c => c.pos === target.pos);
-  w.options = shuffle([w.translation, ...pickDistractors(target, pool, 3, "translation")]);
-  w.sentenceOptions = shuffle([w.word, ...pickDistractors(target, pool, 3, "word")]);
+  if (rebuildOptions(w)) w.options = shuffle([w.translation, ...pickDistractors(target, pool, 3, "translation")]);
+  if (rebuildSentenceOptions(w)) w.sentenceOptions = shuffle([w.word, ...pickDistractors(target, pool, 3, "word")]);
 }
 
 writeVocabularyFile(source, words, file);
