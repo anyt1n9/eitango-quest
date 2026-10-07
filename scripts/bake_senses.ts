@@ -29,7 +29,8 @@
 import fs from "fs";
 import path from "path";
 import { PartOfSpeech } from "../src/types";
-import { inferPartOfSpeech } from "../src/pos";
+import { inferPartOfSpeech, posFromJapanese, wordLevelPos } from "../src/pos";
+import { loadWordNet, posOfWithForms } from "./wordnetIndex";
 
 const EJDICT_BASE = "https://raw.githubusercontent.com/kujirahand/EJDict/master/src";
 const WORDNET_URL = "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip";
@@ -96,14 +97,24 @@ function lookup(dict: { exact: Map<string, string>; lower: Map<string, string> }
  */
 async function loadPosShares(): Promise<Map<string, Record<string, number>>> {
   const cached = path.join(CACHE_DIR, "cntlist.rev");
-  if (!fs.existsSync(cached)) {
-    const res = await fetch(WORDNET_URL);
-    if (!res.ok) throw new Error(`WordNet の取得に失敗しました (HTTP ${res.status})`);
+  // 頻度だけでなく、用例と品詞の判定に使うファイルもそろっているかを見る。
+  // cntlist.rev だけを見ていると、以前に頻度だけを展開した .cache/ では例外表（*.exc）が無いまま進む
+  const needed = ["cntlist.rev", ...["noun", "verb", "adj", "adv"].flatMap(s => [`data.${s}`, `index.${s}`, `${s}.exc`])];
+  if (needed.some(f => !fs.existsSync(path.join(CACHE_DIR, f)))) {
     const zipPath = path.join(CACHE_DIR, "wordnet.zip");
     fs.mkdirSync(CACHE_DIR, { recursive: true });
-    fs.writeFileSync(zipPath, Buffer.from(await res.arrayBuffer()));
+    if (!fs.existsSync(zipPath)) {
+      const res = await fetch(WORDNET_URL);
+      if (!res.ok) throw new Error(`WordNet の取得に失敗しました (HTTP ${res.status})`);
+      fs.writeFileSync(zipPath, Buffer.from(await res.arrayBuffer()));
+    }
     const { execFileSync } = await import("child_process");
-    execFileSync("unzip", ["-o", "-j", zipPath, "wordnet/cntlist.rev", "-d", CACHE_DIR]);
+    // 頻度（cntlist.rev）のほか、用例と品詞の判定に data.* / index.* / *.exc も使う
+    execFileSync("unzip", [
+      "-o", "-j", zipPath,
+      "wordnet/cntlist.rev", "wordnet/data.*", "wordnet/index.*", "wordnet/*.exc",
+      "-d", CACHE_DIR
+    ]);
   }
 
   const POS_OF: Record<string, PartOfSpeech> = {
@@ -145,6 +156,36 @@ interface RawSense {
   important: boolean;
   /** 辞書での掲載順 */
   order: number;
+  /** 用法注記から読み取った品詞（〈C〉なら名詞、《補語にのみ用いて》なら形容詞） */
+  hint?: PartOfSpeech;
+}
+
+/**
+ * EJDict の用法注記から品詞を読む。無ければ null。
+ *
+ * 語義の品詞は訳語の語尾から推定しているが、語尾だけでは決まらないものが多い。
+ *   「(…に)出席している」… 「いる」で終わるので動詞と判定されるが、present の形容詞の語義
+ *   「容ぼう,目鼻だち」  … 「う」で終わるので動詞と判定されるが、feature の名詞の語義
+ * 辞書はこうした語義に注記を付けている（《補語にのみ用いて》《複数形で》〈C〉など）。
+ * 注記は表示の前に落としているため、落とす前にここで読む。
+ */
+export function markerPos(raw: string): PartOfSpeech | null {
+  const r = raw.replace(/[『』]/g, "").trim();
+  // 品詞を示す注記は語義の先頭に付く。途中の注記まで読むと、区切りの抜けた項目
+  // （specific は「特定の・明確な・〈C〉特効薬・《複数形で》明細」が1つにつながっている）で
+  // 後ろの語義の印を拾ってしまう
+  const head = r.match(/^(\s*(《[^》]*》|〈[^〉]*〉|\{[^}]*\}))*/)?.[0] ?? "";
+  if (/\{名\}/.test(head)) return "noun";
+  if (/\{動\}/.test(head)) return "verb";
+  if (/\{形\}/.test(head)) return "adjective";
+  if (/\{副\}/.test(head)) return "adverb";
+  if (/〈[CU]〉/.test(head)) return "noun";
+  if (/《[^》]*(複数形|単数形|集合的に|単数扱い|複数扱い|名詞的に)[^》]*》/.test(head)) return "noun";
+  if (/《[^》]*(補語にのみ|補語として|名詞の前にのみ|名詞の後に用いて|形容詞的に)[^》]*》/.test(head)) return "adjective";
+  if (/《[^》]*(受動態|再帰用法|副詞\[?句\]?を伴って)[^》]*》/.test(head)) return "verb";
+  // 《+名+to+名》のように、目的語（名）を直後にとる形は動詞。こちらは語義の後ろに付く
+  if (/《\+名[+》]/.test(r) && !/〈[CU]〉/.test(r)) return "verb";
+  return null;
 }
 
 /** EJDict の語義本文を1語義ずつに分け、表示用に記号を整理する */
@@ -169,7 +210,8 @@ export function parseSenses(body: string): RawSense[] {
     if (/^[a-zA-Z]+([（(][^）)]*[）)])?の(過去|過去分詞|複数形|比較級|最上級|現在分詞|三人称|別形|短縮形)/.test(meaning)) return;
     // 「=enshrine」のような別見出しへの参照や、日本語を含まない項目も語義ではない
     if (/^=/.test(meaning) || !/[ぁ-んァ-ヶ一-鿿]/.test(meaning)) return;
-    out.push({ meaning, important, order });
+    const hint = markerPos(raw);
+    out.push(hint ? { meaning, important, order, hint } : { meaning, important, order });
   });
   return out;
 }
@@ -238,6 +280,109 @@ function forPosInference(meaning: string): string {
 }
 
 /**
+ * それだけで副詞と分かる日本語（決まった語）。語尾の規則では
+ * 「全く」「絶えず」が動詞（く・ず止め）、「たいして」が形容詞（て止め）になってしまう。
+ */
+const JA_ADVERBS = new Set([
+  "あまり", "さほど", "たいして", "まったく", "全く", "ほとんど", "かなり", "とても", "常に", "絶えず",
+  "いつも", "すぐ", "すぐに", "もう", "まだ", "ちょうど", "たぶん", "おそらく", "きっと", "決して",
+  "少しも", "ずっと", "しばしば", "たびたび", "ときどき", "時々", "再び", "かつて", "既に", "すでに",
+  "もっと", "さらに", "なおさら", "いっそう", "実に", "本当に", "確かに", "特に", "必ず", "やがて",
+  "まもなく", "ただちに", "直ちに", "結局", "概して", "一般に", "単に", "ただ", "わずかに", "かろうじて"
+]);
+
+/**
+ * 1つの語義の品詞を決める。
+ *
+ *   1. 綴りだけで決まるもの（機能語・句・-ly の副詞）はそれに従う
+ *   2. 辞書の用法注記があればそれに従う（markerPos）
+ *   3. 訳語を「、」で区切った各片の語尾から推定する。
+ *      片の先頭の「…」「〈人〉」は落としてから見る（「…をかぐ」を他動詞と読めるように）
+ *
+ * allowed は WordNet がその語に記録している品詞。辞書に無い品詞はまず誤りなので、
+ * 2と3の候補のうち allowed に入るものを採る。awesome（WordNet は形容詞だけ）の
+ * 「畏敬の念を起こさせる」が動詞に、prevaricate（動詞だけ）の「うそをつく」が
+ * 名詞になっていたのはこれで防げる。候補が1つも入らず、allowed が1つだけならそれにする。
+ * WordNet に見出しが無い語（句・新しい語）は allowed を渡さず、従来どおり推定だけで決める。
+ */
+export function sensePos(
+  word: string,
+  sense: { meaning: string; hint?: PartOfSpeech },
+  allowed?: PartOfSpeech[]
+): PartOfSpeech {
+  const fixed = wordLevelPos(word);
+  if (fixed) return fixed;
+  const ok = (p: PartOfSpeech) => !allowed || allowed.length === 0 || allowed.includes(p);
+  if (sense.hint && ok(sense.hint)) return sense.hint;
+
+  const pieces = forPosInference(sense.meaning)
+    .split(/[、,，/／;；]/)
+    .map(p => p.replace(/[（(][^）)]*[）)]/g, "").replace(/〈[^〉]*〉/g, "").replace(/^[…〜～\s]+/, "").trim())
+    .filter(Boolean);
+  const canBeVerb = !!allowed && allowed.includes("verb");
+  const judged = pieces
+    .map(p => {
+      // 「国事に関する」は「〜についての」という連体の言い方で、動詞の語義ではない。
+      // 「勇気のある」「価値のある」も同じ（「ある」で終わるので動詞と判定されていた）
+      if (/(に(関する|関係する)|のある)$/.test(p)) return { p, pos: "adjective" as PartOfSpeech };
+      if (JA_ADVERBS.has(p)) return { p, pos: "adverb" as PartOfSpeech };
+      const r = posFromJapanese(p, word);
+      if (r) return { p, pos: r };
+      // 「どなる」「ほえるようにしゃべる」のように、ひらがなだけの動詞は語尾の規則で拾えない
+      // （漢字を含むことを条件にしている）。辞書がその語を動詞としても記録しているときだけ動詞と見る。
+      // 動詞に多い語尾（る・す・く・む・ぐ）に限る。2文字（たる・さる）や、
+      // 名詞に多い語尾（いっそう・びょうぶ・ぼろくず・たいまつ）は除く
+      if (canBeVerb && /^[ぁ-ん]{3,}$/.test(p) && /[るすくむぐ]$/.test(p)) {
+        return { p, pos: "verb" as PartOfSpeech };
+      }
+      return null;
+    })
+    .filter((x): x is { p: string; pos: PartOfSpeech } => x !== null);
+
+  const first = judged[0];
+  if (first && ok(first.pos)) return first.pos;
+  if (first) {
+    // 辞書に無い品詞と判定されたとき、どちらへ直すかは判定の種類で決める。
+    //   動詞    … 「畏敬の念を起こさせる」「出席している」のように、形容詞の意味を
+    //              動詞の形で訳したもの。形容詞を持つ語なら形容詞へ
+    //   形容詞  … 「海辺の」「思考の」のように、名詞を名詞の前に置いた使い方の訳か、
+    //              「ふるい」（screen）「びんた」（box）のように、ひらがなの名詞が
+    //              「い」「た」で終わって形容詞と判定されたもの。名詞を持つ語なら名詞へ。
+    //              それ以外は、別の片の判定に従う
+    //   名詞・副詞 … 語尾の判定が確かなので直さない。辞書（WordNet）が載せていない
+    //              古い語義・まれな語義のことが多い（digital「鍵」、worldwide「全世界に」）
+    if (first.pos === "verb") {
+      // 形容詞を持つ語なら、「を」を含んでいても形容詞へ寄せる。形容詞は「喜びを与える」
+      // 「畏敬の念を起こさせる」「興味を起こさせる」のように「〜を…する」の形で訳されることが多い
+      // （動詞を持たず形容詞を持つ語でこの分岐に来る語義は実データで55件あり、53件がこの形。
+      // 残る2件は wise「…を気づかせる」と overweight「…に荷を積み過ぎる」の動詞の語義）
+      if (ok("adjective")) return "adjective";
+      // 形容詞も持たない語では、「全く」「絶えず」「水そう」のように、語尾が「く」「ず」「う」
+      // なので動詞と判定されただけのものがある。「を」も「する」も無い弱い手がかりのときは、
+      // 辞書の品詞が1つならそれに寄せる。juice「…から汁をしぼり取る」のように「を」を含むものは、
+      // 辞書（WordNet）が載せていない動詞の語義なので残す
+      const weak = !/を/.test(first.p) && !/する$/.test(first.p);
+      return weak && allowed && allowed.length === 1 ? allowed[0] : first.pos;
+    }
+    if (first.pos === "adjective") {
+      if (ok("noun")) return "noun";
+      const other = judged.find(x => ok(x.pos));
+      if (other) return other.pos;
+      // 副詞だけの語の「…ない」（never）、動詞だけの語の「欺く」（deceive。綴りの -ive に
+      // つられて形容詞と判定される）は、辞書の品詞が1つならそれに寄せる
+      return allowed && allowed.length === 1 ? allowed[0] : first.pos;
+    }
+    return first.pos;
+  }
+
+  // 語尾から決まらなかったもの。辞書の品詞が1つだけならそれに従う
+  // （prevaricate「うそをつく,ごまかす」は WordNet では動詞だけ）
+  const fallback = inferPartOfSpeech(word, forPosInference(sense.meaning));
+  if (!ok(fallback) && allowed && allowed.length === 1) return allowed[0];
+  return fallback;
+}
+
+/**
  * 語義を並べて上限まで絞る。
  *
  * 単純に「よく使う品詞順」で並べて上から切ると、上位の品詞の語義だけで枠が埋まり、
@@ -255,7 +400,9 @@ export function rankSenses(
   senses: RawSense[],
   shares: Record<string, number> | undefined,
   ownPos?: PartOfSpeech,
-  ownTranslation?: string
+  ownTranslation?: string,
+  /** WordNet がその語に記録している品詞（sensePos を参照） */
+  allowedPos?: PartOfSpeech[]
 ): { meaning: string; pos: PartOfSpeech; share?: number; important?: boolean }[] {
   // 教材が教えている訳語の見出し（「銀行」「春」など）。
   // 辞書の掲載順は頻度順ではないため（bank は 土手 → 銀行 の順）、
@@ -271,7 +418,7 @@ export function rankSenses(
   const withPos = senses
     .filter(s => (seen.has(s.meaning) ? false : (seen.add(s.meaning), true)))
     .map(s => {
-      const pos = inferPartOfSpeech(word, forPosInference(s.meaning));
+      const pos = sensePos(word, s, allowedPos);
       // その語の実測データがあるなら、現れなかった品詞は 0% として持たせる。
       // 空欄のままだと「実測が無い」のか「実測で使われていない」のか区別できない。
       // ただし「その他」（前置詞・接続詞・助動詞など）は WordNet が扱わない品詞で、
@@ -420,6 +567,7 @@ async function main() {
   console.log("辞書データを取得しています…");
   const [dict, shares] = await Promise.all([loadEjdict(), loadPosShares()]);
   const usages = await loadUsageExamples();
+  const wordnet = loadWordNet(CACHE_DIR);
   console.log(`EJDict: ${dict.exact.size}語 / WordNet頻度: ${shares.size}語 / 用例: ${usages.size}件`);
 
   const vocabFile = path.join(process.cwd(), "src/data/vocabulary.ts");
@@ -470,9 +618,17 @@ async function main() {
     // 派生語の綴りで判定すると politely の語義がすべて副詞になり、
     // 「副詞 礼儀正しい」のように中身と食い違う。
     // 使用割合もその語自身のものではないので付けない。
+    // 語義の品詞は、WordNet がその語に記録している品詞から選ぶ（sensePos）。
+    // 教材が教えている品詞は1語ずつ確かめてあるので、WordNet に無くても候補に入れる
+    // （audio の「音声の」は WordNet では名詞だけだが、形容詞として教えている）
+    const lemma = String(from ?? w.word).trim().toLowerCase();
+    const wnPos = posOfWithForms(wordnet, lemma) as PartOfSpeech[];
+    const allowed = wnPos.length === 0
+      ? undefined
+      : [...new Set([...wnPos, ...(!from && w.pos ? [w.pos as PartOfSpeech] : [])])];
     const ranked = from
-      ? rankSenses(from, senses, undefined, undefined, w.translation)
-      : rankSenses(w.word, senses, shares.get(key), w.pos, w.translation);
+      ? rankSenses(from, senses, undefined, undefined, w.translation, allowed)
+      : rankSenses(w.word, senses, shares.get(key), w.pos, w.translation, allowed);
     if (ranked.length === 0) continue;
 
     // 教材が教えている品詞と違う語義には、その品詞での使い方の例を添える。

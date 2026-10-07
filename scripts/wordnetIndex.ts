@@ -5,7 +5,7 @@ import * as path from "path";
  * WordNet の index / data を読む共通処理（bake_synonyms.ts と bake_wordnet_pos.ts が使う）。
  *
  * ファイルは bake_senses.ts が `.cache/` に展開したものを使う
- * （wordnet.zip から cntlist.rev・data.*・index.* を取り出しておくこと）。
+ * （wordnet.zip から cntlist.rev・data.*・index.*・*.exc を取り出す）。
  */
 
 export type WnPos = "noun" | "verb" | "adjective" | "adverb";
@@ -27,6 +27,12 @@ export interface WordNet {
   /** "見出し|品詞" → synset のキー（"品詞:オフセット"）。よく使われる順 */
   index: Map<string, string[]>;
   synsets: Map<string, Synset>;
+  /**
+   * 活用形 → その品詞（*.exc）。WordNet は比較級・不規則な活用形を見出しに持たず、
+   * 例外表で原形へつなぐ（lower → low、better → good）。見出しだけを見ると
+   * lower に形容詞が無いことになってしまう
+   */
+  inflected: Map<string, Set<WnPos>>;
 }
 
 const POS_BY_LETTER: Record<string, WnPos> = { n: "noun", v: "verb", a: "adjective", s: "adjective", r: "adverb" };
@@ -43,6 +49,7 @@ function requireFile(file: string): string {
 export function loadWordNet(cacheDir = path.join(process.cwd(), ".cache")): WordNet {
   const index = new Map<string, string[]>();
   const synsets = new Map<string, Synset>();
+  const inflected = new Map<string, Set<WnPos>>();
 
   for (const [suffix, pos] of FILES) {
     for (const line of requireFile(path.join(cacheDir, `index.${suffix}`)).split("\n")) {
@@ -74,11 +81,51 @@ export function loadWordNet(cacheDir = path.join(process.cwd(), ".cache")): Word
       }
       synsets.set(`${pos}:${offset}`, { pos, offset, lemmas, pointers });
     }
+
+    // 例外表も必須にする。無いまま黙って進むと、比較級（better / worse）の形容詞が拾えず、
+    // エラーも出ないまま語義の品詞が以前の結果に戻る
+    for (const line of requireFile(path.join(cacheDir, `${suffix}.exc`)).split("\n")) {
+      const [form, ...bases] = line.trim().split(/\s+/);
+      // 「after after」のように原形と同じ綴りの行は、見出しの側で足りている
+      if (!form || bases.length === 0 || bases.every(b => b === form)) continue;
+      const lemma = form.replace(/_/g, " ");
+      if (!inflected.has(lemma)) inflected.set(lemma, new Set());
+      inflected.get(lemma)!.add(pos);
+    }
   }
-  return { index, synsets };
+  return { index, synsets, inflected };
 }
 
-/** その語を WordNet が記録している品詞 */
+/**
+ * WordNet が規則で原形に戻す語尾（morphy の detachment rules）。
+ * 規則的な比較級（lower → low）は例外表にも載らないため、形容詞についてはこの規則でも引く。
+ * 動詞の活用形（-ed / -ing）と名詞の複数形は対象にしない。irrigated（灌漑した）や
+ * adjoining（隣接する）は形容詞として教えている語で、原形の動詞に寄せると
+ * 正しい品詞を誤りとして拾ってしまう。
+ */
+const MORPHY: Partial<Record<WnPos, [string, string][]>> = {
+  adjective: [["er", ""], ["est", ""], ["er", "e"], ["est", "e"]]
+};
+
+/** その語を WordNet が見出しとして記録している品詞 */
 export function posOf(wn: WordNet, lemma: string): WnPos[] {
   return FILES.map(([, pos]) => pos).filter(pos => wn.index.has(`${lemma}|${pos}`));
+}
+
+/**
+ * 見出しに加えて、例外表と規則的な比較級からも品詞を拾う（lower の形容詞など）。
+ * 語義の品詞を絞り込むとき（bake_senses.ts）にだけ使う。拾いすぎることがあり
+ * （customer に custom の形容詞が付く）、絞り込みを緩める側にしか働かないのでそこでは害が無いが、
+ * 「辞書がこの品詞を記録しているか」を問う品詞の検査（bake_wordnet_pos.ts）には使わない。
+ */
+export function posOfWithForms(wn: WordNet, lemma: string): WnPos[] {
+  return FILES.map(([, pos]) => pos).filter(pos => {
+    if (wn.index.has(`${lemma}|${pos}`)) return true;
+    // 例外表から拾うのは比較級・最上級（better / worse）だけ。動詞の例外表は過去分詞を持つので、
+    // 形容詞として使う satisfied（納得している）に動詞まで許してしまう
+    if ((pos === "adjective" || pos === "adverb") && wn.inflected.get(lemma)?.has(pos)) return true;
+    return (MORPHY[pos] ?? []).some(([suffix, ending]) =>
+      lemma.endsWith(suffix) && lemma.length > suffix.length + 1
+      && wn.index.has(`${lemma.slice(0, -suffix.length) + ending}|${pos}`));
+  });
 }

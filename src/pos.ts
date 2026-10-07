@@ -119,12 +119,13 @@ export function inferPartOfSpeech(word: string, translation: string): PartOfSpee
   return guess;
 }
 
-function inferCore(
-  lw: string,
-  word: string,
-  translation: string,
-  tokens: string[]
-): PartOfSpeech {
+/**
+ * 綴りだけで決まる品詞（機能語・句・-ly の副詞）。決まらなければ null。
+ * 訳語がどうであっても動かない部分なので、語義ごとの判定（scripts/bake_senses.ts）でも先に見る。
+ */
+export function wordLevelPos(word: string): PartOfSpeech | null {
+  const lw = (word || "").trim().toLowerCase();
+  const tokens = lw.split(/\s+/).filter(Boolean);
   if (FUNCTION_WORDS.has(lw) || PRONOUN_PHRASES.has(lw)) return "other";
   // 「between A and B」のような文法パターンの見出し
   if (/\b[AB]\b/.test(word || "") || tokens.length >= 3) return "other";
@@ -132,6 +133,55 @@ function inferCore(
   // 機能語ではないため、ここには当たらず動詞のまま残る）
   if (tokens.length === 2 && PHRASE_HEADS.has(tokens[0])) return "other";
   if (/ly$/.test(lw) && lw.length > 4 && !NOT_ADVERB_LY.has(lw)) return "adverb";
+  return null;
+}
+
+/**
+ * 訳語の1つ（「、」で区切った1片）の語尾から品詞を推定する。決まらなければ null。
+ * 括弧書きと先頭の「〜」は呼び出し側で落としておく。先頭の「を」は他動詞の目印として見る。
+ */
+export function posFromJapanese(raw: string, word = ""): PartOfSpeech | null {
+  const lw = (word || "").trim().toLowerCase();
+  const isTransitive = /^を/.test(raw);
+  const s = raw.replace(/^を/, "").trim();
+  if (!s) return null;
+  if (/(すること|なこと)$/.test(s)) return "noun";
+  if (/(する|される|させる)$/.test(s)) return "verb";
+  // 「結果として」「前もって」は副詞句。下の「〜して」の規則より先に判定する
+  if (/(として|もって)$/.test(s)) return "adverb";
+  // 「を〜」で始まりう段で終わる語義は他動詞。
+  // 綴りの接尾辞より優先する（deceive「を欺く」を -ive だけ見て形容詞にしないため）
+  if (isTransitive && U_DAN.test(s)) return "verb";
+  // 「目的」「標的」「あこがれの的」は名詞。それ以外の「〜的」は形容詞
+  if (/的$/.test(s)) return TEKI_NOUN.test(s) ? "noun" : "adjective";
+  // ひらがなで終わらない語義（漢字・カタカナ止め）は名詞: 図書館・企業・行為・スイカ
+  if (!/[ぁ-ん]$/.test(s)) return "noun";
+  if (NOMINALIZED.test(s)) return "noun";              // 行い・戦い（動詞の名詞化）
+  if (/(しい|らしい|っぽい)$/.test(s)) return "adjective";
+  // 「もの」「こと」などの名詞化語尾は、下の「〜な/〜の」より先に判定する。
+  // そうしないと「長く盛り上がったもの」が「〜の」で終わる形容詞と誤判定される
+  if (/(こと|もの|事|物|者|人|方)$/.test(s)) return "noun";
+  if (/い$/.test(s) && s.length >= 2) return "adjective";
+  if (/[なの]$/.test(s) && s.length >= 2) return "adjective";
+  if (/[しっ]て$/.test(s)) return "adjective";         // 確信して・優れて
+  if (/た$/.test(s) && s.length >= 3) return "adjective"; // 遅れた・優れた
+  if (/(こと|もの|人|物|者|性|化|さ|み|事|方)$/.test(s)) return "noun";
+  if (U_DAN.test(s) && HAS_KANJI.test(s)) {
+    // 「役に立つ」のように訳が動詞句でも、語自体が形容詞の接尾辞を持つなら形容詞
+    return ADJ_SUFFIX.test(lw) ? "adjective" : "verb";
+  }
+  if (/に$/.test(s) && s.length >= 3) return "adverb";
+  return null;
+}
+
+function inferCore(
+  lw: string,
+  word: string,
+  translation: string,
+  tokens: string[]
+): PartOfSpeech {
+  const byWord = wordLevelPos(word);
+  if (byWord) return byWord;
 
   // 括弧書きと先頭の「〜」を取り除いてから判定する。
   // 「〜しよう（Let's 〜）」のように括弧で終わる語義をそのまま見ると、
@@ -142,41 +192,8 @@ function inferCore(
     .map(s => s.replace(/[（(][^）)]*[）)]/g, "").replace(/^[〜～]/, "").trim())
     .filter(Boolean);
 
-  const fromJapanese = (raw: string): PartOfSpeech | null => {
-    const isTransitive = /^を/.test(raw);
-    const s = raw.replace(/^を/, "").trim();
-    if (!s) return null;
-    if (/(すること|なこと)$/.test(s)) return "noun";
-    if (/(する|される|させる)$/.test(s)) return "verb";
-    // 「結果として」「前もって」は副詞句。下の「〜して」の規則より先に判定する
-    if (/(として|もって)$/.test(s)) return "adverb";
-    // 「を〜」で始まりう段で終わる語義は他動詞。
-    // 綴りの接尾辞より優先する（deceive「を欺く」を -ive だけ見て形容詞にしないため）
-    if (isTransitive && U_DAN.test(s)) return "verb";
-    // 「目的」「標的」「あこがれの的」は名詞。それ以外の「〜的」は形容詞
-    if (/的$/.test(s)) return TEKI_NOUN.test(s) ? "noun" : "adjective";
-    // ひらがなで終わらない語義（漢字・カタカナ止め）は名詞: 図書館・企業・行為・スイカ
-    if (!/[ぁ-ん]$/.test(s)) return "noun";
-    if (NOMINALIZED.test(s)) return "noun";              // 行い・戦い（動詞の名詞化）
-    if (/(しい|らしい|っぽい)$/.test(s)) return "adjective";
-    // 「もの」「こと」などの名詞化語尾は、下の「〜な/〜の」より先に判定する。
-    // そうしないと「長く盛り上がったもの」が「〜の」で終わる形容詞と誤判定される
-    if (/(こと|もの|事|物|者|人|方)$/.test(s)) return "noun";
-    if (/い$/.test(s) && s.length >= 2) return "adjective";
-    if (/[なの]$/.test(s) && s.length >= 2) return "adjective";
-    if (/[しっ]て$/.test(s)) return "adjective";         // 確信して・優れて
-    if (/た$/.test(s) && s.length >= 3) return "adjective"; // 遅れた・優れた
-    if (/(こと|もの|人|物|者|性|化|さ|み|事|方)$/.test(s)) return "noun";
-    if (U_DAN.test(s) && HAS_KANJI.test(s)) {
-      // 「役に立つ」のように訳が動詞句でも、語自体が形容詞の接尾辞を持つなら形容詞
-      return ADJ_SUFFIX.test(lw) ? "adjective" : "verb";
-    }
-    if (/に$/.test(s) && s.length >= 3) return "adverb";
-    return null;
-  };
-
   for (const s of senses) {
-    const r = fromJapanese(s);
+    const r = posFromJapanese(s, lw);
     if (r) return r;
   }
 

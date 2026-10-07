@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import { wordSenses } from "../src/data/senses";
 import { findDominantSense, POS_SHARE_LABELS, groupSensesByPos } from "../src/senses";
 import { initialVocabulary } from "../src/data/vocabulary";
-import { parseSenses, rankSenses, containsWord, baseFormCandidates, referencedWords } from "../scripts/bake_senses";
+import {
+  parseSenses, rankSenses, containsWord, baseFormCandidates, referencedWords, sensePos, markerPos
+} from "../scripts/bake_senses";
+import { wordnetPos } from "./data/wordnetPos";
 import { PartOfSpeech } from "../src/types";
 
 /**
@@ -249,6 +252,102 @@ describe("parseSenses", () => {
 
   it("空の語義を作らない", () => {
     expect(parseSenses(" / 〈C〉 / 春").map(s => s.meaning)).toEqual(["春"]);
+  });
+});
+
+/**
+ * 語義ごとの品詞の判定。
+ *
+ * 以前は訳語の語尾だけで決めており、表示する語義の4%ほど（約800件）が誤っていた。
+ *   present「(…に)出席している」→ 動詞（「いる」止め）。正しくは形容詞
+ *   feature「容ぼう,目鼻だち」   → 動詞（「う」止め）。正しくは名詞
+ *   smell「…をかぐ」            → 名詞（先頭の「…」で他動詞の印を見落とす）
+ *   awesome「畏敬の念を起こさせる」→ 動詞。awesome は形容詞しか無い語
+ * 辞書の用法注記（〈C〉《補語にのみ用いて》など）と、WordNet がその語に記録している
+ * 品詞を使って直した（scripts/bake_senses.ts の sensePos / markerPos）。
+ * 手で品詞を付けた見本では、調整に使わなかった150件で 93.3% → 96.7% だった。
+ */
+describe("語義の品詞の判定", () => {
+  const pos = (word: string, raw: string, allowed?: PartOfSpeech[]) =>
+    sensePos(word, parseSenses(raw)[0], allowed);
+
+  it("辞書の用法注記を読む", () => {
+    expect(pos("present", "《通例補語として,また名詞の後に用いて》(…に)『出席している,居合わせている』",
+      ["noun", "verb", "adjective"])).toBe("adjective");
+    expect(pos("feature", "《複数形で》『容ぼう』,目鼻だち", ["noun", "verb"])).toBe("noun");
+    expect(markerPos("〈C〉『呼び声』")).toBe("noun");
+    expect(markerPos("《名詞の前にのみ用いて》『下級の』")).toBe("adjective");
+    expect(markerPos("…を…に適用する《+名+to+名》")).toBe("verb");
+  });
+
+  it("注記は語義の先頭にあるものだけを読む（区切りの抜けた項目で後ろの語義の印を拾わない）", () => {
+    const raw = "《名詞の前にのみ用いて》『特定の』,一定の・『明確な』,明白な・〈C〉(…の)特効薬";
+    expect(pos("specific", raw, ["adjective", "noun"])).toBe("adjective");
+    expect(markerPos("〈会〉を召集する 〈人〉に『電話をかける』 〈C〉『呼び声』")).toBeNull();
+  });
+
+  it("先頭の「…」「〈人〉」を落としてから語尾を見る", () => {
+    expect(pos("smell", "(調べたりするために)…を『かぐ』,のにおいをかぐ", ["noun", "verb"])).toBe("verb");
+  });
+
+  it("辞書に無い品詞と判定したら、辞書の品詞へ寄せる", () => {
+    // 形容詞の意味を動詞の形で訳したもの
+    expect(pos("awesome", "畏敬の念を起こさせる;恐ろしい", ["adjective"])).toBe("adjective");
+    // 語尾から決まらない（ひらがなの動詞）
+    expect(pos("prevaricate", "うそをつく,ごまかす", ["verb"])).toBe("verb");
+    // ひらがなの名詞が「い」で終わって形容詞と判定されたもの
+    expect(pos("screen", "(じゃり・砂などの)ふるい", ["noun", "verb"])).toBe("noun");
+    // 副詞だけの語の「…ない」
+    expect(pos("never", "全く…ない,決して…ない", ["adverb"])).toBe("adverb");
+  });
+
+  it("名詞・副詞と判定したもの、「を」のある動詞は寄せない（辞書に無い古い語義・まれな語義）", () => {
+    expect(pos("many", "大多数,大衆", ["adjective"])).toBe("noun");
+    expect(pos("juice", "…から汁をしぼり取る", ["noun"])).toBe("verb");
+  });
+
+  it("ひらがなだけの動詞を拾うが、ひらがなの名詞は動詞にしない", () => {
+    expect(pos("bark", "(…に)ほえるようにしゃべる,(…を)どなる", ["noun", "verb"])).toBe("verb");
+    expect(pos("barrel", "(胴のふくれた)たる", ["noun", "verb"])).toBe("noun");
+    expect(pos("screen", "ついたて,びょうぶ", ["noun", "verb"])).toBe("noun");
+    expect(pos("link", "たいまつ", ["noun", "verb"])).toBe("noun");
+  });
+
+  it("決まった副詞と「〜のある」を見分ける", () => {
+    expect(pos("very", "《否定語と共に用いて》『あまり』,さほど,たいして(…でない)", ["adjective", "adverb"])).toBe("adverb");
+    expect(pos("game", "闘志のある,勇気のある", ["noun", "verb", "adjective"])).toBe("adjective");
+  });
+
+  it("辞書の品詞を渡さなければ、従来どおり語尾だけで決める", () => {
+    expect(pos("bank", "『銀行』")).toBe("noun");
+    expect(pos("zzz", "…を預金する")).toBe("verb");
+  });
+
+  it("実データ: 動詞・形容詞と判定した語義は、ほぼすべて辞書がその品詞を記録している語のもの", () => {
+    // 残るのは、WordNet が載せていない名詞由来の動詞の語義（fur「毛皮の裏をつける」、
+    // gem「宝石で飾る」）など。以前は815件あった
+    const L: Record<string, string> = { noun: "n", verb: "v", adjective: "a", adverb: "r" };
+    let outside = 0;
+    for (const [id, list] of Object.entries(wordSenses)) {
+      const w = byId.get(id);
+      const recorded = w && wordnetPos[w.word.toLowerCase()];
+      if (!w || !recorded) continue;
+      for (const s of list) {
+        if (s.from || (s.pos !== "verb" && s.pos !== "adjective")) continue;
+        if (!recorded.includes(L[s.pos]) && s.pos !== w.pos) outside++;
+      }
+    }
+    expect(outside).toBeLessThanOrEqual(40);
+  });
+
+  it("実データ: 直したかった語義が正しい品詞で出る", () => {
+    const find = (word: string, meaning: string) =>
+      wordSenses[V.find(w => w.word === word)!.id].find(s => s.meaning.includes(meaning));
+    expect(find("present", "出席している")?.pos).toBe("adjective");
+    expect(find("feature", "容ぼう")?.pos).toBe("noun");
+    expect(find("awesome", "畏敬の念を起こさせる")?.pos).toBe("adjective");
+    expect(find("concerned", "関係のある")?.pos).toBe("adjective");
+    expect(find("exclusive", "排他的な")?.pos).toBe("adjective");
   });
 });
 
