@@ -37,6 +37,38 @@ export interface WordSense {
 }
 
 /**
+ * 類義語クイズの1語ぶん（キーは出題する語のID）。
+ * 生成は scripts/bake_synonyms.ts。どちらも収録語のIDで持つ。
+ */
+export interface SynonymEntry {
+  /** 同じ意味の収録語。WordNet で同じ語義に入り、教材の訳も重なるもの */
+  same: string[];
+  /** 誤答に使う収録語。同じ品詞で、どの語義でも同じ意味にならないもの */
+  distractors: string[];
+}
+
+/** 語義分別クイズの1語義ぶん */
+export interface SenseExample {
+  /** 選択肢に出す訳 */
+  meaning: string;
+  /** その意味で使った英文。対象の語（活用形を含む）を {} で囲む */
+  example: string;
+  /** 英文の和訳 */
+  translation: string;
+}
+
+/**
+ * 語義分別クイズの1語ぶん。「この文の book はどの意味？（本／予約する）」のように、
+ * 同じ綴りの語が文の中でどの意味で使われているかを見分ける。
+ * データは書き下ろし（src/data/senseQuiz.ts）。先頭の語義が教材の教えている意味。
+ */
+export interface SenseQuizItem {
+  /** 収録語の綴り */
+  word: string;
+  senses: SenseExample[];
+}
+
+/**
  * 単語の使い方。訳語だけでは英文が組み立てられないため、
  * 「どんな形をとるか」「どんな語と組むか」「どんな語族に属するか」を補う。
  * 生成は scripts/bake_usage.ts（出典はすべて WordNet と EJDict）。

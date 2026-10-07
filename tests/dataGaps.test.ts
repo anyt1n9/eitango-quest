@@ -69,20 +69,18 @@ describe("動詞の文型の穴", () => {
   const verbs = V.filter(w => w.pos === "verb");
   const missing = verbs.filter(w => !usage[w.id]?.patterns?.length);
 
-  it("文型が付いていない動詞は70語まで", () => {
+  it("文型が付いていない動詞は54語まで", () => {
     // 以前は167語あったが、その大半は WordNet の抜けではなく品詞の付け間違い
-    // （形容詞・名詞を動詞として教えていた）だった。scripts/fix_pos.ts で直している
-    expect(missing.length).toBeLessThanOrEqual(70);
+    // （形容詞・名詞を動詞として教えていた）だった。scripts/fix_pos.ts で直している。
+    // 品詞を直したあとに scripts/bake_usage.ts を回し直さないと、動詞になった語に
+    // 文型が付かないまま残る（want / ask / call / be が文型なしになっていた）
+    expect(missing.length).toBeLessThanOrEqual(54);
   });
 
   it("残っているのは句と、WordNet に文型の無い動詞だけ", () => {
     // WordNet の sentence frame は連結詞（be動詞）や新しい語には付いていない
     const KNOWN = new Set([
-      "be", "am", "is", "are", "was", "were", "been",   // 連結詞。文型の概念が当てはまらない
-      "do", "did", "does", "have", "has", "had",
-      "hesitate", "commit", "annoy", "transact", "wilt", // WordNet に frame が無い
-      "pardon", "set", "paddle", "outdo", "taunt", "untie", "gnaw",
-      "want", "ask", "call",
+      "am", "is", "are", "was", "were", "been",   // be の活用形。WordNet は原形 be にだけ文型を持つ
       "babysit", "overbook", "unsubscribe", "curate",    // 辞書より新しい動詞
       "impassion", "reconciliate", "carry-on",
       "considering", "expecting", "reviewing", "fading", "burgeoning" // 分詞

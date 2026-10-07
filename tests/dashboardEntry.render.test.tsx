@@ -91,13 +91,15 @@ describe("1回の問題数", () => {
   });
 });
 
-describe("5つの形式の入口", () => {
+describe("7つの形式の入口", () => {
   const FORMATS: [string, string][] = [
     ["btn_junior_word", "word"],
     ["btn_junior_sentence", "sentence"],
     ["btn_junior_listening", "listening"],
     ["btn_junior_reverse", "reverse"],
-    ["btn_junior_spelling", "spelling"]
+    ["btn_junior_spelling", "spelling"],
+    ["btn_junior_synonym", "synonym"],
+    ["btn_junior_sense", "sense"]
   ];
 
   it("どの形式もすぐ始まる（片方だけモーダルを挟まない）", async () => {

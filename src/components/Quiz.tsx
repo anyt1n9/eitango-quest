@@ -621,7 +621,7 @@ export default function Quiz({
             <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
               {reviewMode
                 ? "今日の復習・一問一答リザルト"
-                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・${listeningMode ? "リスニング" : "一問一答"}リザルト`}
+                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・${listeningMode ? "リスニング" : reverseMode ? "日→英" : "一問一答"}リザルト`}
             </p>
           </div>
 

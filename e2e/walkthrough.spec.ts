@@ -394,6 +394,34 @@ test("5つの形式がどれも同じ手順で始まる", async ({ page }) => {
   await expect(page.getByText("Q: 1 / 50")).toBeVisible();
 });
 
+test("類義語クイズと語義分別クイズを、答えて解説を読んで次へ進める", async ({ page }) => {
+  // どちらも答えたあと自動では進まない（解説を読むこと自体が学習なので）
+  await page.goto("/");
+  await waitForVocabulary(page);
+
+  await page.locator("#btn_junior_synonym").click();
+  await expect(page).toHaveURL(/\/quiz\/synonym$/);
+  await expect(page.locator("#synonym_prompt_word")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#quiz_options_container button")).toHaveCount(4);
+  await page.locator("#quiz_options_container button").first().click();
+  await expect(page.locator('[role="status"]')).toContainText(/正解|不正解/);
+  await expect(page.locator("#choice_quiz_feedback")).toContainText("＝");
+  await page.locator("#btn_next_question").click();
+  await expect(page.getByText("Q: 2 / 10")).toBeVisible();
+
+  await page.locator("#btn_quit_quiz").click();
+  await waitForVocabulary(page);
+  await page.locator("#btn_junior_sense").click();
+  await expect(page).toHaveURL(/\/quiz\/sense$/);
+  const sentence = page.locator("#sense_prompt_sentence");
+  await expect(sentence).toBeVisible({ timeout: 30_000 });
+  // 例文の中の対象の語が強調されている
+  await expect(sentence.locator("mark")).toHaveCount(1);
+  await page.locator("#quiz_options_container button").first().click();
+  await expect(page.locator('[role="status"]')).toContainText(/正解|不正解/);
+  await expect(page.locator("#choice_quiz_feedback")).toContainText("ほかの意味");
+});
+
 test("ヘッダーのポイントは、ガチャで使える額と一致する", async ({ page }) => {
   // stats.score は「これまでに稼いだ合計」で、ガチャを引いても減らない。
   // ヘッダーがその合計を「P」として出していたため、ガチャ画面には
@@ -701,6 +729,22 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
     await page.locator("#quiz_options_container button").last().click();
     await page.waitForTimeout(500);
     expect(await page.evaluate(LOW_CONTRAST), `${theme} / 答え合わせ`).toEqual([]);
+
+    // 類義語・語義分別は、答えたあとに解説の欄が出る
+    for (const [name, button, anchor] of [
+      ["類義語", "#btn_junior_synonym", "#synonym_prompt_word"],
+      ["語義分別", "#btn_junior_sense", "#sense_prompt_sentence"]
+    ]) {
+      await page.goto("/");
+      await waitForVocabulary(page);
+      await page.locator(button).click();
+      await expect(page.locator(anchor)).toBeVisible({ timeout: 30_000 });
+      expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${name} 出題中`).toEqual([]);
+      await page.locator("#quiz_options_container button").last().click();
+      await expect(page.locator("#choice_quiz_feedback")).toBeVisible();
+      await page.waitForTimeout(500);
+      expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${name} 解説`).toEqual([]);
+    }
   }
 });
 
@@ -922,7 +966,11 @@ test("起動時に、まだ開いていない画面の JS を読み込まない"
   await page.goto("/");
   await waitForVocabulary(page);
 
-  const deferred = ["Dictionary", "Reading", "Grammar", "AIDiary", "MapAndPuzzle", "passages"];
+  const deferred = [
+    "Dictionary", "Reading", "Grammar", "AIDiary", "MapAndPuzzle", "passages",
+    // 類義語・語義分別の画面とデータ（データは開いた画面が取りに行く）
+    "SynonymQuiz", "SenseQuiz", "synonyms", "senseQuiz"
+  ];
   for (const name of deferred) {
     expect(loaded.filter(f => f.startsWith(name)), `${name} を起動時に読み込んでいる`).toEqual([]);
   }

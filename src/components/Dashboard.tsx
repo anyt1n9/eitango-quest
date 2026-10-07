@@ -159,7 +159,7 @@ const LEVELS: {
 
 /** レベルの中で選べる出題形式。並びは5レベルで共通 */
 const QUIZ_FORMS: {
-  form: "sentence" | "listening" | "reverse" | "spelling";
+  form: "sentence" | "listening" | "reverse" | "spelling" | "synonym" | "sense";
   label: string;
   /** 絵。他の画面と同じ線画を使う（src/components/AppIcons.tsx） */
   Icon?: (props: { className?: string }) => React.ReactElement;
@@ -167,7 +167,11 @@ const QUIZ_FORMS: {
   { form: "sentence", label: "例文穴埋めを解く" },
   { form: "listening", label: "リスニングを解く", Icon: ListeningIcon },
   { form: "reverse", label: "日本語→英単語" },
-  { form: "spelling", label: "綴りを書く", Icon: SpellingIcon }
+  { form: "spelling", label: "綴りを書く", Icon: SpellingIcon },
+  // 訳を介さずに英語どうしをつなぐ（big ＝ large）
+  { form: "synonym", label: "類義語を当てる" },
+  // 文の中で意味を決める（I booked a table. の book は「予約する」）
+  { form: "sense", label: "語義を見分ける" }
 ];
 
 /** 1回のクイズで出す問題数の選択肢 */
@@ -269,7 +273,11 @@ interface DashboardProps {
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
   srsData: Record<string, SrsState>;
   wrongWords: string[];
-  onStartQuiz: (level: Level, type: "word" | "sentence" | "listening" | "spelling" | "reverse", count?: number) => void;
+  onStartQuiz: (
+    level: Level,
+    type: "word" | "sentence" | "listening" | "spelling" | "reverse" | "synonym" | "sense",
+    count?: number
+  ) => void;
   onStartReview: () => void;
   onOpenDictionary: () => void;
   onStartReading: () => void;
