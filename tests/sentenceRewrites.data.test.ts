@@ -25,7 +25,7 @@ const FILES = { junior, senior, senior2, senior3, advanced };
  * 書き直しを終えたレベル。ここに入れたレベルに定型文が残っていたら落ちる。
  * 例外は見出しそのものが英語として成り立たず、例文を書けない語だけ
  */
-const DONE_LEVELS = ["junior", "senior"];
+const DONE_LEVELS = ["junior", "senior", "senior2"];
 const NOT_WRITABLE: Record<string, string> = {
   s605: "be threatened to … 受け身の threaten は to 不定詞を取らない（be threatened with が正しい形）",
   s667: "in tough … 英語の成句ではない（訳は「苦労して，厳しい」）"
@@ -34,7 +34,7 @@ const NOT_WRITABLE: Record<string, string> = {
 /**
  * 定型文の例文が残っている語数の上限。書き直しが進んだら下げる（増やしてはいけない）
  */
-const MAX_TEMPLATE_SENTENCES = 2789;
+const MAX_TEMPLATE_SENTENCES = 2148;
 
 describe("定型文の例文の書き直し", () => {
   it("書き直しが決まりを守っている", () => {
