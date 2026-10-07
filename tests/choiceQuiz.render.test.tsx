@@ -107,6 +107,17 @@ describe("類義語クイズ", () => {
     expect(document.getElementById("choice_quiz_feedback")!.textContent).toContain("赤い");
   });
 
+  it("誤答の解説は、出題に使った語の訳を出す（同じ綴りの別の語を引かない）", async () => {
+    // 取り込んだ単語などで同じ綴りの語が先に並んでいても、出題時の語を使う
+    const props = { ...common(), vocabulary: [W("imported_red", "red", "取り込んだ別の訳"), ...VOCAB] };
+    render(<SynonymQuiz {...props} />);
+    await screen.findByText(/この語と同じ意味の語はどれ/);
+    act(() => { optionButton("red").click(); });
+    const feedback = document.getElementById("choice_quiz_feedback")!.textContent!;
+    expect(feedback).toContain("赤い");
+    expect(feedback).not.toContain("取り込んだ別の訳");
+  });
+
   it("解答の二度押しは1回として記録する", async () => {
     const props = common();
     render(<SynonymQuiz {...props} />);
@@ -147,6 +158,23 @@ describe("類義語クイズ", () => {
     // 2問正解 × 30P ＋ 全問正解 150P
     expect(props.updateRankingScore).toHaveBeenCalledTimes(1);
     expect(props.updateRankingScore).toHaveBeenCalledWith(210);
+  });
+
+  it("「もう一度挑戦する」で、解答の状態を残さず1問目から始まる", async () => {
+    const props = common();
+    render(<SynonymQuiz {...props} />);
+    await screen.findByText(/この語と同じ意味の語はどれ/);
+    for (let i = 0; i < 2; i++) {
+      act(() => { optionButton("red").click(); });
+      act(() => { document.getElementById("btn_next_question")!.click(); });
+    }
+    act(() => { document.getElementById("btn_retry_quiz")!.click(); });
+    expect(await screen.findByText("Q: 1 / 2")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).toBeNull();
+    // 新しい出題でも答えられる（前の回の解答の印が残っていない）
+    act(() => { optionButton("red").click(); });
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(props.recordAnswer).toHaveBeenCalledTimes(3);
   });
 
   it("データを読み込めなければ理由を出し、控えを捨てて読み直せる", async () => {

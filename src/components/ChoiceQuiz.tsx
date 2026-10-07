@@ -7,6 +7,11 @@ import { getAudioContext } from "../sound";
 /**
  * 選択式クイズの共通の枠（類義語クイズ・語義分別クイズが使う）。
  *
+ * 出題を作り直したら（もう一度挑戦する）、呼び出し側で key を変えて作り直すこと。
+ * 解答の状態を effect で消すと、新しい問題が描かれてから effect が走るまでの間に
+ * 押された解答が「記録はされたのに画面からは消える」形で取りこぼされる
+ * （描画のテストで実際に起きた）。作り直せば state も印も同じ描画で初めからになる。
+ *
  * 2つとも「問いを見て、選択肢から1つ選び、解説を読んで次へ」という流れで、
  * 違うのは問いと解説の中身だけなので、流れ（解答・記録・結果）はここにまとめる。
  *
@@ -107,16 +112,6 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
   const answeredRef = useRef(false);
   /** 結果の確定（ポイントの加算）も1回だけにする */
   const finishedRef = useRef(false);
-
-  // 出題が作り直されたら最初から
-  useEffect(() => {
-    setIndex(0);
-    setChoice(null);
-    answeredRef.current = false;
-    setResults([]);
-    setFinished(false);
-    finishedRef.current = false;
-  }, [questions]);
 
   const current = questions && questions.length > 0 ? questions[index] : null;
 

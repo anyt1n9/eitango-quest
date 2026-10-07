@@ -37,6 +37,11 @@ export interface SynonymQuestion {
   others: Word[];
   /** 選択肢の英単語（正解を含む） */
   options: string[];
+  /**
+   * 選択肢の綴り → 出題時に選んだ語。誤答の解説（「選んだ X は『…』という意味」）に使う。
+   * 綴りで単語データを引き直すと、同じ綴りの語（取り込んだ単語など）が先に並んだとき別の訳が出る
+   */
+  optionWords: Record<string, Word>;
 }
 
 /**
@@ -78,7 +83,8 @@ export function buildSynonymQuestions(input: {
       answerWord: answer,
       answer: answer.word,
       others: same.filter(w => w.id !== answer.id),
-      options: shuffle([answer.word, ...distractors.map(d => d.word)])
+      options: shuffle([answer.word, ...distractors.map(d => d.word)]),
+      optionWords: Object.fromEntries([answer, ...distractors].map(w => [w.word, w]))
     };
   });
 }
