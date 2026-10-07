@@ -26,10 +26,12 @@ function renderBackup(onBackToDashboard = vi.fn()) {
 function captureExport(): () => any {
   let text = "";
   const OriginalBlob = globalThis.Blob;
-  vi.spyOn(globalThis, "Blob").mockImplementation(((parts: any[]) => {
+  // Blob は new で呼ばれるので、差し替えはアロー関数にできない
+  // （vitest 4 以降は「is not a constructor」で投げ、書き出しが失敗扱いになる）
+  vi.spyOn(globalThis, "Blob").mockImplementation(function (parts: any[], options?: BlobPropertyBag) {
     text = String(parts[0]);
-    return new OriginalBlob(parts);
-  }) as any);
+    return new OriginalBlob(parts, options);
+  } as any);
   return () => JSON.parse(text);
 }
 
