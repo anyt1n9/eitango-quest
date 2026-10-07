@@ -356,6 +356,8 @@ const SENTENCE_FIXES: Record<string, { sentence: string; sentenceTranslation: st
   redesign: { sentence: "The company decided to [_____] its website to make it easier to use.", sentenceTranslation: "その会社は、より使いやすくするためにウェブサイトを設計し直すことにしました。" },
   spelling: { sentence: "Please check the [_____] of these words.", sentenceTranslation: "これらの単語の綴りを確認してください。" },
   aloud: { sentence: "Please read the poem [_____] so everyone can hear it.", sentenceTranslation: "みんなに聞こえるように、その詩を声に出して読んでください。" },
+  // fading と pilot は品詞を変えない語（tests/vocabulary.data.test.ts の NOT_IN_WORDNET_ON_PURPOSE）。
+  // 品詞はそのままで、例文だけが合わない文枠から作られていた
   fading: { sentence: "The sound of the bell was [_____] into the night.", sentenceTranslation: "鐘の音は夜の中へ次第に消えていきました。" },
   disagree: { sentence: "I [_____] with your opinion on this point.", sentenceTranslation: "この点について、私の意見はあなたと一致しません。" },
   afterwards: { sentence: "We watched a movie and went out for dinner [_____].", sentenceTranslation: "私たちは映画を見て、その後夕食に出かけました。" },
@@ -407,12 +409,15 @@ const oldTranslations = new Set<string>();
 
 /** 品詞か訳が今回変わった語。四択を作り直すのはこれだけにする */
 const rebuilt: any[] = [];
+/** どれかの一覧に当たった語の数（品詞・訳・例文のどれか） */
+let matched = 0;
 for (const w of words) {
   const key = String(w.word).toLowerCase();
   const want = POS_FIXES[key];
   const newTranslation = TRANSLATION_FIXES[key];
   const newSentence = SENTENCE_FIXES[key];
   if (!want && !newTranslation && !newSentence) continue;
+  matched++;
   if (want) targets.push(w);
   let modified = false;
   if (newTranslation && w.translation !== newTranslation) {
@@ -434,7 +439,9 @@ for (const w of words) {
   if (modified) rebuilt.push(w);
 }
 
-if (targets.length === 0) {
+// 品詞の一覧だけで判定すると、訳や例文だけを直す回（品詞の一覧に当たる語が無い回）に
+// 書き戻す前に終わってしまい、その修正が反映されない
+if (matched === 0) {
   console.log("対象の語が見つかりませんでした。");
   process.exit(1);
 }
