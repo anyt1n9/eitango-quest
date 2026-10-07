@@ -3,6 +3,7 @@ import { initialVocabulary } from "../src/data/vocabulary";
 import { PartOfSpeech } from "../src/types";
 import { senses } from "./helpers";
 import { wordSenses } from "../src/data/senses";
+import { wordnetPos } from "./data/wordnetPos";
 import {
   ADJ_ATTR, ADJ_STATE, DETERMINER_LIKE, firstSense, NOUN, VERB_TRANS, VERB_INTRANS,
   ADJ_QUALITY, ADV, OTHER
@@ -290,7 +291,9 @@ describe("品詞は一般的に使われるものに合わせる", () => {
     desert: "訳「砂漠」は名詞。動詞69%は「見捨てる」の意味",
     orient: "訳「東洋」は名詞。動詞83%は「方向づける」の意味",
     downtown: "訳「中心街へ」は副詞的で、形容詞54%とは差も小さい",
-    solvent: "訳「支払い能力のある」は形容詞。名詞100%は「溶剤」の意味"
+    solvent: "訳「支払い能力のある」は形容詞。名詞100%は「溶剤」の意味",
+    vow: "訳「誓い」は名詞。動詞100%は「誓う」の意味",
+    please: "訳「どうぞ」は副詞。動詞100%は「喜ばせる」の意味"
   };
 
   /** 実測の割合が最も高い品詞。同率・データ無しのときは null */
@@ -327,6 +330,64 @@ describe("品詞は一般的に使われるものに合わせる", () => {
       expect(reason.length, word).toBeGreaterThan(10);
       expect(V.some(w => w.word.toLowerCase() === word), word).toBe(true);
     }
+  });
+
+  /**
+   * 辞書(WordNet)が1度も記録していない品詞で教えている語。
+   *
+   * 上の検査は語義データの使用割合から辞書の記録を推し量っており、
+   * 割合が 0 の品詞（実測したが出てこなかった）も記録ありに数えていた。
+   * そのため behavior（形容詞）や once（名詞）がすり抜け、誤った品詞の文枠から
+   * 「He spent all morning cleaning the [_____].」（答えが once）のような
+   * 意味の通らない例文ができていた。ここでは辞書そのもの
+   * （scripts/bake_wordnet_pos.ts が書き出した一覧）と突き合わせる。
+   */
+  const NOT_IN_WORDNET_ON_PURPOSE: Record<string, string> = {
+    am: "be動詞。WordNet の am / are は面積の単位（名詞）としての見出し",
+    are: "be動詞。WordNet の am / are は面積の単位（名詞）としての見出し",
+    audio: "訳「音声の」。WordNet は名詞の限定用法として扱うが、教材は形容詞として教える",
+    pilot: "訳「試験的な」（a pilot program）。WordNet は名詞の限定用法として扱う",
+    freak: "訳「異常な」（a freak storm）。WordNet は名詞の限定用法として扱う",
+    freezing: "訳「凍えるような」。分詞形容詞で、WordNet は名詞（凍結）だけを見出しに持つ",
+    elitist: "訳「エリート主義の」。WordNet は名詞（エリート主義者）だけを見出しに持つ",
+    curate: "訳「（展示を）企画する」。近年の動詞用法で、WordNet は名詞（副牧師）だけを持つ",
+    fading: "-ing 形の分詞（次第に消えていく）。動詞の活用形として教えている"
+  };
+
+  it("辞書が1度も記録していない品詞で教えている語は、理由を書いたものだけ", () => {
+    const LETTER: Record<string, string> = { noun: "n", verb: "v", adjective: "a", adverb: "r" };
+    const bad: string[] = [];
+    for (const w of V) {
+      const lemma = w.word.trim().toLowerCase();
+      const recorded = wordnetPos[lemma];
+      if (!recorded || !w.pos || w.pos === "other") continue;
+      if (recorded.includes(LETTER[w.pos])) continue;
+      if (lemma in NOT_IN_WORDNET_ON_PURPOSE) continue;
+      bad.push(`${w.word}: ${w.pos}（辞書には ${recorded}）「${w.translation}」`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("辞書に無い品詞のまま残した語には理由が書いてあり、今も辞書と食い違っている", () => {
+    const LETTER: Record<string, string> = { noun: "n", verb: "v", adjective: "a", adverb: "r" };
+    for (const [word, reason] of Object.entries(NOT_IN_WORDNET_ON_PURPOSE)) {
+      expect(reason.length, word).toBeGreaterThan(10);
+      const w = V.find(x => x.word.toLowerCase() === word);
+      expect(w, word).toBeDefined();
+      // 直したのに一覧に残っていると、次に同じ語を誤らせても気づけない
+      expect(wordnetPos[word].includes(LETTER[w!.pos!]), word).toBe(false);
+    }
+  });
+
+  it("品詞を誤って意味の通らない例文になっていた語が直っている", () => {
+    // 誤った品詞の文枠から作られた例文は、和訳が「『かつて』を掃除していました」のように
+    // 訳語をかぎ括弧で差し込んだ形になる。直した語に定型文が残っていないことを見る
+    const fixed = ["once", "behavior", "survive", "seldom", "doubt", "ever", "away", "both", "later"];
+    const bad = fixed
+      .map(word => V.find(w => w.word === word)!)
+      .filter(w => templateSentences.has(w.sentence) || w.sentenceTranslation.includes(`「${w.translation}」`))
+      .map(w => `${w.word}: ${w.sentence}`);
+    expect(bad).toEqual([]);
   });
 
   it("よく使う語の品詞が正しい", () => {

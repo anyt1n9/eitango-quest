@@ -220,7 +220,83 @@ const POS_FIXES: Record<string, string> = {
   unnerving: "adjective",      // 不安にさせる、気味の悪い
   unsettling: "adjective",     // 不安にさせる、落ち着かない
   intrigued: "adjective",      // 興味をそそられた
-  platitude: "noun"            // お決まりのせりふ、陳腐な言葉
+  platitude: "noun",           // お決まりのせりふ、陳腐な言葉
+
+  // ------------------------------------------------------------------
+  // 辞書(WordNet)がその品詞を1つも記録していない語。
+  // 上の洗い出しは「教えている品詞の使用割合が欠けている語」を探していたが、
+  // 割合が 0（実測したが見つからなかった）の語はすり抜けていた
+  // （behavior が形容詞、once が名詞のまま）。
+  //
+  // 品詞を誤ると、例文も誤った品詞の文枠から作られて意味が通らなくなる
+  // （once の例文が「He spent all morning cleaning the [_____].」だった）。
+  // そうなっていた語は下の SENTENCE_FIXES で例文も書き直す。
+  // ------------------------------------------------------------------
+  never: "adverb",             // 一度も～ない
+  yet: "adverb",               // （否定文で）まだ
+  once: "adverb",              // かつて、1度
+  behavior: "noun",            // 振る舞い、態度
+  twice: "adverb",             // 2回、2倍
+  survive: "verb",             // 生き残る
+  dizziness: "noun",           // めまい
+  applause: "noun",            // 拍手かっさい
+  hesitation: "noun",          // ためらい
+  later: "adverb",             // 後に
+  seldom: "adverb",            // めったに～しない
+  overnight: "adverb",         // 一晩中、夜通しで
+  doubt: "noun",               // 疑い（訳が名詞。動詞「疑う」としては教えていない）
+  stake: "noun",               // くい
+  ever: "adverb",              // 今まで
+  "in-person": "adjective",    // 対面の
+  redesign: "verb",            // 再設計する
+  spelling: "noun",            // 綴り
+  aloud: "adverb",             // 声に出して
+  disagree: "verb",            // 一致しない
+  afterwards: "adverb",        // その後
+  momentum: "noun",            // 勢い
+  thereby: "adverb",           // それによって
+  vow: "noun",                 // 誓い（訳が名詞）
+  placate: "verb",             // なだめる
+  disallow: "verb",            // 認めない、却下する
+  also: "adverb",              // 〜もまた
+  every: "adjective",          // どの〜も（WordNet は限定詞を形容詞として扱う）
+  please: "adverb",            // どうぞ
+  away: "adverb",              // 離れて
+  both: "adjective",           // 両方（every と同じく限定詞）
+  fishing: "noun",             // 釣り
+  off: "adverb",               // 離れて、（スイッチが）切れて
+  sir: "noun",                 // （男性への敬称）
+  someday: "adverb",           // いつか
+  trap: "noun",                // わな（例文も名詞）
+  afterward: "adverb",         // あとで、その後
+  deprive: "verb",             // 奪う
+  farewell: "noun",            // 別れ
+  forgive: "verb",             // 許す
+  laughter: "noun",            // 笑い声
+  nephew: "noun",              // おい
+  niece: "noun",               // めい
+  sometime: "adverb",          // いつか、そのうち
+  suspicion: "noun",           // 疑い、容疑
+  unfriendly: "adjective",     // よそよそしい
+  conceive: "verb",            // 思いつく
+  cone: "noun",                // 円すい
+  eyelid: "noun",              // まぶた
+  itch: "verb",                // かゆい（例文 made my skin itch は動詞）
+  oath: "noun",                // 誓い
+  revive: "verb",              // 生き返らせる
+  astray: "adverb",            // 道に迷って
+  contrive: "verb",            // たくらむ
+  daunt: "verb",               // ひるませる
+  hitherto: "adverb",          // 今まで
+  loiter: "verb",              // うろつく
+  plaster: "noun",             // しっくい（例文も名詞）
+  qualm: "noun",               // （良心の）かしゃく
+
+  // 辞書はどちらの品詞も記録しているが、訳と品詞が食い違っていた語。
+  // 語義分別クイズのために多義語を1語ずつ見ていて見つかった。
+  utter: "adjective",          // 訳「純然たる，全くの」は形容詞なのに動詞として出題していた
+  back: "adverb",              // 訳「戻って」（He came back home.）は副詞
+  hail: "noun"                 // 訳の先頭「あられ、ひょう」も例文（Hail fell heavily...）も名詞
 };
 
 /**
@@ -231,7 +307,79 @@ const POS_FIXES: Record<string, string> = {
  * 訳を変えると四択の正解も変わるので、ここで直して選択肢を作り直す。
  */
 const TRANSLATION_FIXES: Record<string, string> = {
-  multiple: "多数の、複数の"
+  multiple: "多数の、複数の",
+  // 品詞を直すと訳の形も合わせる必要がある語
+  twice: "2回、2倍",
+  "in-person": "対面の、直接会っての",
+  redesign: "再設計する、設計し直す",
+  // 「視覚」の誤字。「資格」は qualification の訳で、四択に別の語の意味が出ていた
+  vision: "視力，展望",
+  // capacity（容量）の訳が写っていた。類義語の組を目で確かめていて見つかった
+  capability: "能力，才能",
+  // 「驚くべき」の誤字
+  prodigious: "巨大な、驚くべき",
+  // 「を設定する」は resolve の意味ではない（決議する・決心する の取り違え）
+  resolve: "解決する，決心する",
+  // 「名立たる」は chief の意味ではなく、「長官」は名詞の意味（ここでは形容詞として教えている）
+  chief: "主要な、最高位の",
+  // 「回転する」の誤字
+  spin: "回す，回転する",
+  // 名詞として教えているのに訳が動詞「こぐ」だった（例文は「その村は『こぐ』で有名です」）
+  row: "列、並び"
+};
+
+/**
+ * 例文を書き直す語。
+ *
+ * 例文の半分ほどは品詞ごとの文枠から作られている（rewrite_template_sentences.ts）。
+ * 品詞を誤っていた語は誤った品詞の文枠に入っていたため、
+ * 「He spent all morning cleaning the [_____].」（答えが once）のように意味が通らない。
+ * 和訳も「彼は午前中ずっと『かつて』を掃除していました。」になっていた。
+ *
+ * 他の選択肢が入っても文が成り立たないよう、その語でしか埋まらない形にしている。
+ */
+const SENTENCE_FIXES: Record<string, { sentence: string; sentenceTranslation: string }> = {
+  once: { sentence: "I have been to Kyoto only [_____].", sentenceTranslation: "私は京都へは一度しか行ったことがありません。" },
+  behavior: { sentence: "The teacher praised the students for their good [_____].", sentenceTranslation: "先生は生徒たちのよい振る舞いをほめました。" },
+  twice: { sentence: "I brush my teeth [_____] a day.", sentenceTranslation: "私は1日に2回歯をみがきます。" },
+  survive: { sentence: "Camels can [_____] for many days without water.", sentenceTranslation: "ラクダは水がなくても何日も生き残ることができます。" },
+  dizziness: { sentence: "She felt a sudden [_____] and had to sit down.", sentenceTranslation: "彼女は急にめまいがして、座らなければなりませんでした。" },
+  applause: { sentence: "The audience burst into [_____] after her speech.", sentenceTranslation: "彼女のスピーチの後、聴衆からどっと拍手かっさいが起こりました。" },
+  hesitation: { sentence: "She showed no [_____] in accepting the offer.", sentenceTranslation: "彼女はためらいを見せることなくその申し出を受けました。" },
+  later: { sentence: "He left first, and his sister left ten minutes [_____].", sentenceTranslation: "彼が先に出て、妹はその10分後に出ました。" },
+  seldom: { sentence: "My father [_____] watches TV on weekdays.", sentenceTranslation: "父は平日にはめったにテレビを見ません。" },
+  overnight: { sentence: "It rained [_____], so the roads were wet in the morning.", sentenceTranslation: "一晩中雨が降ったので、朝は道がぬれていました。" },
+  doubt: { sentence: "There is no [_____] that he is telling the truth.", sentenceTranslation: "彼が本当のことを言っているのは疑いようがありません。" },
+  stake: { sentence: "They tied the young tree to a wooden [_____].", sentenceTranslation: "彼らはその若木を木のくいに結びつけました。" },
+  ever: { sentence: "Have you [_____] seen a koala?", sentenceTranslation: "今までにコアラを見たことがありますか。" },
+  "in-person": { sentence: "Online classes are convenient, but I prefer [_____] classes.", sentenceTranslation: "オンラインの授業は便利ですが、私は対面の授業のほうが好きです。" },
+  redesign: { sentence: "The company decided to [_____] its website to make it easier to use.", sentenceTranslation: "その会社は、より使いやすくするためにウェブサイトを設計し直すことにしました。" },
+  spelling: { sentence: "Please check the [_____] of these words.", sentenceTranslation: "これらの単語の綴りを確認してください。" },
+  aloud: { sentence: "Please read the poem [_____] so everyone can hear it.", sentenceTranslation: "みんなに聞こえるように、その詩を声に出して読んでください。" },
+  // fading と pilot は品詞を変えない語（tests/vocabulary.data.test.ts の NOT_IN_WORDNET_ON_PURPOSE）。
+  // 品詞はそのままで、例文だけが合わない文枠から作られていた
+  fading: { sentence: "The sound of the bell was [_____] into the night.", sentenceTranslation: "鐘の音は夜の中へ次第に消えていきました。" },
+  disagree: { sentence: "I [_____] with your opinion on this point.", sentenceTranslation: "この点について、私の意見はあなたと一致しません。" },
+  afterwards: { sentence: "We watched a movie and went out for dinner [_____].", sentenceTranslation: "私たちは映画を見て、その後夕食に出かけました。" },
+  pilot: { sentence: "The city started a [_____] program to test electric buses.", sentenceTranslation: "市は電気バスを試すための試験的な計画を始めました。" },
+  momentum: { sentence: "The team gained [_____] in the second half.", sentenceTranslation: "そのチームは後半に勢いに乗りました。" },
+  thereby: { sentence: "She exercised every day, [_____] improving her health.", sentenceTranslation: "彼女は毎日運動し、それによって健康を改善しました。" },
+  vow: { sentence: "She made a [_____] to study harder.", sentenceTranslation: "彼女はもっと一生懸命勉強するという誓いを立てました。" },
+  placate: { sentence: "He tried to [_____] the angry customers.", sentenceTranslation: "彼は怒っている客をなだめようとしました。" },
+  disallow: { sentence: "The referee decided to [_____] the goal.", sentenceTranslation: "審判はそのゴールを認めないことにしました。" },
+  away: { sentence: "The station is two kilometers [_____] from here.", sentenceTranslation: "駅はここから2キロ離れています。" },
+  both: { sentence: "[_____] of my parents are teachers.", sentenceTranslation: "私の両親は両方とも教師です。" },
+  vision: { sentence: "The company announced a new [_____] last week.", sentenceTranslation: "その会社は先週、新しい展望を発表しました。" },
+  // 訳を直した語。定型文の和訳に古い訳が差し込まれたままになるので、例文ごと書き直す
+  capability: { sentence: "She has the [_____] to finish the work alone.", sentenceTranslation: "彼女にはその仕事を一人で終える能力があります。" },
+  prodigious: { sentence: "He has a [_____] memory and never forgets a name.", sentenceTranslation: "彼は驚くべき記憶力の持ち主で、人の名前を決して忘れません。" },
+  resolve: { sentence: "The two countries worked together to [_____] the conflict.", sentenceTranslation: "両国は協力してその紛争を解決しました。" },
+  chief: { sentence: "He was appointed [_____] engineer of the project.", sentenceTranslation: "彼はその計画の主任技術者に任命されました。" },
+  spin: { sentence: "The wheels began to [_____] faster and faster.", sentenceTranslation: "車輪はどんどん速く回転し始めました。" },
+  row: { sentence: "We sat in the front [_____] of the theater.", sentenceTranslation: "私たちは劇場の最前列に座りました。" },
+  utter: { sentence: "The plan ended in [_____] failure.", sentenceTranslation: "その計画は全くの失敗に終わりました。" },
+  // 自動詞の文枠に入っていた（「She decided to commit as soon as possible.」）
+  commit: { sentence: "She decided to [_____] herself to her studies.", sentenceTranslation: "彼女は勉強に専念することにしました。" }
 };
 
 /**
@@ -241,8 +389,10 @@ const TRANSLATION_FIXES: Record<string, string> = {
  *   orient   … 訳「東洋」は名詞。動詞83%は「方向づける」の意味
  *   downtown … 訳「中心街へ」は副詞的。形容詞54%と差も小さい
  *   solvent  … 訳「支払い能力のある」は形容詞。名詞100%は「溶剤」の意味
+ *   vow      … 訳「誓い」は名詞。動詞100%は「誓う」の意味
+ *   please   … 訳「どうぞ」は副詞。動詞100%は「喜ばせる」の意味
  */
-const KEPT_ON_PURPOSE = ["desert", "orient", "downtown", "solvent"];
+const KEPT_ON_PURPOSE = ["desert", "orient", "downtown", "solvent", "vow", "please"];
 
 /*
  * 単語配列の範囲は共通処理に任せる。
@@ -257,23 +407,41 @@ const targets: any[] = [];
 /** 直す前の訳。訳を書き換えた語を誤答に使っている語も作り直すために控えておく */
 const oldTranslations = new Set<string>();
 
+/** 品詞か訳が今回変わった語。四択を作り直すのはこれだけにする */
+const rebuilt: any[] = [];
+/** どれかの一覧に当たった語の数（品詞・訳・例文のどれか） */
+let matched = 0;
 for (const w of words) {
   const key = String(w.word).toLowerCase();
   const want = POS_FIXES[key];
-  if (!want) continue;
-  targets.push(w);
   const newTranslation = TRANSLATION_FIXES[key];
+  const newSentence = SENTENCE_FIXES[key];
+  if (!want && !newTranslation && !newSentence) continue;
+  matched++;
+  if (want) targets.push(w);
+  let modified = false;
   if (newTranslation && w.translation !== newTranslation) {
     oldTranslations.add(String(w.translation));
     changed.push(`${w.word}: 訳「${w.translation}」→「${newTranslation}」`);
     w.translation = newTranslation;
+    modified = true;
   }
-  if (w.pos === want) continue;
-  changed.push(`${w.word}: ${w.pos} → ${want}`);
-  w.pos = want;
+  if (newSentence && w.sentence !== newSentence.sentence) {
+    changed.push(`${w.word}: 例文「${w.sentence}」→「${newSentence.sentence}」`);
+    w.sentence = newSentence.sentence;
+  }
+  if (newSentence) w.sentenceTranslation = newSentence.sentenceTranslation;
+  if (want && w.pos !== want) {
+    changed.push(`${w.word}: ${w.pos} → ${want}`);
+    w.pos = want;
+    modified = true;
+  }
+  if (modified) rebuilt.push(w);
 }
 
-if (targets.length === 0) {
+// 品詞の一覧だけで判定すると、訳や例文だけを直す回（品詞の一覧に当たる語が無い回）に
+// 書き戻す前に終わってしまい、その修正が反映されない
+if (matched === 0) {
   console.log("対象の語が見つかりませんでした。");
   process.exit(1);
 }
@@ -284,9 +452,12 @@ if (targets.length === 0) {
  * 品詞が変わった時点でその語の四択に別の品詞が混ざる
  * （例: onion(名詞) の誤答に「〜である」(am) が残る）。
  * 直した語を誤答に含む語も一緒に作り直す。
+ *
+ * 対象は今回の実行で品詞か訳が変わった語に限る。以前に直し終えた語まで
+ * 毎回作り直すと、回すたびに数百語の選択肢が並べ替わり、差分から何を直したのか読めなくなる。
  */
-const fixedWords = new Set(targets.map(w => String(w.word)));
-const fixedTranslations = new Set([...targets.map(w => String(w.translation)), ...oldTranslations]);
+const fixedWords = new Set(rebuilt.map(w => String(w.word)));
+const fixedTranslations = new Set([...rebuilt.map(w => String(w.translation)), ...oldTranslations]);
 const rebuild = words.filter(w =>
   fixedWords.has(String(w.word))
   || (Array.isArray(w.options) && w.options.some((o: string) => fixedTranslations.has(o)))
@@ -352,6 +523,6 @@ if (droppedPatterns > 0) {
   fs.writeFileSync(usageFile, usageSrc.slice(0, uStart) + JSON.stringify(usage) + usageSrc.slice(uEnd), "utf8");
 }
 console.log(`語義の用例を${droppedUsage}件、動詞でなくなった語の文型を${droppedPatterns}件外しました`);
-console.log(`${changed.length}語の品詞を直し、${rebuild.length}語の四択を作り直しました`);
+console.log(`${changed.length}件を直し（品詞・訳・例文）、${rebuild.length}語の四択を作り直しました`);
 console.log(`（訳と食い違うため意図的に変えなかった語: ${KEPT_ON_PURPOSE.join(", ")}）`);
 for (const line of changed) console.log("  " + line);

@@ -26,6 +26,8 @@ import AdBanner from "./components/AdBanner";
  */
 const SentenceQuiz = lazy(() => import("./components/SentenceQuiz"));
 const SpellingQuiz = lazy(() => import("./components/SpellingQuiz"));
+const SynonymQuiz = lazy(() => import("./components/SynonymQuiz"));
+const SenseQuiz = lazy(() => import("./components/SenseQuiz"));
 const ReviewList = lazy(() => import("./components/ReviewList"));
 const Dictionary = lazy(() => import("./components/Dictionary"));
 const Reading = lazy(() => import("./components/Reading"));
@@ -460,7 +462,7 @@ export default function App() {
 
   const handleStartQuiz = (
     level: Level,
-    type: "word" | "sentence" | "listening" | "spelling" | "reverse",
+    type: "word" | "sentence" | "listening" | "spelling" | "reverse" | "synonym" | "sense",
     count: number = 10
   ) => {
     setSelectedLevel(level);
@@ -470,6 +472,8 @@ export default function App() {
         : type === "listening" ? "listening_quiz"
         : type === "spelling" ? "spelling_quiz"
         : type === "reverse" ? "reverse_quiz"
+        : type === "synonym" ? "synonym_quiz"
+        : type === "sense" ? "sense_quiz"
         : "sentence_quiz"
     );
   };
@@ -507,12 +511,13 @@ export default function App() {
   };
 
   // 解答1件ごとの中央処理: 間隔反復(SRS)スケジュール、今日の学習目標、学習カレンダーを更新する
-  const recordAnswer = useCallback((wordId: string, isCorrect: boolean) => {
+  /**
+   * その日の学習量だけを数える（今日の目標・学習カレンダー）。
+   * 語義分別クイズで、教材が教えていない語義（book の「予約する」）を解いたときに使う。
+   * 間隔反復は「教材の訳を覚えたか」を追っているので、そちらには入れない。
+   */
+  const recordPractice = useCallback((isCorrect: boolean) => {
     const today = todayStr();
-    setSrsData(prev => ({
-      ...prev,
-      [wordId]: nextSrsState(prev[wordId], isCorrect, today)
-    }));
     setDailyProgress(prev => {
       const base = prev.date === today ? prev.count : 0;
       return { date: today, count: base + 1 };
@@ -525,6 +530,15 @@ export default function App() {
       };
     });
   }, []);
+
+  const recordAnswer = useCallback((wordId: string, isCorrect: boolean) => {
+    const today = todayStr();
+    setSrsData(prev => ({
+      ...prev,
+      [wordId]: nextSrsState(prev[wordId], isCorrect, today)
+    }));
+    recordPractice(isCorrect);
+  }, [recordPractice]);
 
   /**
    * 復習セッションの1問ぶんの後始末。
@@ -652,6 +666,8 @@ export default function App() {
     currentScreen === "listening_quiz" ||
     currentScreen === "reverse_quiz" ||
     currentScreen === "spelling_quiz" ||
+    currentScreen === "synonym_quiz" ||
+    currentScreen === "sense_quiz" ||
     currentScreen === "review" ||
     currentScreen === "review_quiz" ||
     currentScreen === "srs_review";
@@ -1013,6 +1029,7 @@ export default function App() {
             setStats={setStats}
             onBackToDashboard={handleBackToDashboard}
             updateRankingScore={updateRankingScore}
+            questionCount={quizQuestionCount}
             srsData={srsData}
             recordAnswer={recordAnswer}
           />
@@ -1032,6 +1049,39 @@ export default function App() {
             questionCount={quizQuestionCount}
             srsData={srsData}
             recordAnswer={recordAnswer}
+          />
+        )}
+
+        {currentScreen === "synonym_quiz" && (
+          <SynonymQuiz
+            level={selectedLevel}
+            vocabulary={vocabulary}
+            setWrongWords={setWrongWords}
+            solvedHistory={solvedHistory}
+            setSolvedHistory={setSolvedHistory}
+            setStats={setStats}
+            onBackToDashboard={handleBackToDashboard}
+            updateRankingScore={updateRankingScore}
+            questionCount={quizQuestionCount}
+            srsData={srsData}
+            recordAnswer={recordAnswer}
+          />
+        )}
+
+        {currentScreen === "sense_quiz" && (
+          <SenseQuiz
+            level={selectedLevel}
+            vocabulary={vocabulary}
+            setWrongWords={setWrongWords}
+            solvedHistory={solvedHistory}
+            setSolvedHistory={setSolvedHistory}
+            setStats={setStats}
+            onBackToDashboard={handleBackToDashboard}
+            updateRankingScore={updateRankingScore}
+            questionCount={quizQuestionCount}
+            srsData={srsData}
+            recordAnswer={recordAnswer}
+            recordPractice={recordPractice}
           />
         )}
 

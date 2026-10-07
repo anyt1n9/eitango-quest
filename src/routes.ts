@@ -20,7 +20,7 @@
 
 export type Screen =
   | "dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz"
-  | "reverse_quiz" | "review" | "review_quiz" | "dictionary" | "grammar"
+  | "reverse_quiz" | "synonym_quiz" | "sense_quiz" | "review" | "review_quiz" | "dictionary" | "grammar"
   | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review"
   | "settings" | "gacha" | "privacy" | "terms" | "about" | "background";
 
@@ -38,6 +38,8 @@ const PATHS: Record<Screen, string> = {
   listening_quiz: "/quiz/listening",
   spelling_quiz: "/quiz/spelling",
   reverse_quiz: "/quiz/reverse",
+  synonym_quiz: "/quiz/synonym",
+  sense_quiz: "/quiz/sense",
   review: "/review",
   review_quiz: "/review/quiz",
   srs_review: "/review/today",
@@ -62,7 +64,7 @@ const PATHS: Record<Screen, string> = {
  */
 const TRANSIENT: Screen[] = [
   "quiz", "sentence_quiz", "listening_quiz", "spelling_quiz", "reverse_quiz",
-  "review_quiz", "srs_review"
+  "synonym_quiz", "sense_quiz", "review_quiz", "srs_review"
 ];
 
 export function isTransient(screen: Screen): boolean {
