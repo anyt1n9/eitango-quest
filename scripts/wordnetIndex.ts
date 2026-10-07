@@ -82,16 +82,15 @@ export function loadWordNet(cacheDir = path.join(process.cwd(), ".cache")): Word
       synsets.set(`${pos}:${offset}`, { pos, offset, lemmas, pointers });
     }
 
-    const excPath = path.join(cacheDir, `${suffix}.exc`);
-    if (fs.existsSync(excPath)) {
-      for (const line of fs.readFileSync(excPath, "utf8").split("\n")) {
-        const [form, ...bases] = line.trim().split(/\s+/);
-        // 「after after」のように原形と同じ綴りの行は、見出しの側で足りている
-        if (!form || bases.length === 0 || bases.every(b => b === form)) continue;
-        const lemma = form.replace(/_/g, " ");
-        if (!inflected.has(lemma)) inflected.set(lemma, new Set());
-        inflected.get(lemma)!.add(pos);
-      }
+    // 例外表も必須にする。無いまま黙って進むと、比較級（better / worse）の形容詞が拾えず、
+    // エラーも出ないまま語義の品詞が以前の結果に戻る
+    for (const line of requireFile(path.join(cacheDir, `${suffix}.exc`)).split("\n")) {
+      const [form, ...bases] = line.trim().split(/\s+/);
+      // 「after after」のように原形と同じ綴りの行は、見出しの側で足りている
+      if (!form || bases.length === 0 || bases.every(b => b === form)) continue;
+      const lemma = form.replace(/_/g, " ");
+      if (!inflected.has(lemma)) inflected.set(lemma, new Set());
+      inflected.get(lemma)!.add(pos);
     }
   }
   return { index, synsets, inflected };

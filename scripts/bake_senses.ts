@@ -97,12 +97,17 @@ function lookup(dict: { exact: Map<string, string>; lower: Map<string, string> }
  */
 async function loadPosShares(): Promise<Map<string, Record<string, number>>> {
   const cached = path.join(CACHE_DIR, "cntlist.rev");
-  if (!fs.existsSync(cached)) {
-    const res = await fetch(WORDNET_URL);
-    if (!res.ok) throw new Error(`WordNet の取得に失敗しました (HTTP ${res.status})`);
+  // 頻度だけでなく、用例と品詞の判定に使うファイルもそろっているかを見る。
+  // cntlist.rev だけを見ていると、以前に頻度だけを展開した .cache/ では例外表（*.exc）が無いまま進む
+  const needed = ["cntlist.rev", ...["noun", "verb", "adj", "adv"].flatMap(s => [`data.${s}`, `index.${s}`, `${s}.exc`])];
+  if (needed.some(f => !fs.existsSync(path.join(CACHE_DIR, f)))) {
     const zipPath = path.join(CACHE_DIR, "wordnet.zip");
     fs.mkdirSync(CACHE_DIR, { recursive: true });
-    fs.writeFileSync(zipPath, Buffer.from(await res.arrayBuffer()));
+    if (!fs.existsSync(zipPath)) {
+      const res = await fetch(WORDNET_URL);
+      if (!res.ok) throw new Error(`WordNet の取得に失敗しました (HTTP ${res.status})`);
+      fs.writeFileSync(zipPath, Buffer.from(await res.arrayBuffer()));
+    }
     const { execFileSync } = await import("child_process");
     // 頻度（cntlist.rev）のほか、用例と品詞の判定に data.* / index.* / *.exc も使う
     execFileSync("unzip", [
@@ -347,11 +352,15 @@ export function sensePos(
     //   名詞・副詞 … 語尾の判定が確かなので直さない。辞書（WordNet）が載せていない
     //              古い語義・まれな語義のことが多い（digital「鍵」、worldwide「全世界に」）
     if (first.pos === "verb") {
+      // 形容詞を持つ語なら、「を」を含んでいても形容詞へ寄せる。形容詞は「喜びを与える」
+      // 「畏敬の念を起こさせる」「興味を起こさせる」のように「〜を…する」の形で訳されることが多い
+      // （動詞を持たず形容詞を持つ語でこの分岐に来る語義は実データで55件あり、53件がこの形。
+      // 残る2件は wise「…を気づかせる」と overweight「…に荷を積み過ぎる」の動詞の語義）
       if (ok("adjective")) return "adjective";
-      // 「全く」「絶えず」「水そう」は、語尾が「く」「ず」「う」なので動詞と判定されただけ。
-      // 「を」も「する」も無い弱い手がかりのときは、辞書の品詞が1つならそれに寄せる。
-      // juice「…から汁をしぼり取る」のように「を」を含むものは、辞書（WordNet）が
-      // 載せていない動詞の語義なので残す
+      // 形容詞も持たない語では、「全く」「絶えず」「水そう」のように、語尾が「く」「ず」「う」
+      // なので動詞と判定されただけのものがある。「を」も「する」も無い弱い手がかりのときは、
+      // 辞書の品詞が1つならそれに寄せる。juice「…から汁をしぼり取る」のように「を」を含むものは、
+      // 辞書（WordNet）が載せていない動詞の語義なので残す
       const weak = !/を/.test(first.p) && !/する$/.test(first.p);
       return weak && allowed && allowed.length === 1 ? allowed[0] : first.pos;
     }
