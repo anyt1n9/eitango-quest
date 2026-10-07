@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { initialVocabulary } from "../src/data/vocabulary";
-import { ALL_REWRITES, TEMPLATE_SENTENCES, checkRewrite } from "../scripts/apply_sentences";
+import { ALL_REWRITES, TEMPLATE_SENTENCES, checkRewrite, exposesAnswer } from "../scripts/apply_sentences";
 import { junior } from "../scripts/sentences/junior";
 import { senior } from "../scripts/sentences/senior";
 import { senior2 } from "../scripts/sentences/senior2";
@@ -101,5 +101,37 @@ describe("定型文の例文の書き直し", () => {
       .filter(w => w && /『[^』]*』/.test(w.sentenceTranslation) && w.sentenceTranslation.includes(`『${w.translation}』`))
       .map(w => `${w!.id}: ${w!.sentenceTranslation}`);
     expect(bad).toEqual([]);
+  });
+});
+
+describe("書き直しの決まり（checkRewrite）", () => {
+  const turn = { word: "turn", translation: "回す" };
+
+  it("決まりを守った例文は通す", () => {
+    expect(checkRewrite(turn, ["Please [_____] the key to the left.", "鍵を左に回してください。"])).toEqual([]);
+  });
+
+  it("答えの活用形が穴の外に残っていれば止める", () => {
+    expect(exposesAnswer("turn", "the key. She turned it twice.")).toBe(true);
+    expect(exposesAnswer("turn", "It turns slowly.")).toBe(true);
+    expect(exposesAnswer("create", "She is creating a new song.")).toBe(true);
+    // 別の語の一部は答えではない
+    expect(exposesAnswer("turn", "Return the book.")).toBe(false);
+    expect(checkRewrite(turn, ["[_____] the key. She turned it twice.", "鍵を回して。彼女は2回回した。"]))
+      .toContain("答えの綴り（活用形を含む）が穴の外に出ている");
+  });
+
+  it("和訳に訳語を『』や「」で差し込んだ形を止める", () => {
+    const capacity = { word: "capacity", translation: "容量" };
+    for (const translation of ["彼は午前中ずっと『容量』を掃除していました。", "彼は「容量」を掃除した。"]) {
+      expect(checkRewrite(capacity, ["He cleaned the [_____].", translation]))
+        .toContain("和訳に訳語をかぎ括弧で差し込んでいる");
+    }
+  });
+
+  it("穴の直前の a / an と、許していない語尾を止める", () => {
+    expect(checkRewrite(turn, ["Take a [_____] here.", "ここで曲がって。"])).toContain("穴の直前に a / an");
+    expect(checkRewrite(turn, ["She is [_____]ing the key.", "彼女は鍵を回している。"]))
+      .toContain("穴の直後の語尾が s / es / d / ed / 's 以外");
   });
 });

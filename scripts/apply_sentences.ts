@@ -48,6 +48,17 @@ export const TEMPLATE_SENTENCES = new Set(
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/**
+ * 答えの綴りが本文に残っているか。原形だけでなく規則的な活用形
+ * （turns / turned / turning、e で終わる語の creating）も見る。
+ * "[_____] the key. She turned it twice." は穴の外の turned で答えが分かってしまう
+ */
+export function exposesAnswer(answer: string, text: string): boolean {
+  const forms = [`${escape(answer)}(s|es|d|ed|ing)?`];
+  if (/e$/i.test(answer)) forms.push(`${escape(answer.slice(0, -1))}ing`);
+  return new RegExp(`\\b(${forms.join("|")})\\b`, "i").test(text);
+}
+
 /** 書き直し1件を確かめ、守れていない決まりを返す（空なら問題なし） */
 export function checkRewrite(
   word: { word: string; translation: string },
@@ -63,11 +74,14 @@ export function checkRewrite(
   if (/[^\x20-\x7e]/.test(sentence)) errors.push("英文に ASCII 以外の文字");
   if (!/^[A-Z"'[]/.test(sentence)) errors.push("英文が大文字で始まらない");
   if (!/[.!?]["']?$/.test(sentence)) errors.push("英文が . ! ? で終わらない");
-  if (new RegExp(`\\b${escape(word.word)}\\b`, "i").test(sentence.replace("[_____]", " "))) {
-    errors.push("答えの綴りが穴の外に出ている");
+  if (exposesAnswer(word.word, sentence.replace("[_____]", " "))) {
+    errors.push("答えの綴り（活用形を含む）が穴の外に出ている");
   }
   if (!/[ぁ-んァ-ヶ一-鿿]/.test(translation)) errors.push("和訳に日本語が無い");
-  if (translation.includes(`「${word.translation}」`)) errors.push("和訳に訳語をかぎ括弧で差し込んでいる");
+  // 定型文の和訳は「彼は午前中ずっと『容量』を掃除していました。」のように『』で差し込んでいた
+  if (translation.includes(`「${word.translation}」`) || translation.includes(`『${word.translation}』`)) {
+    errors.push("和訳に訳語をかぎ括弧で差し込んでいる");
+  }
   if (/[「」]/.test(translation) && !sentence.includes("\"")) errors.push("会話文でないのに和訳にかぎ括弧");
   return errors;
 }
@@ -100,6 +114,12 @@ function main() {
     }
     const distractors = pair[2];
     if (distractors) {
+      // 差し替えは「答えの位置を残して残り3つを入れ替える」ので、答え＋誤答3つの四択でないと
+      // 誤答が足りずに undefined が書き出される
+      const others = (w.sentenceOptions as string[]).filter(o => o !== w.word);
+      if (!w.sentenceOptions.includes(w.word) || others.length !== 3) {
+        problems.push(`${id} ${w.word}: 誤答を差し替えられる形の四択ではない … ${w.sentenceOptions.join(", ")}`);
+      }
       if (new Set(distractors).size !== 3 || distractors.includes(w.word)) {
         problems.push(`${id} ${w.word}: 差し替える誤答は答えと別の3語にする … ${distractors.join(", ")}`);
       }
