@@ -344,7 +344,23 @@ const TRANSLATION_FIXES: Record<string, string> = {
   // 教材の例は vitamin deficiency（不足）。「欠点」だけでは主な意味が抜ける
   deficiency: "不足，欠乏，欠陥",
   // act on は「…に従って行動する・…に作用する」。「決定する，決議する」は act の別の意味
-  "act on": "に従って行動する，に作用する"
+  "act on": "に従って行動する，に作用する",
+  // ここから下は上級の例文を書き直していて見つかったもの。
+  // 簡体字（流动性・试作品・现す）や誤字（単読・法廷）、意味のずれ（poorly が「かわいそうに」、portfolio が「人物像」、vacate が「逃げる」）
+  poorly: "下手に，不十分に",
+  portfolio: "作品集，書類入れ",
+  vacate: "（部屋などを）空ける，立ち退く",
+  liquidity: "流動性",
+  statutory: "法定の，法令の",
+  unveil: "公開する，明らかにする",
+  solely: "単独で，もっぱら",
+  prototype: "試作品，原型",
+  susceptible: "影響を受けやすい，かかりやすい",
+  compost: "堆肥",
+  synthetic: "合成の，人工の，総合的な",
+  revival: "復活，再上演",
+  // antitrust は形容詞（antitrust law で「独占禁止法」）
+  antitrust: "独占禁止の"
 };
 
 /**

@@ -262,9 +262,11 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   文に置けないので「`We use [_____] ..., as in "..."`」の形で使い方を示す。
   `fix_pos.ts` を回すときは**その後に** `apply_sentences.ts` を回す
   （品詞を直すと誤答が作り直されるため。差し替えた誤答はこちらで戻る）。
-  書き直しを終えたレベルは `DONE_LEVELS` に入れ、定型文の残りの上限
-  （`MAX_TEMPLATE_SENTENCES`）を下げる。見出しそのものが英語として成り立たず
-  例文を書けない語（be threatened to / in tough）は `NOT_WRITABLE` に理由を書いて残している。
+  5レベルとも書き直しを終えた（`DONE_LEVELS`）。定型文の残りの上限
+  （`MAX_TEMPLATE_SENTENCES`）は増やさないこと。見出しそのものが英語として成り立たず
+  例文を書けない語（be threatened to / in tough / carry-on「続ける」/ discrepation /
+  scrutinous / reconciliate）は `NOT_WRITABLE` に理由を書いて残している。
+  これらは見出しを直すか収録から外すのが本来の手当てで、例文で取り繕うものではない。
 
 - **出題形式のテスト** — `tests/quizFormats.test.ts` と `tests/reviewFormat.render.test.tsx`。
   復習（今日の復習・苦手単語の復習）は四択に固定されていたが、形式を選べるようにした
