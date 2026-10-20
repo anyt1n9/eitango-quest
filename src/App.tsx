@@ -257,19 +257,13 @@ export default function App() {
     const todayS = todayStr();
     const yesterdayStr = getYesterdayString();
 
-    if (stats.lastLoginDate !== todayS) {
-      if (stats.lastLoginDate === yesterdayStr) {
-        // 連続ログイン維持
-        // スタンプラリー用：翌日になったら連続日数を繰り上げ（ただし、Dashboardのボタンを実際に踏んで報酬を受け取るまでスコアは上がらない仕組み）
-        console.log("Welcome back today! Keep your streak:", stats.currentStreak);
-      } else if (stats.lastLoginDate !== null) {
-        // 1日空いてしまった場合はリセット
-        console.log("Streak broken. Resetting to 0 day.");
-        setStats(prev => ({
-          ...prev,
-          currentStreak: 0
-        }));
-      }
+    // 昨日受け取っていれば連続のまま（日数は「記録」でスタンプを押したときに進む）。
+    // 1日以上空いていたら連続を0に戻す
+    if (stats.lastLoginDate !== todayS && stats.lastLoginDate !== yesterdayStr && stats.lastLoginDate !== null) {
+      setStats(prev => ({
+        ...prev,
+        currentStreak: 0
+      }));
     }
   }, []);
 
@@ -829,7 +823,7 @@ export default function App() {
 
       {/* メインステージ。画面下のタブを出している間は、その高さぶん下を空ける */}
       <main
-        className={`relative z-10 flex-1 pt-6 px-4 max-w-4xl w-full mx-auto ${activeTab ? "pb-28" : "pb-8"}`}
+        className="relative z-10 flex-1 pt-6 pb-8 px-4 max-w-4xl w-full mx-auto"
         id="main_payload"
       >
         {/* 遅延読み込みの画面を開いている間の待ち。
@@ -1200,6 +1194,10 @@ export default function App() {
 
       {/* 広告枠（全コンテンツの下・控えめに1枠。未設定時は非表示） */}
       <AdBanner />
+
+      {/* 画面下のタブの高さぶんの空き。main の下に広告があるので、main の余白だけでは
+          広告がタブの下に隠れる（広告の上にタブが重なると、誤タップも招く） */}
+      {activeTab && <div aria-hidden="true" className="shrink-0 h-[calc(4.5rem+env(safe-area-inset-bottom))]" />}
 
       {/* 画面下のタブ。フッターにあったアプリの説明・規約は「メニュー」に移した */}
       {activeTab && (
