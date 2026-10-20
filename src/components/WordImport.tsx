@@ -97,10 +97,23 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
     URL.revokeObjectURL(url);
   };
 
-  const handleCopyTemplate = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+  /**
+   * テンプレートをコピーする。
+   * 以前は書き込みの成否を見ずに「コピーしました！」と出していた。
+   * clipboard は https でないと無く（undefined で例外）、許可を断られると失敗する。
+   * そのときは文字を選んで手でコピーしてもらう（下の欄は select-all にしてある）。
+   */
+  const [copyFailed, setCopyFailed] = useState(false);
+  const handleCopyTemplate = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFailed(false);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch {
+      setIsCopied(false);
+      setCopyFailed(true);
+    }
   };
 
   // CSVファイルの解析と単語追加
@@ -935,6 +948,11 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                     )}
                   </button>
                 </div>
+                {copyFailed && (
+                  <p className="text-[11px] font-bold text-rose-700 mb-2" role="alert" id="csv_copy_failed">
+                    コピーできませんでした。下の文字を長押し（または選択）してコピーしてください。
+                  </p>
+                )}
                 <div className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-[11px] leading-relaxed relative overflow-x-auto select-all shadow-inner border border-slate-950">
                   <pre className="whitespace-pre text-left">
                     {csvTemplateType === "full" 

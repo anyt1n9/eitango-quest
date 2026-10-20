@@ -96,3 +96,36 @@ describe("CSVの例文の穴あけ", () => {
     expect(added.sentenceTranslation).toBe("");
   });
 });
+
+describe("テンプレートのコピー", () => {
+  async function openTemplate() {
+    render(<WordImport vocabulary={VOCAB} setVocabulary={vi.fn()} setStats={vi.fn()} setRanking={vi.fn()} />);
+    const user = userEvent.setup();
+    await user.click(document.getElementById("btn_toggle_import_panel")!);
+    await user.click(screen.getByText("テンプレートを見る / DL"));
+    return user;
+  }
+
+  it("コピーできたときだけ「コピーしました」と出す", async () => {
+    const user = await openTemplate();
+    // user-event は setup() のときに自前の clipboard を置くので、そのあとで差し替える
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+    await user.click(screen.getByText("テキストをコピー"));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("コピーしました！")).toBeInTheDocument();
+  });
+
+  it("コピーできなければ、手でコピーする案内を出す（できたふりをしない）", async () => {
+    // 以前は書き込みの成否を見ずに「コピーしました！」と出していた
+    // （http で開くと clipboard が無く、許可を断られても失敗する）
+    const user = await openTemplate();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) }
+    });
+    await user.click(screen.getByText("テキストをコピー"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("コピーできませんでした");
+    expect(screen.queryByText("コピーしました！")).toBeNull();
+  });
+});

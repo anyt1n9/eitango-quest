@@ -59,8 +59,9 @@ export default function AdBanner({ slot = ADSENSE_SLOT_FOOTER, className = "" }:
       aria-label="広告"
     >
       {/* 「広告」であることを明示（AdSense ポリシー: 誤クリック誘発を避ける） */}
-      <p className="text-[10px] text-gray-300 dark:text-slate-600 text-center mb-1 tracking-wider uppercase">
-        Sponsored
+      {/* 以前は英語の「Sponsored」を薄い灰（text-gray-300）で出しており、地の上で読めなかった */}
+      <p className="text-[11px] text-gray-500 text-center mb-1">
+        広告
       </p>
       <ins
         ref={insRef}
