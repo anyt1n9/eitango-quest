@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, Download, Upload, Target, Database, ShieldCheck, AlertTriangle, Cloud, CloudDownload, RefreshCw } from "lucide-react";
-import { applyBackupPayload, buildBackupPayload, isBackupPayload, payloadTime } from "../backupPayload";
+import { applyBackupPayload, buildBackupPayload, isBackupPayload, isNewerBackup, payloadTime } from "../backupPayload";
 import { isGoogleSyncConfigured, requestDriveToken } from "../googleAuth";
 import { DriveError } from "../driveBackup";
 import { fetchRemote, isDriveLinked, markDriveLinked, pushToDrive } from "../driveSync";
@@ -11,10 +11,23 @@ interface DataBackupProps {
   onBackToDashboard: () => void;
 }
 
-/** 復元しきれなかったときの文言（ファイル・ドライブで同じ） */
-function restoreFailedText(count: number): string {
-  return `一部のデータを復元できませんでした（${count}件）。保存容量が足りない可能性があります。不要な単語や長文を削除してから、もう一度お試しください。`;
+/**
+ * 復元しきれなかったときの文言（ファイル・ドライブで同じ）。
+ * 書けなかったときは復元前の状態へ戻しているので、そのことを伝える。
+ * 利用者が「いまの端末のデータはどうなったのか」を判断できるように。
+ */
+function restoreFailedText(result: { failed: string[]; notRestored: string[] }): string {
+  const head = `保存容量が足りず、復元できませんでした（${result.failed.length}件）。`;
+  const tail = "不要な単語や長文を削除してから、もう一度お試しください。";
+  if (result.notRestored.length === 0) {
+    return `${head}この端末のデータは復元前の状態に戻しました。${tail}`;
+  }
+  return `${head}一部のデータ（${result.notRestored.length}件）は復元前の状態にも戻せませんでした。${tail}`;
 }
+
+/** 新しい版のアプリで書き出されたバックアップを読み込もうとしたときの文言 */
+const NEWER_BACKUP_TEXT =
+  "このバックアップは新しい版のアプリで保存されたため、この版では復元できません。アプリを最新にしてから、もう一度お試しください。";
 
 /** 「2026/09/01 12:34」の形にする（比べる材料として出すだけなので端末の時刻で十分） */
 function formatTime(ms: number): string {
@@ -67,6 +80,11 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result));
+        if (isNewerBackup(parsed)) {
+          setMessage({ type: "error", text: NEWER_BACKUP_TEXT });
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
         if (!isBackupPayload(parsed)) {
           throw new Error("invalid format");
         }
@@ -77,9 +95,9 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
         // 保存に失敗しても writeStored は例外を投げないため、戻り値で確かめる。
         // 確かめずにリロードすると、一部しか復元されていないのに
         // 「復元できた」ように見える画面だけが残ってしまう。
-        const { failed } = applyBackupPayload(parsed);
-        if (failed.length > 0) {
-          setMessage({ type: "error", text: restoreFailedText(failed.length) });
+        const result = applyBackupPayload(parsed);
+        if (result.failed.length > 0) {
+          setMessage({ type: "error", text: restoreFailedText(result) });
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
@@ -151,21 +169,25 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
       const remote = await fetchRemote(token);
       markDriveLinked();
       if (!remote || !remote.payload) {
-        setDriveSavedAt(remote ? 0 : 0);
+        setDriveSavedAt(0);
         setMessage({
           type: "error",
-          text: remote
-            ? "ドライブのバックアップを読めませんでした。この端末から保存し直してください。"
-            : "ドライブにはまだ何も保存されていません。"
+          text: !remote
+            ? "ドライブにはまだ何も保存されていません。"
+            : remote.newer
+              // 新しい版の端末が保存したもの。「保存し直して」と案内すると、
+              // 新しい版の端末の記録を古い版の端末の記録で上書きさせてしまう
+              ? NEWER_BACKUP_TEXT
+              : "ドライブのバックアップを読めませんでした。この端末から保存し直してください。"
         });
         return;
       }
       if (!window.confirm("現在の学習データを、ドライブの内容で上書きします。よろしいですか？")) return;
       // 取ってきたものをそのまま書き戻す（もう一度取りに行くと、
       // 確かめた中身と書き戻す中身がずれることがある）
-      const { failed } = applyBackupPayload(remote.payload);
-      if (failed.length > 0) {
-        setMessage({ type: "error", text: restoreFailedText(failed.length) });
+      const result = applyBackupPayload(remote.payload);
+      if (result.failed.length > 0) {
+        setMessage({ type: "error", text: restoreFailedText(result) });
         return;
       }
       // 状態を確実に反映させるためリロード

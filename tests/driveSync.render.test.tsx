@@ -149,6 +149,22 @@ describe("ドライブから復元", () => {
     expect(localStorage.getItem("quest_stats")).toBe('{"score":1}');
   });
 
+  it("新しい版のアプリが保存したものなら、更新を促して上書きしない", async () => {
+    // 「この端末から保存し直して」と案内すると、新しい版の端末の記録を上書きさせてしまう
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    fetchRemote.mockResolvedValue({ fileId: "f1", savedAt: 0, payload: null, newer: true });
+    localStorage.setItem("quest_stats", '{"score":1}');
+    renderBackup();
+    await waitFor(() => expect(document.getElementById("btn_drive_pull")).toBeTruthy());
+
+    await user.click(document.getElementById("btn_drive_pull")!);
+    expect(await screen.findByText(/アプリを最新にしてから/)).toBeTruthy();
+    expect(screen.queryByText(/保存し直してください/)).toBeNull();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(localStorage.getItem("quest_stats")).toBe('{"score":1}');
+  });
+
   it("中身が壊れていれば、そう伝えて上書きしない", async () => {
     const user = userEvent.setup();
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
