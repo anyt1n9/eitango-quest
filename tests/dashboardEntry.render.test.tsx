@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Dashboard from "../src/components/Dashboard";
-import { makeWord, makeStats } from "./fixtures";
-import { todayProps } from "./todayProps";
+import { makeWord } from "./fixtures";
+import { todayProps, TodayHarness } from "./todayProps";
 import { LEVEL_TONE } from "../src/levelTheme";
 import { LEVEL_LABELS } from "../src/levelLabels";
-import { todayStr } from "../src/srs";
 
 /**
  * 「今日」の画面（起動して最初に見える画面）の入口。
@@ -27,7 +25,7 @@ const VOCAB = [
 
 function renderToday(overrides: Parameters<typeof todayProps>[0] = {}) {
   const props = todayProps({ vocabulary: VOCAB, ...overrides });
-  render(<Dashboard {...props} />);
+  render(<TodayHarness {...props} />);
   return props;
 }
 
@@ -38,6 +36,7 @@ function levelSelect() {
 beforeEach(() => {
   localStorage.clear();
 });
+
 
 describe("1回の問題数", () => {
   it("選べる数を並べる", () => {
@@ -53,24 +52,18 @@ describe("1回の問題数", () => {
     expect(document.getElementById("btn_question_count_10")).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("選んだ数を覚えておく", async () => {
+  it("選んだ数を App へ伝える（教材の画面と共有するため）", async () => {
+    // 覚えておく（保存する）のは App の役目。保存は tests/studySettings.test.ts が見る
     const user = userEvent.setup();
-    renderToday();
+    const { onQuestionCountChange } = renderToday();
     await user.click(document.getElementById("btn_question_count_50")!);
     expect(document.getElementById("btn_question_count_50")).toHaveAttribute("aria-pressed", "true");
-    expect(localStorage.getItem("quest_question_count")).toBe("50");
+    expect(onQuestionCountChange).toHaveBeenCalledWith(50);
   });
 
-  it("保存された数で開き直す", () => {
-    localStorage.setItem("quest_question_count", "100");
-    renderToday();
+  it("渡された数で開く", () => {
+    renderToday({ questionCount: 100 });
     expect(document.getElementById("btn_question_count_100")).toHaveAttribute("aria-pressed", "true");
-  });
-
-  it("保存値が壊れていても既定に戻す", () => {
-    localStorage.setItem("quest_question_count", "abc");
-    renderToday();
-    expect(document.getElementById("btn_question_count_10")).toHaveAttribute("aria-pressed", "true");
   });
 
   it("開始ボタンに、何問・何分かを書く", async () => {
@@ -188,21 +181,17 @@ describe("レベル", () => {
     expect(count().className).toContain("bg-[var(--lv-bg)]");
   });
 
-  it("選んだレベルを覚えておく（毎回選び直させない）", async () => {
+  it("選んだレベルを App へ伝える（教材の画面と共有するため）", async () => {
     const user = userEvent.setup();
-    renderToday();
+    const { onLevelChange } = renderToday();
     await user.selectOptions(levelSelect(), "senior2");
-    expect(localStorage.getItem("quest_selected_level")).toBe("senior2");
-
-    document.body.innerHTML = "";
-    renderToday();
-    expect(levelSelect().value).toBe("senior2");
+    expect(onLevelChange).toHaveBeenCalledWith("senior2");
   });
 
-  it("保存値が壊れていても初級に戻す", () => {
-    localStorage.setItem("quest_selected_level", "SENIOR");
-    renderToday();
-    expect(levelSelect().value).toBe("junior");
+  it("渡されたレベルで開く", () => {
+    renderToday({ level: "senior3" });
+    expect(levelSelect().value).toBe("senior3");
+    expect(document.getElementById("btn_senior3_word")).toBeInTheDocument();
   });
 });
 
@@ -269,13 +258,13 @@ describe("今日の進み具合", () => {
 
   it("ログインボーナスを受け取っていなければ、記録の画面へ案内する", async () => {
     const user = userEvent.setup();
-    const { onOpenRecords } = renderToday({ stats: makeStats({ lastLoginDate: null }) });
+    const { onOpenRecords } = renderToday({ bonusClaimable: true });
     await user.click(document.getElementById("btn_go_bonus")!);
     expect(onOpenRecords).toHaveBeenCalledTimes(1);
   });
 
   it("受け取ったあとは案内を出さない", () => {
-    renderToday({ stats: makeStats({ lastLoginDate: todayStr() }) });
+    renderToday({ bonusClaimable: false });
     expect(document.getElementById("today_bonus_hint")).toBeNull();
   });
 });

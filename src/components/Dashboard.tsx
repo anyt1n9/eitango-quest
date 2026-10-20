@@ -1,19 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { ArrowRight, ChevronRight } from "lucide-react";
-import { Level, Word, UserStats } from "../types";
-import { todayStr, SrsState } from "../srs";
+import { Level, Word } from "../types";
+import { SrsState } from "../srs";
 import { SolvedHistory } from "../mastery";
 import { ListeningIcon, SpellingIcon } from "./AppIcons";
 import { LEVEL_TONE, TONE_STYLE, ACCENT_TONE } from "../levelTheme";
 import { LEVEL_LABELS, LEVEL_STAGES, LEVEL_ORDER } from "../levelLabels";
-import {
-  QUESTION_COUNTS,
-  readQuestionCount,
-  saveQuestionCount,
-  readStudyLevel,
-  saveStudyLevel,
-  levelCounts
-} from "../studySettings";
+import { QUESTION_COUNTS, levelCounts } from "../studySettings";
 
 type QuizType = "word" | "sentence" | "listening" | "spelling" | "reverse" | "synonym" | "sense";
 
@@ -35,7 +28,6 @@ const APPLIED_FORMS: { form: "synonym" | "sense"; label: string }[] = [
 ];
 
 interface DashboardProps {
-  stats: UserStats;
   vocabulary: Word[];
   solvedHistory: SolvedHistory;
   srsData: Record<string, SrsState>;
@@ -51,8 +43,18 @@ interface DashboardProps {
   dailyGoal: number;
   /** 今日解いた問題数 */
   todayCount: number;
+  /** ログインボーナスをまだ受け取っていないか（App がタブの印と同じ値を渡す） */
+  bonusClaimable: boolean;
   /** ログインボーナスを受け取りに「記録」へ */
   onOpenRecords: () => void;
+  /**
+   * 学習のレベルと1回の問題数。「教材」の画面と共有するので App が持つ
+   * （保存できない環境でも、両方の画面に同じものが効くように）
+   */
+  level: Level;
+  onLevelChange: (level: Level) => void;
+  questionCount: number;
+  onQuestionCountChange: (count: number) => void;
 }
 
 /**
@@ -68,7 +70,6 @@ interface DashboardProps {
  *   - レベル・問題数・形式は「学習を始める」のすぐそばにまとめる
  */
 export default function Dashboard({
-  stats,
   vocabulary,
   solvedHistory,
   srsData,
@@ -79,19 +80,16 @@ export default function Dashboard({
   onStartSrsReview,
   dailyGoal,
   todayCount,
-  onOpenRecords
+  bonusClaimable,
+  onOpenRecords,
+  level: selectedLevel,
+  onLevelChange: setSelectedLevel,
+  questionCount,
+  onQuestionCountChange: setQuestionCount
 }: DashboardProps) {
-  /** 1回のクイズで出す問題数。すべての形式がこれを使う */
-  const [questionCount, setQuestionCount] = useState<number>(() => readQuestionCount());
-  useEffect(() => saveQuestionCount(questionCount), [questionCount]);
-
-  const [selectedLevel, setSelectedLevel] = useState<Level>(() => readStudyLevel());
-  useEffect(() => saveStudyLevel(selectedLevel), [selectedLevel]);
-
   const current = levelCounts(vocabulary, selectedLevel, solvedHistory, srsData);
   const minutes = QUESTION_COUNTS.find(c => c.count === questionCount)?.minutes ?? "";
   const hasDue = dueCount > 0;
-  const bonusClaimable = stats.lastLoginDate !== todayStr();
   const goalReached = todayCount >= dailyGoal;
   const tone = LEVEL_TONE[selectedLevel];
 

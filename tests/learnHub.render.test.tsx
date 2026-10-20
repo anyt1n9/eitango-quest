@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LearnHub from "../src/components/LearnHub";
@@ -28,6 +28,8 @@ function renderLearn(props: Partial<ComponentProps<typeof LearnHub>> = {}) {
     srsData: {},
     wrongWords: [],
     onStartQuiz: vi.fn(),
+    level: "junior",
+    questionCount: 10,
     onStartReview: vi.fn(),
     onOpenReading: vi.fn(),
     onOpenGrammar: vi.fn(),
@@ -41,9 +43,6 @@ function renderLearn(props: Partial<ComponentProps<typeof LearnHub>> = {}) {
   return all;
 }
 
-beforeEach(() => {
-  localStorage.clear();
-});
 
 describe("単語クイズ", () => {
   it("7つの形式がどれも並び、押すとすぐ始まる", async () => {
@@ -58,10 +57,8 @@ describe("単語クイズ", () => {
   it("「今日」の画面で選んだレベルと問題数を使う", async () => {
     // 片方で選んだものがもう片方に効かないと、
     // 「中級1を選んだのに教材から始めたら初級だった」ことになる
-    localStorage.setItem("quest_selected_level", "senior");
-    localStorage.setItem("quest_question_count", "50");
     const user = userEvent.setup();
-    const { onStartQuiz } = renderLearn();
+    const { onStartQuiz } = renderLearn({ level: "senior", questionCount: 50 });
     expect(document.getElementById("learn_quiz_setting")).toHaveTextContent("中級1（高1）・50問");
     await user.click(document.getElementById("btn_learn_spelling")!);
     expect(onStartQuiz).toHaveBeenCalledWith("senior", "spelling", 50);

@@ -60,6 +60,7 @@ import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
+import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
 function ScreenLoading() {
@@ -87,6 +88,16 @@ const DEFAULT_RANKING: RankingUser[] = [
   { id: "r7", name: "Sara", score: 500, avatar: "👩‍🎓" },
   { id: "r8", name: "Takuya", score: 300, avatar: "🧑‍🍳" },
 ];
+
+/**
+ * 履歴の state に残した「開いたタブ」。下の階層の画面でだけ意味を持つ。
+ * 他のアプリやブラウザが書いた state もありうるので、タブの画面名のときだけ信じる。
+ */
+function parentFromHistory(screen: Screen): Screen | null {
+  if (isTabRoot(screen) || isTransient(screen)) return null;
+  const parent = (window.history.state as { parent?: unknown } | null)?.parent;
+  return typeof parent === "string" && isTabRoot(parent as Screen) ? (parent as Screen) : null;
+}
 
 export default function App() {
   // 1. 各種永続化ステート
@@ -358,8 +369,18 @@ export default function App() {
   // 必ずダッシュボードに戻されていた。
   const initialRoute = resolveOnEntry(pathToRoute(window.location.pathname));
   const [currentScreen, setCurrentScreen] = useState<Screen>(initialRoute.screen);
-  const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
-  const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
+  /**
+   * 学習のレベルと1回の問題数。「今日」と「教材」の両方から使う。
+   *
+   * 保存（localStorage）を介して受け渡すと、保存できない環境
+   * （Cookie を塞いだブラウザ・埋め込み表示）では片方で選んだものがもう片方に効かず、
+   * 「中級1を選んだのに教材から始めたら初級だった」ことになる。
+   * ここで1つの state として持ち、保存は覚えておくためだけに使う。
+   */
+  const [selectedLevel, setSelectedLevel] = useState<Level>(() => readStudyLevel());
+  const [quizQuestionCount, setQuizQuestionCount] = useState<number>(() => readQuestionCount());
+  useEffect(() => saveStudyLevel(selectedLevel), [selectedLevel]);
+  useEffect(() => saveQuestionCount(quizQuestionCount), [quizQuestionCount]);
 
   // SRS復習セッション用の出題スナップショット。
   // dueWords（毎レンダーで再計算される配列）を直接 Quiz に渡すと、1問解答するごとに
@@ -400,20 +421,29 @@ export default function App() {
    * ガチャは「記録」からも「メニュー」からも開けるので、決め打ちにすると
    * メニューから開いたのに戻ると記録へ出る、ということになる。
    */
-  const [parentScreen, setParentScreen] = useState<Screen | null>(null);
+  //
+  // 開いたタブは履歴の state（`parent`）にも持たせる。state だけに持っていたときは、
+  // 戻る・進む・再読み込みで下の階層の画面に着くと親が分からず、
+  // 「メニューから開いたガチャ」で記録のタブが光り、戻ると記録へ出ていた。
+  const [parentScreen, setParentScreen] = useState<Screen | null>(
+    () => parentFromHistory(initialRoute.screen)
+  );
+  const parentScreenRef = useRef<Screen | null>(parentScreen);
   const currentScreenRef = useRef<Screen>(initialRoute.screen);
 
   const navigate = useCallback((screen: Screen, param?: string | null) => {
+    const from = currentScreenRef.current;
+    const parent =
+      isTabRoot(screen) ? null
+        : isTransient(screen) ? parentScreenRef.current
+          : isTabRoot(from) ? from
+            : parentScreenRef.current;
     const path = routeToPath({ screen, param: param ?? undefined });
     if (path !== window.location.pathname) {
-      window.history.pushState({ screen, param: param ?? null }, "", path);
+      window.history.pushState({ screen, param: param ?? null, parent }, "", path);
     }
-    const from = currentScreenRef.current;
-    if (isTabRoot(screen) || isTransient(screen)) {
-      if (isTabRoot(screen)) setParentScreen(null);
-    } else if (isTabRoot(from)) {
-      setParentScreen(from);
-    }
+    parentScreenRef.current = parent;
+    setParentScreen(parent);
     currentScreenRef.current = screen;
     setCurrentScreen(screen);
     setGrammarTopicId(screen === "grammar" ? param ?? null : null);
@@ -428,7 +458,7 @@ export default function App() {
   const replaceParam = useCallback((screen: Screen, param: string | null) => {
     const path = routeToPath({ screen, param: param ?? undefined });
     if (path !== window.location.pathname) {
-      window.history.replaceState({ screen, param }, "", path);
+      window.history.replaceState({ screen, param, parent: parentScreenRef.current }, "", path);
     }
   }, []);
 
@@ -439,7 +469,9 @@ export default function App() {
       setSrsSessionWords([]);
       setWrongSessionWords([]);
       setReviewFormat(null);
-      if (isTabRoot(next.screen)) setParentScreen(null);
+      const parent = parentFromHistory(next.screen);
+      parentScreenRef.current = parent;
+      setParentScreen(parent);
       currentScreenRef.current = next.screen;
       setCurrentScreen(next.screen);
       setGrammarTopicId(next.screen === "grammar" ? next.param ?? null : null);
@@ -453,7 +485,7 @@ export default function App() {
   useEffect(() => {
     const path = routeToPath(initialRoute);
     if (path !== window.location.pathname) {
-      window.history.replaceState({ screen: initialRoute.screen }, "", path);
+      window.history.replaceState({ screen: initialRoute.screen, parent: parentScreenRef.current }, "", path);
     }
   }, []);
 
@@ -805,7 +837,6 @@ export default function App() {
         <Suspense fallback={<ScreenLoading />}>
         {currentScreen === "dashboard" && (
           <Dashboard
-            stats={stats}
             vocabulary={vocabulary}
             solvedHistory={solvedHistory}
             srsData={srsData}
@@ -820,7 +851,12 @@ export default function App() {
             }}
             dailyGoal={dailyGoal}
             todayCount={todayCount}
+            bonusClaimable={bonusClaimable}
             onOpenRecords={() => navigate("records")}
+            level={selectedLevel}
+            onLevelChange={setSelectedLevel}
+            questionCount={quizQuestionCount}
+            onQuestionCountChange={setQuizQuestionCount}
           />
         )}
 
@@ -834,6 +870,8 @@ export default function App() {
             srsData={srsData}
             wrongWords={wrongWords}
             onStartQuiz={handleStartQuiz}
+            level={selectedLevel}
+            questionCount={quizQuestionCount}
             onStartReview={() => navigate("review")}
             onOpenReading={() => navigate("reading")}
             onOpenGrammar={() => navigate("grammar")}

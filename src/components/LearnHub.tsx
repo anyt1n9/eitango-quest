@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { ListChecks, Languages, TextCursorInput, Equal, GitFork, Target, ChevronRight, Lock, Repeat, BookMarked } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
 import { SrsState } from "../srs";
 import { countMastered, SolvedHistory } from "../mastery";
-import { readStudyLevel, readQuestionCount } from "../studySettings";
 import { LEVEL_LABELS } from "../levelLabels";
 import { ListeningIcon, SpellingIcon, ReadingIcon, DiaryIcon, PuzzleIcon } from "./AppIcons";
 import WordImport from "./WordImport";
@@ -33,6 +32,9 @@ interface LearnHubProps {
   srsData: Record<string, SrsState>;
   wrongWords: string[];
   onStartQuiz: (level: Level, type: QuizType, count?: number) => void;
+  /** 「今日」の画面で選んだレベルと問題数（App が持つ） */
+  level: Level;
+  questionCount: number;
   /** 苦手な単語の一覧と復習 */
   onStartReview: () => void;
   onOpenReading: () => void;
@@ -86,6 +88,8 @@ export default function LearnHub({
   srsData,
   wrongWords,
   onStartQuiz,
+  level,
+  questionCount: count,
   onStartReview,
   onOpenReading,
   onOpenGrammar,
@@ -94,10 +98,6 @@ export default function LearnHub({
   onOpenDiary,
   onChangeLevel
 }: LearnHubProps) {
-  // 「今日」の画面で選んだレベルと問題数をそのまま使う
-  const [level] = useState<Level>(() => readStudyLevel());
-  const [count] = useState<number>(() => readQuestionCount());
-
   const mastered = countMastered(vocabulary.map(w => w.id), solvedHistory, srsData);
   const diaryOpen = mastered >= DIARY_UNLOCK;
 

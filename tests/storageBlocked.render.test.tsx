@@ -71,7 +71,7 @@ describe("localStorage が使えない環境", () => {
     }
   });
 
-  it("教材の画面が開ける（「今日」と共有するレベル・問題数を読めなくても）", () => {
+  it("教材の画面が開ける", () => {
     const restore = blockStorage();
     try {
       expect(() =>
@@ -85,6 +85,8 @@ describe("localStorage が使えない環境", () => {
             srsData={{}}
             wrongWords={[]}
             onStartQuiz={vi.fn()}
+            level="junior"
+            questionCount={10}
             onStartReview={vi.fn()}
             onOpenReading={vi.fn()}
             onOpenGrammar={vi.fn()}
