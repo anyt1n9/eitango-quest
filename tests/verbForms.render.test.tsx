@@ -107,7 +107,7 @@ describe("絞り込み", () => {
     const user = userEvent.setup();
     renderScreen();
     await user.click(screen.getByRole("button", { name: /^すべて/ }));
-    await user.click(screen.getByRole("button", { name: "中級2 (高2)" }));
+    await user.click(screen.getByRole("button", { name: "中級2（高2）" }));
     expect(Object.keys(rows())).toEqual(["prefer"]);
   });
 
@@ -143,10 +143,10 @@ describe("画面の操作", () => {
     expect(spoken.text).toBe("go, went, gone");
   });
 
-  it("ダッシュボードに戻れる", async () => {
+  it("戻れる", async () => {
     const user = userEvent.setup();
     const { onBackToDashboard } = renderScreen();
-    await user.click(screen.getByText("ダッシュボードに戻る"));
+    await user.click(screen.getByText("戻る"));
     expect(onBackToDashboard).toHaveBeenCalled();
   });
 

@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Eye, EyeOff, Loader2, RotateCcw } from "lucide-react";
 import { Level, Word, UserStats } from "../types";
+import { LEVEL_LABELS } from "../levelLabels";
 import { getAudioContext } from "../sound";
 import { shuffle } from "../shuffle";
 import { SrsState } from "../srs";
@@ -530,7 +531,7 @@ export default function SentenceQuiz({
             <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
               {reviewMode
                 ? "復習・例文クイズリザルト"
-                : `${level === "junior" ? "初級 (中学生)" : level === "senior" ? "中級 (高校1年)" : level === "senior2" ? "中級 (高校2年)" : level === "senior3" ? "中級 (高校3年)" : "上級 (大・社会人)"}・例文クイズリザルト`}
+                : `${LEVEL_LABELS[level]}・例文クイズリザルト`}
             </p>
           </div>
 
@@ -607,7 +608,7 @@ export default function SentenceQuiz({
               className="bg-white hover:bg-gray-50 text-gray-700 font-extrabold px-10 py-3.5 rounded-2xl border border-gray-200 shadow-2xs hover:shadow transition cursor-pointer text-sm"
               id="btn_back_dashboard_from_sentence_quiz"
             >
-              ダッシュボードに戻る
+              今日の画面に戻る
             </button>
           </div>
         </div>

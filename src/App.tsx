@@ -10,8 +10,9 @@ import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
 import QuizFormatPicker from "./components/QuizFormatPicker";
 import { QuizFormat, QUIZ_FORMAT_LABELS, wordsForFormat } from "./quizFormats";
-import { Screen, Route, pathToRoute, routeToPath, resolveOnEntry, isTransient } from "./routes";
+import { Screen, Route, TAB_SCREENS, pathToRoute, routeToPath, resolveOnEntry, isTransient, tabForScreen, isTabRoot } from "./routes";
 import AdBanner from "./components/AdBanner";
+import TabBar from "./components/TabBar";
 
 /*
  * 起動時に要らない画面は、開いたときに読み込む。
@@ -47,15 +48,19 @@ const TermsOfService = lazy(() =>
 const AboutApp = lazy(() =>
   import("./components/LegalPages").then(m => ({ default: m.AboutApp }))
 );
+// 画面下のタブの「教材」「記録」「メニュー」
+const LearnHub = lazy(() => import("./components/LearnHub"));
+const Records = lazy(() => import("./components/Records"));
+const MenuScreen = lazy(() => import("./components/MenuScreen"));
 import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Award, ExternalLink, BookOpen, FileText, Sun, Moon, Sparkles, RotateCcw, Database, Target, CheckCircle2, Gift, Repeat, ArrowLeft, BookMarked, Menu, X, Trophy, Calendar, Leaf, Image as ImageIcon } from "lucide-react";
+import { BrainCircuit, Sun, Moon, CheckCircle2, ArrowLeft, Trophy, Calendar } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
-import { PuzzleIcon } from "./components/AppIcons";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
+import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
 function ScreenLoading() {
@@ -70,11 +75,6 @@ function ScreenLoading() {
 // 苦手単語を1語卒業したときのボーナス点
 const GRADUATION_BONUS = 50;
 
-/** ハンバーガーメニューの1行。指で押せるよう高さを 44px 以上にする */
-const MENU_ITEM =
-  "w-full flex items-center gap-2.5 px-3 min-h-11 rounded-xl text-sm font-bold " +
-  "text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer";
-
 
 // デフォルトのランキング架空ユーザー
 const DEFAULT_RANKING: RankingUser[] = [
@@ -88,6 +88,16 @@ const DEFAULT_RANKING: RankingUser[] = [
   { id: "r7", name: "Sara", score: 500, avatar: "👩‍🎓" },
   { id: "r8", name: "Takuya", score: 300, avatar: "🧑‍🍳" },
 ];
+
+/**
+ * 履歴の state に残した「開いたタブ」。下の階層の画面でだけ意味を持つ。
+ * 他のアプリやブラウザが書いた state もありうるので、タブの画面名のときだけ信じる。
+ */
+function parentFromHistory(screen: Screen): Screen | null {
+  if (isTabRoot(screen) || isTransient(screen)) return null;
+  const parent = (window.history.state as { parent?: unknown } | null)?.parent;
+  return typeof parent === "string" && isTabRoot(parent as Screen) ? (parent as Screen) : null;
+}
 
 export default function App() {
   // 1. 各種永続化ステート
@@ -211,10 +221,6 @@ export default function App() {
   useEffect(() => {
     writeStored("quest_bg_motion", bgMotion ? "on" : "off");
   }, [bgMotion]);
-
-  /** ハンバーガーメニューを開いているか */
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
   const [srsData, setSrsData] = useState<Record<string, SrsState>>(() =>
@@ -363,8 +369,18 @@ export default function App() {
   // 必ずダッシュボードに戻されていた。
   const initialRoute = resolveOnEntry(pathToRoute(window.location.pathname));
   const [currentScreen, setCurrentScreen] = useState<Screen>(initialRoute.screen);
-  const [selectedLevel, setSelectedLevel] = useState<Level>("junior");
-  const [quizQuestionCount, setQuizQuestionCount] = useState<number>(10);
+  /**
+   * 学習のレベルと1回の問題数。「今日」と「教材」の両方から使う。
+   *
+   * 保存（localStorage）を介して受け渡すと、保存できない環境
+   * （Cookie を塞いだブラウザ・埋め込み表示）では片方で選んだものがもう片方に効かず、
+   * 「中級1を選んだのに教材から始めたら初級だった」ことになる。
+   * ここで1つの state として持ち、保存は覚えておくためだけに使う。
+   */
+  const [selectedLevel, setSelectedLevel] = useState<Level>(() => readStudyLevel());
+  const [quizQuestionCount, setQuizQuestionCount] = useState<number>(() => readQuestionCount());
+  useEffect(() => saveStudyLevel(selectedLevel), [selectedLevel]);
+  useEffect(() => saveQuestionCount(quizQuestionCount), [quizQuestionCount]);
 
   // SRS復習セッション用の出題スナップショット。
   // dueWords（毎レンダーで再計算される配列）を直接 Quiz に渡すと、1問解答するごとに
@@ -398,28 +414,37 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [currentScreen]);
 
-  // 画面が変わったらメニューを閉じる。
-  // 端末の戻るで移動したときも閉じないと、行き先の上に開いたまま残る
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [currentScreen]);
-
-  // Esc でも閉じられるようにする（開いたら本文が押せなくなるため）
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [menuOpen]);
-
   /** 画面を切り替え、URLも進める */
+  /**
+   * 下の階層の画面（文法・ガチャ・データなど）を、どのタブから開いたか。
+   * 「戻る」の行き先と、画面下のタブのどれを光らせるかに使う。
+   * ガチャは「記録」からも「メニュー」からも開けるので、決め打ちにすると
+   * メニューから開いたのに戻ると記録へ出る、ということになる。
+   */
+  //
+  // 開いたタブは履歴の state（`parent`）にも持たせる。state だけに持っていたときは、
+  // 戻る・進む・再読み込みで下の階層の画面に着くと親が分からず、
+  // 「メニューから開いたガチャ」で記録のタブが光り、戻ると記録へ出ていた。
+  const [parentScreen, setParentScreen] = useState<Screen | null>(
+    () => parentFromHistory(initialRoute.screen)
+  );
+  const parentScreenRef = useRef<Screen | null>(parentScreen);
+  const currentScreenRef = useRef<Screen>(initialRoute.screen);
+
   const navigate = useCallback((screen: Screen, param?: string | null) => {
+    const from = currentScreenRef.current;
+    const parent =
+      isTabRoot(screen) ? null
+        : isTransient(screen) ? parentScreenRef.current
+          : isTabRoot(from) ? from
+            : parentScreenRef.current;
     const path = routeToPath({ screen, param: param ?? undefined });
     if (path !== window.location.pathname) {
-      window.history.pushState({ screen, param: param ?? null }, "", path);
+      window.history.pushState({ screen, param: param ?? null, parent }, "", path);
     }
+    parentScreenRef.current = parent;
+    setParentScreen(parent);
+    currentScreenRef.current = screen;
     setCurrentScreen(screen);
     setGrammarTopicId(screen === "grammar" ? param ?? null : null);
     setOpenPassageId(screen === "reading" ? param ?? null : null);
@@ -433,7 +458,7 @@ export default function App() {
   const replaceParam = useCallback((screen: Screen, param: string | null) => {
     const path = routeToPath({ screen, param: param ?? undefined });
     if (path !== window.location.pathname) {
-      window.history.replaceState({ screen, param }, "", path);
+      window.history.replaceState({ screen, param, parent: parentScreenRef.current }, "", path);
     }
   }, []);
 
@@ -444,6 +469,10 @@ export default function App() {
       setSrsSessionWords([]);
       setWrongSessionWords([]);
       setReviewFormat(null);
+      const parent = parentFromHistory(next.screen);
+      parentScreenRef.current = parent;
+      setParentScreen(parent);
+      currentScreenRef.current = next.screen;
       setCurrentScreen(next.screen);
       setGrammarTopicId(next.screen === "grammar" ? next.param ?? null : null);
       setOpenPassageId(next.screen === "reading" ? next.param ?? null : null);
@@ -456,7 +485,7 @@ export default function App() {
   useEffect(() => {
     const path = routeToPath(initialRoute);
     if (path !== window.location.pathname) {
-      window.history.replaceState({ screen: initialRoute.screen }, "", path);
+      window.history.replaceState({ screen: initialRoute.screen, parent: parentScreenRef.current }, "", path);
     }
   }, []);
 
@@ -637,7 +666,7 @@ export default function App() {
           className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>ダッシュボードに戻る</span>
+          <span>戻る</span>
         </button>
         <div>
           <h2 className="text-lg font-black text-gray-900 dark:text-slate-100">{title}</h2>
@@ -658,19 +687,14 @@ export default function App() {
   }, [srsData, vocabulary, today]);
   // 今日解いた問題数（日付が変わっていたら0）
   const todayCount = dailyProgress.date === today ? dailyProgress.count : 0;
-  const goalReached = todayCount >= dailyGoal;
-  // クイズなど集中して取り組む画面では、ヘッダーの機能ボタン群を隠して画面を広く使う
-  const isFocusScreen =
-    currentScreen === "quiz" ||
-    currentScreen === "sentence_quiz" ||
-    currentScreen === "listening_quiz" ||
-    currentScreen === "reverse_quiz" ||
-    currentScreen === "spelling_quiz" ||
-    currentScreen === "synonym_quiz" ||
-    currentScreen === "sense_quiz" ||
-    currentScreen === "review" ||
-    currentScreen === "review_quiz" ||
-    currentScreen === "srs_review";
+  // ログインボーナスをまだ受け取っていない（「記録」のタブに印を付ける）
+  const bonusClaimable = stats.lastLoginDate !== today;
+  // 画面下のタブ。出題中（一時的な画面）は出さない
+  const activeTab = isTransient(currentScreen) || isTabRoot(currentScreen) || !parentScreen
+    ? tabForScreen(currentScreen)
+    : tabForScreen(parentScreen);
+  /** 下の階層の画面の「戻る」。開いたタブへ戻る（分からなければ、その画面が属するタブへ） */
+  const goBack = () => navigate(parentScreen ?? TAB_SCREENS[tabForScreen(currentScreen) ?? "today"]);
 
   // 単語データが届くまでは、どの画面も0語で描くことになるので待つ。
   // 待つといっても外枠と文字は先に出るので、以前のように
@@ -725,9 +749,10 @@ export default function App() {
 
         以前は機能ボタンを7つ横に並べており、スマホでは2段に折り返して
         高さが 150px 近くあった（本文に着くまでその分スクロールが要る）。
-        いまはアプリ名とハンバーガーだけを出し、中身は押したときに開く。
+        いまはアプリ名・テーマ・合計スコア・連続日数だけを出す。
+        行き先は画面下のタブ（TabBar）にまとめた。
       */}
-      <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 py-2.5 px-4 sticky top-0 z-40 shadow-xs transition-colors duration-300" id="navigation_bar">
+      <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 py-2.5 px-4 sticky top-0 z-40 shadow-xs transition-colors duration-300" id="navigation_bar">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           <div
             onClick={handleBackToDashboard}
@@ -779,7 +804,7 @@ export default function App() {
             >
               <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-200 shrink-0" />
               <span
-                className="text-xs font-black font-mono text-gray-700 dark:text-slate-200"
+                className="text-xs font-black tabular-nums text-gray-700 dark:text-slate-200"
                 aria-label={`合計スコア ${stats.score}`}
               >
                 {stats.score}
@@ -791,7 +816,7 @@ export default function App() {
             >
               <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               <span
-                className="text-xs font-black font-mono text-gray-700 dark:text-slate-200"
+                className="text-xs font-black tabular-nums text-gray-700 dark:text-slate-200"
                 aria-label={`ログイン連続 ${stats.currentStreak}日`}
               >
                 {stats.currentStreak}日
@@ -799,169 +824,89 @@ export default function App() {
             </div>
           </div>
 
-          <button
-            onClick={() => setMenuOpen(v => !v)}
-            aria-expanded={menuOpen}
-            aria-controls="nav_menu_panel"
-            aria-label={menuOpen ? "メニューを閉じる" : "メニューを開く"}
-            id="btn_nav_menu"
-            className="relative shrink-0 w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-750 dark:text-slate-200 transition cursor-pointer"
-          >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            {/* 復習が溜まっていることは、開かなくても分かるようにする。
-                しまい込んだせいで気づかれないのでは、まとめた意味がない */}
-            {!menuOpen && dueWords.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] min-w-4 h-4 px-1 rounded-full flex items-center justify-center font-black">
-                {dueWords.length}
-              </span>
-            )}
-          </button>
         </div>
+      </header>
 
-        {menuOpen && (
-          <div
-            id="nav_menu_panel"
-            data-testid="nav_menu"
-            className="max-w-4xl mx-auto mt-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-2 shadow-lg flex flex-col gap-1"
-          >
-            {/* クイズなど集中画面では機能への入口を出さない */}
-            {!isFocusScreen && (
-              <>
-                <button
-                  onClick={() => { closeMenu(); navigate(currentScreen === "srs_review" ? "dashboard" : "srs_review"); if (currentScreen !== "srs_review") setSrsSessionWords(dueWords); }}
-                  className={MENU_ITEM}
-                  id="nav_srs_review_btn"
-                >
-                  <RotateCcw className="w-4 h-4 shrink-0 text-emerald-700 dark:text-emerald-400" />
-                  <span className="flex-1 text-left">今日の復習</span>
-                  {dueWords.length > 0 && (
-                    <span className="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
-                      {dueWords.length} 語
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => { closeMenu(); navigate(currentScreen === "map_puzzle" ? "dashboard" : "map_puzzle"); }}
-                  className={MENU_ITEM}
-                  id="nav_map_puzzle_toggle_btn"
-                >
-                  <PuzzleIcon className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
-                  <span className="flex-1 text-left">AIつながりマップ・パズル</span>
-                </button>
-
-                <button
-                  onClick={() => { closeMenu(); navigate(currentScreen === "gacha" ? "dashboard" : "gacha"); }}
-                  className={MENU_ITEM}
-                  id="nav_gacha_btn"
-                >
-                  <Gift className="w-4 h-4 shrink-0 text-violet-700 dark:text-violet-400" />
-                  <span className="flex-1 text-left">ごほうびガチャ</span>
-                </button>
-
-                <button
-                  onClick={() => { closeMenu(); navigate(currentScreen === "settings" ? "dashboard" : "settings"); }}
-                  className={MENU_ITEM}
-                  id="nav_settings_btn"
-                >
-                  <Database className="w-4 h-4 shrink-0 text-gray-500 dark:text-slate-400" />
-                  <span className="flex-1 text-left">データ（バックアップ・目標）</span>
-                </button>
-
-                <button
-                  onClick={() => { closeMenu(); navigate(currentScreen === "background" ? "dashboard" : "background"); }}
-                  className={MENU_ITEM}
-                  id="nav_background_btn"
-                >
-                  <ImageIcon className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
-                  <span className="flex-1 text-left">背景の画像</span>
-                </button>
-
-                {/* 背景の飾りの動き。動くものが視界にあると落ち着かない人もいる */}
-                <button
-                  onClick={() => setBgMotion(!bgMotion)}
-                  className={MENU_ITEM}
-                  id="nav_bg_motion_btn"
-                  aria-pressed={bgMotion}
-                >
-                  <Leaf className="w-4 h-4 shrink-0 text-emerald-700 dark:text-emerald-400" />
-                  <span className="flex-1 text-left">背景の動き</span>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
-                    {bgMotion ? "動かす" : "止める"}
-                  </span>
-                </button>
-              </>
-            )}
-
-            {/* ここから下は押すものではなく、いまの状態 */}
-            <div className="mt-1 pt-2 border-t border-gray-100 dark:border-slate-800 flex flex-wrap items-center gap-2 px-1.5 pb-1">
-              <div
-                className={`flex items-center gap-1.5 px-3 min-h-9 border rounded-xl text-xs font-bold font-mono ${
-                  goalReached
-                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300"
-                    : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400"
-                }`}
-                title="今日の学習目標の進捗"
-              >
-                {goalReached ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Target className="w-3.5 h-3.5" />}
-                <span>今日 {todayCount}/{dailyGoal}</span>
-              </div>
-
-              {/* 暗いテーマでは indigo の変数そのものを反転させている（index.css）。
-                  dark: を重ねると二重に反転して、暗い地に暗い文字が載る
-                  （「P」の実測 1.58）。ここでは変数の反転に任せる。 */}
-              <div
-                className="flex items-center gap-1.5 px-3 min-h-9 bg-indigo-50/70 border border-indigo-100 rounded-xl"
-                title="ごほうびガチャで使えるポイント"
-                data-testid="header_points"
-              >
-                <Award className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span className="text-xs font-bold text-indigo-950 font-mono" aria-label={`使えるポイント ${availablePoints}`}>
-                  {availablePoints} <span className="text-[10px] text-indigo-600 dark:text-indigo-400">P</span>
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 px-3 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-gray-600 dark:text-slate-400 font-mono">
-                <span>Ver 1.6.0</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* メインステージ */}
-      <main className="relative z-10 flex-1 py-8 px-4 max-w-4xl w-full mx-auto" id="main_payload">
+      {/* メインステージ。画面下のタブを出している間は、その高さぶん下を空ける */}
+      <main
+        className={`relative z-10 flex-1 pt-6 px-4 max-w-4xl w-full mx-auto ${activeTab ? "pb-28" : "pb-8"}`}
+        id="main_payload"
+      >
         {/* 遅延読み込みの画面を開いている間の待ち。
-            画面が入れ替わるだけで、ヘッダーとフッターは出たまま */}
+            画面が入れ替わるだけで、ヘッダーとタブは出たまま */}
         <Suspense fallback={<ScreenLoading />}>
         {currentScreen === "dashboard" && (
           <Dashboard
-            stats={stats}
-            setStats={setStats}
             vocabulary={vocabulary}
-            setVocabulary={setVocabulary}
             solvedHistory={solvedHistory}
             srsData={srsData}
             wrongWords={wrongWords}
             onStartQuiz={handleStartQuiz}
             onStartReview={() => navigate("review")}
-            onOpenDictionary={() => navigate("dictionary")}
-            onStartReading={() => navigate("reading")}
-            onOpenDiary={() => navigate("diary")}
             dueCount={dueWords.length}
             onStartSrsReview={() => {
-              // 復習セッション開始時点の対象単語を固定する（ヘッダーのボタンと同じ）
+              // 復習セッション開始時点の対象単語を固定する
               setSrsSessionWords(dueWords);
               navigate("srs_review");
             }}
-            onOpenVerbForms={() => navigate("verb_forms")}
+            dailyGoal={dailyGoal}
+            todayCount={todayCount}
+            bonusClaimable={bonusClaimable}
+            onOpenRecords={() => navigate("records")}
+            level={selectedLevel}
+            onLevelChange={setSelectedLevel}
+            questionCount={quizQuestionCount}
+            onQuestionCountChange={setQuizQuestionCount}
+          />
+        )}
+
+        {currentScreen === "learn" && (
+          <LearnHub
+            vocabulary={vocabulary}
+            setVocabulary={setVocabulary}
+            setStats={setStats}
+            setRanking={setRanking}
+            solvedHistory={solvedHistory}
+            srsData={srsData}
+            wrongWords={wrongWords}
+            onStartQuiz={handleStartQuiz}
+            level={selectedLevel}
+            questionCount={quizQuestionCount}
+            onStartReview={() => navigate("review")}
+            onOpenReading={() => navigate("reading")}
             onOpenGrammar={() => navigate("grammar")}
+            onOpenVerbForms={() => navigate("verb_forms")}
+            onOpenMapPuzzle={() => navigate("map_puzzle")}
+            onOpenDiary={() => navigate("diary")}
+            onChangeLevel={() => navigate("dashboard")}
+          />
+        )}
+
+        {currentScreen === "records" && (
+          <Records
+            stats={stats}
+            setStats={setStats}
+            vocabulary={vocabulary}
+            solvedHistory={solvedHistory}
+            srsData={srsData}
+            wrongWords={wrongWords}
             ranking={ranking}
             setRanking={setRanking}
             dailyLog={dailyLog}
             dailyGoal={dailyGoal}
             equipped={equipped}
             onOpenGachaShop={() => navigate("gacha")}
+          />
+        )}
+
+        {currentScreen === "menu" && (
+          <MenuScreen
+            isDark={isDark}
+            onToggleTheme={() => setIsDark(v => !v)}
+            bgMotion={bgMotion}
+            onToggleBgMotion={() => setBgMotion(v => !v)}
+            availablePoints={availablePoints}
+            onNavigate={screen => navigate(screen)}
           />
         )}
 
@@ -1090,7 +1035,7 @@ export default function App() {
             vocabulary={vocabulary}
             wrongWords={wrongWords}
             setWrongWords={setWrongWords}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
             onStartReviewQuiz={(format) => {
               // セッション開始時点の苦手単語を固定する。
               // 正解のたびに wrongWords が変わるため、途中で出題対象が入れ替わってしまう
@@ -1109,7 +1054,7 @@ export default function App() {
             setWrongWords={setWrongWords}
             solvedHistory={solvedHistory}
             srsData={srsData}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
             onOpenGrammar={openGrammarTopic}
           />
         )}
@@ -1118,7 +1063,7 @@ export default function App() {
           <Reading
             stats={stats}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
             updateRankingScore={updateRankingScore}
             vocabulary={vocabulary}
             wrongWords={wrongWords}
@@ -1133,7 +1078,7 @@ export default function App() {
           <MapAndPuzzle
             stats={stats}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
             updateRankingScore={updateRankingScore}
           />
         )}
@@ -1141,7 +1086,7 @@ export default function App() {
         {currentScreen === "grammar" && (
           <Grammar
             vocabulary={vocabulary}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
             initialTopicId={grammarTopicId}
             onOpenTopicChange={id => replaceParam("grammar", id)}
           />
@@ -1150,7 +1095,7 @@ export default function App() {
         {currentScreen === "verb_forms" && (
           <VerbFormsScreen
             vocabulary={vocabulary}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
           />
         )}
 
@@ -1160,7 +1105,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             srsData={srsData}
             setSolvedHistory={setSolvedHistory}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
           />
         )}
 
@@ -1198,7 +1143,7 @@ export default function App() {
                   onClick={handleBackToDashboard}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
                 >
-                  ダッシュボードに戻る
+                  今日の画面に戻る
                 </button>
               </div>
             </div>
@@ -1209,7 +1154,7 @@ export default function App() {
           <DataBackup
             dailyGoal={dailyGoal}
             setDailyGoal={setDailyGoal}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
           />
         )}
 
@@ -1223,12 +1168,12 @@ export default function App() {
             setGachaSpent={setGachaSpent}
             equipped={equipped}
             setEquipped={setEquipped}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={goBack}
           />
         )}
 
         {currentScreen === "privacy" && (
-          <PrivacyPolicy onBack={handleBackToDashboard} />
+          <PrivacyPolicy onBack={goBack} />
         )}
 
         {currentScreen === "background" && (
@@ -1239,16 +1184,16 @@ export default function App() {
             onVeilChange={changeBgVeil}
             glass={glass}
             onGlassChange={changeGlass}
-            onBack={handleBackToDashboard}
+            onBack={goBack}
           />
         )}
 
         {currentScreen === "about" && (
-          <AboutApp onBack={handleBackToDashboard} />
+          <AboutApp onBack={goBack} />
         )}
 
         {currentScreen === "terms" && (
-          <TermsOfService onBack={handleBackToDashboard} />
+          <TermsOfService onBack={goBack} />
         )}
         </Suspense>
       </main>
@@ -1256,46 +1201,20 @@ export default function App() {
       {/* 広告枠（全コンテンツの下・控えめに1枠。未設定時は非表示） */}
       <AdBanner />
 
-      {/* 謙虚でスタイリッシュなフッター */}
-      <footer className="relative z-10 bg-white dark:bg-slate-900 border-t border-gray-150 dark:border-slate-800 py-6 px-4 transition-colors duration-300" id="global_footer">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 dark:text-slate-500 gap-4 font-semibold font-sans">
-          <p>© 2026 Eigorira. Built with Google AI Studio &amp; Claude.</p>
-          {/* 狭い画面では折り返す。タップ領域を広げたときに whitespace-nowrap を
-              付けたため、360〜390px で横にはみ出していた */}
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-            {/* 規約・ポリシーと同じく1枚の画面にする。
-                以前はフッターの中で開く小さなパネルで、
-                長い説明を読むには向いていなかった（URLも持てない） */}
-            <button
-              onClick={() => navigate("about")}
-              className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-              id="btn_about_app"
-            >
-              アプリケーション説明
-            </button>
-            <span aria-hidden="true" className="text-gray-300 dark:text-slate-600">|</span>
-            <button
-              onClick={() => navigate("privacy")}
-              className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-            >
-              プライバシーポリシー
-            </button>
-            <span aria-hidden="true" className="text-gray-300 dark:text-slate-600">|</span>
-            <button
-              onClick={() => navigate("terms")}
-              className="min-h-11 px-2 whitespace-nowrap hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-            >
-              利用規約
-            </button>
-            <span aria-hidden="true" className="text-gray-300 dark:text-slate-600">|</span>
-            <div className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-              <span>Powered by Gemini 3.5 Flash</span>
-              <ExternalLink className="w-3 h-3" />
-            </div>
-          </div>
-        </div>
-
-      </footer>
+      {/* 画面下のタブ。フッターにあったアプリの説明・規約は「メニュー」に移した */}
+      {activeTab && (
+        <TabBar
+          active={activeTab}
+          onSelect={tab => {
+            setSrsSessionWords([]);
+            setWrongSessionWords([]);
+            setReviewFormat(null);
+            navigate(TAB_SCREENS[tab]);
+          }}
+          dueCount={dueWords.length}
+          bonusClaimable={bonusClaimable}
+        />
+      )}
     </div>
   );
 }

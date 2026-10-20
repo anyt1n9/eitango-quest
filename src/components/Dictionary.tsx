@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  ArrowLeft, 
   Search, 
   BookOpen, 
   ChevronRight, 
@@ -23,6 +22,7 @@ import {
 import { Word, Level, PartOfSpeech } from "../types";
 import Phonetic from "./Phonetic";
 import { getWordPos, getWordPosLabel, POS_LABELS } from "../pos";
+import { LEVEL_LABELS } from "../levelLabels";
 import WordSenses from "./WordSenses";
 import WordUsageInfo from "./WordUsage";
 import { SrsState } from "../srs";
@@ -42,7 +42,8 @@ interface DictionaryProps {
   setWrongWords: React.Dispatch<React.SetStateAction<string[]>>;
   solvedHistory: Record<string, { correctCount: number; attemptCount: number }>;
   srsData: Record<string, SrsState>;
-  onBackToDashboard: () => void;
+  /** 以前は「ダッシュボードに戻る」に使っていた。いまはタブで移るので使わない */
+  onBackToDashboard?: () => void;
   /** 文型の説明にあたる文法項目を開く */
   onOpenGrammar?: (topicId: string) => void;
 }
@@ -77,7 +78,6 @@ export default function Dictionary({
   setWrongWords,
   solvedHistory,
   srsData,
-  onBackToDashboard,
   onOpenGrammar
 }: DictionaryProps) {
   // AI単語使用頻度の情報キャッシュ
@@ -177,6 +177,14 @@ export default function Dictionary({
   // 2. ページネーション用
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  /**
+   * 並び順と絞り込みの欄を開いているか。既定は畳む。
+   * 開いたままだと、スマホでは検索・並び順・件数・レベル8つ・品詞6つで
+   * 最初の1画面が埋まり、単語の一覧が画面の外から始まっていた。
+   */
+  const [showFilters, setShowFilters] = useState(false);
+  const filterLevelLabel = (v: FilterLevel) =>
+    v === "custom" ? "追加した単語" : v === "weak" ? "苦手な単語" : v === "all" ? "すべて" : LEVEL_LABELS[v];
 
   // ページ送り用。切替後にリスト最下部へ留まったままにならないよう、単語リストの先頭へスクロールする
   // （behavior: "smooth" はタブ非表示中にアニメーションが走らず不発になるため即時スクロールにする）
@@ -324,64 +332,26 @@ export default function Dictionary({
     if (isCustom) {
       return { text: "追加単語", className: `${CUSTOM_TONE} ${badge}` };
     }
-    const label: Record<Level, string> = {
-      junior: "初級 (中学)",
-      senior: "中級1 (高1)",
-      senior2: "中級2 (高2)",
-      senior3: "中級3 (高3)",
-      advanced: "上級 (社会人)"
-    };
-    return { text: label[level], className: `${LEVEL_TONE[level]} ${badge}` };
+    return { text: LEVEL_LABELS[level], className: `${LEVEL_TONE[level]} ${badge}` };
   };
 
   return (
     <div className="space-y-6" id="dictionary_section_root">
-      {/* 上部ヘッダー（ナビゲーション） */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white border border-gray-150 rounded-3xl p-6 shadow-xs">
-        <div className="space-y-1">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition"
-            id="btn_back_from_dictionary"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>ダッシュボードに戻る</span>
-          </button>
-          
-          <div className="flex items-center gap-2 mt-2">
-            <div className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">単語辞書一覧</h1>
-          </div>
-          <p className="text-xs text-gray-400 font-medium">
-            全レベルの単語を検索したり、例文を読んで学んだり、発音を確認することができます。
-          </p>
-        </div>
-
-        {/* 総単語数カウンタ */}
-        <div className="flex gap-2 text-right">
-          <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-3 px-4 shadow-2xs">
-            <span className="text-[10px] text-indigo-600 font-black tracking-wider block uppercase">全収録単語数</span>
-            <span className="font-black text-xl text-indigo-950 font-mono">{vocabulary.length}</span>
-            <span className="text-xs text-indigo-600 font-bold ml-1">語</span>
-          </div>
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 px-4 shadow-2xs">
-            <span className="text-[10px] text-emerald-700 font-black tracking-wider block uppercase">習得済み単語</span>
-            <span className="font-black text-xl text-emerald-950 font-mono">
-              {masteredCount}
-            </span>
-            <span className="text-xs text-emerald-700 font-bold ml-1">語</span>
-          </div>
-        </div>
+      {/* 見出し。辞書は画面下のタブ（調べる）から開く画面なので、戻るは置かない */}
+      <div className="flex items-end justify-between gap-3 px-1">
+        <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-indigo-700" aria-hidden="true" />
+          単語辞書
+        </h1>
+        <p className="text-xs text-gray-600 font-bold" id="dictionary_counts">
+          収録 {vocabulary.length.toLocaleString()}語・覚えた {masteredCount.toLocaleString()}語
+        </p>
       </div>
 
       {/* 検索・ソート・フィルターコントロールパネル */}
-      <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-xs space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          
-          {/* 検索フォーム (6 cols) */}
-          <div className="md:col-span-6 relative">
+      <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+          {/* 検索フォーム */}
+          <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
               <Search className="w-4 h-4" />
             </span>
@@ -403,8 +373,51 @@ export default function Dictionary({
             )}
           </div>
 
-          {/* ソートセレクタ (3 cols) */}
-          <div className="md:col-span-3 relative">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowFilters(v => !v)}
+              aria-expanded={showFilters}
+              aria-controls="dictionary_filters"
+              id="btn_toggle_dictionary_filters"
+              className="min-h-11 px-4 rounded-full border border-indigo-300 bg-white text-indigo-700 text-xs font-black flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowUpDown className="w-4 h-4" aria-hidden="true" />
+              並び順・絞り込み
+              {(filterLevel !== "all" ? 1 : 0) + (filterPos !== "all" ? 1 : 0) > 0 && (
+                <span className="min-w-5 h-5 px-1 rounded-full bg-rose-700 text-white text-[10px] flex items-center justify-center">
+                  {(filterLevel !== "all" ? 1 : 0) + (filterPos !== "all" ? 1 : 0)}
+                </span>
+              )}
+            </button>
+            {/* 畳んでいても、効いている絞り込みは見えるようにする */}
+            {filterLevel !== "all" && (
+              <button
+                type="button"
+                onClick={() => setFilterLevel("all")}
+                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black cursor-pointer"
+                aria-label={`${filterLevelLabel(filterLevel)}の絞り込みを外す`}
+              >
+                {filterLevelLabel(filterLevel)} ×
+              </button>
+            )}
+            {filterPos !== "all" && (
+              <button
+                type="button"
+                onClick={() => setFilterPos("all")}
+                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black cursor-pointer"
+                aria-label={`${POS_LABELS[filterPos]}の絞り込みを外す`}
+              >
+                {POS_LABELS[filterPos]} ×
+              </button>
+            )}
+          </div>
+
+        {showFilters && (
+        <div className="space-y-4 pt-1" id="dictionary_filters">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* ソートセレクタ */}
+          <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
               <ArrowUpDown className="w-4 h-4" />
             </span>
@@ -413,6 +426,7 @@ export default function Dictionary({
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
               id="sort_select_vocabulary"
+              aria-label="並び順"
             >
               <option value="level-asc">レベル順 (昇順)</option>
               <option value="level-desc">レベル順 (降順)</option>
@@ -421,8 +435,8 @@ export default function Dictionary({
             </select>
           </div>
 
-          {/* 表示件数 (3 cols) */}
-          <div className="md:col-span-3 relative">
+          {/* 表示件数 */}
+          <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
               <Layers className="w-4 h-4" />
             </span>
@@ -431,6 +445,7 @@ export default function Dictionary({
               onChange={(e) => setPageSize(Number(e.target.value))}
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
               id="pagesize_select_vocabulary"
+              aria-label="1ページの件数"
             >
               <option value={20}>1ページに 20件 表示</option>
               <option value={50}>1ページに 50件 表示</option>
@@ -446,11 +461,11 @@ export default function Dictionary({
           {(
             [
               { value: "all", label: "すべて" },
-              { value: "junior", label: "初級 (中学)" },
-              { value: "senior", label: "中級1 (高1)" },
-              { value: "senior2", label: "中級2 (高2)" },
-              { value: "senior3", label: "中級3 (高3)" },
-              { value: "advanced", label: "上級" },
+              { value: "junior", label: LEVEL_LABELS.junior },
+              { value: "senior", label: LEVEL_LABELS.senior },
+              { value: "senior2", label: LEVEL_LABELS.senior2 },
+              { value: "senior3", label: LEVEL_LABELS.senior3 },
+              { value: "advanced", label: LEVEL_LABELS.advanced },
               { value: "custom", label: "追加した単語 (AI/CSV/PDF)" },
               { value: "weak", label: "苦手な単語のみ" }
             ] as const
@@ -510,6 +525,8 @@ export default function Dictionary({
             );
           })}
         </div>
+        </div>
+        )}
       </div>
 
       {/* 検索・絞り込み結果情報 */}

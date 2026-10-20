@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Dashboard from "../src/components/Dashboard";
+import Records from "../src/components/Records";
 import { makeWord, makeStats } from "./fixtures";
 
 /**
@@ -19,31 +19,21 @@ const VOCAB = [
   makeWord({ id: "j2", word: "library", level: "junior" })
 ];
 
-function renderDashboard() {
+function renderRecords() {
   render(
-    <Dashboard
+    <Records
       stats={makeStats()}
       setStats={vi.fn()}
       vocabulary={VOCAB}
-      setVocabulary={vi.fn()}
       solvedHistory={{}}
       srsData={{}}
       wrongWords={["j1", "j2"]}
-      onStartQuiz={vi.fn()}
-      onStartReview={vi.fn()}
-      onOpenDictionary={vi.fn()}
-      onStartReading={vi.fn()}
-      onOpenDiary={vi.fn()}
-      onOpenVerbForms={vi.fn()}
-      onOpenGrammar={vi.fn()}
       ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
       setRanking={vi.fn()}
       dailyLog={{}}
       dailyGoal={20}
       equipped={{}}
       onOpenGachaShop={vi.fn()}
-      dueCount={0}
-      onStartSrsReview={vi.fn()}
     />
   );
 }
@@ -57,8 +47,7 @@ const ANALYSIS = {
 
 /** 分析パネルを開いて「分析する」を押す */
 async function runAnalysis(user: ReturnType<typeof userEvent.setup>) {
-  renderDashboard();
-  await user.click(screen.getByRole("button", { name: /AIアドバイス$/ }));
+  renderRecords();
   await user.click(document.getElementById("btn_get_weakness_analysis")!);
 }
 

@@ -348,7 +348,7 @@ export default function AIDiary({
           id="diary_back_btn"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>ダッシュボードに戻る</span>
+          <span>戻る</span>
         </button>
 
         <div className="flex items-center gap-2">

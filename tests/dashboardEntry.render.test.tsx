@@ -1,19 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Dashboard from "../src/components/Dashboard";
-import { makeWord, makeStats } from "./fixtures";
-import { LEVEL_TONE, ACCENT_TONE } from "../src/levelTheme";
+import { makeWord } from "./fixtures";
+import { todayProps, TodayHarness } from "./todayProps";
+import { LEVEL_TONE } from "../src/levelTheme";
+import { LEVEL_LABELS } from "../src/levelLabels";
 
 /**
- * 出題の入口。
+ * 「今日」の画面（起動して最初に見える画面）の入口。
  *
- * 「一問一答」だけが問題数を選ぶモーダルを開き、
- * 他の4形式は10問固定で即開始していた。
- * 同じ並びのボタンなのに片方だけ手順が増え、
- * しかも他の形式では問題数を選べないという不揃いだった。
+ * 以前のダッシュボードは、5つのタブ・学習メニューの折りたたみ・レベルと問題数・
+ * 7つの形式のボタン・単語の取り込みを1枚に積んでいて、スマホの最初の1画面に
+ * 出題の開始ボタンがほとんど見えなかった。いまは「今日やること」だけを置き、
+ * レベル・問題数・形式を「学習を始める」のすぐそばにまとめる。
  *
- * 1回の問題数を1か所の設定にして、5形式すべてがそれを使う。
+ * 「一問一答」だけが問題数を選ぶモーダルを開いていた時期もある。
+ * 1回の問題数は1か所の設定で、7形式すべてがそれを使う。
  */
 
 const VOCAB = [
@@ -21,73 +23,56 @@ const VOCAB = [
   makeWord({ id: "j2", word: "quiet", level: "junior" })
 ];
 
-function renderDashboard() {
-  const onStartQuiz = vi.fn();
-  render(
-    <Dashboard
-      stats={makeStats()}
-      setStats={vi.fn()}
-      vocabulary={VOCAB}
-      setVocabulary={vi.fn()}
-      solvedHistory={{}}
-      srsData={{}}
-      wrongWords={[]}
-      onStartQuiz={onStartQuiz}
-      onStartReview={vi.fn()}
-      onOpenDictionary={vi.fn()}
-      onStartReading={vi.fn()}
-      onOpenDiary={vi.fn()}
-      onOpenVerbForms={vi.fn()}
-      onOpenGrammar={vi.fn()}
-      ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-      setRanking={vi.fn()}
-      dailyLog={{}}
-      dailyGoal={20}
-      equipped={{}}
-      onOpenGachaShop={vi.fn()}
-      dueCount={0}
-      onStartSrsReview={vi.fn()}
-    />
-  );
-  return { onStartQuiz };
+function renderToday(overrides: Parameters<typeof todayProps>[0] = {}) {
+  const props = todayProps({ vocabulary: VOCAB, ...overrides });
+  render(<TodayHarness {...props} />);
+  return props;
+}
+
+function levelSelect() {
+  return document.getElementById("select_study_level") as HTMLSelectElement;
 }
 
 beforeEach(() => {
   localStorage.clear();
 });
 
+
 describe("1回の問題数", () => {
   it("選べる数を並べる", () => {
-    renderDashboard();
-    const picker = screen.getByTestId("question_count_picker");
+    renderToday();
+    const picker = screen.getByTestId("count_picker");
     for (const label of ["10問", "50問", "100問"]) {
       expect(within(picker).getByText(label), label).toBeInTheDocument();
     }
   });
 
   it("既定は10問", () => {
-    renderDashboard();
+    renderToday();
     expect(document.getElementById("btn_question_count_10")).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("選んだ数を覚えておく", async () => {
+  it("選んだ数を App へ伝える（教材の画面と共有するため）", async () => {
+    // 覚えておく（保存する）のは App の役目。保存は tests/studySettings.test.ts が見る
     const user = userEvent.setup();
-    renderDashboard();
+    const { onQuestionCountChange } = renderToday();
     await user.click(document.getElementById("btn_question_count_50")!);
     expect(document.getElementById("btn_question_count_50")).toHaveAttribute("aria-pressed", "true");
-    expect(localStorage.getItem("quest_question_count")).toBe("50");
+    expect(onQuestionCountChange).toHaveBeenCalledWith(50);
   });
 
-  it("保存された数で開き直す", () => {
-    localStorage.setItem("quest_question_count", "100");
-    renderDashboard();
+  it("渡された数で開く", () => {
+    renderToday({ questionCount: 100 });
     expect(document.getElementById("btn_question_count_100")).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("保存値が壊れていても既定に戻す", () => {
-    localStorage.setItem("quest_question_count", "9999");
-    renderDashboard();
-    expect(document.getElementById("btn_question_count_10")).toHaveAttribute("aria-pressed", "true");
+  it("開始ボタンに、何問・何分かを書く", async () => {
+    const user = userEvent.setup();
+    renderToday();
+    const start = () => document.getElementById("btn_junior_word")!;
+    expect(start()).toHaveTextContent("初級（中学）から10問・約1分");
+    await user.click(document.getElementById("btn_question_count_50")!);
+    expect(start()).toHaveTextContent("初級（中学）から50問・約5分");
   });
 });
 
@@ -105,17 +90,17 @@ describe("7つの形式の入口", () => {
   it("どの形式もすぐ始まる（片方だけモーダルを挟まない）", async () => {
     for (const [id, type] of FORMATS) {
       const user = userEvent.setup();
-      const { onStartQuiz } = renderDashboard();
+      const { onStartQuiz } = renderToday();
       await user.click(document.getElementById(id)!);
       expect(onStartQuiz, id).toHaveBeenCalledWith("junior", type, 10);
-      screen.getByTestId("question_count_picker"); // まだダッシュボードにいる
+      screen.getByTestId("question_count_picker"); // まだ「今日」の画面にいる
       document.body.innerHTML = "";
     }
   });
 
   it("選んだ問題数がすべての形式に効く", async () => {
     const user = userEvent.setup();
-    const { onStartQuiz } = renderDashboard();
+    const { onStartQuiz } = renderToday();
     await user.click(document.getElementById("btn_question_count_50")!);
 
     await user.click(document.getElementById("btn_junior_spelling")!);
@@ -127,20 +112,18 @@ describe("7つの形式の入口", () => {
 
   it("出題数を選ぶモーダルは残っていない", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderToday();
     await user.click(document.getElementById("btn_junior_word")!);
     expect(document.getElementById("word_count_modal")).toBeNull();
   });
 
   it("リスニングと綴りの絵は、他の画面と同じ線画を使う", () => {
-    // 絵文字（🎧 ✏️）は端末ごとに絵柄も色も違い、
-    // 学習メニューや「調べる」の線画と並ぶと浮く。
+    // 絵文字（🎧 ✏️）は端末ごとに絵柄も色も違い、ほかの線画と並ぶと浮く。
     // 同じ描き方のアイコンに揃える（src/components/AppIcons.tsx）
-    renderDashboard();
+    renderToday();
     const marks: string[] = [];
     for (const form of ["listening", "spelling"]) {
-      const btn = document.getElementById(`btn_junior_${form}`)!;
-      const svg = btn.querySelector("svg");
+      const svg = document.getElementById(`btn_junior_${form}`)!.querySelector("svg");
       expect(svg, `${form} に絵が無い`).not.toBeNull();
       marks.push(svg!.innerHTML);
     }
@@ -149,7 +132,7 @@ describe("7つの形式の入口", () => {
 
   it("出題形式のボタンに絵文字を使わない", () => {
     // 国旗（🇯🇵）は端末によっては字の並び（JP）で出るなど見え方が定まらない
-    renderDashboard();
+    renderToday();
     for (const [, form] of FORMATS) {
       const btn = document.getElementById(`btn_junior_${form}`)!;
       expect(btn.textContent, `${form} に絵文字が残っている`)
@@ -158,82 +141,39 @@ describe("7つの形式の入口", () => {
   });
 });
 
-describe("画面の詰まりを減らす", () => {
-  it("取り込みの手順は既定で畳んでおく", () => {
-    // AI・CSV・PDF の取り込みは縦に1,200pxあり、毎日の学習では使わない
-    renderDashboard();
-    expect(screen.queryByTestId("import_panel")).toBeNull();
-    expect(document.getElementById("btn_toggle_import_panel")).toHaveAttribute("aria-expanded", "false");
-  });
-
-  it("押せば開く", async () => {
-    const user = userEvent.setup();
-    renderDashboard();
-    await user.click(document.getElementById("btn_toggle_import_panel")!);
-    expect(screen.getByTestId("import_panel")).toBeInTheDocument();
-    expect(document.getElementById("input_new_word")).toBeInTheDocument();
-  });
-
-  it("レベルは選ぶもので、5枚とも並べない", () => {
-    // 5レベルのカードを積んでいたときはスマホ幅で1,894pxあり、
-    // 中学以外を使う人は毎回そこまでスクロールしていた
-    renderDashboard();
-    const picker = screen.getByTestId("level_picker");
-    for (const label of ["中学", "高1", "高2", "高3", "大学・社会人"]) {
-      expect(within(picker).getByText(label), label).toBeInTheDocument();
+describe("レベル", () => {
+  it("5つのレベルを、どの画面とも同じ呼び方で選べる", () => {
+    // 以前は同じレベルが「中学」「初級 (中学生レベル)」「初級 (中学)」と画面ごとに違った
+    renderToday();
+    const options = Array.from(levelSelect().options).map(o => o.textContent ?? "");
+    expect(options).toHaveLength(5);
+    for (const label of Object.values(LEVEL_LABELS)) {
+      expect(options.some(o => o.startsWith(label)), label).toBe(true);
     }
-    // 出ているカードは選んでいる1枚だけ
-    expect(screen.getAllByTestId("level_quiz_buttons")).toHaveLength(1);
-    expect(screen.getByTestId("level_card_junior")).toBeInTheDocument();
   });
 
-  it("選ぶと、そのレベルの5形式に入れ替わる", async () => {
+  it("選ぶと、そのレベルで始まる", async () => {
     const user = userEvent.setup();
-    const { onStartQuiz } = renderDashboard();
+    const { onStartQuiz } = renderToday();
+    await user.selectOptions(levelSelect(), "advanced");
 
-    await user.click(document.getElementById("btn_level_advanced")!);
-    expect(document.getElementById("btn_level_advanced")).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByTestId("level_card_advanced")).toBeInTheDocument();
-    expect(screen.queryByTestId("level_card_junior")).toBeNull();
-
+    expect(document.getElementById("btn_junior_word")).toBeNull();
+    expect(document.getElementById("btn_advanced_word")).toHaveTextContent(LEVEL_LABELS.advanced);
     await user.click(document.getElementById("btn_advanced_spelling")!);
     expect(onStartQuiz).toHaveBeenCalledWith("advanced", "spelling", 10);
   });
 
-  it("レベルのボタンは、そのレベルの色を使う", async () => {
-    // カードの見出し・進捗バー・出題ボタンと同じ色にしておくと、
-    // どのレベルを開いているかが色でも分かる。
-    // 色そのものは CSS 側（.level-*）にあり、明るいテーマは森・暗いテーマは海で
-    // 置き換わる。ここでは「レベルごとに違う色の組を指しているか」を見る
+  it("開始ボタンと問題数は、選んでいるレベルの色になる", async () => {
+    // 色そのものは CSS 側（.level-*）にあり、明るいテーマは森・暗いテーマは海で置き換わる
     const user = userEvent.setup();
-    renderDashboard();
-    const tones = new Set<string>();
-    for (const level of ["junior", "senior", "senior2", "senior3", "advanced"] as const) {
-      const cls = document.getElementById(`btn_level_${level}`)!.className;
-      expect(cls, level).toContain(LEVEL_TONE[level]);
-      tones.add(LEVEL_TONE[level]);
-    }
-    expect(tones.size, "2つのレベルが同じ色を指している").toBe(5);
-
-    // 選んでいるものは塗りつぶし、他は淡い地
-    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-[var(--lv-solid)]");
-    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-[var(--lv-bg)]");
-
-    await user.click(document.getElementById("btn_level_senior")!);
-    expect(document.getElementById("btn_level_senior")!.className).toContain("bg-[var(--lv-solid)]");
-    expect(document.getElementById("btn_level_junior")!.className).toContain("bg-[var(--lv-bg)]");
-  });
-
-  it("1回の問題数も、選んでいるレベルの色になる", async () => {
-    // レベルの列と問題数の列が別々の色だと、
-    // 「いま何を何問解こうとしているのか」が2か所に散る
-    const user = userEvent.setup();
-    renderDashboard();
+    renderToday();
     const count = () => document.getElementById("btn_question_count_50")!;
     expect(count().className).toContain(LEVEL_TONE.junior);
+    expect(document.getElementById("btn_junior_word")!.className).toContain(LEVEL_TONE.junior);
 
-    await user.click(document.getElementById("btn_level_advanced")!);
+    await user.selectOptions(levelSelect(), "advanced");
     expect(count().className).toContain(LEVEL_TONE.advanced);
+    expect(document.getElementById("btn_advanced_word")!.className).toContain(LEVEL_TONE.advanced);
     expect(count().className, "色を直に書いている").not.toMatch(/-(indigo|blue|amber)-\d/);
 
     // 選んでいる問題数は塗りつぶし、他は淡い地（レベルの色で）
@@ -241,228 +181,111 @@ describe("画面の詰まりを減らす", () => {
     expect(count().className).toContain("bg-[var(--lv-bg)]");
   });
 
-  it("選んだレベルを覚えておく（毎回選び直させない）", async () => {
+  it("選んだレベルを App へ伝える（教材の画面と共有するため）", async () => {
     const user = userEvent.setup();
-    renderDashboard();
-    await user.click(document.getElementById("btn_level_senior2")!);
-    expect(localStorage.getItem("quest_selected_level")).toBe("senior2");
+    const { onLevelChange } = renderToday();
+    await user.selectOptions(levelSelect(), "senior2");
+    expect(onLevelChange).toHaveBeenCalledWith("senior2");
+  });
+
+  it("渡されたレベルで開く", () => {
+    renderToday({ level: "senior3" });
+    expect(levelSelect().value).toBe("senior3");
+    expect(document.getElementById("btn_senior3_word")).toBeInTheDocument();
+  });
+});
+
+describe("今日の復習", () => {
+  it("復習がある日は、いちばん上に語数と開始ボタンを出す", async () => {
+    const user = userEvent.setup();
+    const { onStartSrsReview } = renderToday({ dueCount: 12 });
+    const card = document.getElementById("today_review_card")!;
+    expect(within(card).getByText("12語")).toBeInTheDocument();
+    // 設定の台より前（上）にある
+    const settings = document.getElementById("level_selection_section")!;
+    expect(card.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.click(within(card).getByRole("button", { name: "復習を始める" }));
+    expect(onStartSrsReview).toHaveBeenCalledTimes(1);
+  });
+
+  it("復習がある日は、塗りつぶしのボタンを復習の1つにする", () => {
+    // 塗りつぶしが2つ並ぶと、どちらから手を付ければよいのか分からない
+    renderToday({ dueCount: 12 });
+    const start = document.getElementById("btn_junior_word")!;
+    expect(start).toHaveTextContent("新しい単語を学ぶ");
+    expect(start.className).not.toContain("bg-[var(--lv-solid)]");
+    expect(start.className).not.toContain("glass-chip");
+    expect(document.getElementById("today_headline")).toHaveTextContent("復習のあとに10問");
+  });
+
+  it("復習が無い日は、開始ボタンを主役にして、その旨を書く", () => {
+    renderToday({ dueCount: 0 });
+    expect(document.getElementById("today_review_card")).toBeNull();
+    expect(document.getElementById("btn_junior_word")).toHaveTextContent("学習を始める");
+    expect(document.getElementById("btn_junior_word")!.className).toContain("bg-[var(--lv-solid)]");
+    expect(screen.getByTestId("today_review_status")).toHaveTextContent("復習する単語はありません");
+  });
+
+  it("押せる大きさがある（スマホでも指で押せる）", () => {
+    renderToday({ dueCount: 3 });
+    expect(document.getElementById("dashboard_open_srs_review_btn")!.className).toContain("min-h-12");
+  });
+});
+
+describe("今日の進み具合", () => {
+  it("今日の目標までの数を出す", () => {
+    renderToday({ todayCount: 8, dailyGoal: 20 });
+    expect(document.getElementById("today_goal_count")).toHaveTextContent("8 / 20問");
+  });
+
+  it("目標に届いたら、そう書く", () => {
+    renderToday({ todayCount: 20, dailyGoal: 20 });
+    expect(document.getElementById("today_goal_count")).toHaveTextContent("達成！");
+  });
+
+  it("苦手な単語があるときだけ、復習の入口を出す", async () => {
+    const user = userEvent.setup();
+    renderToday();
+    expect(document.getElementById("btn_start_review")).toBeNull();
 
     document.body.innerHTML = "";
-    renderDashboard();
-    expect(document.getElementById("btn_level_senior2")).toHaveAttribute("aria-pressed", "true");
+    const { onStartReview } = renderToday({ wrongWords: ["j1", "j2"] });
+    expect(document.getElementById("review_banner")).toHaveTextContent("2語");
+    await user.click(document.getElementById("btn_start_review")!);
+    expect(onStartReview).toHaveBeenCalledTimes(1);
   });
 
-  it("保存値が壊れていても中学に戻す", () => {
-    localStorage.setItem("quest_selected_level", "SENIOR");
-    renderDashboard();
-    expect(document.getElementById("btn_level_junior")).toHaveAttribute("aria-pressed", "true");
+  it("ログインボーナスを受け取っていなければ、記録の画面へ案内する", async () => {
+    const user = userEvent.setup();
+    const { onOpenRecords } = renderToday({ bonusClaimable: true });
+    await user.click(document.getElementById("btn_go_bonus")!);
+    expect(onOpenRecords).toHaveBeenCalledTimes(1);
+  });
+
+  it("受け取ったあとは案内を出さない", () => {
+    renderToday({ bonusClaimable: false });
+    expect(document.getElementById("today_bonus_hint")).toBeNull();
   });
 });
 
-describe("学習カレンダーの置き場所", () => {
-  /**
-   * カレンダーは縦に443pxあり、「習熟度 & クイズ」の先頭に常時置いていた。
-   * 毎日見るものではないので、毎日開くログインボーナスと並べて出す。
-   */
-  it("押すまでは出さない（習熟度 & クイズには置かない）", () => {
-    renderDashboard();
-    expect(screen.queryByTestId("calendar_in_bonus")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "学習カレンダー" })).toBeNull();
-  });
-
-  it("ログインボーナスを開くと、その下に出る", async () => {
-    const user = userEvent.setup();
-    renderDashboard();
-    await user.click(document.getElementById("tab_btn_bonus")!);
-
-    const panel = screen.getByTestId("calendar_in_bonus");
-    expect(within(panel).getByRole("heading", { name: "学習カレンダー" })).toBeInTheDocument();
-    // ログインボーナスの中身より後ろにある
-    const stamp = screen.getByText("デイリーログインスタンプ");
-    expect(stamp.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("他のタブに切り替えると閉じる", async () => {
-    const user = userEvent.setup();
-    renderDashboard();
-    await user.click(document.getElementById("tab_btn_bonus")!);
-    await user.click(document.getElementById("tab_btn_progress")!);
-    expect(screen.queryByTestId("calendar_in_bonus")).toBeNull();
-    expect(document.getElementById("btn_junior_word")).toBeInTheDocument();
-  });
-
-  it("カレンダー専用のタブは置かない", () => {
-    renderDashboard();
-    expect(document.getElementById("tab_btn_calendar")).toBeNull();
-    const ids = within(screen.getByTestId("dashboard_tabs")).getAllByRole("button").map(b => b.id);
-    expect(ids).toHaveLength(5);
-  });
-});
-
-describe("長文・AI日記への入口", () => {
-  /**
-   * この2つは上部のナビからは外した（ダッシュボードに案内があり、
-   * 入口が二重になっていたため）。学習メニューの中のボタンが唯一の入口になるので、
-   * ここが動かなくなると画面へ行けなくなる。
-   *
-   * AI日記のボタンは以前、消したナビのボタンを
-   * `document.getElementById(...).click()` で押していた。
-   * ナビを消した時点で行き先を失うので、呼び出しで繋ぎ直してある。
-   */
-  it("長文はカードのボタンから開ける", async () => {
-    const user = userEvent.setup();
-    const onStartReading = vi.fn();
-    render(
-      <Dashboard
-        stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
-        solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
-        onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={onStartReading}
-        onOpenDiary={vi.fn()} onOpenVerbForms={vi.fn()} onOpenGrammar={vi.fn()}
-        ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
-      />
-    );
-    await user.click(document.getElementById("btn_toggle_study_menu")!);
-    await user.click(document.getElementById("dashboard_open_reading_btn")!);
-    expect(onStartReading).toHaveBeenCalledTimes(1);
-  });
-
-  it("AI日記はカードのボタンから開ける", async () => {
-    const user = userEvent.setup();
-    const onOpenDiary = vi.fn();
-    render(
-      <Dashboard
-        stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
-        solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
-        onStartReview={vi.fn()} onOpenDictionary={vi.fn()} onStartReading={vi.fn()}
-        onOpenDiary={onOpenDiary} onOpenVerbForms={vi.fn()} onOpenGrammar={vi.fn()}
-        ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
-      />
-    );
-    await user.click(document.getElementById("btn_toggle_study_menu")!);
-    await user.click(document.getElementById("dashboard_open_diary_btn")!);
-    expect(onOpenDiary).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("AIアドバイスのタブ", () => {
-  /**
-   * この2つの欄だけ紫と赤で塗られていて、森にも海にも合っていなかった。
-   * 色は他と同じ変数の組（--lv-*）で持ち、テーマごとに置き換わるようにする。
-   */
-  async function openAiTab(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(document.getElementById("tab_btn_ai")!);
-  }
-
-  it("アドバイスと弱点分析は、テーマの色を使う（紫・赤を直に書かない）", async () => {
-    const user = userEvent.setup();
-    renderDashboard();
-    await openAiTab(user);
-
-    const advice = document.getElementById("btn_get_advice")!;
-    const weakness = document.getElementById("btn_get_weakness_analysis")!;
-    expect(advice.className).toContain(ACCENT_TONE.advice);
-    expect(weakness.className).toContain(ACCENT_TONE.weakness);
-    for (const btn of [advice, weakness]) {
-      expect(btn.className, "色を直に書いている").not.toMatch(/-(purple|rose|fuchsia)-\d/);
+describe("画面の詰まりを減らす", () => {
+  it("ほかの画面の入口（学習メニュー・タブ・取り込み）は置かない", () => {
+    // これらは画面下のタブ（教材・記録など）に移した
+    renderToday();
+    for (const id of ["btn_toggle_study_menu", "btn_toggle_import_panel", "tab_btn_progress", "tab_btn_bonus"]) {
+      expect(document.getElementById(id), id).toBeNull();
     }
-
-    const section = document.getElementById("ai_advisor_section")!;
-    expect(section.innerHTML, "紫が残っている").not.toMatch(/-purple-\d/);
+    expect(screen.queryByTestId("dashboard_tabs")).toBeNull();
+    expect(screen.queryByTestId("calendar_in_bonus")).toBeNull();
   });
 
-  it("2つの欄は、それぞれ違う絵を使う", async () => {
-    const user = userEvent.setup();
-    renderDashboard();
-    await openAiTab(user);
-
-    const advice = document.getElementById("btn_get_advice")!.querySelector("svg");
-    const weakness = document.getElementById("btn_get_weakness_analysis")!.querySelector("svg");
-    expect(advice, "アドバイスに絵が無い").not.toBeNull();
-    expect(weakness, "弱点分析に絵が無い").not.toBeNull();
-    expect(advice!.innerHTML === weakness!.innerHTML, "同じ絵を使っている").toBe(false);
-  });
-});
-
-describe("「調べる」タブ", () => {
-  /**
-   * 辞書・活用表・文法ガイドは上部のナビに散らばっていて、
-   * 何がどこにあるのか分かりにくかった。
-   * 「習熟度 & クイズ」と「AIアドバイス」の間にタブを1つ足して、
-   * 3つの入口をそこにまとめる。
-   */
-  function renderWithHandlers() {
-    const handlers = {
-      onOpenDictionary: vi.fn(),
-      onOpenVerbForms: vi.fn(),
-      onOpenGrammar: vi.fn()
-    };
-    render(
-      <Dashboard
-        stats={makeStats()} setStats={vi.fn()} vocabulary={VOCAB} setVocabulary={vi.fn()}
-        solvedHistory={{}} srsData={{}} wrongWords={[]} onStartQuiz={vi.fn()}
-        onStartReview={vi.fn()} onStartReading={vi.fn()} onOpenDiary={vi.fn()}
-        {...handlers}
-        ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-        setRanking={vi.fn()} dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()} dueCount={0} onStartSrsReview={vi.fn()}
-      />
-    );
-    return handlers;
-  }
-
-  it("タブが「習熟度 & クイズ」と「AIアドバイス」の間に並ぶ", () => {
-    renderWithHandlers();
-    const ids = within(screen.getByTestId("dashboard_tabs"))
-      .getAllByRole("button")
-      .map(b => b.id);
-    expect(ids.indexOf("tab_btn_reference")).toBe(ids.indexOf("tab_btn_progress") + 1);
-    expect(ids.indexOf("tab_btn_reference")).toBe(ids.indexOf("tab_btn_ai") - 1);
-  });
-
-  it("押すまでは中身を出さない", () => {
-    renderWithHandlers();
-    expect(screen.queryByTestId("reference_tab")).toBeNull();
-  });
-
-  it("押すと3つの資料が並ぶ", async () => {
-    const user = userEvent.setup();
-    renderWithHandlers();
-    await user.click(document.getElementById("tab_btn_reference")!);
-    const panel = screen.getByTestId("reference_tab");
-    for (const label of ["単語一覧辞書", "動詞の活用表", "文法ガイド"]) {
-      expect(within(panel).getByText(label), label).toBeInTheDocument();
-    }
-  });
-
-  it("それぞれの画面へ移れる", async () => {
-    const user = userEvent.setup();
-    const h = renderWithHandlers();
-    await user.click(document.getElementById("tab_btn_reference")!);
-
-    await user.click(document.getElementById("btn_reference_dictionary")!);
-    expect(h.onOpenDictionary).toHaveBeenCalledTimes(1);
-
-    await user.click(document.getElementById("btn_reference_verb_forms")!);
-    expect(h.onOpenVerbForms).toHaveBeenCalledTimes(1);
-
-    await user.click(document.getElementById("btn_reference_grammar")!);
-    expect(h.onOpenGrammar).toHaveBeenCalledTimes(1);
-  });
-
-  it("何のための場所かを説明する", async () => {
-    const user = userEvent.setup();
-    renderWithHandlers();
-    await user.click(document.getElementById("tab_btn_reference")!);
-    const panel = screen.getByTestId("reference_tab");
-    expect(within(panel).getByText(/解いていて分からなかったことを確かめる場所/)).toBeInTheDocument();
-  });
-
-  it("他のタブに切り替えると閉じる", async () => {
-    const user = userEvent.setup();
-    renderWithHandlers();
-    await user.click(document.getElementById("tab_btn_reference")!);
-    await user.click(document.getElementById("tab_btn_progress")!);
-    expect(screen.queryByTestId("reference_tab")).toBeNull();
+  it("英語の小見出しや等幅の数字を使わない", () => {
+    // 「EXPLORE AND LEARN」「STORY XP PROGRESS」のような飾りの英語と等幅フォントは、
+    // 学習アプリというより開発ツールのような印象になっていた
+    renderToday({ wrongWords: ["j1"], dueCount: 2 });
+    const page = document.getElementById("dashboard_page")!;
+    expect(page.querySelector(".font-mono"), "等幅フォントが残っている").toBeNull();
+    expect(page.textContent).not.toMatch(/[A-Z]{3,} [A-Z]{3,}/);
   });
 });

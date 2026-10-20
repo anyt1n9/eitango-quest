@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Dashboard from "../src/components/Dashboard";
-import { makeWord, makeStats } from "./fixtures";
+import WordImport from "../src/components/WordImport";
+import { makeWord } from "./fixtures";
 import { Word } from "../src/types";
 
 /**
@@ -28,29 +28,11 @@ async function importCsv(csv: string): Promise<Word[]> {
   vi.spyOn(window, "alert").mockImplementation(() => {});
 
   render(
-    <Dashboard
-      stats={makeStats()}
-      setStats={vi.fn()}
+    <WordImport
       vocabulary={VOCAB}
       setVocabulary={setVocabulary}
-      solvedHistory={{}}
-      srsData={{}}
-      wrongWords={[]}
-      onStartQuiz={vi.fn()}
-      onStartReview={vi.fn()}
-      onOpenDictionary={vi.fn()}
-      onStartReading={vi.fn()}
-      onOpenDiary={vi.fn()}
-      onOpenVerbForms={vi.fn()}
-      onOpenGrammar={vi.fn()}
-      ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
+      setStats={vi.fn()}
       setRanking={vi.fn()}
-      dailyLog={{}}
-      dailyGoal={20}
-      equipped={{}}
-      onOpenGachaShop={vi.fn()}
-      dueCount={0}
-      onStartSrsReview={vi.fn()}
     />
   );
 

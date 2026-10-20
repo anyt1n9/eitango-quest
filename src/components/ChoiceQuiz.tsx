@@ -298,7 +298,7 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
               className="bg-white hover:bg-gray-50 text-gray-800 font-extrabold px-8 py-3.5 rounded-2xl border border-gray-200 transition text-sm"
               id="btn_back_dashboard_from_quiz"
             >
-              ダッシュボードに戻る
+              今日の画面に戻る
             </button>
           </div>
         </div>

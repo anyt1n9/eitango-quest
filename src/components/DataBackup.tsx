@@ -188,7 +188,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
             className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>ダッシュボードに戻る</span>
+            <span>戻る</span>
           </button>
           <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-black">
             <Database className="w-3.5 h-3.5" />

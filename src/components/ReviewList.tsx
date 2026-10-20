@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Brain, Volume2, Trash2, CheckCircle2, ChevronRight, GraduationCap } from "lucide-react";
 import { Word, Level } from "../types";
+import { LEVEL_STAGES } from "../levelLabels";
 import { QuizFormat } from "../quizFormats";
 import QuizFormatPicker from "./QuizFormatPicker";
 import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
@@ -74,7 +75,7 @@ export default function ReviewList({
               id="btn_back_from_review"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>ダッシュボードに戻る</span>
+              <span>戻る</span>
             </button>
             <span className="bg-rose-100 text-rose-700 text-xs px-3.5 py-1.5 rounded-full font-black font-mono">
               苦手単語: {wrongWordObjects.length} 語
@@ -113,7 +114,7 @@ export default function ReviewList({
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
               <p className="text-gray-800 font-extrabold">苦手な単語はありません！</p>
               <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto leading-relaxed">
-                素晴らしい学習進捗です。ダッシュボードからクイズにどんどん挑戦して、英単語マスターを目指していきましょう！
+                素晴らしい学習進捗です。「今日」の画面からクイズにどんどん挑戦して、英単語マスターを目指していきましょう！
               </p>
             </div>
           )}
@@ -147,7 +148,7 @@ export default function ReviewList({
                         <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase font-mono ${
                           LEVEL_TONE[word.level] || LEVEL_TONE.junior
                         } ${TONE_STYLE.badge}`}>
-                          {word.level === "junior" ? "初級" : word.level === "senior" ? "中級1" : word.level === "senior2" ? "中級2" : word.level === "senior3" ? "中級3" : "上級"}
+                          {LEVEL_STAGES[word.level as Level] ?? word.level}
                         </span>
                         <span className="font-extrabold text-base tracking-wide text-gray-900 font-mono select-all">
                           {word.word}

@@ -27,13 +27,12 @@ async function seedProgress(page: Page) {
   await waitForVocabulary(page);
 }
 
-/** ヘッダーのハンバーガーメニューを開く */
-async function openNavMenu(page: Page) {
-  await page.locator("#btn_nav_menu").click();
-  await expect(page.locator("#nav_menu_panel")).toBeVisible();
+/** 画面下のタブを押す */
+async function goTab(page: Page, tab: "today" | "search" | "learn" | "records" | "menu") {
+  await page.locator(`#tab_${tab}`).click();
 }
 
-/** 単語データは遅延読み込みなので、ダッシュボードが出るまで待つ */
+/** 単語データは遅延読み込みなので、「今日」の画面が出るまで待つ */
 async function waitForVocabulary(page: Page) {
   await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
   await expect(page.locator("#btn_junior_reverse")).toBeVisible();
@@ -44,14 +43,14 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
 });
 
-test("単語データを読み込んでダッシュボードが出る", async ({ page }) => {
+test("単語データを読み込んで「今日」の画面が出る", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
 });
 
 test("学習アドバイスが習得状況を反映する", async ({ page }) => {
   await seedProgress(page);
-  await page.locator("#tab_btn_ai").click();
+  await goTab(page, "records");
   await page.locator("#btn_get_advice").click();
   // APIキーの有無にかかわらず、実際の記録の数字が出る
   await expect(page.getByText(/習得済みは\d+語/)).toBeVisible();
@@ -61,8 +60,8 @@ test("学習アドバイスが習得状況を反映する", async ({ page }) => 
 test("文法ガイドを開いて練習問題を解ける", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#tab_btn_reference").click();
-  await page.locator("#btn_reference_grammar").click();
+  await goTab(page, "learn");
+  await page.locator("#learn_open_grammar").click();
 
   const list = page.locator('[data-testid="grammar_topic_list"] button');
   await expect(list.first()).toBeVisible({ timeout: 30_000 });
@@ -82,8 +81,8 @@ test("文法ガイドを開いて練習問題を解ける", async ({ page }) => 
 test("長文を読み、音読と文法の解説へ辿れる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#btn_toggle_study_menu").click();
-  await page.locator("#dashboard_open_reading_btn").click();
+  await goTab(page, "learn");
+  await page.locator("#learn_open_reading").click();
 
   await page.getByText("The Secret of the Old Library").first().click();
   await expect(page.locator("#passage_text_container")).toBeVisible();
@@ -101,8 +100,8 @@ test("長文を読み、音読と文法の解説へ辿れる", async ({ page }) 
 test("長文の重要語を苦手単語に入れられる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#btn_toggle_study_menu").click();
-  await page.locator("#dashboard_open_reading_btn").click();
+  await goTab(page, "learn");
+  await page.locator("#learn_open_reading").click();
   await page.getByText("The Secret of the Old Library").first().click();
 
   // 右の重要語リストから1語選ぶ
@@ -119,9 +118,8 @@ test("長文の重要語を苦手単語に入れられる", async ({ page }) => 
 test("辞書で語義・語法を見て、文法の解説へ跳べる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#tab_btn_reference").click();
-  await page.locator("#btn_reference_dictionary").click();
-  await page.locator('input[type="text"]').first().fill("tell");
+  await goTab(page, "search");
+  await page.locator("#search_input_vocabulary").fill("tell");
   await page.getByText(/^tell$/).first().click();
 
   await expect(page.locator('[data-testid="sense_groups"]')).toBeVisible({ timeout: 30_000 });
@@ -135,7 +133,7 @@ test("辞書で語義・語法を見て、文法の解説へ跳べる", async ({
 
 test("苦手単語の復習を形式を選んで始められる", async ({ page }) => {
   await seedProgress(page);
-  await page.getByText("復習をスタートする").first().click();
+  await page.locator("#btn_start_review").click();
   await expect(page.locator('[data-testid="quiz_format_picker"]')).toBeVisible();
   await expect(page.locator('[data-testid="quiz_format_picker"] button')).toHaveCount(5);
 
@@ -145,8 +143,8 @@ test("苦手単語の復習を形式を選んで始められる", async ({ page 
 
 test("今日の復習でも形式を選べる", async ({ page }) => {
   await seedProgress(page);
-  await openNavMenu(page);
-  await page.locator("#nav_srs_review_btn").click();
+  // 復習が来ている日は「今日」の画面のいちばん上に入口が出る
+  await page.locator("#dashboard_open_srs_review_btn").click();
   await expect(page.locator('[data-testid="quiz_format_picker"]')).toBeVisible();
   await page.locator("#review_format_sentence").click();
   await expect(page.locator("#sentence_quiz_options_grid")).toBeVisible();
@@ -170,13 +168,18 @@ test("画面ごとにURLが変わり、戻るでアプリが閉じない", async
   await page.goto("/");
   await waitForVocabulary(page);
 
-  await page.locator("#tab_btn_reference").click();
-  await page.locator("#btn_reference_grammar").click();
+  await goTab(page, "learn");
+  await expect(page).toHaveURL(/\/learn$/);
+  await page.locator("#learn_open_grammar").click();
   await expect(page).toHaveURL(/\/grammar$/);
 
   await page.locator("#grammar_topic_g_present_perfect").click();
   await expect(page).toHaveURL(/\/grammar\/g_present_perfect$/);
 
+  // 項目を開いても履歴は積まない（項目を1つずつ遡らされない）
+  await page.goBack();
+  await expect(page).toHaveURL(/\/learn$/);
+  await expect(page.locator("#learn_page")).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator("#btn_junior_reverse")).toBeVisible();
@@ -190,8 +193,8 @@ test("リンクから文法項目を直接開ける", async ({ page }) => {
 test("読んでいた長文は再読み込みしても開いたまま", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#btn_toggle_study_menu").click();
-  await page.locator("#dashboard_open_reading_btn").click();
+  await goTab(page, "learn");
+  await page.locator("#learn_open_reading").click();
   await page.getByText("The Secret of the Old Library").first().click();
   await expect(page).toHaveURL(/\/reading\/p1$/);
 
@@ -205,6 +208,7 @@ test("アプリケーション説明は、利用規約と同じく1枚の画面�
   await page.goto("/");
   await waitForVocabulary(page);
 
+  await goTab(page, "menu");
   await page.locator("#btn_about_app").click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible({ timeout: 30_000 });
@@ -212,10 +216,10 @@ test("アプリケーション説明は、利用規約と同じく1枚の画面�
   await expect(page.getByText(/英単語 7,730語/)).toBeVisible();
   await expect(page.getByRole("heading", { name: /5つの出題形式/ })).toBeVisible();
 
-  // 規約と同じ戻り方。「ダッシュボードに戻る」で帰れて、端末の戻るで開き直せる
-  await page.getByRole("button", { name: "ダッシュボードに戻る" }).click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator("#btn_junior_reverse")).toBeVisible();
+  // 規約と同じ戻り方。「戻る」で開いたタブ（メニュー）へ帰れて、端末の戻るで開き直せる
+  await page.getByRole("button", { name: "戻る", exact: true }).click();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.locator("#menu_page")).toBeVisible();
   await page.goBack();
   await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible();
 
@@ -241,38 +245,46 @@ test("アプリの名前とエイ・ゴリラのしるしはヘッダーに出�
   await expect(page.locator("body")).not.toContainText("英単語 Quest");
 });
 
-test("ヘッダーはハンバーガーにまとめ、開くと入口が並ぶ", async ({ page }) => {
-  // 以前は機能ボタンを7つ横に並べ、スマホでは2段に折り返して
-  // ヘッダーだけで 150px 近くあった
+test("行き先は画面下のタブにまとめ、出題中は出さない", async ({ page }) => {
+  // 以前は入口が5か所（ヘッダーのアイコン・ハンバーガー・ダッシュボードのタブ・
+  // 学習メニューの折りたたみ・レベルのカード）に散らばっていた
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto("/");
   await waitForVocabulary(page);
 
-  const nav = page.locator("#navigation_bar");
-  expect((await nav.boundingBox())!.height).toBeLessThan(80);
-
-  // 畳んでいる間は入口が出ていない
-  await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
-  await expect(page.locator("#nav_srs_review_btn")).toHaveCount(0);
-
+  const header = page.locator("#navigation_bar");
+  expect((await header.boundingBox())!.height).toBeLessThan(80);
   // テーマの切り替えは開かずに押せる場所（ヘッダー）にある
   await expect(page.locator("#theme_toggle_btn")).toBeVisible();
+  await expect(page.locator("#btn_nav_menu")).toHaveCount(0);
 
-  await openNavMenu(page);
-  for (const id of ["nav_srs_review_btn", "nav_map_puzzle_toggle_btn", "nav_gacha_btn", "nav_settings_btn"]) {
-    await expect(page.locator("#" + id), id).toBeVisible();
-  }
-  await expect(page.getByTestId("header_points")).toBeVisible();
+  // タブは画面の下端に貼り付き、親指で押せる
+  const bar = page.locator("#tab_bar");
+  await expect(bar.locator("button")).toHaveCount(5);
+  const box = (await bar.boundingBox())!;
+  expect(box.y + box.height).toBeGreaterThanOrEqual(799);
+  await expect(page.locator("#tab_today")).toHaveAttribute("aria-current", "page");
 
-  // Esc で閉じる
-  await page.keyboard.press("Escape");
-  await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
+  // 最初の1画面に「学習を始める」が見えている
+  // （以前は 844px の画面で 810px 付近にあり、ほとんど見えなかった）
+  const start = (await page.locator("#btn_junior_word").boundingBox())!;
+  expect(start.y + start.height, "開始ボタンが最初の1画面に入っていない").toBeLessThan(box.y);
 
-  // 選ぶと閉じて、その画面へ移る
-  await openNavMenu(page);
+  // 下の階層は、開いたタブを光らせたまま。戻るとそのタブへ帰る
+  await goTab(page, "menu");
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(page.getByTestId("menu_points")).toBeVisible();
   await page.locator("#nav_gacha_btn").click();
   await expect(page).toHaveURL(/\/gacha$/);
-  await expect(page.locator("#nav_menu_panel")).toHaveCount(0);
+  await expect(page.locator("#tab_menu")).toHaveAttribute("aria-current", "page");
+  await page.getByRole("button", { name: "戻る", exact: true }).click();
+  await expect(page).toHaveURL(/\/menu$/);
+
+  // 出題中はタブを出さない（視界のすみに行き先が並ぶと気が散る）
+  await goTab(page, "today");
+  await page.locator("#btn_junior_word").click();
+  await expect(page.locator("#quiz_options_container")).toBeVisible();
+  await expect(page.locator("#tab_bar")).toHaveCount(0);
 });
 
 test("合計スコアと連続日数は、どの画面でもヘッダーに出る", async ({ page }) => {
@@ -327,7 +339,7 @@ test("背景の画像はメニューから選べ、消せば もとの飾りに�
 
   await page.goto("/");
   await waitForVocabulary(page);
-  await openNavMenu(page);
+  await goTab(page, "menu");
   await page.locator("#nav_background_btn").click();
   await expect(page.locator("#background_settings_screen")).toBeVisible();
   await expect(page).toHaveURL(/\/background$/);
@@ -357,7 +369,7 @@ test("背景の画像はメニューから選べ、消せば もとの飾りに�
   expect(await page.evaluate(LOW_CONTRAST), "画像の背景で文字が読めない").toEqual([]);
 
   // 読みにくいときは濃くできる
-  await openNavMenu(page);
+  await goTab(page, "menu");
   await page.locator("#nav_background_btn").click();
   await page.locator("#btn_veil_strong").click();
   await page.goto("/");
@@ -372,7 +384,7 @@ test("背景の画像はメニューから選べ、消せば もとの飾りに�
   expect(strong, "「しっかり」にしても濃くならない").toBeGreaterThanOrEqual(0.55);
 
   // 消せば もとの飾りに戻る
-  await openNavMenu(page);
+  await goTab(page, "menu");
   await page.locator("#nav_background_btn").click();
   await page.locator("#btn_clear_background").click();
   await expect(page.locator('[data-testid="background_scene"]')).toHaveAttribute("data-kind", "scene");
@@ -422,7 +434,7 @@ test("類義語クイズと語義分別クイズを、答えて解説を読ん�
   await expect(page.locator("#choice_quiz_feedback")).toContainText("ほかの意味");
 });
 
-test("ヘッダーのポイントは、ガチャで使える額と一致する", async ({ page }) => {
+test("メニューのポイントは、ガチャで使える額と一致する", async ({ page }) => {
   // stats.score は「これまでに稼いだ合計」で、ガチャを引いても減らない。
   // ヘッダーがその合計を「P」として出していたため、ガチャ画面には
   // 「3,000 P」（ヘッダー）と「使えるポイント: 2,550P」が同時に並んでいた。
@@ -438,16 +450,16 @@ test("ヘッダーのポイントは、ガチャで使える額と一致する",
   await page.reload();
   await waitForVocabulary(page);
 
-  await openNavMenu(page);
-  const header = page.getByTestId("header_points");
-  await expect(header).toContainText("2550");
-  await expect(header).not.toContainText("3000");
+  await goTab(page, "menu");
+  const points = page.getByTestId("menu_points");
+  await expect(points).toContainText("2550");
+  await expect(points).not.toContainText("3000");
 
   // ガチャ画面の「使えるポイント」と同じ数字であること
   await page.locator("#nav_gacha_btn").click();
   await expect(page.locator("#gacha_shop_root")).toContainText("使えるポイント: 2550P");
-  await openNavMenu(page);
-  await expect(page.getByTestId("header_points")).toContainText("2550");
+  await goTab(page, "menu");
+  await expect(page.getByTestId("menu_points")).toContainText("2550");
 
   // 稼いだ合計は消さない。ヘッダーの合計スコアが受け持つ
   await page.goto("/");
@@ -455,46 +467,35 @@ test("ヘッダーのポイントは、ガチャで使える額と一致する",
   await expect(page.getByTestId("header_stats")).toContainText("3000");
 });
 
-test("どの幅でも、見出しとその選択肢が同じ行に並ぶ", async ({ page }) => {
-  // 「レベル」と「1回の問題数」を1つの flex に平らに並べていたため、
+test("どの幅でも、見出しはその選択肢のすぐ上にあり、選択肢は1行に並ぶ", async ({ page }) => {
+  // 「レベル」と「1回の問題数」を1つの flex に平らに並べていた時期は、
   // 幅によっては「1回の問題数」だけがレベルの行の末尾に残り、
   // 選択肢（10問・50問・100問）が次の行に落ちていた。
-  // 折り返しの位置は実際に並べてみないと分からないので、ここで測る。
+  // いまはそれぞれ見出しの下に置く。折り返しは実際に並べないと分からないので、ここで測る。
   for (const width of [360, 390, 500, 640, 768, 900, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await waitForVocabulary(page);
 
-    const rows = await page.evaluate(() => {
-      // 行の判定は中心の高さで見る。見出しの文字とボタンでは高さが違い、
-      // 同じ行に並んでいても上端は揃わない（items-center で中心が揃う）
-      const line = (el: Element) => {
-        const r = el.getBoundingClientRect();
-        return Math.round(r.top + r.height / 2);
+    const m = await page.evaluate(() => {
+      const box = (el: Element) => el.getBoundingClientRect();
+      const level = document.querySelector('[data-testid="level_picker"]')!;
+      const count = document.querySelector('[data-testid="count_picker"]')!;
+      return {
+        levelLabel: box(level.querySelector("label")!).bottom,
+        levelSelect: box(level.querySelector("select")!).top,
+        countLabel: box(count.querySelector("span")!).bottom,
+        countButtons: [...count.querySelectorAll("button")].map(b => Math.round(box(b).top)),
+        levelBottom: box(level).bottom,
+        countTop: box(count).top
       };
-      const group = (testId: string) => {
-        const root = document.querySelector(`[data-testid="${testId}"]`)!;
-        return {
-          label: line(root.querySelector("span")!),
-          buttons: [...root.querySelectorAll("button")].map(line)
-        };
-      };
-      return { level: group("level_picker"), count: group("count_picker") };
     });
 
-    // 見出しが「相手側の」ボタンと同じ行に混ざっていない。
-    // 選択肢が3つとも次の行に落ちる幅（360px など）では、見出しだけが
-    // レベルの行の末尾に取り残されて、何の見出しなのか分からなくなっていた
-    expect(rows.level.buttons, `${width}px: 「1回の問題数」がレベルの行に混ざっている`)
-      .not.toContain(rows.count.label);
-    expect(rows.count.buttons, `${width}px: 「レベル」が問題数の行に混ざっている`)
-      .not.toContain(rows.level.label);
-
-    // 見出しは自分の選択肢の行か、その1行上にある（離れていない）
-    expect(rows.count.label, `${width}px: 「1回の問題数」が選択肢から離れている`)
-      .toBeLessThanOrEqual(Math.min(...rows.count.buttons));
-    expect(rows.level.label, `${width}px: 「レベル」が選択肢から離れている`)
-      .toBeLessThanOrEqual(Math.min(...rows.level.buttons));
+    expect(m.levelLabel, `${width}px: 「学習レベル」が選択欄の上にない`).toBeLessThanOrEqual(m.levelSelect + 1);
+    expect(m.countLabel, `${width}px: 「1回の問題数」が選択肢の上にない`).toBeLessThanOrEqual(Math.min(...m.countButtons) + 1);
+    expect(new Set(m.countButtons).size, `${width}px: 問題数の選択肢が折り返している`).toBe(1);
+    // 2つの欄は混ざらない（問題数の欄はレベルの欄の下から始まる）
+    expect(m.countTop, `${width}px: 2つの欄が重なっている`).toBeGreaterThanOrEqual(m.levelBottom);
   }
 });
 
@@ -514,20 +515,22 @@ test("狭い画面でも横にはみ出さない", async ({ page }) => {
   }
 });
 
-test("「調べる」タブから辞書・活用表・文法ガイドへ移れる", async ({ page }) => {
+test("「調べる」は辞書、「教材」から活用表・文法ガイドへ移れる", async ({ page }) => {
   await page.goto("/");
   await waitForVocabulary(page);
-  await page.locator("#tab_btn_reference").click();
 
-  const panel = page.getByTestId("reference_tab");
-  await expect(panel).toBeVisible();
-  for (const label of ["単語一覧辞書", "動詞の活用表", "文法ガイド"]) {
-    await expect(panel.getByText(label, { exact: true })).toBeVisible();
-  }
+  await goTab(page, "search");
+  await expect(page).toHaveURL(/\/dictionary$/);
+  await expect(page.locator("#dictionary_words_container")).toBeVisible();
+  // 一覧は最初の1画面から見える（並び順・絞り込みは畳んである）
+  const list = (await page.locator("#dictionary_words_container").boundingBox())!;
+  expect(list.y).toBeLessThan(page.viewportSize()!.height);
 
-  await page.locator("#btn_reference_verb_forms").click();
+  await goTab(page, "learn");
+  await page.locator("#learn_open_verb_forms").click();
   await expect(page).toHaveURL(/\/verb-forms$/);
   await expect(page.locator("#verb_forms_screen")).toBeVisible();
+  await expect(page.locator("#tab_learn")).toHaveAttribute("aria-current", "page");
 });
 
 /** 文字と背景の明暗差（WCAG のコントラスト比）。半透明の背景は下の色と重ねてから測る */
@@ -685,7 +688,10 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
     await page.evaluate(t => localStorage.setItem("quest_theme", t), theme);
 
     for (const [name, path, anchor] of [
-      ["ダッシュボード", "/", "#btn_junior_reverse"],
+      ["今日", "/", "#btn_junior_reverse"],
+      ["教材", "/learn", "#learn_page"],
+      ["記録", "/records", "#records_page"],
+      ["メニュー", "/menu", "#menu_page"],
       ["辞書", "/dictionary", "#dictionary_words_container"],
       ["文法ガイド", "/grammar", "#grammar_screen"],
       ["長文一覧", "/reading", "#passages_grid_container"],
@@ -704,21 +710,23 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
       expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${name}`).toEqual([]);
     }
 
-    // AIアドバイスと弱点分析の欄。紫と赤で塗られていた場所なので、
-    // テーマの色に替えたあとも読めることを見る
+    // 復習と苦手な単語が来ている日の「今日」。いちばん上に復習の欄が出て、
+    // 開始ボタンは枠だけになる（どちらもふだんの測定では出ていない形）
     await page.goto("/");
+    await page.evaluate(() => {
+      const srs: Record<string, unknown> = {};
+      for (let i = 1; i <= 5; i++) srs["j" + i] = { box: 1, dueDate: "2020-01-01", lastReview: "2019-12-31", reps: 1, lapses: 0 };
+      localStorage.setItem("quest_srs", JSON.stringify(srs));
+      localStorage.setItem("quest_wrong_words", JSON.stringify(["j6", "j7"]));
+    });
+    await page.reload();
     await waitForVocabulary(page);
-    await page.locator("#tab_btn_ai").click();
-    await expect(page.locator("#ai_advisor_section")).toBeVisible();
-    expect(await page.evaluate(LOW_CONTRAST), `${theme} / AIアドバイス`).toEqual([]);
-
-    // ログインボーナスの欄（スタンプ・受け取りの案内・学習カレンダー）。
-    // ダッシュボードは最初のタブしか出ていないので、開いてから測る
-    await page.goto("/");
-    await waitForVocabulary(page);
-    await page.locator("#tab_btn_bonus").click();
-    await expect(page.locator("#bonus_section")).toBeVisible();
-    expect(await page.evaluate(LOW_CONTRAST), `${theme} / ログインボーナス`).toEqual([]);
+    await expect(page.locator("#today_review_card")).toBeVisible();
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / 今日（復習あり）`).toEqual([]);
+    await page.evaluate(() => {
+      localStorage.removeItem("quest_srs");
+      localStorage.removeItem("quest_wrong_words");
+    });
 
     // 出題中と、答え合わせの直後
     await page.goto("/");
@@ -954,7 +962,7 @@ test("長文はキーボードだけで開ける", async ({ page }) => {
 
 test("起動時に、まだ開いていない画面の JS を読み込まない", async ({ page }) => {
   // すべての画面を静的に import していたため、最初の JS が 862KB あった。
-  // 開いた画面だけを読み込むようにして 496KB に減らしている（src/App.tsx）。
+  // 開いた画面だけを読み込むようにして減らしている（src/App.tsx）。
   // 分割は「どのチャンクを取りに行ったか」で確かめる。大きさで見ると
   // 誤差で落ちるし、静的 import に戻したことにも気づけない
   const loaded: string[] = [];
@@ -968,6 +976,8 @@ test("起動時に、まだ開いていない画面の JS を読み込まない"
 
   const deferred = [
     "Dictionary", "Reading", "Grammar", "AIDiary", "MapAndPuzzle", "passages",
+    // タブの「教材」「記録」「メニュー」と、教材の中の単語の取り込み
+    "LearnHub", "Records", "MenuScreen", "WordImport",
     // 類義語・語義分別の画面とデータ（データは開いた画面が取りに行く）
     "SynonymQuiz", "SenseQuiz", "synonyms", "senseQuiz"
   ];
@@ -976,8 +986,7 @@ test("起動時に、まだ開いていない画面の JS を読み込まない"
   }
 
   // 開いたときに初めて取りに行く
-  await page.locator("#tab_btn_reference").click();
-  await page.locator("#btn_reference_dictionary").click();
+  await goTab(page, "search");
   await expect(page.locator("#dictionary_words_container")).toBeVisible();
   expect(loaded.some(f => f.startsWith("Dictionary")), "辞書を開いても読み込まれない").toBe(true);
 });
@@ -995,8 +1004,9 @@ test("起動時に読み込む JS が大きくなりすぎていない", async (
   await page.goto("/");
   await waitForVocabulary(page);
 
-  // 実測 496KB。戻り始めたら気づけるよう、少しだけ余裕を持たせた線
-  expect(bytes / 1024, `起動時の JS が ${(bytes / 1024).toFixed(0)}KB`).toBeLessThan(600);
+  // 実測 427KB（教材・記録・メニューを遅延読み込みにする前は 496KB）。
+  // 戻り始めたら気づけるよう、少しだけ余裕を持たせた線
+  expect(bytes / 1024, `起動時の JS が ${(bytes / 1024).toFixed(0)}KB`).toBeLessThan(500);
 });
 
 test("ビルド済みのファイルを配り、オフラインでも開ける", async ({ page, context }) => {
@@ -1059,7 +1069,7 @@ test("学習データを書き出すと、文法の進捗も含まれる", async
   await page.reload();
   await waitForVocabulary(page);
 
-  await openNavMenu(page);
+  await goTab(page, "menu");
   await page.locator("#nav_settings_btn").click();
   const download = page.waitForEvent("download");
   await page.getByText("エクスポート（書き出し）").click();

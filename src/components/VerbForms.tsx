@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Level, Word } from "../types";
+import { LEVEL_LABELS } from "../levelLabels";
 import { buildVerbTable, PATTERN_NOTES, VerbForms as Forms } from "../verbForms";
 import { ArrowLeft, Search, Repeat, Volume2, X } from "lucide-react";
 
@@ -21,13 +22,6 @@ interface Props {
 
 type PatternFilter = "all" | "irregular" | Forms["pattern"];
 
-const LEVEL_LABELS: Record<Level, string> = {
-  junior: "初級 (中学)",
-  senior: "中級1 (高1)",
-  senior2: "中級2 (高2)",
-  senior3: "中級3 (高3)",
-  advanced: "上級 (大・社会人)"
-};
 
 const PATTERN_COLORS: Record<Forms["pattern"], string> = {
   AAA: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
@@ -97,7 +91,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
           id="btn_verb_forms_back"
         >
           <ArrowLeft className="w-4 h-4" />
-          ダッシュボードに戻る
+          戻る
         </button>
       </div>
 

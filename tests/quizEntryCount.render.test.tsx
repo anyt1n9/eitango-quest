@@ -90,3 +90,51 @@ describe("選んだ問題数でクイズが始まる", () => {
     });
   }
 });
+
+describe("「今日」と「教材」で設定を共有する", () => {
+  it("今日で選んだ問題数が、教材から始めたクイズにも効く（保存できない環境でも）", async () => {
+    // 保存（localStorage）を介して受け渡していたときは、保存できない環境だと
+    // 教材の画面が既定値（10問・初級）で始まっていた
+    const realSet = Storage.prototype.setItem;
+    const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === "quest_question_count" || key === "quest_selected_level") throw new Error("blocked");
+      return realSet.call(this, key, value);
+    });
+    try {
+      const { default: App } = await import("../src/App");
+      render(<App />);
+      await waitFor(() => expect(document.getElementById("btn_question_count_50")).not.toBeNull(), { timeout: 5000 });
+      act(() => { (document.getElementById("btn_question_count_50") as HTMLButtonElement).click(); });
+      act(() => { (document.getElementById("tab_learn") as HTMLButtonElement).click(); });
+      await waitFor(() => expect(document.getElementById("btn_learn_spelling")).not.toBeNull(), { timeout: 5000 });
+      expect(document.getElementById("learn_quiz_setting")!.textContent).toContain("50問");
+      act(() => { (document.getElementById("btn_learn_spelling") as HTMLButtonElement).click(); });
+      expect(await screen.findByText(/1 \/ 50/, {}, { timeout: 5000 })).toBeTruthy();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+describe("下の階層の画面と、開いたタブ", () => {
+  it("履歴で戻ってきても、開いたタブを光らせる", async () => {
+    // 開いたタブを state だけに持っていたときは、戻る・進む・再読み込みで
+    // 下の階層に着くと親が分からず、メニューから開いたガチャで「記録」が光っていた
+    const { default: App } = await import("../src/App");
+    render(<App />);
+    await waitFor(() => expect(document.getElementById("tab_menu")).not.toBeNull(), { timeout: 5000 });
+    act(() => { (document.getElementById("tab_menu") as HTMLButtonElement).click(); });
+    await waitFor(() => expect(document.getElementById("nav_gacha_btn")).not.toBeNull(), { timeout: 5000 });
+    act(() => { (document.getElementById("nav_gacha_btn") as HTMLButtonElement).click(); });
+    await waitFor(() => expect(window.location.pathname).toBe("/gacha"));
+    expect(document.getElementById("tab_menu")!.getAttribute("aria-current")).toBe("page");
+
+    // 別のタブへ移ってから、履歴で戻る
+    act(() => { (document.getElementById("tab_today") as HTMLButtonElement).click(); });
+    await waitFor(() => expect(window.location.pathname).toBe("/"));
+    act(() => { window.history.back(); });
+    await waitFor(() => expect(window.location.pathname).toBe("/gacha"));
+    await waitFor(() => expect(document.getElementById("tab_menu")!.getAttribute("aria-current")).toBe("page"));
+    expect(document.getElementById("tab_records")!.getAttribute("aria-current")).toBeNull();
+  });
+});

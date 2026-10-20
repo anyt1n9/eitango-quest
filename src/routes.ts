@@ -22,7 +22,8 @@ export type Screen =
   | "dashboard" | "quiz" | "sentence_quiz" | "listening_quiz" | "spelling_quiz"
   | "reverse_quiz" | "synonym_quiz" | "sense_quiz" | "review" | "review_quiz" | "dictionary" | "grammar"
   | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review"
-  | "settings" | "gacha" | "privacy" | "terms" | "about" | "background";
+  | "settings" | "gacha" | "privacy" | "terms" | "about" | "background"
+  | "learn" | "records" | "menu";
 
 export interface Route {
   screen: Screen;
@@ -54,7 +55,10 @@ const PATHS: Record<Screen, string> = {
   privacy: "/privacy",
   terms: "/terms",
   about: "/about",
-  background: "/background"
+  background: "/background",
+  learn: "/learn",
+  records: "/records",
+  menu: "/menu"
 };
 
 /**
@@ -119,4 +123,54 @@ export function pathToRoute(pathname: string): Route {
  */
 export function resolveOnEntry(route: Route): Route {
   return isTransient(route.screen) ? { screen: "dashboard" } : route;
+}
+
+/**
+ * 画面下のタブ。
+ *
+ * 以前は入口が5か所（ヘッダーのアイコン・ハンバーガー・ダッシュボードのタブ・
+ * 学習メニューの折りたたみ・レベルのカード）に散らばっていて、
+ * 「今日の復習」はハンバーガーと折りたたみの両方にしまわれていた。
+ * 入口をこの5つのタブにまとめ、親指の届く画面下に置く。
+ */
+export type Tab = "today" | "search" | "learn" | "records" | "menu";
+
+export const TAB_SCREENS: Record<Tab, Screen> = {
+  today: "dashboard",
+  search: "dictionary",
+  learn: "learn",
+  records: "records",
+  menu: "menu"
+};
+
+/**
+ * いま開いている画面がどのタブの下にあるか。
+ * 出題中（一時的な画面）はタブを出さないので null。
+ */
+export function tabForScreen(screen: Screen): Tab | null {
+  if (isTransient(screen)) return null;
+  switch (screen) {
+    case "dashboard":
+      return "today";
+    case "dictionary":
+      return "search";
+    case "learn":
+    case "grammar":
+    case "reading":
+    case "verb_forms":
+    case "map_puzzle":
+    case "diary":
+    case "review":
+      return "learn";
+    case "records":
+    case "gacha":
+      return "records";
+    default:
+      return "menu";
+  }
+}
+
+/** タブそのものの画面（下の階層ではない） */
+export function isTabRoot(screen: Screen): boolean {
+  return (Object.values(TAB_SCREENS) as Screen[]).includes(screen);
 }

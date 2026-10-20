@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Dashboard from "../src/components/Dashboard";
-import { makeWord, makeStats } from "./fixtures";
+import WordImport from "../src/components/WordImport";
+import { makeWord } from "./fixtures";
 
 /**
- * 「AIで単語を1件ずつ自動追加」の連打。
+ * 「AIで単語を1件ずつ自動追加」（教材の画面の「単語を増やす」）の連打。
  *
  * disabled が効くのは再描画のあとなので、ダブルクリックや Enter の連打では
  * 送信の処理が2本走る。どちらも押した時点の vocabulary を抱えているため、
@@ -30,29 +30,11 @@ function renderDashboard() {
   const setVocabulary = vi.fn();
   const setStats = vi.fn();
   render(
-    <Dashboard
-      stats={makeStats()}
-      setStats={setStats}
+    <WordImport
       vocabulary={[makeWord({ id: "j1", word: "beautiful", level: "junior" })]}
       setVocabulary={setVocabulary}
-      solvedHistory={{}}
-      srsData={{}}
-      wrongWords={[]}
-      onStartQuiz={vi.fn()}
-      onStartReview={vi.fn()}
-      onOpenDictionary={vi.fn()}
-      onStartReading={vi.fn()}
-      onOpenDiary={vi.fn()}
-      onOpenVerbForms={vi.fn()}
-      onOpenGrammar={vi.fn()}
-      ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
+      setStats={setStats}
       setRanking={vi.fn()}
-      dailyLog={{}}
-      dailyGoal={20}
-      equipped={{}}
-      onOpenGachaShop={vi.fn()}
-      dueCount={0}
-      onStartSrsReview={vi.fn()}
     />
   );
   return { setVocabulary, setStats };
@@ -80,7 +62,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** AI追加のフォームは「Explore and Learn」を開くと出る */
+/** AI追加のフォームは「単語を増やす」の手順を開くと出る */
 async function openForm() {
   const user = userEvent.setup();
   await user.click(document.getElementById("btn_toggle_import_panel")!);

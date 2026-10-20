@@ -310,7 +310,7 @@ export default function SpellingQuiz({
               onClick={onBackToDashboard}
               className="bg-white hover:bg-gray-50 text-gray-700 font-extrabold px-10 py-3.5 rounded-2xl border border-gray-200 shadow-2xs cursor-pointer transition text-sm"
             >
-              ダッシュボードに戻る
+              今日の画面に戻る
             </button>
           </div>
         </div>
