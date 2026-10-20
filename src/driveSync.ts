@@ -10,6 +10,7 @@ import {
   BackupPayload,
   buildBackupPayload,
   isBackupPayload,
+  isNewerBackup,
   payloadTime
 } from "./backupPayload";
 import { findBackupFile, readBackupFile, writeBackupFile } from "./driveBackup";
@@ -46,6 +47,8 @@ export interface RemoteState {
   savedAt: number;
   /** 中身。形が違えば null（＝復元には使えない） */
   payload: BackupPayload | null;
+  /** このアプリより新しい版で保存されたもの（payload は null）。アプリの更新を促すために使う */
+  newer: boolean;
 }
 
 /** ドライブの中身を見に行く */
@@ -60,7 +63,8 @@ export async function fetchRemote(
   return {
     fileId: file.id,
     savedAt: payload ? payloadTime(payload) : 0,
-    payload
+    payload,
+    newer: !payload && isNewerBackup(raw)
   };
 }
 

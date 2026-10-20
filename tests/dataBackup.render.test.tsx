@@ -164,6 +164,33 @@ describe("読み込み", () => {
     expect(await screen.findByText(/ファイルの形式が正しくありません/)).toBeInTheDocument();
     expect(localStorage.getItem("quest_srs")).toBe('{"j1":{"box":3}}');
   });
+
+  it("新しい版のアプリが書き出したファイルは、理由を伝えて断る", async () => {
+    // 型だけ見ていたときは通り、読めない形のまま書き戻して「復元しました」と出ていた
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    localStorage.setItem("quest_srs", '{"j1":{"box":3}}');
+    renderBackup();
+    await importJson(JSON.stringify({ app: "eitango-quest", version: 99, exportedAt: "", data: { quest_srs: "{}" } }));
+
+    expect(await screen.findByText(/新しい版のアプリで保存されたため/)).toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(localStorage.getItem("quest_srs")).toBe('{"j1":{"box":3}}');
+  });
+
+  it("容量が足りず書けなかったら、元に戻したことを伝える（新旧を混ぜない）", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    localStorage.setItem("quest_stats", '{"score":1}');
+    const realSet = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === "quest_srs" && value === "{}") throw new Error("QuotaExceededError");
+      return realSet.call(this, key, value);
+    });
+    renderBackup();
+    await importJson(backupFile({ quest_stats: '{"score":999}', quest_srs: "{}" }));
+
+    expect(await screen.findByText(/復元前の状態に戻しました/)).toBeInTheDocument();
+    expect(localStorage.getItem("quest_stats")).toBe('{"score":1}');
+  });
 });
 
 describe("1日の目標", () => {

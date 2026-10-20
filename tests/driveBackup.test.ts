@@ -5,7 +5,7 @@ import {
 } from "../src/driveBackup";
 import { fetchRemote, pushToDrive } from "../src/driveSync";
 import { BACKUP_KEYS } from "../src/backupKeys";
-import { buildBackupPayload, isBackupPayload, payloadTime, applyBackupPayload } from "../src/backupPayload";
+import { buildBackupPayload, isBackupPayload, isNewerBackup, payloadTime, applyBackupPayload, BACKUP_VERSION } from "../src/backupPayload";
 
 /**
  * Googleドライブへの保存・読み出し。
@@ -21,15 +21,27 @@ import { buildBackupPayload, isBackupPayload, payloadTime, applyBackupPayload } 
 /** localStorage の最小実装（node 環境には無い） */
 class MemoryStorage {
   private map = new Map<string, string>();
+  /** ここに入れたキーへの書き込みは、容量超過として失敗させる */
+  full = new Set<string>();
   getItem(key: string) { return this.map.has(key) ? this.map.get(key)! : null; }
-  setItem(key: string, value: string) { this.map.set(key, String(value)); }
+  setItem(key: string, value: string) {
+    if (this.full.has(key)) {
+      const e = new Error("QuotaExceededError");
+      e.name = "QuotaExceededError";
+      throw e;
+    }
+    this.map.set(key, String(value));
+  }
   removeItem(key: string) { this.map.delete(key); }
   clear() { this.map.clear(); }
 }
 const store = new MemoryStorage();
 (globalThis as any).localStorage = store;
 afterAll(() => { delete (globalThis as any).localStorage; });
-beforeEach(() => store.clear());
+beforeEach(() => {
+  store.clear();
+  store.full.clear();
+});
 
 /** 呼ばれたURLと中身を控える fetch */
 function stubFetch(handlers: ((url: string, init: any) => any | undefined)[]) {
@@ -140,6 +152,26 @@ describe("ドライブから取ってくる", () => {
     }
   });
 
+  it("新しい版のアプリが保存したものは、中身として受け取らず、その旨を返す", async () => {
+    // 古い版の端末で「ドライブから復元」すると、読めない形のまま書き戻していた
+    const newer = { app: "eitango-quest", version: BACKUP_VERSION + 1, exportedAt: "2026-09-01T00:00:00.000Z", data: { quest_srs: "{}" } };
+    const { impl } = stubFetch([
+      (url) => url.includes("/drive/v3/files?") ? okJson({ files: [{ id: "f1", name: DRIVE_FILE_NAME }] }) : undefined,
+      (url) => url.includes("alt=media") ? okJson(newer) : undefined
+    ]);
+    const remote = await fetchRemote("tok", impl);
+    expect(remote!.payload).toBeNull();
+    expect(remote!.newer).toBe(true);
+  });
+
+  it("壊れたものは「新しい版」と取り違えない", async () => {
+    const { impl } = stubFetch([
+      (url) => url.includes("/drive/v3/files?") ? okJson({ files: [{ id: "f1", name: DRIVE_FILE_NAME }] }) : undefined,
+      (url) => url.includes("alt=media") ? okJson({ note: "別のアプリのファイル" }) : undefined
+    ]);
+    expect((await fetchRemote("tok", impl))!.newer).toBe(false);
+  });
+
   it("許可が切れていれば、それと分かる形で失敗する", async () => {
     for (const status of [401, 403]) {
       const { impl } = stubFetch([() => ({ ok: false, status, json: async () => ({}) })]);
@@ -181,6 +213,51 @@ describe("ファイルとドライブで同じものを扱う", () => {
     store.setItem("quest_srs", "{}");          // 戻す前に別の端末で増えた分
     applyBackupPayload(payload);
     expect(store.getItem("quest_srs")).toBe("{}");
+  });
+
+  it("途中で容量が尽きたら、書き込む前の状態へ戻す（新旧を混ぜない）", () => {
+    // キーを1件ずつ上書きするので、途中で失敗すると
+    // それまでのキーはバックアップの内容・以降のキーは元の内容、という混ざった状態が残っていた
+    for (const key of BACKUP_KEYS) store.setItem(key, `backup-${key}`);
+    const payload = buildBackupPayload();
+    store.clear();
+    const [first, second, third] = BACKUP_KEYS;
+    store.setItem(first, "old-first");     // 元の端末にあった値
+    // second は元の端末に無かった（null）
+    store.setItem(third, "old-third");
+    store.full.add(BACKUP_KEYS[BACKUP_KEYS.length - 1]);  // 最後のキーで容量が尽きる
+
+    const result = applyBackupPayload(payload);
+    expect(result.failed).toEqual([BACKUP_KEYS[BACKUP_KEYS.length - 1]]);
+    expect(result.notRestored).toEqual([]);
+    expect(store.getItem(first)).toBe("old-first");
+    expect(store.getItem(second), "元に無かったキーが残っている").toBeNull();
+    expect(store.getItem(third)).toBe("old-third");
+  });
+
+  it("戻しきれなかったキーは、それと分かるように返す", () => {
+    for (const key of BACKUP_KEYS) store.setItem(key, `backup-${key}`);
+    const payload = buildBackupPayload();
+    store.clear();
+    const [first] = BACKUP_KEYS;
+    store.setItem(first, "old-first");
+    const last = BACKUP_KEYS[BACKUP_KEYS.length - 1];
+    store.full.add(last);
+    // 書き戻しの途中で first にも書けなくなる（戻すときにだけ失敗する）
+    const realSet = store.setItem.bind(store);
+    let writes = 0;
+    store.setItem = (key: string, value: string) => {
+      writes++;
+      if (key === first && writes > BACKUP_KEYS.length) throw new Error("QuotaExceededError");
+      realSet(key, value);
+    };
+    try {
+      const result = applyBackupPayload(payload);
+      expect(result.failed).toEqual([last]);
+      expect(result.notRestored).toEqual([first]);
+    } finally {
+      store.setItem = realSet;
+    }
   });
 
   it("時刻が読めないバックアップは 0 として扱う（新旧を偽らない）", () => {
@@ -227,6 +304,23 @@ describe("復元してよいファイルかどうか", () => {
     const data = { quest_srs: "{}" };
     expect(isBackupPayload({ app: "eitango-quest", version: "1", data })).toBe(false);
     expect(isBackupPayload({ app: "eitango-quest", data })).toBe(false);
+  });
+
+  it("この版が読める版だけを通す（新しすぎる・0・小数は通さない）", () => {
+    const data = { quest_srs: "{}" };
+    expect(isBackupPayload({ app: "eitango-quest", version: BACKUP_VERSION, data })).toBe(true);
+    for (const version of [BACKUP_VERSION + 1, 0, -1, 1.5, Number.NaN, Infinity]) {
+      expect(isBackupPayload({ app: "eitango-quest", version, data }), String(version)).toBe(false);
+    }
+  });
+
+  it("新しい版のものだけを「新しい版」と見分ける（アプリの更新を促すため）", () => {
+    const data = { quest_srs: "{}" };
+    expect(isNewerBackup({ app: "eitango-quest", version: BACKUP_VERSION + 1, data })).toBe(true);
+    expect(isNewerBackup({ app: "eitango-quest", version: BACKUP_VERSION, data })).toBe(false);
+    expect(isNewerBackup({ app: "eitango-quest", version: 0, data })).toBe(false);
+    expect(isNewerBackup({ app: "other-app", version: BACKUP_VERSION + 1, data })).toBe(false);
+    expect(isNewerBackup(null)).toBe(false);
   });
 
   it("中身が空でも、名札が無ければ通さない", () => {
