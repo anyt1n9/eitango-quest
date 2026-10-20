@@ -3,6 +3,8 @@ import { render, cleanup, screen } from "@testing-library/react";
 import Dashboard from "../src/components/Dashboard";
 import Reading from "../src/components/Reading";
 import AIDiary from "../src/components/AIDiary";
+import LearnHub from "../src/components/LearnHub";
+import { todayProps } from "./todayProps";
 import { makeWord, makeStats } from "./fixtures";
 
 /**
@@ -41,32 +43,7 @@ const VOCAB = [
 ];
 
 function renderDashboard() {
-  render(
-    <Dashboard
-      stats={makeStats()}
-      setStats={vi.fn()}
-      vocabulary={VOCAB}
-      setVocabulary={vi.fn()}
-      solvedHistory={{}}
-      srsData={{}}
-      wrongWords={[]}
-      onStartQuiz={vi.fn()}
-      onStartReview={vi.fn()}
-      onOpenDictionary={vi.fn()}
-      onStartReading={vi.fn()}
-      onOpenDiary={vi.fn()}
-      onOpenVerbForms={vi.fn()}
-      onOpenGrammar={vi.fn()}
-      ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-      setRanking={vi.fn()}
-      dailyLog={{}}
-      dailyGoal={20}
-      equipped={{}}
-      onOpenGachaShop={vi.fn()}
-      dueCount={0}
-      onStartSrsReview={vi.fn()}
-    />
-  );
+  render(<Dashboard {...todayProps({ vocabulary: VOCAB })} />);
 }
 
 afterEach(() => cleanup());
@@ -89,6 +66,36 @@ describe("localStorage が使えない環境", () => {
       // 1回の問題数は既定の10問が選ばれている
       const picked = document.querySelector('[data-testid="count_picker"] button[aria-pressed="true"]');
       expect(picked?.textContent).toContain("10問");
+    } finally {
+      restore();
+    }
+  });
+
+  it("教材の画面が開ける（「今日」と共有するレベル・問題数を読めなくても）", () => {
+    const restore = blockStorage();
+    try {
+      expect(() =>
+        render(
+          <LearnHub
+            vocabulary={VOCAB}
+            setVocabulary={vi.fn()}
+            setStats={vi.fn()}
+            setRanking={vi.fn()}
+            solvedHistory={{}}
+            srsData={{}}
+            wrongWords={[]}
+            onStartQuiz={vi.fn()}
+            onStartReview={vi.fn()}
+            onOpenReading={vi.fn()}
+            onOpenGrammar={vi.fn()}
+            onOpenVerbForms={vi.fn()}
+            onOpenMapPuzzle={vi.fn()}
+            onOpenDiary={vi.fn()}
+            onChangeLevel={vi.fn()}
+          />
+        )
+      ).not.toThrow();
+      expect(document.getElementById("learn_quiz_setting")).toHaveTextContent("初級（中学）・10問");
     } finally {
       restore();
     }

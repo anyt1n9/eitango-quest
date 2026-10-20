@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Dictionary from "../src/components/Dictionary";
 import { makeWord } from "./fixtures";
@@ -25,7 +25,7 @@ const WORDS: Word[] = [
   makeWord({ id: "o1", word: "how many ~?", translation: "いくつの", pos: "other" })
 ];
 
-function renderDictionary(setWrongWords = vi.fn(), wrongWords: string[] = []) {
+function renderDictionary(setWrongWords = vi.fn(), wrongWords: string[] = [], { openFilters = true } = {}) {
   render(
     <Dictionary
       vocabulary={WORDS}
@@ -33,9 +33,10 @@ function renderDictionary(setWrongWords = vi.fn(), wrongWords: string[] = []) {
       setWrongWords={setWrongWords}
       solvedHistory={{}}
       srsData={{}}
-      onBackToDashboard={vi.fn()}
     />
   );
+  // 並び順・絞り込みの欄は既定で畳んであるので、絞り込みを確かめるときは開く
+  if (openFilters) fireEvent.click(document.getElementById("btn_toggle_dictionary_filters")!);
   return { setWrongWords };
 }
 
@@ -191,5 +192,28 @@ describe("品詞での絞り込み", () => {
     await user.click(document.getElementById("pos_filter_adverb")!);
     await user.type(screen.getByPlaceholderText(/検索/), "library");
     expect(listedWords()).toEqual([]);
+  });
+});
+
+describe("並び順・絞り込みの欄", () => {
+  it("既定では畳み、一覧を最初の画面に出す", () => {
+    renderDictionary(vi.fn(), [], { openFilters: false });
+    expect(document.getElementById("btn_toggle_dictionary_filters")).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByTestId("pos_filter")).toBeNull();
+    expect(document.getElementById("search_input_vocabulary")).toBeInTheDocument();
+    expect(listedWords().length).toBe(WORDS.length);
+  });
+
+  it("畳んでいても、効いている絞り込みは見え、その場で外せる", async () => {
+    const user = userEvent.setup();
+    renderDictionary();
+    await user.click(document.getElementById("pos_filter_noun")!);
+    await user.click(document.getElementById("btn_toggle_dictionary_filters")!);
+    expect(screen.queryByTestId("pos_filter")).toBeNull();
+
+    const chip = screen.getByRole("button", { name: "名詞の絞り込みを外す" });
+    expect(listedWords()).toEqual(["library", "station"]);
+    await user.click(chip);
+    expect(listedWords().length).toBe(WORDS.length);
   });
 });

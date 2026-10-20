@@ -127,7 +127,7 @@ export default function GachaShop({
             id="btn_back_from_gacha"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>ダッシュボードに戻る</span>
+            <span>戻る</span>
           </button>
           <span className="bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-black font-mono flex items-center gap-1.5">
             <Coins className="w-3.5 h-3.5" />

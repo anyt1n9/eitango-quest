@@ -129,7 +129,7 @@ export default function Grammar({
         id="btn_grammar_back"
       >
         <ArrowLeft className="w-4 h-4" />
-        ダッシュボードに戻る
+        戻る
       </button>
 
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-3xl p-5 space-y-4 shadow-sm">

@@ -349,7 +349,7 @@ export default function MapAndPuzzle({
           id="btn_back_to_dashboard_from_map"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>ダッシュボードに戻る</span>
+          <span>戻る</span>
         </button>
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">

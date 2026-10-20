@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Dashboard from "../src/components/Dashboard";
+import Records from "../src/components/Records";
 import { makeWord, makeStats } from "./fixtures";
 
 /**
@@ -15,31 +15,21 @@ import { makeWord, makeStats } from "./fixtures";
 
 const VOCAB = [makeWord({ id: "j1", word: "beautiful", level: "junior" })];
 
-function renderDashboard() {
+function renderRecords() {
   render(
-    <Dashboard
+    <Records
       stats={makeStats()}
       setStats={vi.fn()}
       vocabulary={VOCAB}
-      setVocabulary={vi.fn()}
       solvedHistory={{}}
       srsData={{}}
       wrongWords={[]}
-      onStartQuiz={vi.fn()}
-      onStartReview={vi.fn()}
-      onOpenDictionary={vi.fn()}
-      onStartReading={vi.fn()}
-      onOpenDiary={vi.fn()}
-      onOpenVerbForms={vi.fn()}
-      onOpenGrammar={vi.fn()}
       ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
       setRanking={vi.fn()}
       dailyLog={{}}
       dailyGoal={20}
       equipped={{}}
       onOpenGachaShop={vi.fn()}
-      dueCount={0}
-      onStartSrsReview={vi.fn()}
     />
   );
 }
@@ -72,8 +62,7 @@ describe("アドバイスの出どころ表示", () => {
       json: async () => ({ advice: "### 今の学習状況\n\n順調です。", source: "ai" })
     } as unknown as Response)));
 
-    renderDashboard();
-    await user.click(screen.getByRole("button", { name: /AIアドバイス$/ }));
+    renderRecords();
     await user.click(document.getElementById("btn_get_advice")!);
 
     expect(await screen.findByText("Gemini AI が生成しました。")).toBeInTheDocument();
@@ -86,8 +75,7 @@ describe("アドバイスの出どころ表示", () => {
       json: async () => ({ advice: "### 今の学習状況\n\n出発点です。", source: "local" })
     } as unknown as Response)));
 
-    renderDashboard();
-    await user.click(screen.getByRole("button", { name: /AIアドバイス$/ }));
+    renderRecords();
     await user.click(document.getElementById("btn_get_advice")!);
 
     expect(
@@ -99,8 +87,7 @@ describe("アドバイスの出どころ表示", () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", mockFetchOnceThenFail("### 今の学習状況\n\n前回のアドバイスです。", "ai"));
 
-    renderDashboard();
-    await user.click(screen.getByRole("button", { name: /AIアドバイス$/ }));
+    renderRecords();
     await user.click(document.getElementById("btn_get_advice")!);
     expect(await screen.findByText("前回のアドバイスです。")).toBeInTheDocument();
     expect(screen.getByText("Gemini AI が生成しました。")).toBeInTheDocument();

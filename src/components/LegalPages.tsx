@@ -44,7 +44,7 @@ function Shell({
         className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        ダッシュボードに戻る
+        戻る
       </button>
       <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm">
         <div className="flex items-center gap-2.5 mb-1">

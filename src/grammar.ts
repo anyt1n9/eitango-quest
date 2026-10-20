@@ -1,4 +1,5 @@
 import { GrammarTopic, Level, Word, WordUsage } from "./types";
+import { LEVEL_ORDER } from "./levelLabels";
 
 /**
  * 文法解説の読み出しと、収録語との結び付け。
@@ -28,16 +29,8 @@ export function loadGrammar(): Promise<GrammarTopic[]> {
   return cache;
 }
 
-export const LEVEL_LABELS: Record<Level, string> = {
-  junior: "初級（中学）",
-  senior: "中級1（高1）",
-  senior2: "中級2（高2）",
-  senior3: "中級3（高3）",
-  advanced: "上級（大・社会人）"
-};
-
-/** 学習する順。目次と「次に読む項目」の並びに使う */
-export const LEVEL_ORDER: Level[] = ["junior", "senior", "senior2", "senior3", "advanced"];
+// レベルの呼び方と並びはどの画面でもそろえる（src/levelLabels.ts）
+export { LEVEL_LABELS, LEVEL_ORDER } from "./levelLabels";
 
 export function findTopic(topics: GrammarTopic[], id: string): GrammarTopic | undefined {
   return topics.find(t => t.id === id);

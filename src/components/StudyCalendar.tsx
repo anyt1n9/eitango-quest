@@ -102,13 +102,12 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm rounded-3xl p-6" id="study_calendar_section">
-      <div className="flex items-center gap-2 mb-2">
+      <h2 className="text-lg font-black text-gray-900 dark:text-slate-100 flex items-center gap-2">
         <span className="p-1.5 bg-emerald-100 dark:bg-emerald-950/50 rounded-xl text-emerald-700 dark:text-emerald-400">
           <Flame className="w-4 h-4" />
         </span>
-        <span className="text-xs font-black tracking-wider uppercase font-mono text-emerald-700 dark:text-emerald-400">Study Calendar</span>
-      </div>
-      <h2 className="text-xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight">学習カレンダー</h2>
+        学習カレンダー
+      </h2>
       <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
         毎日の解答数を記録しています。マスを濃い緑で埋めて、学習の連続記録を伸ばしましょう！
       </p>

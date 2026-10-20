@@ -73,16 +73,15 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
           id="btn_back_from_background"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>ダッシュボードに戻る</span>
+          <span>戻る</span>
         </button>
 
-        <div className="flex items-center gap-2 mb-2">
+        <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 mt-2">
           <span className="p-1.5 bg-indigo-100 rounded-xl text-indigo-700">
             <ImageIcon className="w-4 h-4" />
           </span>
-          <span className="text-xs font-black tracking-wider uppercase font-mono text-indigo-700">Background</span>
-        </div>
-        <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">背景の画像</h2>
+          背景の画像
+        </h2>
         <p className="text-sm text-gray-500 mt-1 max-w-xl">
           お好きな画像を背景にできます。画像は<strong>この端末の中だけ</strong>に保存され、どこにも送信されません。
           選んだ画像は長辺 {MAX_EDGE}px まで縮めてから保存します（{Math.round(MAX_FILE_BYTES / 1024 / 1024)}MB まで）。
@@ -172,7 +171,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
           <div className="mt-6 pt-5 border-t border-gray-100" data-testid="glass_picker">
             <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">カードとボタンの透明感</h3>
             <p className="text-xs text-gray-500 mb-3 max-w-md">
-              ダッシュボードのレベルのカードと、その中のボタンを半透明にして、背景を透かします。
+              「今日」の画面の学習の設定と、その中のボタンを半透明にして、背景を透かします。
               透かすほど背景は見えますが、文字は読みにくくなります。
             </p>
             <div className="flex flex-wrap gap-2">

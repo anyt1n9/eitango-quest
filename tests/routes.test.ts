@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { routeToPath, pathToRoute, resolveOnEntry, isTransient, Screen } from "../src/routes";
+import { routeToPath, pathToRoute, resolveOnEntry, isTransient, Screen, tabForScreen, isTabRoot, TAB_SCREENS } from "../src/routes";
 
 /**
  * 画面とURLの対応。
@@ -17,7 +17,8 @@ const ALL: Screen[] = [
   "dashboard", "quiz", "sentence_quiz", "listening_quiz", "spelling_quiz",
   "reverse_quiz", "review", "review_quiz", "dictionary", "grammar",
   "reading", "map_puzzle", "diary", "verb_forms", "srs_review",
-  "settings", "gacha", "privacy", "terms", "about", "background"
+  "settings", "gacha", "privacy", "terms", "about", "background",
+  "synonym_quiz", "sense_quiz", "learn", "records", "menu"
 ];
 
 describe("画面とパスの往復", () => {
@@ -117,5 +118,31 @@ describe("一時的な画面", () => {
   it("読む画面はそのまま復元する", () => {
     expect(resolveOnEntry({ screen: "grammar", param: "g_past" }))
       .toEqual({ screen: "grammar", param: "g_past" });
+  });
+});
+
+describe("画面下のタブ", () => {
+  it("タブそのものの画面は、そのタブを光らせる", () => {
+    expect(tabForScreen("dashboard")).toBe("today");
+    expect(tabForScreen("dictionary")).toBe("search");
+    expect(tabForScreen("learn")).toBe("learn");
+    expect(tabForScreen("records")).toBe("records");
+    expect(tabForScreen("menu")).toBe("menu");
+    for (const s of Object.values(TAB_SCREENS)) expect(isTabRoot(s), s).toBe(true);
+  });
+
+  it("下の階層の画面は、属するタブを光らせる（開いたタブが分からないとき）", () => {
+    for (const s of ["grammar", "reading", "verb_forms", "map_puzzle", "diary", "review"] as Screen[]) {
+      expect(tabForScreen(s), s).toBe("learn");
+      expect(isTabRoot(s), s).toBe(false);
+    }
+    expect(tabForScreen("gacha")).toBe("records");
+    for (const s of ["settings", "background", "about", "privacy", "terms"] as Screen[]) {
+      expect(tabForScreen(s), s).toBe("menu");
+    }
+  });
+
+  it("出題中はタブを出さない", () => {
+    for (const s of ALL.filter(isTransient)) expect(tabForScreen(s), s).toBeNull();
   });
 });

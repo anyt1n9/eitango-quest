@@ -3,6 +3,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BackgroundSettings from "../src/components/BackgroundSettings";
 import Dashboard from "../src/components/Dashboard";
+import { todayProps } from "./todayProps";
 import { GLASS_CHOICES } from "../src/glass";
 import { makeWord, makeStats } from "./fixtures";
 
@@ -38,32 +39,7 @@ const VOCAB = [
 ];
 
 function renderDashboard() {
-  render(
-    <Dashboard
-      stats={makeStats()}
-      setStats={vi.fn()}
-      vocabulary={VOCAB}
-      setVocabulary={vi.fn()}
-      solvedHistory={{}}
-      srsData={{}}
-      wrongWords={[]}
-      onStartQuiz={vi.fn()}
-      onStartReview={vi.fn()}
-      onOpenDictionary={vi.fn()}
-      onStartReading={vi.fn()}
-      onOpenDiary={vi.fn()}
-      onOpenVerbForms={vi.fn()}
-      onOpenGrammar={vi.fn()}
-      ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]}
-      setRanking={vi.fn()}
-      dailyLog={{}}
-      dailyGoal={20}
-      equipped={{}}
-      onOpenGachaShop={vi.fn()}
-      dueCount={0}
-      onStartSrsReview={vi.fn()}
-    />
-  );
+  render(<Dashboard {...todayProps({ vocabulary: VOCAB })} />);
 }
 
 beforeEach(() => localStorage.clear());
@@ -115,17 +91,23 @@ describe("ガラスにする面", () => {
    * 印が付いていないと、設定を変えても見た目が変わらない。
    * 対象は「ボタン一覧の台」「レベルのカード」と、その中の塗りつぶしボタン。
    */
-  it("ボタン一覧の台とレベルのカードに印が付く", () => {
+  it("学習の設定（レベル・問題数・開始）の台に印が付く", () => {
     renderDashboard();
     expect(screen.getByTestId("question_count_picker").className).toContain("glass-panel");
     expect(document.getElementById("level_selection_section")!.className).toContain("glass-panel");
   });
 
-  it("塗りつぶしのボタンに印が付く（一問一答・選んでいるレベル・選んでいる問題数）", () => {
+  it("塗りつぶしのボタンに印が付く（学習を始める・選んでいる問題数）", () => {
     renderDashboard();
     expect(document.getElementById("btn_junior_word")!.className).toContain("glass-chip");
-    expect(document.getElementById("btn_level_junior")!.className).toContain("glass-chip");
     const count = document.querySelector('[data-testid="count_picker"] button[aria-pressed="true"]');
     expect(count!.className).toContain("glass-chip");
+  });
+
+  it("枠だけのボタンには印を付けない（地の色を塗りつぶしに変えてしまうため）", () => {
+    renderDashboard();
+    const notPicked = document.querySelector('[data-testid="count_picker"] button[aria-pressed="false"]');
+    expect(notPicked!.className).not.toContain("glass-chip");
+    expect(document.getElementById("btn_junior_sentence")!.className).not.toContain("glass-chip");
   });
 });

@@ -56,7 +56,7 @@ describe("目次", () => {
   it("レベルごとにまとめて見出しを付ける", async () => {
     await renderGuide();
     expect(screen.getAllByText("初級（中学）").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("上級（大・社会人）").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("上級（大学・社会人）").length).toBeGreaterThan(0);
   });
 
   it("題名で検索できる", async () => {
@@ -78,16 +78,16 @@ describe("目次", () => {
   it("レベルで絞り込める", async () => {
     const user = userEvent.setup();
     await renderGuide();
-    await user.click(screen.getByRole("button", { name: /^上級（大・社会人）/ }));
+    await user.click(screen.getByRole("button", { name: /^上級（大学・社会人）/ }));
     const list = screen.getByTestId("grammar_topic_list");
     expect(within(list).queryByText("be動詞と一般動詞")).toBeNull();
     expect(within(list).getByText("省略・同格・挿入")).toBeInTheDocument();
   });
 
-  it("ダッシュボードに戻れる", async () => {
+  it("戻れる", async () => {
     const user = userEvent.setup();
     const { onBackToDashboard } = await renderGuide();
-    await user.click(screen.getByText("ダッシュボードに戻る"));
+    await user.click(screen.getByText("戻る"));
     expect(onBackToDashboard).toHaveBeenCalled();
   });
 });

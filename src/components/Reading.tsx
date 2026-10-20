@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Level, UserStats, RankingUser, Word } from "../types";
+import { LEVEL_LABELS, LEVEL_ORDER } from "../levelLabels";
 import { passages, Passage, PassageQuestion } from "../data/passages";
 import { shuffleQuestion } from "../readingQuiz";
 import { readStoredArray, readStoredString, writeStored } from "../storage";
@@ -245,15 +246,15 @@ export default function Reading({
   const getLevelBadge = (level: Level) => {
     switch (level) {
       case "junior":
-        return { text: "初級 (中学生)", bg: "bg-emerald-50 text-emerald-700 border-emerald-200/50" };
+        return { text: LEVEL_LABELS.junior, bg: "bg-emerald-50 text-emerald-700 border-emerald-200/50" };
       case "senior":
-        return { text: "中級1 (高1)", bg: "bg-blue-50 text-blue-700 border-blue-200/50" };
+        return { text: LEVEL_LABELS.senior, bg: "bg-blue-50 text-blue-700 border-blue-200/50" };
       case "senior2":
-        return { text: "中級2 (高2)", bg: "bg-purple-50 text-purple-700 border-purple-200/50" };
+        return { text: LEVEL_LABELS.senior2, bg: "bg-purple-50 text-purple-700 border-purple-200/50" };
       case "senior3":
-        return { text: "中級3 (高3)", bg: "bg-pink-50 text-pink-700 border-pink-200/50" };
+        return { text: LEVEL_LABELS.senior3, bg: "bg-pink-50 text-pink-700 border-pink-200/50" };
       case "advanced":
-        return { text: "上級 (社会人)", bg: "bg-amber-50 text-amber-700 border-amber-200/50" };
+        return { text: LEVEL_LABELS.advanced, bg: "bg-amber-50 text-amber-700 border-amber-200/50" };
     }
   };
 
@@ -735,7 +736,7 @@ export default function Reading({
           id="btn_reading_to_dashboard"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>ダッシュボードへ</span>
+          <span>戻る</span>
         </button>
       </div>
 
@@ -783,11 +784,9 @@ export default function Reading({
               className="text-xs font-bold border border-gray-200 rounded-xl px-3 py-2.5 bg-white text-gray-700 cursor-pointer"
               id="gen_passage_level_select"
             >
-              <option value="junior">初級 (中学生)</option>
-              <option value="senior">中級1 (高1)</option>
-              <option value="senior2">中級2 (高2)</option>
-              <option value="senior3">中級3 (高3)</option>
-              <option value="advanced">上級 (社会人)</option>
+              {LEVEL_ORDER.map(l => (
+                <option key={l} value={l}>{LEVEL_LABELS[l]}</option>
+              ))}
             </select>
             <button
               onClick={handleGeneratePassage}
