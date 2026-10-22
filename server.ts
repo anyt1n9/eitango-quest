@@ -3,6 +3,7 @@ import path from "path";
 import { Type } from "@google/genai";
 import dotenv from "dotenv";
 import { sampleArray } from "./src/shuffle";
+import { isOffensiveText, isOffensiveWord, OFFENSIVE_WORD_MESSAGE } from "./src/offensiveTerms";
 import { MAX_WORD_LEN, MAX_MEANING_LEN, isValidShortText } from "./server/guards";
 import { AdviceInput, LevelStat, buildLocalAdvice, buildAnalysisForPrompt } from "./server/advice";
 import { POS_JP_LABELS, buildFallbackWeaknessAnalysis } from "./server/weakness";
@@ -85,6 +86,11 @@ app.post("/api/gemini/generate-word", async (req, res) => {
   if (!isValidShortText(word, MAX_WORD_LEN)) {
     return res.status(400).json({ error: "英単語が正しく指定されていません。(最大64文字)" });
   }
+  // 収録データから外した語・露骨な語は、AIに問い合わせる前に断る（src/offensiveTerms.ts）。
+  // 画面でも断っているが、APIを直接呼べば素通りするので、こちらでも見る
+  if (isOffensiveText(word)) {
+    return res.status(400).json({ error: OFFENSIVE_WORD_MESSAGE });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -144,6 +150,10 @@ app.post("/api/gemini/generate-word", async (req, res) => {
     // クライアントで一意に特定できるIDを追加
     data.id = "ai_" + Math.random().toString(36).substr(2, 9);
     data.word = word.trim();
+    // 綴りは無害でも、AI が露骨な訳や例文を付けて返すことがある
+    if (isOffensiveWord(data)) {
+      return res.status(422).json({ error: OFFENSIVE_WORD_MESSAGE });
+    }
     res.json(data);
   } catch (error: any) {
     console.error("Gemini Generate Word Error: ", error);
@@ -926,10 +936,13 @@ app.post("/api/gemini/parse-pdf", async (req, res) => {
     }
 
     const words = JSON.parse(text.trim());
-    const processedWords = words.map((w: any, index: number) => ({
-      ...w,
-      id: `pdf_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`
-    }));
+    // PDF の本文に露骨な語があると、そのまま抽出されてくる。単語帳には入れない
+    const processedWords = words
+      .filter((w: any) => !isOffensiveWord(w ?? {}))
+      .map((w: any, index: number) => ({
+        ...w,
+        id: `pdf_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${index}`
+      }));
 
     return res.json({ words: processedWords });
 

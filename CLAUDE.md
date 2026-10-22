@@ -186,7 +186,7 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   （EJDict / WordNet）から機械的に作っているため、辞書の俗語や差別語がそのまま画面に出ていた
   （辞書のいちばん最初の語 a のコロケーションに "son of a bitch いけ好かないやつ"、
   suck の語義に「フェラチオをする」、mad の語義に「気違いの」）。
-  決まりは `scripts/offensiveTerms.ts` の1か所に置く（外した見出し語と理由・出さない英語・
+  決まりは `src/offensiveTerms.ts` の1か所に置く（外した見出し語と理由・出さない英語・
   出さない日本語・差別語の言い換え）。`scripts/remove_offensive.ts` が今のデータから取り除き、
   `bake_senses.ts` / `bake_usage.ts` は作り直すときに入れない。このテストが全データ
   （書き下ろしの長文・文法・語義分別も）を検査する。
@@ -201,6 +201,14 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   （carnal「肉欲の」/ idiot / dumb「口のきけない」/ freak「奇形の」）。
   熟語の一部として当たる語（理性的・不具合・病原体・"Tom and Dick"）を誤って消さないことも
   同じテストで見ている。
+  **利用者が足す単語（AI・CSV・PDF）も同じ決まりで断る**（収録から外した語を、単語を増やす機能で
+  また入れられないようにするため）。画面（`WordImport.tsx`）は AI に問い合わせる前に入力を見て、
+  返ってきた訳・例文も見る（綴りは無害でも AI が露骨な訳を付けることがある）。CSV と PDF は
+  当たった行だけを除き、除いた数を伝える。AI が付けてきた誤答に当たる語があれば
+  `normalizeImportedWord` が捨てて収録語から補う。サーバー（`generate-word` / `parse-pdf`）でも
+  断る。API を直接呼べば画面を素通りするため。決まりのファイルを `src/` に置いているのは、
+  画面とサーバーの両方から読むため（Node の機能を使わないこと）。テストは
+  `tests/wordImportOffensive.render.test.tsx`（画面の3経路）と `tests/serverOffensive.test.ts`。
 - **類義語クイズのテスト** — `tests/synonyms.data.test.ts`。`src/data/synonyms.ts`
   （`scripts/bake_synonyms.ts` が生成）を検査する。同義の組は「WordNet で同じ語義(synset)に
   入っている」**かつ**「教材の訳が、どちらかの第一の訳で重なる」ものだけ。

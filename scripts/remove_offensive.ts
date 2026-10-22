@@ -1,6 +1,6 @@
 /**
  * 露骨な性的表現・罵倒語・差別語をデータから取り除く。
- * 何を出さないかの決まりは scripts/offensiveTerms.ts にある。
+ * 何を出さないかの決まりは src/offensiveTerms.ts にある。
  *
  * 見出し語を外すだけでは足りない。外した語は他の語からも参照されている。
  *   - 他の語の四択の誤答（訳）と、例文穴埋めの誤答（英単語）
@@ -20,7 +20,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { pickDistractors, Candidate } from "../src/distractors";
 import { readVocabularyFile, writeVocabularyFile, VOCABULARY_FILE } from "./vocabularyFile";
-import { REMOVED_HEADWORDS, OFFENSIVE_EN, cleanSenseMeaning, isOffensiveEntry } from "./offensiveTerms";
+import { REMOVED_HEADWORDS, OFFENSIVE_EN, cleanSenseMeaning, isOffensiveEntry } from "../src/offensiveTerms";
 import { seeded, LEVEL_ORDER, relatedLemmas, translationsOverlap } from "./bake_synonyms";
 import { loadWordNet } from "./wordnetIndex";
 

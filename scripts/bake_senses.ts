@@ -31,7 +31,7 @@ import path from "path";
 import { PartOfSpeech } from "../src/types";
 import { inferPartOfSpeech, posFromJapanese, wordLevelPos } from "../src/pos";
 import { loadWordNet, posOfWithForms } from "./wordnetIndex";
-import { cleanSenseMeaning, OFFENSIVE_EN } from "./offensiveTerms";
+import { cleanSenseMeaning, OFFENSIVE_EN } from "../src/offensiveTerms";
 
 const EJDICT_BASE = "https://raw.githubusercontent.com/kujirahand/EJDict/master/src";
 const WORDNET_URL = "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip";
@@ -649,7 +649,7 @@ async function main() {
       });
     }
 
-    // 辞書が載せている露骨な語義・差別語は出さない（決まりは scripts/offensiveTerms.ts）。
+    // 辞書が載せている露骨な語義・差別語は出さない（決まりは src/offensiveTerms.ts）。
     // 断片だけが不適切な語義は言い換え・断片の削除で残し、何も残らなければ語義ごと落とす
     const cleaned = withExamples.flatMap(s => {
       const meaning = cleanSenseMeaning(s.meaning);

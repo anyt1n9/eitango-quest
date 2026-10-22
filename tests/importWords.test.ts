@@ -162,3 +162,21 @@ describe("取り込んだ単語を整える", () => {
     expect(w!.translation).toBe("試験");
   });
 });
+
+describe("不適切な語（src/offensiveTerms.ts）", () => {
+  it("AIが付けてきた誤答に不適切な語があれば使わず、収録語から補う", () => {
+    // 綴りの正しい普通の語でも、AIが誤答に罵倒語を混ぜて返すことがある
+    const w = normalizeImportedWord(
+      {
+        word: "quiet", translation: "静かな", pos: "adjective",
+        options: ["静かな", "いけ好かないやつ", "うるさい", "明るい"],
+        sentenceOptions: ["quiet", "bitch", "loud", "bright"]
+      },
+      "ai", 0, POOL
+    );
+    expect(w!.options).not.toContain("いけ好かないやつ");
+    expect(w!.sentenceOptions).not.toContain("bitch");
+    expect(w!.options).toContain("静かな");
+    expect(w!.sentenceOptions).toContain("quiet");
+  });
+});
