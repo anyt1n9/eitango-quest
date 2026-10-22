@@ -184,9 +184,12 @@ export default function SpellingQuiz({
   };
 
   const handleNext = () => {
+    // 「次の問題へ」の二度押しで1問飛ばさない（最後の問題なら点数を二重に足さない）。
+    // state の judged が効くのは再描画のあとなので、解答の印で同期的に止める
+    if (!answeredRef.current) return;
+    answeredRef.current = false;
     const finalScore = score;
     setJudged(null);
-    answeredRef.current = false;
     setInput("");
     setShowHint(false);
     if (currentIndex + 1 < questions.length) {
