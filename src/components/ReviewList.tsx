@@ -66,31 +66,32 @@ export default function ReviewList({
     <div className="max-w-xl mx-auto space-y-6 relative" id="review_section_root">
       
       {/* 苦手単語カード一覧 */}
-      <div className="bg-white border rounded-3xl p-6 shadow-sm space-y-6" id="review_list_card">
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6" id="review_list_card">
           
           <div className="flex items-center justify-between">
             <button
               onClick={onBackToDashboard}
-              className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition"
+              className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
               id="btn_back_from_review"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>戻る</span>
             </button>
-            <span className="bg-rose-100 text-rose-700 text-xs px-3.5 py-1.5 rounded-full font-black font-mono">
-              苦手単語: {wrongWordObjects.length} 語
+            <span className="bg-rose-100 text-rose-800 text-xs px-3.5 py-1.5 rounded-full font-black tabular-nums">
+              {wrongWordObjects.length} 語
             </span>
           </div>
 
-          <div className="flex items-center gap-3 bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl p-4 text-white shadow-sm">
-            <div className="p-2.5 bg-white/20 rounded-xl">
-              <Brain className="w-6 h-6 animate-pulse" />
+          {/* 以前はここに赤いグラデーションの大きな帯があり、
+              画面の主役であるテストの入口より目立っていた */}
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-rose-50 text-rose-700 rounded-xl shrink-0">
+              <Brain className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base tracking-tight">苦手な英単語プール</h3>
-              <p className="text-xs text-rose-100 mt-0.5 font-medium leading-relaxed">
-                クイズで間違えてしまった単語たちの格納庫です。カードをタップして詳細を確認するか、
-                テストに挑戦して苦手状態から卒業しましょう！
+              <h2 className="font-black text-lg text-gray-900">苦手な単語</h2>
+              <p className="text-xs text-gray-600 mt-0.5 font-medium leading-relaxed">
+                クイズで間違えた単語です。テストで正解すると、この一覧から外れます。
               </p>
             </div>
           </div>
@@ -113,7 +114,7 @@ export default function ReviewList({
             <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
               <p className="text-gray-800 font-extrabold">苦手な単語はありません！</p>
-              <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto leading-relaxed">
+              <p className="text-xs text-gray-600 mt-1 max-w-xs mx-auto leading-relaxed">
                 素晴らしい学習進捗です。「今日」の画面からクイズにどんどん挑戦して、英単語マスターを目指していきましょう！
               </p>
             </div>
@@ -145,17 +146,18 @@ export default function ReviewList({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {/* 色はレベルの色に合わせる（src/levelTheme.ts） */}
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase font-mono ${
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
                           LEVEL_TONE[word.level] || LEVEL_TONE.junior
                         } ${TONE_STYLE.badge}`}>
                           {LEVEL_STAGES[word.level as Level] ?? word.level}
                         </span>
-                        <span className="font-extrabold text-base tracking-wide text-gray-900 font-mono select-all">
+                        <span className="font-extrabold text-base text-gray-900 select-all">
                           {word.word}
                         </span>
                         <button
                           onClick={(e) => handleSpeakWord(word.word, e)}
-                          className="p-1 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition cursor-pointer"
+                          className="w-9 h-9 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition cursor-pointer shrink-0"
+                          aria-label={`${word.word} の発音を聴く`}
                         >
                           <Volume2 className="w-3.5 h-3.5" />
                         </button>
@@ -165,12 +167,13 @@ export default function ReviewList({
                         {/* 削除ボタン */}
                         <button
                           onClick={(e) => handleManualRemove(word.id, e)}
-                          className="p-1.5 bg-gray-50 hover:bg-rose-100 text-gray-400 hover:text-rose-600 rounded-xl transition cursor-pointer"
+                          className="w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-rose-100 text-gray-600 hover:text-rose-700 rounded-xl transition cursor-pointer"
                           title="覚えたので削除"
+                          aria-label={`${word.word} を覚えたので一覧から外す`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isExpanded ? "rotate-90" : ""}`} />
+                        <ChevronRight className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isExpanded ? "rotate-90" : ""}`} />
                       </div>
                     </div>
 
@@ -184,12 +187,12 @@ export default function ReviewList({
                           className="overflow-hidden"
                         >
                           <div className="mt-4 border-t border-gray-100 pt-4 space-y-3 text-xs md:text-sm">
-                            <div className="grid grid-cols-3 bg-gray-50 p-3 rounded-xl border">
+                            <div className="grid grid-cols-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
                               <div className="col-span-1 font-bold text-gray-500">日本語訳:</div>
                               <div className="col-span-2 font-extrabold text-indigo-700">{word.translation}</div>
                             </div>
                             
-                            <div className="bg-gray-50 p-3 rounded-xl border space-y-1.5">
+                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1.5">
                               <p className="font-bold text-gray-500 flex items-center gap-1">
                                 <span>英文穴埋めでの例:</span>
                               </p>

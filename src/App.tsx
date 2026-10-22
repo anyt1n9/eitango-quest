@@ -424,6 +424,12 @@ export default function App() {
   );
   const parentScreenRef = useRef<Screen | null>(parentScreen);
   const currentScreenRef = useRef<Screen>(initialRoute.screen);
+  /**
+   * 出題（一時的な画面）を始めた画面。終わったら・中断したらそこへ戻す。
+   * 以前はどこから始めても「今日」へ戻していたので、教材や苦手単語の一覧から
+   * 始めた人は、終わるたびに元の画面を開き直すことになっていた。
+   */
+  const quizOriginRef = useRef<Screen | null>(null);
 
   const navigate = useCallback((screen: Screen, param?: string | null) => {
     const from = currentScreenRef.current;
@@ -432,6 +438,7 @@ export default function App() {
         : isTransient(screen) ? parentScreenRef.current
           : isTabRoot(from) ? from
             : parentScreenRef.current;
+    if (isTransient(screen) && !isTransient(from)) quizOriginRef.current = from;
     const path = routeToPath({ screen, param: param ?? undefined });
     if (path !== window.location.pathname) {
       window.history.pushState({ screen, param: param ?? null, parent }, "", path);
@@ -501,7 +508,16 @@ export default function App() {
     );
   };
 
-  const handleBackToDashboard = () => {
+  /** 出題を終える・中断する。始めた画面（今日・教材・苦手単語の一覧）へ戻る */
+  const handleLeaveQuiz = () => {
+    setSrsSessionWords([]);
+    setWrongSessionWords([]);
+    setReviewFormat(null);
+    navigate(quizOriginRef.current ?? "dashboard");
+  };
+
+  /** アプリ名を押したとき。どの画面からでも「今日」へ */
+  const handleGoHome = () => {
     setSrsSessionWords([]);
     setWrongSessionWords([]);
     setReviewFormat(null);
@@ -618,7 +634,7 @@ export default function App() {
       solvedHistory,
       setSolvedHistory,
       setStats,
-      onBackToDashboard: handleBackToDashboard,
+      onBackToDashboard: handleLeaveQuiz,
       updateRankingScore,
       questionCount: Math.min(picked.length, 30),
       customWords: picked,
@@ -656,7 +672,7 @@ export default function App() {
     <div className="max-w-xl mx-auto">
       <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
         <button
-          onClick={handleBackToDashboard}
+          onClick={handleLeaveQuiz}
           className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -749,7 +765,7 @@ export default function App() {
       <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 py-2.5 px-4 sticky top-0 z-40 shadow-xs transition-colors duration-300" id="navigation_bar">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           <div
-            onClick={handleBackToDashboard}
+            onClick={handleGoHome}
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer hover:opacity-85 select-none min-w-0"
           >
             <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-150-10 shrink-0">
@@ -913,7 +929,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleLeaveQuiz}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             srsData={srsData}
@@ -930,7 +946,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleLeaveQuiz}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             listeningMode={true}
@@ -948,7 +964,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleLeaveQuiz}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             reverseMode={true}
@@ -966,7 +982,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleLeaveQuiz}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             srsData={srsData}
@@ -983,7 +999,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleLeaveQuiz}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             srsData={srsData}
@@ -999,7 +1015,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleLeaveQuiz}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             srsData={srsData}
@@ -1015,7 +1031,7 @@ export default function App() {
             solvedHistory={solvedHistory}
             setSolvedHistory={setSolvedHistory}
             setStats={setStats}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleLeaveQuiz}
             updateRankingScore={updateRankingScore}
             questionCount={quizQuestionCount}
             srsData={srsData}
@@ -1134,10 +1150,10 @@ export default function App() {
                   忘却曲線にもとづく今日の復習対象はありません。クイズで新しい単語に挑戦すると、最適なタイミングでここに復習が出題されます。
                 </p>
                 <button
-                  onClick={handleBackToDashboard}
+                  onClick={handleLeaveQuiz}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
                 >
-                  今日の画面に戻る
+                  戻る
                 </button>
               </div>
             </div>

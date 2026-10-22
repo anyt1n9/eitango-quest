@@ -2,6 +2,16 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* 色を付けない `border` の色。Tailwind v4 では文字の色（currentColor）になるため、
+   v3 の薄い灰色のつもりで書かれた枠が、クイズ・辞書・長文のカードで黒い太枠に見えていた。
+   v3 と同じく薄い灰色を既定にする（暗いテーマでは --color-gray-200 が海の紺に置き換わる）。
+   色のクラス（border-rose-200 など）を付けた枠はこれより優先される */
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
 /* ── 明るいテーマは「森」 ────────────────────────────────
    主役の色（indigo / violet）を深い緑に置き換え、地は苔色がかった生成りにする。
    Tailwind の色変数ごと置き換えるので、utility の書き方は変えなくてよい。 */

@@ -275,7 +275,7 @@ export default function Records({
                   <div className="my-2 text-2xl">
                     {status === "claimed" ? "🎁" : idx === 6 ? "👑" : "💎"}
                   </div>
-                  <span className={`text-[11px] font-black font-mono tracking-tight ${status === "claimed" ? "text-emerald-700" : "text-gray-700"}`}>
+                  <span className={`text-[11px] font-black tabular-nums tracking-tight ${status === "claimed" ? "text-emerald-700" : "text-gray-700"}`}>
                     {status === "claimed" ? "受取済" : `+${bonus.points} P`}
                   </span>
                 </>
@@ -355,19 +355,19 @@ export default function Records({
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3" id="self_records_panel">
             <div className="bg-amber-50/70 border border-amber-150 rounded-2xl p-4 text-center">
               <span className="text-[10px] text-amber-700 font-black tracking-wider uppercase block">総スコア</span>
-              <p className="text-2xl font-black text-amber-800 font-mono mt-1">{stats.score}<span className="text-xs text-amber-700 ml-0.5">P</span></p>
+              <p className="text-2xl font-black text-amber-800 tabular-nums mt-1">{stats.score}<span className="text-xs text-amber-700 ml-0.5">P</span></p>
             </div>
             <div className="bg-emerald-50/70 border border-emerald-150 rounded-2xl p-4 text-center">
               <span className="text-[10px] text-emerald-700 font-black tracking-wider uppercase block">連続ログイン</span>
-              <p className="text-2xl font-black text-emerald-800 font-mono mt-1">{stats.currentStreak}<span className="text-xs text-emerald-700 ml-0.5">日</span></p>
+              <p className="text-2xl font-black text-emerald-800 tabular-nums mt-1">{stats.currentStreak}<span className="text-xs text-emerald-700 ml-0.5">日</span></p>
             </div>
             <div className="bg-indigo-50/70 border border-indigo-150 rounded-2xl p-4 text-center">
               <span className="text-[10px] text-indigo-600 font-black tracking-wider uppercase block">累計回答数</span>
-              <p className="text-2xl font-black text-indigo-800 font-mono mt-1">{stats.completedQuestions}<span className="text-xs text-indigo-700 ml-0.5">問</span></p>
+              <p className="text-2xl font-black text-indigo-800 tabular-nums mt-1">{stats.completedQuestions}<span className="text-xs text-indigo-700 ml-0.5">問</span></p>
             </div>
             <div className="bg-rose-50/70 border border-rose-150 rounded-2xl p-4 text-center">
               <span className="text-[10px] text-rose-700 font-black tracking-wider uppercase block">累計正答率</span>
-              <p className="text-2xl font-black text-rose-800 font-mono mt-1">
+              <p className="text-2xl font-black text-rose-800 tabular-nums mt-1">
                 {stats.completedQuestions > 0 ? Math.round((stats.correctAnswers / stats.completedQuestions) * 100) : 0}<span className="text-xs text-rose-700 ml-0.5">%</span>
               </p>
             </div>
@@ -391,7 +391,7 @@ export default function Records({
               if (place === 1) badge = <span className="text-lg">🥇</span>;
               else if (place === 2) badge = <span className="text-lg">🥈</span>;
               else if (place === 3) badge = <span className="text-lg">🥉</span>;
-              else badge = <span className="text-sm font-semibold font-mono text-gray-400">{place}</span>;
+              else badge = <span className="text-sm font-semibold tabular-nums text-gray-400">{place}</span>;
 
               return (
                 <div 
@@ -419,7 +419,7 @@ export default function Records({
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-lg font-black font-mono text-gray-800 tracking-tight">{user.score}</span>
+                    <span className="text-lg font-black tabular-nums text-gray-800 tracking-tight">{user.score}</span>
                     <span className="text-[10px] text-gray-400 font-bold ml-0.5">P</span>
                   </div>
                 </div>
@@ -536,7 +536,7 @@ export default function Records({
                           <div key={i}>
                             <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
                               <span>{stat.label}</span>
-                              <span className="font-mono">{stat.count}語 ({stat.percentage}%)</span>
+                              <span className="tabular-nums">{stat.count}語 ({stat.percentage}%)</span>
                             </div>
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div
@@ -556,7 +556,7 @@ export default function Records({
                           <div key={i}>
                             <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
                               <span>{stat.label}</span>
-                              <span className="font-mono">{stat.count}語 ({stat.percentage}%)</span>
+                              <span className="tabular-nums">{stat.count}語 ({stat.percentage}%)</span>
                             </div>
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div
@@ -598,7 +598,7 @@ export default function Records({
                   <WeaknessIcon className={`w-12 h-12 mx-auto mb-3 ${ACCENT_TONE.weakness} ${TONE_STYLE.text}`} />
                   <p className="text-gray-600 font-extrabold mb-1">間違えた単語の傾向を分析します</p>
                   <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
-                    現在 <span className="font-mono font-bold">{wrongWords.length}語</span> の間違えた単語が記録されています。品詞や分野の傾向から、あなたの弱点分野を見つけます。
+                    現在 <span className="tabular-nums font-bold">{wrongWords.length}語</span> の間違えた単語が記録されています。品詞や分野の傾向から、あなたの弱点分野を見つけます。
                   </p>
                   <button
                     onClick={handleFetchWeaknessAnalysis}

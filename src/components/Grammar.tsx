@@ -228,7 +228,7 @@ export default function Grammar({
                 }`}
               >
                 {l === "all" ? "すべて" : LEVEL_LABELS[l]}
-                {p && <span className="ml-1 font-mono opacity-70">{p.cleared}/{p.total}</span>}
+                {p && <span className="ml-1 tabular-nums opacity-70">{p.cleared}/{p.total}</span>}
               </button>
             );
           })}
@@ -378,7 +378,7 @@ function TopicDetail({
         {topic.sections.map((s, i) => (
           <div key={i} className="space-y-1">
             <h3 className="text-sm font-black text-gray-900 dark:text-slate-100 flex items-start gap-1.5">
-              <span className="text-indigo-500 font-mono text-xs mt-0.5">{i + 1}.</span>
+              <span className="text-indigo-500 tabular-nums text-xs mt-0.5">{i + 1}.</span>
               {s.heading}
             </h3>
             <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed pl-5">{s.body}</p>
@@ -395,7 +395,7 @@ function TopicDetail({
         <ul className="space-y-2.5">
           {topic.examples.map((e, i) => (
             <li key={i} className="border-l-2 border-amber-300 dark:border-amber-700 pl-3 space-y-0.5">
-              <p className="font-mono text-sm font-bold text-gray-900 dark:text-slate-100 leading-snug">{e.english}</p>
+              <p className="tabular-nums text-sm font-bold text-gray-900 dark:text-slate-100 leading-snug">{e.english}</p>
               <p className="text-xs font-semibold text-gray-600 dark:text-slate-400">{e.japanese}</p>
               {e.note && (
                 <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">→ {e.note}</p>
@@ -416,7 +416,7 @@ function TopicDetail({
           <ul className="flex flex-wrap gap-1.5 pt-1">
             {verbs.map(w => (
               <li key={w.id} className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1">
-                <span className="font-mono text-[11px] font-black text-gray-900 dark:text-slate-100">{w.word}</span>
+                <span className="tabular-nums text-[11px] font-black text-gray-900 dark:text-slate-100">{w.word}</span>
                 <span className="ml-1.5 text-[11px] font-bold text-gray-600 dark:text-slate-400">{w.translation}</span>
               </li>
             ))}
@@ -454,11 +454,11 @@ function TopicDetail({
         <ul className="space-y-3">
           {topic.mistakes.map((m, i) => (
             <li key={i} className="space-y-1">
-              <p className="font-mono text-sm font-bold text-rose-700 dark:text-rose-400 flex items-start gap-1.5">
+              <p className="tabular-nums text-sm font-bold text-rose-700 dark:text-rose-400 flex items-start gap-1.5">
                 <X className="w-3.5 h-3.5 mt-1 shrink-0" />
                 <span className="line-through decoration-rose-400/60">{m.wrong}</span>
               </p>
-              <p className="font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-start gap-1.5">
+              <p className="tabular-nums text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-start gap-1.5">
                 <Check className="w-3.5 h-3.5 mt-1 shrink-0" />
                 <span>{m.right}</span>
               </p>
@@ -473,7 +473,7 @@ function TopicDetail({
         <div className="flex items-center gap-1.5">
           <PencilLine className="w-4 h-4 text-indigo-600" />
           <h3 className="text-sm font-black text-gray-900 dark:text-slate-100">練習問題</h3>
-          <span className="text-[11px] font-mono font-bold text-gray-400">
+          <span className="text-[11px] tabular-nums font-bold text-gray-400">
             {(progress[topic.id] || []).length} / {topic.questions.length} 正解
           </span>
         </div>
@@ -483,7 +483,7 @@ function TopicDetail({
           const answered = picked !== undefined;
           return (
             <div key={qi} className="space-y-2 pt-1" data-testid={`grammar_question_${qi}`}>
-              <p className="font-mono text-sm font-bold text-gray-900 dark:text-slate-100 leading-snug">
+              <p className="tabular-nums text-sm font-bold text-gray-900 dark:text-slate-100 leading-snug">
                 {qi + 1}. {q.question}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

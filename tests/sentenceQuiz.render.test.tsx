@@ -170,12 +170,34 @@ describe("解答", () => {
     expect(recordAnswer).toHaveBeenCalledTimes(1);
   });
 
-  it("選んだ語を穴に入れて見せる", async () => {
+  it("答えたら、正解の語を穴に入れて和訳と一緒に見せる", async () => {
+    // 間違えた語を穴に入れても、正しい文は分からない
     const user = userEvent.setup();
     renderQuiz();
     await user.click(screen.getByRole("button", { name: "careful" }));
-    const hole = document.getElementById("sentence_quiz_running_card")!;
-    expect(within(hole).getAllByText("careful").length).toBeGreaterThan(1);
+    for (const hole of screen.getAllByTestId("sentence_hole")) expect(hole).toHaveTextContent("beautiful");
+    expect(screen.getByText(/その庭は春にとても美しい。/)).toBeInTheDocument();
+    // 選択肢は見せたまま、自分の答えも残す
+    expect(screen.getByRole("button", { name: "careful" }).className).toContain("border-rose-300");
+    expect(document.getElementById("answer_feedback")).toHaveTextContent("あなたの答え: careful");
+  });
+
+  it("間違えたときは、押すまで次へ進まない", () => {
+    vi.useFakeTimers();
+    try {
+      const words = [
+        makeWord({ id: "a", word: "alpha", sentenceOptions: ["alpha", "x1", "x2", "x3"] }),
+        makeWord({ id: "b", word: "bravo", sentenceOptions: ["bravo", "y1", "y2", "y3"] })
+      ];
+      renderQuiz(words);
+      fireEvent.click(optionButtons().find(b => !/alpha|bravo/.test(b.textContent || ""))!);
+      act(() => { vi.advanceTimersByTime(60_000); });
+      expect(screen.getByText("Q: 1 / 2")).toBeInTheDocument();
+      fireEvent.click(document.getElementById("btn_next_question")!);
+      expect(screen.getByText("Q: 2 / 2")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -195,9 +217,9 @@ describe("出題のやり直し", () => {
     const { view } = renderQuiz(words);
     expect(screen.getByText("Q: 1 / 2")).toBeInTheDocument();
 
-    // 1問目に答えて2問目へ進める（不正解でも6秒で自動で進む）
-    fireEvent.click(optionButtons()[0]);
-    act(() => { vi.advanceTimersByTime(6500); });
+    // 1問目に答えて2問目へ進める（不正解なので「次の問題へ」を押す）
+    fireEvent.click(optionButtons().find(b => !/alpha|bravo/.test(b.textContent || ""))!);
+    fireEvent.click(document.getElementById("btn_next_question")!);
     expect(screen.getByText("Q: 2 / 2")).toBeInTheDocument();
 
     // 中身が同じ新しい配列を渡す（呼び出し側の再レンダー相当）
@@ -278,12 +300,12 @@ describe("答えが例文に2回以上出てくるとき", () => {
   });
 
   it("答え合わせのあとの一覧にも記号が残らない", () => {
-    // 解答したあと、6秒で結果画面へ自動で進む
+    // 間違えて「結果を見る」を押し、結果画面へ進む
     vi.useFakeTimers();
     try {
       renderQuiz([TWICE]);
-      fireEvent.click(optionButtons()[0]);
-      act(() => { vi.advanceTimersByTime(6500); });
+      fireEvent.click(screen.getByRole("button", { name: "dog" }));
+      fireEvent.click(document.getElementById("btn_next_question")!);
       expect(document.getElementById("sentence_result_card")).toBeInTheDocument();
       expect(document.body.textContent).not.toContain("[_____]");
       // 答えの語は【 】で囲んで見せる（穴が2つとも戻っている）

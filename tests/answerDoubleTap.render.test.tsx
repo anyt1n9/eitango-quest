@@ -36,6 +36,13 @@ const common = {
 beforeEach(() => vi.clearAllMocks());
 afterEach(() => cleanup());
 
+/** 答えたあと次の問題へ進める（正解は少しで自動で、不正解は「次の問題へ」を押して） */
+function advance() {
+  const next = document.getElementById("btn_next_question");
+  if (next) fireEvent.click(next);
+  else act(() => { vi.advanceTimersByTime(1500); });
+}
+
 /** 再描画を挟まずに続けて押す（fireEvent を並べると2回目は既に答えた状態になる） */
 function tapTogether(...els: HTMLElement[]) {
   act(() => { for (const el of els) el.click(); });
@@ -116,7 +123,7 @@ describe("次の問題では、ふつうに答えられる", () => {
     render(<Quiz {...two} recordAnswer={recordAnswer} />);
     const pick = () => within(document.getElementById("quiz_options_container")!).getAllByRole("button")[0];
     fireEvent.click(pick());
-    act(() => { vi.advanceTimersByTime(6500); }); // 不正解でも6秒で次へ進む
+    advance(); // 正解なら少しで、不正解なら「次の問題へ」で進む
     fireEvent.click(pick());
     expect(recordAnswer).toHaveBeenCalledTimes(2);
   });
@@ -126,7 +133,7 @@ describe("次の問題では、ふつうに答えられる", () => {
     render(<SentenceQuiz {...two} recordAnswer={recordAnswer} />);
     const pick = () => within(document.getElementById("sentence_quiz_options_grid")!).getAllByRole("button")[0];
     fireEvent.click(pick());
-    act(() => { vi.advanceTimersByTime(6500); });
+    advance();
     fireEvent.click(pick());
     expect(recordAnswer).toHaveBeenCalledTimes(2);
   });

@@ -27,6 +27,22 @@ async function seedProgress(page: Page) {
   await waitForVocabulary(page);
 }
 
+/** 出題を最後まで解いて結果画面を出す（答えはいつも先頭の選択肢） */
+async function finishQuiz(page: Page) {
+  for (let i = 0; i < 80; i++) {
+    if (await page.locator("#quiz_result_card").count()) break;
+    const next = page.locator("#btn_next_question");
+    if (await next.isVisible().catch(() => false)) {
+      await next.click();
+      continue;
+    }
+    const option = page.locator("#quiz_options_container button").first();
+    if (await option.isEnabled().catch(() => false)) await option.click();
+    await page.waitForTimeout(200);
+  }
+  await expect(page.locator("#quiz_result_card")).toBeVisible();
+}
+
 /** 画面下のタブを押す */
 async function goTab(page: Page, tab: "today" | "search" | "learn" | "records" | "menu") {
   await page.locator(`#tab_${tab}`).click();
@@ -434,6 +450,65 @@ test("類義語クイズと語義分別クイズを、答えて解説を読ん�
   await expect(page.locator("#choice_quiz_feedback")).toContainText("ほかの意味");
 });
 
+test("四択で間違えたら、選択肢を見せたまま正解を出し、押すまで次へ進まない", async ({ page }) => {
+  // 以前はカード全体を大きな×でぼかして覆い、6秒で勝手に次の問題へ進んでいた
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await page.locator("#btn_junior_word").click();
+  await expect(page.getByText("Q: 1 / 10")).toBeVisible();
+
+  // 正解の訳は見出しの語から引けないので、間違えるまで選び直す（正解なら自動で次へ進む）
+  const status = page.locator('[role="status"]');
+  for (let i = 0; i < 10; i++) {
+    await page.locator("#quiz_options_container button").first().click();
+    await expect(status).toBeVisible();
+    if ((await status.textContent())?.includes("不正解")) break;
+    await expect(page.locator("#quiz_options_container button").first()).toBeEnabled();
+  }
+  await expect(status).toContainText("不正解です。正解は");
+  // 選択肢は覆われずに見えていて、正解に印が付いている
+  await expect(page.locator("#quiz_options_container button.border-emerald-400")).toBeVisible();
+  const progress = page.getByText(/^Q: \d+ \/ 10$/);
+  const at = await progress.textContent();
+  await page.waitForTimeout(7_000);
+  await expect(progress).toHaveText(at || "");
+  // 「次の問題へ」は指で押せる大きさ
+  const box = await page.locator("#btn_next_question").boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+  await page.locator("#btn_next_question").click();
+  await expect(page.locator("#quiz_options_container button").first()).toBeEnabled();
+});
+
+test("クイズを中断したり終えたりすると、始めた画面へ戻る", async ({ page }) => {
+  // 以前はどこから始めても「今日」へ戻していた
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await goTab(page, "learn");
+  await page.locator("#btn_learn_spelling").click();
+  await page.locator("#btn_quit_spelling").click();
+  await expect(page).toHaveURL(/\/learn$/);
+  await expect(page.locator("#learn_page")).toBeVisible();
+
+  await goTab(page, "today");
+  await page.locator("#btn_junior_word").click();
+  await page.locator("#btn_quit_quiz").click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#btn_junior_reverse")).toBeVisible();
+});
+
+test("長文の重要語を押すと、スマホでもその場で意味が出る", async ({ page }) => {
+  // 意味の欄は本文の後ろに並ぶため、押しても画面の外で開くだけだった
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/reading");
+  await page.getByText("The Secret of the Old Library").first().click();
+  await page.locator("#passage_text_container button", { hasText: "library" }).first().click();
+  const sheet = page.locator('[data-testid="reading_selected_word"]');
+  await expect(sheet).toBeInViewport();
+  await expect(sheet).toContainText("図書館");
+  await page.locator("#btn_close_reading_word").click();
+  await expect(sheet).toHaveCount(0);
+});
+
 test("メニューのポイントは、ガチャで使える額と一致する", async ({ page }) => {
   // stats.score は「これまでに稼いだ合計」で、ガチャを引いても減らない。
   // ヘッダーがその合計を「P」として出していたため、ガチャ画面には
@@ -737,6 +812,34 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
     await page.locator("#quiz_options_container button").last().click();
     await page.waitForTimeout(500);
     expect(await page.evaluate(LOW_CONTRAST), `${theme} / 答え合わせ`).toEqual([]);
+
+    // 結果画面（振り返りの一覧はページにそのまま並ぶ）
+    await finishQuiz(page);
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / 結果`).toEqual([]);
+
+    // 例文穴埋めの答え合わせ（穴に正解が入り、和訳が出る）
+    await page.goto("/");
+    await waitForVocabulary(page);
+    await page.locator("#btn_junior_sentence").click();
+    await page.locator("#sentence_quiz_options_grid button").last().click();
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / 例文穴埋め 答え合わせ`).toEqual([]);
+
+    // 長文で重要語を押したとき（狭い画面では画面下に重ねて出す）
+    await page.goto("/reading");
+    await page.getByText("The Secret of the Old Library").first().click();
+    await page.locator("#passage_text_container button").first().click();
+    await expect(page.locator('[data-testid="reading_selected_word"]')).toBeVisible();
+    // 選んだ語の地は遷移で塗られるので、塗り終わってから測る
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / 長文 単語`).toEqual([]);
+
+    // 苦手な単語の一覧
+    await page.evaluate(() => localStorage.setItem("quest_wrong_words", JSON.stringify(["j1", "j2"])));
+    await page.goto("/review");
+    await expect(page.locator("#wrong_words_loop")).toBeVisible({ timeout: 30_000 });
+    expect(await page.evaluate(LOW_CONTRAST), `${theme} / 苦手な単語`).toEqual([]);
+    await page.evaluate(() => localStorage.removeItem("quest_wrong_words"));
 
     // 類義語・語義分別は、答えたあとに解説の欄が出る
     for (const [name, button, anchor] of [

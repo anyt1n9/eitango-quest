@@ -147,7 +147,7 @@ export default function SenseQuiz({
                 </button>
               </div>
               <p className="text-sm font-bold text-gray-700">
-                この文の <span className="font-mono font-black">{q.word.word}</span> の意味はどれ？
+                この文の <span className="font-black">{q.word.word}</span> の意味はどれ？
               </p>
             </div>
           );
@@ -164,7 +164,7 @@ export default function SenseQuiz({
                     <li key={s.meaning} className="text-xs text-gray-800 leading-relaxed">
                       <span className="font-black">{s.meaning}</span>
                       {"："}
-                      <SenseExampleText example={s.example} className="font-mono" />
+                      <SenseExampleText example={s.example} />
                       <span className="block text-gray-700">{s.translation}</span>
                     </li>
                   ))}

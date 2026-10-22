@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Award, Check, Loader2, RotateCcw, Trophy, X } from "lucide-react";
+import { ArrowLeft, Check, Loader2, X } from "lucide-react";
 import { Level, UserStats } from "../types";
 import { LEVEL_LABELS } from "../grammar";
 import { getAudioContext } from "../sound";
+import AnswerFeedback from "./AnswerFeedback";
+import QuizResult from "./QuizResult";
 
 /**
  * 選択式クイズの共通の枠（類義語クイズ・語義分別クイズが使う）。
@@ -15,8 +17,8 @@ import { getAudioContext } from "../sound";
  * 2つとも「問いを見て、選択肢から1つ選び、解説を読んで次へ」という流れで、
  * 違うのは問いと解説の中身だけなので、流れ（解答・記録・結果）はここにまとめる。
  *
- * 四択クイズと違い、答えたあと自動では次へ進まない。この2つは解説
- * （同じ意味の語の一覧、例文の和訳と他の語義）を読むこと自体が学習なので、
+ * 四択クイズ（正解なら少しで自動で次へ進む）と違い、正誤によらず自動では次へ進まない。
+ * この2つは解説（同じ意味の語の一覧、例文の和訳と他の語義）を読むこと自体が学習なので、
  * 数秒で消えると読み切れない。「次へ」を押すまで出しておく。
  */
 
@@ -39,8 +41,6 @@ interface ChoiceQuizProps<Q extends ChoiceQuestion> {
   error?: string | null;
   /** そのレベルで出せる問題が1つも無いときの文言 */
   emptyMessage: string;
-  /** 選択肢が英単語か（等幅で見せる） */
-  englishOptions?: boolean;
   renderPrompt: (q: Q) => React.ReactNode;
   /** 答えたあとに出す解説 */
   renderExplanation: (q: Q, choice: string) => React.ReactNode;
@@ -87,7 +87,6 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
   questions,
   error,
   emptyMessage,
-  englishOptions = false,
   renderPrompt,
   renderExplanation,
   renderReviewItem,
@@ -101,7 +100,6 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
   const [choice, setChoice] = useState<string | null>(null);
   const [results, setResults] = useState<{ question: Q; choice: string; isCorrect: boolean }[]>([]);
   const [finished, setFinished] = useState(false);
-  const nextRef = useRef<HTMLButtonElement>(null);
 
   /*
    * 解答の二度押しを同期的に止める（Quiz.tsx と同じ理由）。
@@ -148,11 +146,6 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
     setFinished(true);
   };
 
-  // 答えたら「次へ」に移る。キーボードで解いている人が Enter で進めるように
-  useEffect(() => {
-    if (choice !== null) nextRef.current?.focus();
-  }, [choice]);
-
   // 数字キー（1〜）で選ぶ
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -175,14 +168,14 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
     <div className="flex items-center justify-between mb-5">
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition min-h-11"
+        className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
         id="btn_quit_quiz"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>中断して戻る</span>
       </button>
       {questions && questions.length > 0 && !finished && (
-        <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black font-mono text-indigo-700">
+        <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black tabular-nums text-indigo-700">
           Q: {index + 1} / {questions.length}
         </div>
       )}
@@ -222,86 +215,26 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
 
   if (finished) {
     const score = results.filter(r => r.isCorrect).length;
-    const points = choiceQuizPoints(score, questions.length);
     return (
       <div className="max-w-xl mx-auto" id="quiz_section_root">
-        <div className="bg-white border rounded-3xl p-6 shadow-sm space-y-6" id="quiz_result_card">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center mx-auto shadow-md">
-              <Award className="w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-black text-gray-900">{title} 完了！</h2>
-            <p className="text-xs text-gray-600 font-bold">{LEVEL_LABELS[level]}</p>
-          </div>
-
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 flex justify-around text-center">
-            <div>
-              <span className="text-xs text-gray-600 font-bold">正解数</span>
-              <p className="text-3xl font-black text-indigo-700 mt-1 font-mono">
-                {score} <span className="text-xs text-gray-600 font-bold">/ {questions.length}</span>
-              </p>
-            </div>
-            <div className="border-r border-gray-200" />
-            <div>
-              <span className="text-xs text-gray-600 font-bold">獲得スコア</span>
-              <p className="text-3xl font-black text-emerald-700 mt-1 font-mono">
-                +{points} <span className="text-xs text-gray-600 font-bold">P</span>
-              </p>
-            </div>
-          </div>
-
-          {score === questions.length && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center text-amber-900 font-bold text-sm flex items-center justify-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-700" aria-hidden="true" />
-              <span>パーフェクト達成！ボーナス +150 P</span>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            <h3 className="text-sm font-extrabold text-gray-800">振り返り</h3>
-            <ul className="max-h-80 overflow-y-auto space-y-2.5 pr-1" id="quiz_mini_review_pool">
-              {results.map(r => (
-                <li
-                  key={r.question.key}
-                  className={`p-3.5 border rounded-xl flex items-start justify-between gap-3 ${
-                    r.isCorrect ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
-                  }`}
-                >
-                  <div className="min-w-0 space-y-1">{renderReviewItem(r.question, r.choice)}</div>
-                  {r.isCorrect ? (
-                    <span className="shrink-0 text-emerald-800 font-bold text-xs bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <Check className="w-3 h-3" aria-hidden="true" />
-                      <span>正解</span>
-                    </span>
-                  ) : (
-                    <span className="shrink-0 text-rose-800 font-bold text-xs bg-rose-100 px-2.5 py-1 rounded-full flex items-center gap-1">
-                      <X className="w-3 h-3" aria-hidden="true" />
-                      <span>誤答</span>
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3">
-            <button
-              onClick={onRetry}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3.5 rounded-2xl shadow transition text-sm flex items-center justify-center gap-2"
-              id="btn_retry_quiz"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>もう一度挑戦する</span>
-            </button>
-            <button
-              onClick={onBack}
-              className="bg-white hover:bg-gray-50 text-gray-800 font-extrabold px-8 py-3.5 rounded-2xl border border-gray-200 transition text-sm"
-              id="btn_back_dashboard_from_quiz"
-            >
-              今日の画面に戻る
-            </button>
-          </div>
-        </div>
+        <QuizResult
+          id="quiz_result_card"
+          title={`${title} 完了！`}
+          subtitle={LEVEL_LABELS[level]}
+          score={score}
+          total={questions.length}
+          points={choiceQuizPoints(score, questions.length)}
+          perfectBonus={150}
+          items={results.map(r => ({
+            key: r.question.key,
+            isCorrect: r.isCorrect,
+            content: renderReviewItem(r.question, r.choice)
+          }))}
+          onRetry={onRetry}
+          onBack={onBack}
+          retryId="btn_retry_quiz"
+          backId="btn_back_dashboard_from_quiz"
+        />
       </div>
     );
   }
@@ -312,7 +245,7 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
 
   return (
     <div className="max-w-xl mx-auto" id="quiz_section_root">
-      <div className="bg-white border rounded-3xl p-6 shadow-sm" id="quiz_running_card">
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm" id="quiz_running_card">
         {header}
 
         <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-6">
@@ -346,15 +279,15 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
                 id={`option_btn_${i}`}
                 onClick={() => handleSelect(option)}
                 disabled={answered}
-                className={`border rounded-2xl p-4 text-left text-sm font-semibold transition-all flex items-center gap-3 min-h-11 ${tone}`}
+                className={`border rounded-2xl p-4 min-h-14 text-left text-sm font-semibold transition-all flex items-center gap-3 cursor-pointer disabled:cursor-default ${tone}`}
               >
                 <span
                   aria-hidden="true"
-                  className="hidden sm:flex shrink-0 w-6 h-6 rounded-md border border-current/20 items-center justify-center text-[11px] font-mono font-black opacity-60"
+                  className="hidden sm:flex shrink-0 w-6 h-6 rounded-md border border-current/20 items-center justify-center text-[11px] tabular-nums font-black opacity-60"
                 >
                   {i + 1}
                 </span>
-                <span data-testid="option_label" className={`flex-1 ${englishOptions ? "font-mono" : ""}`}>
+                <span data-testid="option_label" className="flex-1">
                   {option}
                 </span>
                 {answered && correct && <Check className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />}
@@ -365,27 +298,15 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
         </div>
 
         {answered && (
-          <div className="mt-6 space-y-4" id="choice_quiz_feedback">
-            <p
-              role="status"
-              aria-live="polite"
-              className={`text-sm font-black ${isCorrect ? "text-emerald-800" : "text-rose-800"}`}
-            >
-              {isCorrect ? "正解です" : `不正解です。正解は「${q.answer}」`}
-            </p>
-            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-800 space-y-2">
-              {renderExplanation(q, choice!)}
-            </div>
-            <button
-              ref={nextRef}
-              onClick={handleNext}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3.5 rounded-2xl shadow transition text-sm flex items-center justify-center gap-2 min-h-11"
-              id="btn_next_question"
-            >
-              <span>{index + 1 < questions.length ? "次の問題へ" : "結果を見る"}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          <AnswerFeedback
+            id="choice_quiz_feedback"
+            correct={isCorrect}
+            message={isCorrect ? "正解です" : `不正解です。正解は「${q.answer}」`}
+            onNext={handleNext}
+            nextLabel={index + 1 < questions.length ? "次の問題へ" : "結果を見る"}
+          >
+            {renderExplanation(q, choice!)}
+          </AnswerFeedback>
         )}
       </div>
     </div>

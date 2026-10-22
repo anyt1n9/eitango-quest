@@ -65,7 +65,7 @@ export default function QuizFormatPicker({ words, onSelect, className = "" }: Pr
                 {noSpeech ? "この端末では音声を再生できません" : f.description}
               </span>
             </span>
-            <span className={`shrink-0 text-[11px] font-mono font-black ${disabled
+            <span className={`shrink-0 text-[11px] tabular-nums font-black ${disabled
               ? ""
               : "text-indigo-700"}`}>
               {count}語

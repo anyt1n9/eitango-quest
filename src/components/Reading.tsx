@@ -7,7 +7,7 @@ import { readStoredArray, readStoredString, writeStored } from "../storage";
 import { sanitizePassage, sanitizePassages } from "../passageValidation";
 import { loadGrammar } from "../grammar";
 import { canUseSpeech, onVoicesChanged, speak, stopSpeaking } from "../speech";
-import { ArrowLeft, BookOpen, Clock, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
+import { ArrowLeft, BookOpen, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
 import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
 
 interface ReadingProps {
@@ -318,20 +318,22 @@ export default function Reading({
       const matchedWord = safeList.find(h => h.word.toLowerCase() === part.toLowerCase());
       if (matchedWord) {
         return (
-          <span
+          // 押して意味を出す。span のままだとキーボードではたどり着けなかった
+          <button
+            type="button"
             key={index}
-            className={`relative inline-block px-1 rounded border-b-2 font-semibold cursor-pointer transition-all duration-150 group/word ${colorClass}`}
+            className={`relative inline px-1 rounded border-b-2 font-semibold cursor-pointer transition-all duration-150 group/word ${colorClass}`}
             onClick={(e) => {
               e.stopPropagation();
               setSelectedWordObj(matchedWord);
             }}
           >
             {part}
-            {/* ホバースマートツールチップ */}
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/word:block bg-slate-900 text-white text-[11px] px-2 py-1 rounded shadow-lg max-w-xs whitespace-nowrap z-50 animate-fade-in font-sans">
+            {/* マウスで読んでいるときは、重ねるだけで意味が見える */}
+            <span aria-hidden="true" className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/word:block bg-slate-900 text-white text-[11px] px-2 py-1 rounded shadow-lg max-w-xs whitespace-nowrap z-50 font-sans">
               {matchedWord.translation}
             </span>
-          </span>
+          </button>
         );
       }
       return <span key={index}>{part}</span>;
@@ -369,14 +371,14 @@ export default function Reading({
             <span className={`text-xs px-3 py-1 rounded-full font-bold border ${badge.bg}`}>
               {badge.text}
             </span>
-            <div className="flex items-center gap-1 text-xs text-gray-400 font-mono font-bold bg-slate-50 border border-gray-200 px-2.5 py-1 rounded-full">
-              <Clock className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-xs text-gray-600 font-bold tabular-nums bg-slate-50 border border-gray-200 px-2.5 py-1 rounded-full">
+              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
               <span>報酬: +{selectedPassage.pointReward}P</span>
             </div>
             {isCompleted && (
               <span className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-bold">
                 <CheckCircle className="w-3.5 h-3.5" />
-                <span>読覇済み</span>
+                <span>読破済み</span>
               </span>
             )}
           </div>
@@ -388,7 +390,7 @@ export default function Reading({
             {selectedPassage.title}
           </h2>
           <p className="text-xs text-gray-400 mt-2 max-w-lg mx-auto font-medium">
-            下線部が引かれた重要単語にカーソルを合わせると、いつでも意味をチェックできます。
+            色の付いた重要単語を押すと、意味を確かめられます。
           </p>
         </div>
 
@@ -397,14 +399,16 @@ export default function Reading({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowJapanese(!showJapanese)}
-              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border cursor-pointer select-none transition ${
+              aria-pressed={showJapanese}
+              id="btn_toggle_passage_japanese"
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 min-h-11 rounded-xl border cursor-pointer select-none transition whitespace-nowrap ${
                 showJapanese
                   ? "bg-indigo-50 border-indigo-200 text-indigo-700"
                   : "bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
               }`}
             >
               {showJapanese ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              <span>日本語訳: {showJapanese ? "非表示にする (暗記確認)" : "表示する"}</span>
+              <span>{showJapanese ? "日本語訳を隠す" : "日本語訳を出す"}</span>
             </button>
 
             {/* 音読。単語には読み上げがあるのに、まとまった英文を耳で追う場所が無かった */}
@@ -414,10 +418,10 @@ export default function Reading({
                   <button
                     onClick={() => speakFrom(0, true)}
                     id="btn_passage_read_all"
-                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border cursor-pointer select-none transition bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 min-h-11 rounded-xl border cursor-pointer select-none transition whitespace-nowrap bg-white border-gray-200 text-gray-600 hover:bg-gray-100"
                   >
                     <Volume2 className="w-4 h-4" />
-                    <span>音読する（最初から）</span>
+                    <span>最初から音読</span>
                   </button>
                 ) : (
                   <button
@@ -433,7 +437,7 @@ export default function Reading({
             )}
           </div>
           <span className="text-[11px] text-gray-400 font-semibold">
-            重要単語数: <span className="text-gray-700 font-bold font-mono">{selectedPassage.vocabularyHighlight.length}語</span>
+            重要単語数: <span className="text-gray-700 font-bold tabular-nums">{selectedPassage.vocabularyHighlight.length}語</span>
           </span>
         </div>
 
@@ -539,7 +543,7 @@ export default function Reading({
                         : "bg-white hover:bg-gray-100 text-gray-800 border-gray-250/50"
                     }`}
                   >
-                    <span className="font-bold font-mono text-sm">{v.word}</span>
+                    <span className="font-bold text-sm">{v.word}</span>
                     <span className={selectedWordObj?.word === v.word ? "text-indigo-150 font-medium" : "text-gray-400 font-medium text-[11px]"}>
                       {v.translation}
                     </span>
@@ -548,10 +552,31 @@ export default function Reading({
               </div>
 
               {selectedWordObj && (
-                <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl animate-fade-in" data-testid="reading_selected_word">
-                  <span className="text-[10px] text-indigo-500 font-semibold block uppercase">選択中の単語</span>
-                  <p className="text-sm font-black text-indigo-950 font-mono">{selectedWordObj.word}</p>
-                  <p className="text-xs font-semibold text-indigo-800 mt-1">{selectedWordObj.translation}</p>
+                /* スマホでは、この欄は本文のいちばん下（全段落のあと）に並ぶので、
+                   本文の語を押しても画面の外で開くだけで、何も起きないように見えていた。
+                   狭い画面では画面下（タブの上）に重ねて出し、閉じられるようにする */
+                <div
+                  className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 shadow-xl lg:static lg:inset-auto lg:z-auto lg:shadow-none mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl"
+                  data-testid="reading_selected_word"
+                  role="region"
+                  aria-label="選んだ単語"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[11px] text-indigo-700 font-bold block">選んだ単語</span>
+                      <p className="text-base font-black text-indigo-950">{selectedWordObj.word}</p>
+                      <p className="text-sm font-semibold text-indigo-800 mt-0.5">{selectedWordObj.translation}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWordObj(null)}
+                      className="lg:hidden shrink-0 w-11 h-11 -mr-1 -mt-1 flex items-center justify-center rounded-full text-indigo-800 hover:bg-indigo-100 cursor-pointer"
+                      aria-label="閉じる"
+                      id="btn_close_reading_word"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
 
                   {/* 読んでいて意味を確かめた語は、そのまま単語の復習に回せるようにする。
                       長文で出会った語が復習の輪に入らないままだった */}
@@ -593,7 +618,7 @@ export default function Reading({
                 <div>
                   <div className="flex gap-1.5 items-center">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span className="text-[10px] font-black tracking-widest uppercase text-amber-300">Reading Rewards</span>
+                    <span className="text-xs font-black text-amber-300">読破の報酬</span>
                   </div>
                   <h4 className="text-lg font-black mt-2 leading-tight">このストーリーの読破を目指そう！</h4>
                   <p className="text-xs text-slate-300 mt-2 leading-relaxed">
@@ -645,7 +670,7 @@ export default function Reading({
                 return (
                   <div key={qi} className="bg-slate-50 border border-gray-200/60 rounded-2xl p-5">
                     <p className="text-sm font-extrabold text-gray-900 mb-4">
-                      <span className="text-indigo-600 font-mono mr-2">Q{qi + 1}.</span>
+                      <span className="text-indigo-700 tabular-nums mr-2">Q{qi + 1}.</span>
                       {q.question}
                     </p>
                     <div className="grid grid-cols-1 gap-2.5">
@@ -695,7 +720,7 @@ export default function Reading({
             {allAnswered && (
               <div className="max-w-2xl mx-auto mt-6 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 text-center animate-fade-in">
                 <p className="text-sm font-black text-indigo-950">
-                  理解度チェック結果: <span className="font-mono text-xl text-indigo-700">{quizCorrectCount}</span> / {shuffledQuestions.length} 問正解
+                  理解度チェック結果: <span className="tabular-nums text-xl text-indigo-700">{quizCorrectCount}</span> / {shuffledQuestions.length} 問正解
                   {quizCorrectCount === shuffledQuestions.length && " 🎉 パーフェクト！"}
                 </p>
                 {!isCompleted && (
@@ -716,40 +741,37 @@ export default function Reading({
 
   return (
     <div className="bg-white border border-gray-150 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passages_list_screen">
-      {/* 上部ヘッダー */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-gray-150">
-        <div>
-          <span className="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-150/40">
-            新セクション 🎉
-          </span>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight mt-2 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-indigo-600" />
-            <span>長文ストーリー読破</span>
-          </h2>
-          <p className="text-xs text-gray-400 font-medium">
-            各レベルの収録語のみを用いた高品質な英語長文を読み、より実践的なリーディング力を養いましょう！
-          </p>
-        </div>
+      {/* 上部ヘッダー。「戻る」はほかの画面と同じく左上に置く */}
+      <div className="space-y-4 pb-6 border-b border-gray-150">
         <button
           onClick={onBackToDashboard}
-          className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition border border-gray-200 rounded-xl px-3 py-2 cursor-pointer bg-white shadow-2xs"
+          className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition border border-gray-200 rounded-xl px-3 py-2 min-h-11 cursor-pointer bg-white shadow-2xs"
           id="btn_reading_to_dashboard"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>戻る</span>
         </button>
+        <div>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-indigo-600" />
+            <span>長文ストーリー読破</span>
+          </h2>
+          <p className="text-xs text-gray-600 font-medium mt-1">
+            各レベルの収録語だけで書いた英語の長文です。
+          </p>
+        </div>
       </div>
 
       {/* 読破の進進捗状況 */}
       <div className="mt-6 bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow">
-            <Sparkles className="w-5 h-5 animate-pulse" />
+            <Sparkles className="w-5 h-5" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-bold font-mono">STORY XP PROGRESS</p>
-            <p className="text-sm font-black text-indigo-950">
-              読覇ストーリー: <span className="font-mono text-base">{readPassages.length}</span> / {allPassages.length}
+            <p className="text-xs text-gray-600 font-bold">読み終えた長文</p>
+            <p className="text-sm font-black text-indigo-950 tabular-nums">
+              <span className="text-base">{readPassages.length}</span> / {allPassages.length}本
             </p>
           </div>
         </div>
@@ -763,7 +785,7 @@ export default function Reading({
       </div>
 
       {/* AIによる長文の新規生成パネル */}
-      <div className="mt-6 bg-gradient-to-r from-violet-50 to-indigo-50 border border-indigo-100 rounded-2xl p-5" id="ai_passage_generator">
+      <div className="mt-6 bg-indigo-50 border border-indigo-100 rounded-2xl p-5" id="ai_passage_generator">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-violet-600 rounded-xl text-white shadow shrink-0">
@@ -771,7 +793,7 @@ export default function Reading({
             </div>
             <div>
               <h3 className="text-sm font-black text-gray-900">AIで新しい長文を生成</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-600 mt-0.5">
                 Gemini AIがレベルに合わせたオリジナル長文（理解度チェック付き）を書き下ろします。
               </p>
             </div>
@@ -853,7 +875,7 @@ export default function Reading({
                   {isCompleted ? (
                     <span className="flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 rounded-full font-bold">
                       <CheckCircle className="w-3 h-3 text-emerald-600" />
-                      <span>読覇完了</span>
+                      <span>読破完了</span>
                     </span>
                   ) : (
                     <span className="text-[10.5px] text-indigo-600 font-bold flex items-center gap-1">
@@ -873,8 +895,8 @@ export default function Reading({
               </div>
 
               <div className="mt-5 pt-3.5 border-t border-gray-100 flex justify-between items-center">
-                <span className="text-[10px] text-gray-400 font-bold font-mono tracking-wider">
-                  ターゲット語数: {p.vocabularyHighlight.length}語
+                <span className="text-[11px] text-gray-600 font-bold tabular-nums">
+                  重要単語: {p.vocabularyHighlight.length}語
                 </span>
                 <div className="flex items-center gap-2.5">
                   {isCustom && (

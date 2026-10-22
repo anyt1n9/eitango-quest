@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Check, X, Award, HelpCircle, Trophy, Volume2, Eye, EyeOff, Loader2, RotateCcw } from "lucide-react";
+import { ArrowLeft, Check, X, Volume2, Eye, Loader2 } from "lucide-react";
 import { Level, Word, UserStats } from "../types";
 import { LEVEL_LABELS } from "../levelLabels";
 import { getAudioContext } from "../sound";
@@ -10,6 +9,8 @@ import { selectQuizWords } from "../selectQuestions";
 import { canFillSentence } from "../quizFormats";
 // 例文を穴埋めにする処理は共有する（綴りクイズ・取り込みでも同じ扱いが要る）
 import { showHoles, toFillInSentence } from "../fillIn";
+import AnswerFeedback from "./AnswerFeedback";
+import QuizResult from "./QuizResult";
 
 // クイズ回答時の効果音（シンセ）
 const playSentenceSound = (isCorrect: boolean) => {
@@ -85,17 +86,12 @@ export default function SentenceQuiz({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   
-  // 〇・×の大きな表示用
-  const [showFeedback, setShowFeedback] = useState<"correct" | "incorrect" | null>(null);
   const [showTranslation, setShowTranslation] = useState(false);
 
   // クイズ成績
   const [score, setScore] = useState(0);
   const [details, setDetails] = useState<{ word: Word; userChoice: string; isCorrect: boolean }[]>([]);
   const [isFinished, setIsFinished] = useState(false);
-
-  // タイマーとスキップ管理用
-  const timerRef = React.useRef<any>(null);
 
   /*
    * 解答の二度押しを同期的に止める。
@@ -106,29 +102,21 @@ export default function SentenceQuiz({
    * 間隔反復の箱が2段上がり、まだ覚えていない語が「習得済み」になる。
    * 別の選択肢を続けて押した場合は、両方が解答として記録される。
    * state の解答状態を消すのと同じ場所で、この印も消す（次の問題では押せるように）。
+   * 「次の問題へ」の二度押しで1問飛ばさないよう、進むときもこの印で見る。
    */
   const answeredRef = useRef(false);
-  const nextCallbackRef = React.useRef<(() => void) | null>(null);
-  const [countdown, setCountdown] = useState<number>(0);
 
-  // 不正解のカウントダウン処理
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
+  // 正解のあと自動で次へ進むタイマー
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimer = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-  }, [countdown]);
+  };
 
   // コンポーネント破棄時のクリーンアップ
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => clearTimer, []);
 
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
@@ -164,20 +152,14 @@ export default function SentenceQuiz({
 
   // リザルト画面から同じ設定でもう一度挑戦する（新しい出題セットを再抽選）
   const handleRetry = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    nextCallbackRef.current = null;
+    clearTimer();
     setQuestions(prepareQuestions());
     setCurrentIndex(0);
     setSelectedOption(null);
-    setShowFeedback(null);
     answeredRef.current = false;
     setShowTranslation(false);
     setScore(0);
     setDetails([]);
-    setCountdown(0);
     setIsFinished(false);
   };
 
@@ -203,7 +185,7 @@ export default function SentenceQuiz({
 
 
   const handleSelectOption = (option: string) => {
-    if (answeredRef.current || selectedOption !== null || showFeedback !== null) return;
+    if (answeredRef.current || selectedOption !== null) return;
     answeredRef.current = true;
 
     setSelectedOption(option);
@@ -211,7 +193,6 @@ export default function SentenceQuiz({
     const isCorrect = option.toLowerCase() === currentQuestion.word.toLowerCase();
 
     playSentenceSound(isCorrect);
-    setShowFeedback(isCorrect ? "correct" : "incorrect");
 
     // 間隔反復(SRS)・デイリー目標の更新
     recordAnswer?.(currentQuestion.id, isCorrect);
@@ -237,6 +218,7 @@ export default function SentenceQuiz({
       });
     }
 
+    const nextScore = isCorrect ? score + 1 : score;
     if (isCorrect) {
       setScore(prev => prev + 1);
     }
@@ -249,43 +231,26 @@ export default function SentenceQuiz({
       }
     ]);
 
-    // 次へ移る処理（ユーザーによる即時スキップでも共通で呼べるようにクロージャとして定義）
-    const onNext = () => {
-      setShowFeedback(null);
-      setSelectedOption(null);
-      answeredRef.current = false;
-      setShowTranslation(false);
-      setCountdown(0);
-      nextCallbackRef.current = null;
-      if (currentIndex + 1 < questions.length) {
-        setCurrentIndex(prev => prev + 1);
-      } else {
-        handleFinishQuiz(isCorrect ? score + 1 : score);
-      }
-    };
-    nextCallbackRef.current = onNext;
-
-    // 不正解の場合は6秒（6000ms）、正解の場合は1200ms待つ（「すぐに次に進む」で即スキップ可）
-    const delay = isCorrect ? 1200 : 6000;
-    if (!isCorrect) {
-      setCountdown(6);
+    // 正解ならすぐ次へ進む。間違えたときは、正解を入れた例文と和訳を読み終えるまで待つ
+    // （「次の問題へ」を押して進む。以前は6秒で勝手に進んでいた）
+    if (isCorrect) {
+      timerRef.current = setTimeout(() => handleNext(nextScore), 1200);
     }
-
-    const timerId = setTimeout(() => {
-      if (nextCallbackRef.current === onNext) {
-        onNext();
-      }
-    }, delay);
-    timerRef.current = timerId;
   };
 
-  const handleForceNext = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    if (nextCallbackRef.current) {
-      nextCallbackRef.current();
+  /** 次の問題へ。finalScore は最後の問題を答えたあとの正解数 */
+  const handleNext = (finalScore: number) => {
+    if (!answeredRef.current) return;
+    answeredRef.current = false;
+    clearTimer();
+    setSelectedOption(null);
+    setShowTranslation(false);
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex(prev => prev + 1);
+      // 解説を見るために下へ送っていたら、次の問題の頭へ戻す
+      if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      handleFinishQuiz(finalScore);
     }
   };
 
@@ -329,291 +294,184 @@ export default function SentenceQuiz({
     );
   }
 
-  return (
-    <div className="max-w-xl mx-auto space-y-6 relative" id="sentence_quiz_section_root">
-      
-      {/* 〇×フィードバックアニメーション */}
-      <AnimatePresence>
-        {showFeedback && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            // pointer-events-none: 退場アニメーション中に下のボタンへのクリックを遮断しないようにする
-            // （多重回答は handleSelectOption 側の state ガードで防止済み）
-            className={`absolute inset-0 z-50 flex items-center justify-center rounded-3xl overflow-hidden backdrop-blur-xs pointer-events-none ${
-              showFeedback === "correct" ? "bg-emerald-500/10" : "bg-rose-500/10"
-            }`}
-          >
-            {/* 〇×は絵なので、読み上げには言葉で伝える */}
-            <span className="sr-only" role="status" aria-live="polite">
-              {showFeedback === "correct"
-                ? "正解です"
-                : `不正解です。正解は ${currentQuestion?.word ?? ""}、${currentQuestion?.translation ?? ""}`}
-            </span>
-            {showFeedback === "correct" ? (
-              <motion.div
-                initial={{ scale: 0, rotate: -45 }}
-                animate={{ scale: 1.2, rotate: 0 }}
-                exit={{ scale: 0 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                className="w-48 h-48 rounded-full border-16 border-emerald-500 flex items-center justify-center bg-white shadow-2xl"
-              >
-                {/* -500 は白い丸の上で 2.47 しかない（大きな文字の基準は 3.0） */}
-                <span className="text-emerald-600 font-extrabold text-9xl leading-none">〇</span>
-              </motion.div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <motion.div
-                  initial={{ scale: 0, rotate: 45 }}
-                  animate={{ scale: [1.2, 0.9, 1.1, 1], rotate: [0, -10, 10, 0] }}
-                  exit={{ scale: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-48 h-48 rounded-full border-16 border-rose-500 flex items-center justify-center bg-white shadow-2xl"
-                >
-                  <span className="text-rose-500 font-extrabold text-9xl leading-none font-sans">×</span>
-                </motion.div>
-
-                {/* 不正解の場合に正解を表示する */}
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  // pointer-events はパネル全体ではなくボタンだけに付ける。
-                  // パネル全体を pointer-events-auto にすると、退場アニメーション中に
-                  // パネルが次の問題の選択肢に重なり、そのタップを吸い取ってしまう。
-                  className="bg-slate-900/95 text-white px-6 py-3.5 rounded-2xl shadow-xl text-center max-w-sm border border-slate-800 backdrop-blur-xs flex flex-col items-center gap-1.5"
-                >
-                  <span className="text-[10px] text-rose-400 font-black tracking-wider uppercase">
-                    正解の単語 ＆ 日本語訳
-                  </span>
-                  <p className="text-base font-black text-white font-mono">
-                    {currentQuestion.word}
-                  </p>
-                  <p className="text-sm text-emerald-400 font-bold border-t border-slate-800 w-full pt-1.5 mt-1">
-                    {currentQuestion.translation}
-                  </p>
-
-                  <div className="border-t border-slate-800 w-full pt-2.5 mt-1 flex flex-col items-center gap-2">
-                    <span className="text-xs text-slate-300 font-semibold">
-                      次の問題まで あと <span className="text-yellow-400 font-black font-mono text-sm">{countdown}</span> 秒...
-                    </span>
-                    <button
-                      onClick={handleForceNext}
-                      className="text-xs bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black px-4.5 py-1.5 rounded-xl transition shadow-md border border-indigo-500/40 cursor-pointer pointer-events-auto"
-                    >
-                      すぐに次に進む
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!isFinished ? (
-        <div className="bg-white border rounded-3xl p-6 shadow-sm relative overflow-hidden" id="sentence_quiz_running_card">
-          
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={onBackToDashboard}
-              className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition"
-              id="btn_quit_sentence_quiz"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>中断して戻る</span>
-            </button>
-            <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black font-mono text-emerald-700">
-              Q: {currentIndex + 1} / {questions.length}
-            </div>
-          </div>
-
-          {/* 出題プログレス */}
-          <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-8">
-            <div 
-              className="bg-emerald-600 h-full rounded-full transition-all duration-300"
-              style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-            />
-          </div>
-
-          {/* 穴埋め例文の出題 */}
-          <div className="space-y-6 my-6 relative bg-gray-50/50 p-6 rounded-2xl border border-gray-100 text-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-              穴埋めに当てはまる英単語を選択
-            </span>
-            
-            <div className="space-y-4">
-              {/* 英文。穴埋め箇所を強調 */}
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-xl md:text-2xl font-black text-gray-800 tracking-wide leading-relaxed font-sans max-w-md antialiased break-words">
-                  {currentQuestion.sentence.split("[_____]").map((part, i, arr) => (
-                    <React.Fragment key={i}>
-                      {part}
-                      {i < arr.length - 1 && (
-                        <span className="inline-block px-3 py-0.5 mx-1.5 bg-yellow-100 border-2 border-dashed border-yellow-400 text-yellow-900 rounded-lg text-sm font-black font-mono animate-pulse">
-                          {selectedOption ? selectedOption : "_____"}
-                        </span>
-                      )}
-                    </React.Fragment>
-                  ))}
+  if (isFinished) {
+    const perfect = score === questions.length;
+    return (
+      <div className="max-w-xl mx-auto" id="sentence_quiz_section_root">
+        <QuizResult
+          id="sentence_result_card"
+          title="例文穴埋め完了！"
+          subtitle={reviewMode ? "復習・例文穴埋め" : `${LEVEL_LABELS[level]}・例文穴埋め`}
+          score={score}
+          total={questions.length}
+          // 例文は少し難しいので、1問あたり40P、全問正解で200P
+          points={score * 40 + (perfect ? 200 : 0)}
+          perfectBonus={200}
+          reviewTitle="英文の復習"
+          items={details.map((item, idx) => ({
+            key: `${idx}_${item.word.id}`,
+            isCorrect: item.isCorrect,
+            content: (
+              <>
+                <p className="text-[13px] font-semibold text-gray-800 leading-relaxed">
+                  {showHoles(item.word.sentence, `【 ${item.word.word} 】`)}
                 </p>
-                <button
-                  onClick={(e) => handleSpeakText(currentQuestion.sentence, e)}
-                  className="p-1.5 bg-white shadow-sm border hover:bg-gray-100 text-gray-600 rounded-full transition-all cursor-pointer active:scale-90"
-                  title="英文発音を聴く"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* 日本語訳をトグルまたは薄く表示 */}
-              <div className="pt-2 border-t border-gray-100 max-w-sm mx-auto">
-                {showTranslation ? (
-                  <p className="text-xs md:text-sm font-bold text-gray-600 leading-relaxed font-sans transition-all duration-300">
-                    和訳: {currentQuestion.sentenceTranslation}
+                <p className="text-xs text-gray-600 font-semibold leading-relaxed">
+                  訳: {item.word.sentenceTranslation}
+                </p>
+                {!item.isCorrect && (
+                  <p className="text-xs text-rose-700 font-black">
+                    あなたの答え: {item.userChoice}（正解: {item.word.word}）
                   </p>
-                ) : (
-                  <button
-                    onClick={() => setShowTranslation(true)}
-                    className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 font-bold transition cursor-pointer"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>日本語訳のヒントをみる</span>
-                  </button>
                 )}
-              </div>
-            </div>
+              </>
+            )
+          }))}
+          onRetry={handleRetry}
+          onBack={onBackToDashboard}
+          retryId="btn_retry_sentence_quiz"
+          backId="btn_back_dashboard_from_sentence_quiz"
+        />
+      </div>
+    );
+  }
+
+  const answered = selectedOption !== null;
+  const answeredCorrectly = answered && selectedOption!.toLowerCase() === currentQuestion.word.toLowerCase();
+
+  return (
+    <div className="max-w-xl mx-auto" id="sentence_quiz_section_root">
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm" id="sentence_quiz_running_card">
+        <div className="flex items-center justify-between mb-5">
+          <button
+            onClick={onBackToDashboard}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
+            id="btn_quit_sentence_quiz"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>中断して戻る</span>
+          </button>
+          <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black tabular-nums text-emerald-700">
+            Q: {currentIndex + 1} / {questions.length}
           </div>
-
-          {/* 4択選択肢 (今回は英単語のため、英単語が並ぶ) */}
-          <div className="grid grid-cols-2 gap-3" id="sentence_quiz_options_grid">
-            {currentQuestion.sentenceOptions.map((option, idx) => {
-              const isSelected = selectedOption === option;
-              const isCorrectAnswer = option.toLowerCase() === currentQuestion.word.toLowerCase();
-
-              let btnClass = "bg-white border-gray-200 text-gray-800 hover:bg-gray-50 hover:border-gray-300";
-              if (selectedOption !== null) {
-                if (isSelected) {
-                  btnClass = isCorrectAnswer
-                    ? "bg-emerald-50 border-emerald-400 text-emerald-900 font-black shadow-inner"
-                    : "bg-rose-50 border-rose-300 text-rose-900 font-black";
-                } else if (isCorrectAnswer) {
-                  btnClass = "bg-emerald-50 border-emerald-300 text-emerald-800 font-bold opacity-80";
-                } else {
-                  btnClass = "bg-gray-100/50 border-gray-100 text-gray-400 opacity-50";
-                }
-              }
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectOption(option)}
-                  disabled={selectedOption !== null}
-                  className={`border rounded-2xl p-4.5 text-center text-sm font-black font-mono tracking-tight transition-all cursor-pointer ${btnClass}`}
-                  id={`sentence_option_btn_${idx}`}
-                >
-                  {option}
-                </button>
-              );
-            })}
-          </div>
-
         </div>
-      ) : (
-        /* 例文クイズ・リザルト */
-        <div className="bg-white border rounded-3xl p-6 shadow-sm space-y-6" id="sentence_result_card">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto shadow-md">
-              <Award className="w-8 h-8 font-black" />
-            </div>
-            <h2 className="text-2xl font-black text-gray-900">例文穴埋め完了！</h2>
-            <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
-              {reviewMode
-                ? "復習・例文クイズリザルト"
-                : `${LEVEL_LABELS[level]}・例文クイズリザルト`}
-            </p>
-          </div>
 
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 flex justify-around text-center my-6">
-            <div>
-              <span className="text-xs text-gray-400 font-bold">正解数</span>
-              <p className="text-3xl font-black text-emerald-700 mt-1 font-mono">
-                {score} <span className="text-xs text-gray-400 font-bold">/ {questions.length}</span>
-              </p>
-            </div>
-            <div className="border-r border-gray-200" />
-            <div>
-              <span className="text-xs text-gray-400 font-bold">獲得スコア</span>
-              <p className="text-3xl font-black text-indigo-700 mt-1 font-mono">
-                +{score * 40 + (score === questions.length ? 200 : 0)} <span className="text-xs text-gray-400 font-bold">P</span>
-              </p>
-            </div>
-          </div>
+        {/* 出題プログレス */}
+        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-6">
+          <div 
+            className="bg-emerald-600 h-full rounded-full transition-all duration-300"
+            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+          />
+        </div>
 
-          {score === questions.length && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center text-amber-900 font-bold text-sm flex items-center justify-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-500 fill-amber-300" />
-              <span>パーフェクト！例文特別ボーナス +200 P 獲得！ 🎉</span>
-            </div>
-          )}
+        {/* 穴埋め例文の出題 */}
+        <div className="space-y-5 mb-6 bg-gray-50 p-5 rounded-2xl border border-gray-100 text-center">
+          <span className="text-xs font-black text-emerald-800">
+            穴埋めに当てはまる英単語を選択
+          </span>
 
-          {/* 小問レビュー */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-extrabold text-gray-700">英文の復習</h3>
-            <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1.5 p-1 rounded-2xl border border-gray-150 shadow-inner">
-              {details.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className={`p-4 border rounded-xl space-y-2.5 ${
-                    item.isCorrect ? "bg-emerald-50/40 border-emerald-100" : "bg-rose-50/40 border-rose-100"
-                  }`}
-                >
-                  <div className="flex justify-between items-start gap-1">
-                    <span className="text-xs font-black uppercase text-gray-400 font-mono">Q.{idx + 1}</span>
-                    {item.isCorrect ? (
-                      <span className="text-emerald-700 text-xs font-bold leading-none bg-emerald-100/60 px-2 py-0.5 rounded">正解</span>
-                    ) : (
-                      <span className="text-rose-700 text-xs font-bold leading-none bg-rose-100/60 px-2 py-0.5 rounded">誤答</span>
+          <div className="space-y-4">
+            {/* 英文。穴埋め箇所を強調。答えたあとは正解の語を入れて見せる */}
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xl md:text-2xl font-black text-gray-800 leading-relaxed max-w-md break-words">
+                {currentQuestion.sentence.split("[_____]").map((part, i, arr) => (
+                  <React.Fragment key={i}>
+                    {part}
+                    {i < arr.length - 1 && (
+                      <span
+                        data-testid="sentence_hole"
+                        className={`inline-block px-3 py-0.5 mx-1.5 rounded-lg text-base font-black ${
+                          answered
+                            ? "bg-emerald-50 border-2 border-emerald-400 text-emerald-900"
+                            : "bg-yellow-100 border-2 border-dashed border-yellow-400 text-yellow-900"
+                        }`}
+                      >
+                        {answered ? currentQuestion.word : "_____"}
+                      </span>
                     )}
-                  </div>
+                  </React.Fragment>
+                ))}
+              </p>
+              <button
+                onClick={(e) => handleSpeakText(answered ? showHoles(currentQuestion.sentence, currentQuestion.word) : currentQuestion.sentence, e)}
+                className="p-2 bg-white shadow-sm border border-gray-200 hover:bg-gray-100 text-gray-600 rounded-full transition-all cursor-pointer active:scale-90"
+                title="英文の発音を聴く"
+                aria-label="英文の発音を聴く"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+            </div>
 
-                  <p className="text-[13px] font-semibold text-gray-800 leading-relaxed font-sans">
-                    {showHoles(item.word.sentence, `【 ${item.word.word} 】`)}
-                  </p>
-                  <p className="text-xs text-gray-500 font-semibold leading-relaxed">
-                    訳: {item.word.sentenceTranslation}
-                  </p>
-                  {!item.isCorrect && (
-                    <p className="text-xs text-rose-700 font-black">
-                      あなたの誤回答: {item.userChoice} (正解: {item.word.word})
-                    </p>
-                  )}
-                </div>
-              ))}
+            {/* 日本語訳はヒントとして隠しておき、答えたあとは必ず見せる */}
+            <div className="pt-2 border-t border-gray-200 max-w-sm mx-auto">
+              {showTranslation || answered ? (
+                <p className="text-xs md:text-sm font-bold text-gray-600 leading-relaxed">
+                  和訳: {currentQuestion.sentenceTranslation}
+                </p>
+              ) : (
+                <button
+                  onClick={() => setShowTranslation(true)}
+                  className="inline-flex items-center gap-1 min-h-11 px-2 text-xs text-gray-600 hover:text-gray-800 font-bold transition cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>日本語訳のヒントをみる</span>
+                </button>
+              )}
             </div>
           </div>
-
-          <div className="pt-4 flex flex-col sm:flex-row justify-center gap-3">
-            <button
-              onClick={handleRetry}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-10 py-3.5 rounded-2xl shadow transition cursor-pointer text-sm flex items-center justify-center gap-2"
-              id="btn_retry_sentence_quiz"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>もう一度挑戦する</span>
-            </button>
-            <button
-              onClick={onBackToDashboard}
-              className="bg-white hover:bg-gray-50 text-gray-700 font-extrabold px-10 py-3.5 rounded-2xl border border-gray-200 shadow-2xs hover:shadow transition cursor-pointer text-sm"
-              id="btn_back_dashboard_from_sentence_quiz"
-            >
-              今日の画面に戻る
-            </button>
-          </div>
         </div>
-      )}
 
+        {/* 4択選択肢 (今回は英単語のため、英単語が並ぶ) */}
+        <div className="grid grid-cols-2 gap-3" id="sentence_quiz_options_grid">
+          {currentQuestion.sentenceOptions.map((option, idx) => {
+            const isSelected = selectedOption === option;
+            const isCorrectAnswer = option.toLowerCase() === currentQuestion.word.toLowerCase();
+
+            // 答えたあとも選択肢は見せたままにする。自分の選んだ語と正解を見比べられるように
+            let btnClass = "bg-white border-gray-200 text-gray-800 hover:bg-gray-50 hover:border-gray-300";
+            if (answered) {
+              if (isCorrectAnswer) btnClass = "bg-emerald-50 border-emerald-400 text-emerald-900";
+              else if (isSelected) btnClass = "bg-rose-50 border-rose-300 text-rose-900";
+              else btnClass = "bg-gray-50 border-gray-100 text-gray-600";
+            }
+
+            return (
+              <button
+                key={idx}
+                onClick={() => handleSelectOption(option)}
+                disabled={answered}
+                className={`border rounded-2xl p-4 min-h-14 text-center text-sm font-black transition-all cursor-pointer disabled:cursor-default flex items-center justify-center gap-1.5 ${btnClass}`}
+                id={`sentence_option_btn_${idx}`}
+              >
+                <span>{option}</span>
+                {answered && isCorrectAnswer && <Check className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />}
+                {answered && isSelected && !isCorrectAnswer && <X className="w-4 h-4 text-rose-700 shrink-0" aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+
+        {answered && (
+          answeredCorrectly ? (
+            <AnswerFeedback correct message="正解です" />
+          ) : (
+            <AnswerFeedback
+              correct={false}
+              message={`不正解です。正解は「${currentQuestion.word}」（${currentQuestion.translation}）`}
+              onNext={() => handleNext(score)}
+              nextLabel={currentIndex + 1 < questions.length ? "次の問題へ" : "結果を見る"}
+            >
+              <p>
+                <span className="font-black text-gray-900">{currentQuestion.word}</span>
+                <span className="text-gray-700">　{currentQuestion.translation}</span>
+              </p>
+              <p className="text-gray-700">
+                あなたの答え: <span className="font-black text-rose-800">{selectedOption}</span>
+              </p>
+            </AnswerFeedback>
+          )
+        )}
+      </div>
     </div>
   );
 }

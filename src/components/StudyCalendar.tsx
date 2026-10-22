@@ -116,13 +116,13 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
       <div className="mt-4 flex flex-wrap gap-2.5 text-xs font-bold">
         <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-150 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 rounded-xl flex items-center gap-1.5">
           <Flame className="w-3.5 h-3.5" />
-          <span>連続学習 <span className="font-mono text-sm">{streak}</span> 日</span>
+          <span>連続学習 <span className="tabular-nums text-sm">{streak}</span> 日</span>
         </div>
         <div className="px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-xl">
-          学習した日: <span className="font-mono text-sm">{activeDays}</span> 日
+          学習した日: <span className="tabular-nums text-sm">{activeDays}</span> 日
         </div>
         <div className="px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-xl">
-          累計解答: <span className="font-mono text-sm">{totalAnswers}</span> 問
+          累計解答: <span className="tabular-nums text-sm">{totalAnswers}</span> 問
         </div>
       </div>
 

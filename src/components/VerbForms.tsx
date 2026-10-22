@@ -111,7 +111,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {(["AAA", "ABA", "ABB", "ABC"] as const).map(p => (
             <div key={p} className={`border rounded-xl px-2.5 py-2 ${PATTERN_COLORS[p]}`}>
-              <p className="font-black text-xs font-mono">{p}</p>
+              <p className="font-black text-xs tabular-nums">{p}</p>
               <p className="text-[10px] font-bold leading-snug">{PATTERN_NOTES[p]}</p>
             </div>
           ))}
@@ -153,7 +153,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
               }`}
             >
               {f.label}
-              <span className="ml-1 font-mono opacity-70">{counts[f.key] ?? 0}</span>
+              <span className="ml-1 tabular-nums opacity-70">{counts[f.key] ?? 0}</span>
             </button>
           ))}
         </div>
@@ -205,7 +205,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
                   >
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-black text-gray-900 dark:text-slate-100">{t.base}</span>
+                        <span className="tabular-nums font-black text-gray-900 dark:text-slate-100">{t.base}</span>
                         <button
                           onClick={() => speak(`${t.base}, ${t.past}, ${t.participle}`)}
                           aria-label={`${t.base} の活用を発音する`}
@@ -214,17 +214,17 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
                           <Volume2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <span className={`inline-block mt-1 px-1.5 py-0.5 rounded border text-[9px] font-black font-mono ${PATTERN_COLORS[t.pattern]}`}>
+                      <span className={`inline-block mt-1 px-1.5 py-0.5 rounded border text-[9px] font-black tabular-nums ${PATTERN_COLORS[t.pattern]}`}>
                         {t.pattern}
                       </span>
                     </td>
-                    <td className={`px-3 py-2.5 font-mono ${t.irregular ? "font-black text-rose-700 dark:text-rose-300" : "font-semibold text-gray-600 dark:text-slate-300"}`}>
+                    <td className={`px-3 py-2.5 tabular-nums ${t.irregular ? "font-black text-rose-700 dark:text-rose-300" : "font-semibold text-gray-600 dark:text-slate-300"}`}>
                       {t.past}
                     </td>
-                    <td className={`px-3 py-2.5 font-mono ${t.irregular ? "font-black text-rose-700 dark:text-rose-300" : "font-semibold text-gray-600 dark:text-slate-300"}`}>
+                    <td className={`px-3 py-2.5 tabular-nums ${t.irregular ? "font-black text-rose-700 dark:text-rose-300" : "font-semibold text-gray-600 dark:text-slate-300"}`}>
                       {t.participle}
                     </td>
-                    <td className="px-3 py-2.5 font-mono font-semibold text-gray-500 dark:text-slate-400">{t.ing}</td>
+                    <td className="px-3 py-2.5 tabular-nums font-semibold text-gray-500 dark:text-slate-400">{t.ing}</td>
                     <td className="px-3 py-2.5 font-bold text-gray-700 dark:text-slate-300 text-xs">{t.word.translation}</td>
                   </tr>
                 ))}
