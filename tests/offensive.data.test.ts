@@ -12,7 +12,7 @@ import {
   OFFENSIVE_JA,
   cleanSenseMeaning,
   isOffensiveEntry
-} from "../scripts/offensiveTerms";
+} from "../src/offensiveTerms";
 
 /**
  * 露骨な性的表現・罵倒語・差別語を、教材のどこにも出さない。
@@ -21,7 +21,7 @@ import {
  * 辞書の俗語や差別語がそのまま画面に出ていた（辞書のいちばん最初の語 a のコロケーションに
  * "son of a bitch"、suck の語義に「フェラチオをする」、mad に「気違いの」）。
  * 生成し直したり単語を足したりすると、型検査もビルドも通ったまま戻ってくるので、
- * 決まり（scripts/offensiveTerms.ts）ですべてのデータを検査する。
+ * 決まり（src/offensiveTerms.ts）ですべてのデータを検査する。
  */
 
 /** 値の中の文字列をすべて取り出す（長文・文法・語義分別のような入れ子のデータ用） */

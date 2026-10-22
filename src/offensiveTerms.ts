@@ -6,10 +6,14 @@
  * （辞書のいちばん最初の語 a のコロケーションに "son of a bitch いけ好かないやつ"、
  *  suck の語義に「フェラチオをする」、mad の語義に「気違いの」など）。
  *
- * ここを1か所の決まりにして、次の3つが同じものを見る。
+ * ここを1か所の決まりにして、次の4つが同じものを見る。
  *   - scripts/remove_offensive.ts … 今あるデータから取り除く
  *   - scripts/bake_senses.ts / bake_usage.ts … 作り直したときに再び入れない
  *   - tests/offensive.data.test.ts … すべてのデータを検査する（再混入を見張る）
+ *   - 利用者が単語を足す経路（AI・CSV・PDF。src/components/WordImport.tsx と server.ts）
+ *     … 収録データから外した語を、利用者の追加でまた入れられないようにする
+ *
+ * 画面（単語の取り込み）とサーバーの両方から読むので、Node の機能を使わない。
  *
  * 暴力・死・病気・犯罪を表す語（murder / suicide / corpse / slavery など）は、
  * ニュースや入試の英文に普通に出てくる語なので対象にしない。
@@ -133,3 +137,26 @@ export function cleanSenseMeaning(meaning: string): string | null {
 export function isOffensiveEntry(english: string, japanese: string): boolean {
   return OFFENSIVE_EN.test(english) || OFFENSIVE_JA.test(japanese);
 }
+
+/** 1つの文字列に、出さない英語・日本語が含まれているか */
+export function isOffensiveText(text: string): boolean {
+  return OFFENSIVE_EN.test(text) || OFFENSIVE_JA.test(text);
+}
+
+/**
+ * 利用者が足そうとしている単語（AI・CSV・PDF）に、出さない語・表現が含まれているか。
+ * 見出しだけでなく訳と例文も見る。AIは無害な綴りに露骨な訳や例文を付けて返すことがあり、
+ * CSV も見出しは普通の語で例文だけが不適切なことがある。
+ */
+export function isOffensiveWord(w: {
+  word?: unknown;
+  translation?: unknown;
+  sentence?: unknown;
+  sentenceTranslation?: unknown;
+}): boolean {
+  return [w.word, w.translation, w.sentence, w.sentenceTranslation]
+    .some(v => typeof v === "string" && isOffensiveText(v));
+}
+
+/** 追加を断るときの文言（画面とサーバーでそろえる） */
+export const OFFENSIVE_WORD_MESSAGE = "不適切な表現を含む単語は追加できません。";

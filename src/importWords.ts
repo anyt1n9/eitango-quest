@@ -3,6 +3,7 @@ import { pickDistractors, Candidate } from "./distractors";
 import { getWordPos, inferPartOfSpeech } from "./pos";
 import { shuffle } from "./shuffle";
 import { toFillInSentence } from "./fillIn";
+import { isOffensiveText } from "./offensiveTerms";
 
 /**
  * 外から入ってきた単語（CSV取り込み・PDF抽出・AI生成）を、
@@ -107,8 +108,11 @@ export function normalizeImportedWord(
 
   const level: Level = VALID_LEVELS.includes(raw?.level) ? raw.level : "senior";
 
+  // AIが付けてきた誤答に不適切な語が混ざっていたら使わない（足りない分は収録語から補う）
   const strList = (v: any): string[] =>
-    Array.isArray(v) ? v.filter((x: any) => typeof x === "string" && x.trim() !== "") : [];
+    Array.isArray(v)
+      ? v.filter((x: any) => typeof x === "string" && x.trim() !== "" && !isOffensiveText(x))
+      : [];
 
   // 誤選択肢を同じ品詞から選ぶために品詞を確定させる
   const pos: PartOfSpeech = VALID_POS.includes(raw?.pos)

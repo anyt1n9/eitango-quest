@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
 import { parseCSV, buildDistractors, normalizeImportedWord } from "../importWords";
+import { isOffensiveText, isOffensiveWord, OFFENSIVE_WORD_MESSAGE } from "../offensiveTerms";
 import { playChime } from "../sound";
 import { shuffle } from "../shuffle";
 import { inferPartOfSpeech } from "../pos";
@@ -150,6 +151,9 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
         const newWords: Word[] = [];
         let duplicateCount = 0;
+        // 露骨な表現・罵倒語・差別語を含む行（src/offensiveTerms.ts）。収録データから外した語を
+        // 取り込みでまた入れられないようにする。見出しが普通の語でも、訳や例文で当たれば外す
+        let blockedCount = 0;
         let tempVocabulary = [...vocabulary];
 
         for (let i = startIndex; i < rows.length; i++) {
@@ -160,6 +164,11 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           const rawTranslation = row[1].trim();
 
           if (!rawWord || !rawTranslation) continue;
+
+          if (isOffensiveWord({ word: rawWord, translation: rawTranslation, sentence: row[3], sentenceTranslation: row[4] })) {
+            blockedCount++;
+            continue;
+          }
 
           const isDuplicate = tempVocabulary.some(w => w.word.toLowerCase() === rawWord.toLowerCase());
           if (isDuplicate) {
@@ -218,7 +227,9 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         }
 
         if (newWords.length === 0) {
-          if (duplicateCount > 0) {
+          if (blockedCount > 0) {
+            throw new Error(`追加された単語がありません。${OFFENSIVE_WORD_MESSAGE}（${blockedCount}件を除外）`);
+          } else if (duplicateCount > 0) {
             throw new Error(`追加された単語がありません（${duplicateCount}件の重複単語がスキップされました）。`);
           } else {
             throw new Error("インポートできる有効なデータがありませんでした。1列目が英単語、2列目が日本語訳であるかご確認ください。");
@@ -233,6 +244,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         playChime("bonus");
         setCsvSuccess(
           `インポート成功！🎉 ${newWords.length}件の単語を新しく登録しました！ (重複スキップ: ${duplicateCount}件, 獲得スコア: +${scoreBonus})`
+          + (blockedCount > 0 ? `\n不適切な表現を含むため ${blockedCount}件を除外しました。` : "")
         );
       } catch (err: any) {
         console.error(err);
@@ -325,9 +337,15 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
           const rawWords: any[] = Array.isArray(data.words) ? data.words : [];
           // AIの抽出結果を保存できる形に整える（不正なレベルや選択肢を補正する）
-          const words: Word[] = rawWords
+          const normalized: Word[] = rawWords
             .map((w, i) => normalizeImportedWord(w, "pdf", i, vocabulary))
             .filter((w): w is Word => w !== null);
+          // PDFの本文や AI の抽出結果に不適切な語が混ざっていても登録しない（サーバーでも除いている）
+          const words = normalized.filter(w => !isOffensiveWord(w));
+          const blockedCount = normalized.length - words.length;
+          if (words.length === 0 && blockedCount > 0) {
+            throw new Error(`追加された単語はありません。${OFFENSIVE_WORD_MESSAGE}（${blockedCount}件を除外）`);
+          }
           if (words.length === 0) {
             throw new Error("PDFから学習用英単語をうまく抽出できませんでした。テキストが読み取れるドキュメントかご確認ください。");
           }
@@ -358,6 +376,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           playChime("bonus");
           setPdfSuccess(
             `解析・インポートに成功しました！🎉\nAIがPDFの文脈から ${newWordsToAdd.length}件 の重要単語を自動抽出しました！${duplicateCount > 0 ? ` [重複スキップ: ${duplicateCount}件]` : ""} (獲得スコア: +${scoreBonus})`
+            + (blockedCount > 0 ? `\n不適切な表現を含むため ${blockedCount}件を除外しました。` : "")
           );
 
         } catch (err: any) {
@@ -436,6 +455,11 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
   const handleAddAIWord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (addingRef.current || !newWord.trim()) return;
+    // 不適切な語は AI に問い合わせる前に断る（呼び出しを1回ぶん無駄にしない）
+    if (isOffensiveText(newWord.trim())) {
+      setAddingError(OFFENSIVE_WORD_MESSAGE);
+      return;
+    }
     addingRef.current = true;
     setIsAdding(true);
     setAddingError("");
@@ -456,6 +480,10 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
       const newWordObject = normalizeImportedWord(data, "ai", 0, vocabulary);
       if (!newWordObject) {
         throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
+      }
+      // 綴りは無害でも、AI が露骨な訳や例文を付けて返すことがある
+      if (isOffensiveWord(newWordObject)) {
+        throw new Error(OFFENSIVE_WORD_MESSAGE);
       }
 
       // 既存の単語と同じ英単語があれば重複追加を防ぐ
