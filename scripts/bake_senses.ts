@@ -31,6 +31,7 @@ import path from "path";
 import { PartOfSpeech } from "../src/types";
 import { inferPartOfSpeech, posFromJapanese, wordLevelPos } from "../src/pos";
 import { loadWordNet, posOfWithForms } from "./wordnetIndex";
+import { cleanSenseMeaning, OFFENSIVE_EN } from "./offensiveTerms";
 
 const EJDICT_BASE = "https://raw.githubusercontent.com/kujirahand/EJDict/master/src";
 const WORDNET_URL = "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip";
@@ -648,7 +649,21 @@ async function main() {
       });
     }
 
-    table[w.id] = from ? withExamples.map(s => ({ ...s, from })) : withExamples;
+    // 辞書が載せている露骨な語義・差別語は出さない（決まりは scripts/offensiveTerms.ts）。
+    // 断片だけが不適切な語義は言い換え・断片の削除で残し、何も残らなければ語義ごと落とす
+    const cleaned = withExamples.flatMap(s => {
+      const meaning = cleanSenseMeaning(s.meaning);
+      if (meaning === null) return [];
+      // 用例は withExamples で足した項目（型の上では ranked の要素なので広げる）
+      const out: typeof s & { usage?: string } = { ...s, meaning };
+      if (out.usage && OFFENSIVE_EN.test(out.usage)) delete out.usage;
+      return [out];
+    });
+    if (cleaned.length === 0) continue;
+    // 落とした結果、割合がすべて 0% になったら割合ごと示さない（rankSenses と同じ決まり）
+    if (cleaned.every(s => s.share === 0)) for (const s of cleaned) delete s.share;
+
+    table[w.id] = from ? cleaned.map(s => ({ ...s, from })) : cleaned;
     if (ranked.length >= 2) multi++;
     if (ranked.some(s => s.share !== undefined)) withShare++;
     important += ranked.filter(s => s.important).length;

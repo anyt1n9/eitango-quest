@@ -1314,7 +1314,6 @@ export const advanced: SentenceRewrites = {
   a2298: ["Shakespeare's plays are part of the [_____] of English literature.", "シェイクスピアの戯曲は英文学の正典の一部だ。"],
   a2299: ["The sermon was empty religious [_____] with no real feeling.", "その説教は真心のない空疎な偽善の言葉だった。"],
   a2300: ["That critic is so [_____] that she finds fault with every small detail.", "あの批評家はあら探しが好きで、どんな細かい点にもけちをつける。"],
-  a2301: ["The monk tried to overcome his [_____] desires.", "その僧は肉欲を克服しようとした。"],
   a2302: ["The coach [_____]d the players for their lazy performance.", "監督は怠慢なプレーをした選手たちを厳しく叱った。", ["exculpate", "affiliate", "exhilarate"]],
   a2303: ["The minister's denial of the rumors was [_____].", "大臣はうわさをきっぱりと否定した。"],
   a2304: ["Writing about her pain was a kind of [_____] for her.", "痛みについて書くことは、彼女にとって一種の心の浄化だった。"],
