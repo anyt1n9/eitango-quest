@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { PartOfSpeech } from "../src/types";
+import { isOffensiveEntry } from "./offensiveTerms";
 
 /**
  * 語法・コロケーション・語族データを焼き込む（src/data/wordUsage.ts を生成）。
@@ -232,6 +233,8 @@ async function main() {
           if (!body) continue;                       // 訳が付けられない語は出さない
           const meaning = shortGloss(body);
           if (!meaning) continue;
+          // horny「角製の」のように訳は無害でも、英語では俗語として読まれる語は出さない
+          if (isOffensiveEntry(rel, meaning)) continue;
           seenRel.add(rel);
           family.push({ word: rel, meaning, pos: POS_OF_LETTER[p.pos === "s" ? "a" : p.pos] || "other" });
         }
@@ -278,6 +281,8 @@ async function main() {
       if (!body) continue;                           // 和訳の無い句は出さない
       const meaning = shortGloss(body, 20);
       if (!meaning) continue;
+      // 露骨な句・罵倒語・差別語は出さない（a の "son of a bitch" など。scripts/offensiveTerms.ts）
+      if (isOffensiveEntry(phrase, meaning)) continue;
       collocations.push({ phrase, meaning });
       if (collocations.length >= MAX_COLLOCATIONS) break;
     }

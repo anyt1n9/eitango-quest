@@ -112,7 +112,7 @@ export function translationsOverlap(a: string, b: string): boolean {
 }
 
 /** 同じ順序で再現できる乱数（語のIDから作る）。回すたびに誤答が変わらないように */
-function seeded(seed: string): () => number {
+export function seeded(seed: string): () => number {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
   return () => {
@@ -123,7 +123,7 @@ function seeded(seed: string): () => number {
   };
 }
 
-const LEVEL_ORDER = ["junior", "senior", "senior2", "senior3", "advanced"];
+export const LEVEL_ORDER = ["junior", "senior", "senior2", "senior3", "advanced"];
 
 interface V {
   id: string;
@@ -134,7 +134,7 @@ interface V {
 }
 
 /** その語が入っている synset と、そこから1つ関係をたどった synset に出てくる見出し */
-function relatedLemmas(wn: WordNet, lemma: string): Set<string> {
+export function relatedLemmas(wn: WordNet, lemma: string): Set<string> {
   const out = new Set<string>([lemma]);
   for (const pos of ["noun", "verb", "adjective", "adverb"]) {
     for (const key of wn.index.get(`${lemma}|${pos}`) || []) {

@@ -182,6 +182,25 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   `tests/data/wordnetPos.ts`（`scripts/bake_wordnet_pos.ts` が書き出す WordNet の品詞一覧）と
   突き合わせ、辞書が1度も記録していない品詞で教えている語は
   `NOT_IN_WORDNET_ON_PURPOSE` に理由を書いたものだけにしている。
+- **不適切な語のテスト** — `tests/offensive.data.test.ts`。単語データ・語義・語法は辞書
+  （EJDict / WordNet）から機械的に作っているため、辞書の俗語や差別語がそのまま画面に出ていた
+  （辞書のいちばん最初の語 a のコロケーションに "son of a bitch いけ好かないやつ"、
+  suck の語義に「フェラチオをする」、mad の語義に「気違いの」）。
+  決まりは `scripts/offensiveTerms.ts` の1か所に置く（外した見出し語と理由・出さない英語・
+  出さない日本語・差別語の言い換え）。`scripts/remove_offensive.ts` が今のデータから取り除き、
+  `bake_senses.ts` / `bake_usage.ts` は作り直すときに入れない。このテストが全データ
+  （書き下ろしの長文・文法・語義分別も）を検査する。
+  見出し語を外したら、**他の語の誤答に残った訳と綴りも入れ替える**（消した訳が四択に出続ける）。
+  入れ替えるのはその1つだけにし、四択ごと作り直さない（例文に合わせて選んだ誤答が崩れる）。
+  `scripts/sentences/<レベル>.ts` の書き直しは ID で引くので、そちらからも消す
+  （残っていると `tests/sentenceRewrites.data.test.ts` が「収録語に無い」で落ちる）。
+  語義は区切り（, ; ・ 、）ごとに見る。「気が狂った,気違いの」は「気が狂った」を残し、
+  何も残らないときだけ語義ごと外す。
+  暴力・死・犯罪の語（murder / suicide / slavery）は入試やニュースの英文に普通に出るので対象外。
+  見出しごと外すのは、その語そのものが露骨・侮蔑的で、教えている訳もそうなっている語だけ
+  （carnal「肉欲の」/ idiot / dumb「口のきけない」/ freak「奇形の」）。
+  熟語の一部として当たる語（理性的・不具合・病原体・"Tom and Dick"）を誤って消さないことも
+  同じテストで見ている。
 - **類義語クイズのテスト** — `tests/synonyms.data.test.ts`。`src/data/synonyms.ts`
   （`scripts/bake_synonyms.ts` が生成）を検査する。同義の組は「WordNet で同じ語義(synset)に
   入っている」**かつ**「教材の訳が、どちらかの第一の訳で重なる」ものだけ。

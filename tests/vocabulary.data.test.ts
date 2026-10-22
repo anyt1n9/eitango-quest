@@ -347,7 +347,6 @@ describe("品詞は一般的に使われるものに合わせる", () => {
     are: "be動詞。WordNet の am / are は面積の単位（名詞）としての見出し",
     audio: "訳「音声の」。WordNet は名詞の限定用法として扱うが、教材は形容詞として教える",
     pilot: "訳「試験的な」（a pilot program）。WordNet は名詞の限定用法として扱う",
-    freak: "訳「異常な」（a freak storm）。WordNet は名詞の限定用法として扱う",
     freezing: "訳「凍えるような」。分詞形容詞で、WordNet は名詞（凍結）だけを見出しに持つ",
     elitist: "訳「エリート主義の」。WordNet は名詞（エリート主義者）だけを見出しに持つ",
     curate: "訳「（展示を）企画する」。近年の動詞用法で、WordNet は名詞（副牧師）だけを持つ",
