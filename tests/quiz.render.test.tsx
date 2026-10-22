@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Quiz from "../src/components/Quiz";
 import { makeWord, makeWords } from "./fixtures";
@@ -95,9 +95,10 @@ describe("日→英モード", () => {
     const heading = screen.getByRole("heading");
     expect(heading).toHaveTextContent("美しい");
     expect(heading).not.toHaveTextContent("beautiful");
-    // 発音記号も答えの手がかりになるので出さない
-    expect(document.querySelector("#quiz_running_card .font-mono")?.textContent)
-      .not.toMatch(/beautiful/);
+    // 選択肢の外（出題文・発音記号など）にも出さない
+    const card = document.getElementById("quiz_running_card")!.textContent!;
+    const options = document.getElementById("quiz_options_container")!.textContent!;
+    expect(card.replace(options, "")).not.toMatch(/beautiful/);
   });
 
   it("答えである英単語を読み上げない", () => {
@@ -145,9 +146,67 @@ describe("回答したとき", () => {
     await user.click(optionButtons().find(b => b.textContent?.includes("重い"))!);
     expect(recordAnswer).toHaveBeenCalledWith("w_beautiful", false);
     expect(setWrongWords).toHaveBeenCalled();
-    // 覚え直せるよう、正解の単語と訳を必ず出す
-    expect(screen.getByText("正解の単語 ＆ 日本語訳")).toBeInTheDocument();
-    expect(screen.getByText("すぐに次に進む")).toBeInTheDocument();
+    // 覚え直せるよう、正解の単語と訳を必ず出す（読み上げにも伝える）
+    expect(screen.getByRole("status")).toHaveTextContent("不正解です。正解は「美しい」（beautiful）");
+    expect(document.getElementById("answer_feedback")).toHaveTextContent("beautiful");
+    expect(document.getElementById("btn_next_question")).toHaveTextContent("結果を見る");
+  });
+
+  it("誤答のあとは選択肢を見せたまま、正解と自分の答えに印を付ける", async () => {
+    // 以前はカード全体を大きな×でぼかして覆い、見比べられなかった
+    const user = userEvent.setup();
+    renderQuiz();
+    await user.click(optionButtons().find(b => b.textContent?.includes("重い"))!);
+    const right = optionButtons().find(b => b.textContent?.includes("美しい"))!;
+    const mine = optionButtons().find(b => b.textContent?.includes("重い"))!;
+    expect(right.className).toContain("border-emerald-400");
+    expect(mine.className).toContain("border-rose-300");
+    expect(right).toBeVisible();
+  });
+
+  it("誤答のあとは、押すまで次へ進まない（読み終える前に消さない）", async () => {
+    vi.useFakeTimers();
+    try {
+      const words = makeWords(3);
+      const { setStats } = renderQuiz({ vocabulary: words, customWords: words, questionCount: 3 });
+      const q = screen.getByRole("heading").textContent!;
+      const correct = words.find(w => w.word === q)!.translation;
+      fireEvent.click(optionButtons()[optionLabels().findIndex(l => l !== correct)]);
+      act(() => { vi.advanceTimersByTime(60_000); });
+      expect(screen.getByText("Q: 1 / 3")).toBeInTheDocument();
+      fireEvent.click(document.getElementById("btn_next_question")!);
+      expect(screen.getByText("Q: 2 / 3")).toBeInTheDocument();
+      expect(setStats).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("正解のときは少しで自動で次へ進む", () => {
+    vi.useFakeTimers();
+    try {
+      const words = makeWords(3);
+      renderQuiz({ vocabulary: words, customWords: words, questionCount: 3 });
+      const q = screen.getByRole("heading").textContent!;
+      const correct = words.find(w => w.word === q)!.translation;
+      fireEvent.click(optionButtons()[optionLabels().indexOf(correct)]);
+      expect(document.getElementById("btn_next_question")).toBeNull();
+      act(() => { vi.advanceTimersByTime(1300); });
+      expect(screen.getByText("Q: 2 / 3")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("「次の問題へ」を2回続けて押しても、1問しか進まない", () => {
+    const words = makeWords(3);
+    renderQuiz({ vocabulary: words, customWords: words, questionCount: 3 });
+    const q = screen.getByRole("heading").textContent!;
+    const correct = words.find(w => w.word === q)!.translation;
+    fireEvent.click(optionButtons()[optionLabels().findIndex(l => l !== correct)]);
+    const next = document.getElementById("btn_next_question")!;
+    act(() => { next.click(); next.click(); });
+    expect(screen.getByText("Q: 2 / 3")).toBeInTheDocument();
   });
 
   it("二重に回答できない", async () => {

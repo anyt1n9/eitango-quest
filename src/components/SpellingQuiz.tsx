@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Check, X, Award, Trophy, Volume2, Loader2, RotateCcw, Lightbulb, Keyboard } from "lucide-react";
+import { ArrowLeft, Check, X, Volume2, Loader2, Lightbulb, Keyboard } from "lucide-react";
 import { Level, Word, UserStats } from "../types";
 import { getAudioContext } from "../sound";
 import { SrsState } from "../srs";
@@ -9,6 +9,8 @@ import { isSpellingCorrect, diffChars } from "../spelling";
 import { shuffle } from "../shuffle";
 import { canSpell } from "../quizFormats";
 import { toFillInSentence, showHoles } from "../fillIn";
+import { LEVEL_LABELS } from "../levelLabels";
+import QuizResult from "./QuizResult";
 
 /**
  * 綴り入力クイズ。
@@ -182,9 +184,12 @@ export default function SpellingQuiz({
   };
 
   const handleNext = () => {
+    // 「次の問題へ」の二度押しで1問飛ばさない（最後の問題なら点数を二重に足さない）。
+    // state の judged が効くのは再描画のあとなので、解答の印で同期的に止める
+    if (!answeredRef.current) return;
+    answeredRef.current = false;
     const finalScore = score;
     setJudged(null);
-    answeredRef.current = false;
     setInput("");
     setShowHint(false);
     if (currentIndex + 1 < questions.length) {
@@ -229,91 +234,37 @@ export default function SpellingQuiz({
   }
 
   if (isFinished) {
+    const perfect = score === questions.length;
     return (
-      <div className="max-w-xl mx-auto space-y-6">
-        <div className="bg-white border rounded-3xl p-6 shadow-sm space-y-6" id="spelling_result_card">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center mx-auto shadow-md">
-              <Award className="w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-black text-gray-900">綴りクイズ完了！</h2>
-            <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">spelling challenge result</p>
-          </div>
-
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 flex justify-around text-center">
-            <div>
-              <span className="text-xs text-gray-400 font-bold">正解数</span>
-              <p className="text-3xl font-black text-indigo-700 mt-1 font-mono">
-                {score} <span className="text-xs text-gray-400 font-bold">/ {questions.length}</span>
-              </p>
-            </div>
-            <div className="border-r border-gray-200" />
-            <div>
-              <span className="text-xs text-gray-400 font-bold">獲得スコア</span>
-              <p className="text-3xl font-black text-emerald-600 mt-1 font-mono">
-                +{score * 50 + (score === questions.length ? 250 : 0)}{" "}
-                <span className="text-xs text-gray-400 font-bold">P</span>
-              </p>
-            </div>
-          </div>
-
-          {score === questions.length && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center text-amber-900 font-bold text-sm flex items-center justify-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-500 fill-amber-300" />
-              <span>全問正解！特別ボーナス +250 P 贈呈！ 🎉</span>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            <h3 className="text-sm font-extrabold text-gray-700">書けなかった単語の振り返り</h3>
-            <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1.5 border border-gray-150 p-2.5 rounded-2xl shadow-inner">
-              {details.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`p-3.5 border rounded-xl ${
-                    item.isCorrect ? "bg-emerald-50/40 border-emerald-100" : "bg-rose-50/40 border-rose-100"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-sm font-mono text-gray-900 select-all">{item.word.word}</span>
-                    {item.isCorrect ? (
-                      <span className="text-emerald-600 font-bold text-xs bg-emerald-100/60 px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <Check className="w-3 h-3 stroke-3" />
-                        <span>正解</span>
-                      </span>
-                    ) : (
-                      <span className="text-rose-600 font-bold text-xs bg-rose-100/60 px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <X className="w-3 h-3 stroke-3" />
-                        <span>誤答</span>
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 font-medium mt-1">意味: {item.word.translation}</p>
-                  {!item.isCorrect && (
-                    <p className="text-xs text-rose-700 font-bold mt-0.5 font-mono">あなたの入力: {item.userInput}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-2 flex flex-col sm:flex-row justify-center gap-3">
-            <button
-              onClick={handleRetry}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-10 py-3.5 rounded-2xl shadow cursor-pointer transition text-sm flex items-center justify-center gap-2"
-              id="btn_retry_spelling"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>もう一度挑戦する</span>
-            </button>
-            <button
-              onClick={onBackToDashboard}
-              className="bg-white hover:bg-gray-50 text-gray-700 font-extrabold px-10 py-3.5 rounded-2xl border border-gray-200 shadow-2xs cursor-pointer transition text-sm"
-            >
-              今日の画面に戻る
-            </button>
-          </div>
-        </div>
+      <div className="max-w-xl mx-auto">
+        <QuizResult
+          id="spelling_result_card"
+          title="綴りクイズ完了！"
+          subtitle={reviewMode ? "復習・綴りを書く" : `${LEVEL_LABELS[level]}・綴りを書く`}
+          score={score}
+          total={questions.length}
+          // 綴りを書く問題は四択より難しいので1問50P、全問正解で250P
+          points={score * 50 + (perfect ? 250 : 0)}
+          perfectBonus={250}
+          reviewTitle="書いた単語の振り返り"
+          items={details.map((item, idx) => ({
+            key: `${idx}_${item.word.id}`,
+            isCorrect: item.isCorrect,
+            content: (
+              <>
+                <span className="block font-bold text-sm text-gray-900 select-all">{item.word.word}</span>
+                <p className="text-xs text-gray-600 font-medium">意味: {item.word.translation}</p>
+                {!item.isCorrect && (
+                  <p className="text-xs text-rose-700 font-bold">あなたの入力: {item.userInput}</p>
+                )}
+              </>
+            )
+          }))}
+          onRetry={handleRetry}
+          onBack={onBackToDashboard}
+          retryId="btn_retry_spelling"
+          backId="btn_back_dashboard_from_spelling"
+        />
       </div>
     );
   }
@@ -327,17 +278,17 @@ export default function SpellingQuiz({
 
   return (
     <div className="max-w-xl mx-auto space-y-6" id="spelling_quiz_root">
-      <div className="bg-white border rounded-3xl p-6 shadow-sm" id="spelling_running_card">
+      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm" id="spelling_running_card">
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition py-2"
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
             id="btn_quit_spelling"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>中断して戻る</span>
           </button>
-          <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black font-mono text-indigo-700">
+          <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black tabular-nums text-indigo-700">
             Q: {currentIndex + 1} / {questions.length}
           </div>
         </div>
@@ -350,7 +301,7 @@ export default function SpellingQuiz({
         </div>
 
         <div className="text-center space-y-4 mb-8">
-          <span className="text-xs font-black uppercase tracking-wider text-indigo-500 font-mono flex items-center justify-center gap-1.5">
+          <span className="text-xs font-black text-indigo-700 flex items-center justify-center gap-1.5">
             <Keyboard className="w-3.5 h-3.5" />
             {reviewMode ? "🔁 復習 — 日本語訳から英単語を書く" : "日本語訳から英単語を書く"}
           </span>

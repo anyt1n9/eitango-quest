@@ -103,7 +103,6 @@ export default function SynonymQuiz({
         questions={questions}
         error={error}
         emptyMessage="このレベルには、類義語クイズに出せる語がまだありません。"
-        englishOptions
         renderPrompt={q => (
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-3">
@@ -125,9 +124,9 @@ export default function SynonymQuiz({
           return (
             <>
               <p>
-                <span className="font-black font-mono">{q.word.word}</span>（{q.word.translation}）
+                <span className="font-black">{q.word.word}</span>（{q.word.translation}）
                 {" ＝ "}
-                <span className="font-black font-mono">{q.answerWord.word}</span>（{q.answerWord.translation}）
+                <span className="font-black">{q.answerWord.word}</span>（{q.answerWord.translation}）
               </p>
               {q.others.length > 0 && (
                 <p className="text-gray-700">
@@ -136,7 +135,7 @@ export default function SynonymQuiz({
               )}
               {chosen && choice !== q.answer && (
                 <p className="text-gray-700">
-                  選んだ <span className="font-mono font-bold">{chosen.word}</span> は「{chosen.translation}」という意味です。
+                  選んだ <span className="font-bold">{chosen.word}</span> は「{chosen.translation}」という意味です。
                 </p>
               )}
             </>
@@ -145,7 +144,7 @@ export default function SynonymQuiz({
         renderReviewItem={q => (
           <>
             <p className="text-sm font-bold text-gray-900">
-              <span className="font-mono">{q.word.word}</span> ＝ <span className="font-mono">{q.answerWord.word}</span>
+              <span className="font-bold">{q.word.word}</span> ＝ <span className="font-bold">{q.answerWord.word}</span>
             </p>
             <p className="text-xs text-gray-700">{q.word.translation} ／ {q.answerWord.translation}</p>
           </>

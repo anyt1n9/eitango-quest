@@ -101,7 +101,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
           この単語の他の意味（{senses.length}件）
           {borrowedFrom && (
             <span className="ml-1 font-bold text-amber-600/80 dark:text-amber-500">
-              — 基本形 <span className="font-mono">{borrowedFrom}</span> の意味
+              — 基本形 <span className="tabular-nums">{borrowedFrom}</span> の意味
             </span>
           )}
         </p>
@@ -117,7 +117,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
                 <span className="inline-block px-1.5 py-0.5 rounded-md bg-white border border-amber-200 dark:border-slate-600 text-[10px] font-black text-amber-700 dark:text-amber-300">
                   {POS_SHARE_LABELS[group.pos] || group.pos}
                 </span>
-                <span className={`text-[10px] font-mono font-bold ${label.muted
+                <span className={`text-[10px] tabular-nums font-bold ${label.muted
                   ? "text-gray-400 dark:text-slate-500"
                   : "text-gray-600 dark:text-slate-300"}`}>
                   {label.text}
@@ -156,7 +156,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
 
               {/* その品詞で実際に使われている例（英英辞典の用例。訳は付かない） */}
               {group.usage && (
-                <p className="mt-1.5 ml-4 font-mono text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900 rounded-lg px-2 py-1">
+                <p className="mt-1.5 ml-4 tabular-nums text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900 rounded-lg px-2 py-1">
                   {group.usage}
                 </p>
               )}
@@ -216,13 +216,13 @@ export function DominantSenseHint({ wordId, ownPos }: { wordId: string; ownPos?:
   if (!hint) return null;
 
   return (
-    <div className="border-t border-slate-800 w-full pt-2.5 mt-1 text-center">
-      <span className="text-[10px] text-amber-400 font-black tracking-wider uppercase block mb-1">
+    <div className="border-t border-gray-200 pt-2.5 mt-1" data-testid="dominant_sense_hint">
+      <span className="text-xs text-amber-800 font-black block mb-1">
         よく使われるのはこちら
       </span>
-      <p className="text-xs text-slate-200 font-bold leading-snug">
-        <span className="text-amber-300">{POS_SHARE_LABELS[hint.pos as PartOfSpeech] || hint.pos}</span>
-        <span className="font-mono text-amber-400 mx-1">{hint.share}%</span>
+      <p className="text-xs text-gray-800 font-bold leading-snug">
+        <span className="text-amber-800">{POS_SHARE_LABELS[hint.pos as PartOfSpeech] || hint.pos}</span>
+        <span className="tabular-nums text-amber-800 mx-1">{hint.share}%</span>
         {hint.meaning}
       </p>
     </div>

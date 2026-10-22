@@ -129,7 +129,7 @@ export default function GachaShop({
             <ArrowLeft className="w-4 h-4" />
             <span>戻る</span>
           </button>
-          <span className="bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-black font-mono flex items-center gap-1.5">
+          <span className="bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-black tabular-nums flex items-center gap-1.5">
             <Coins className="w-3.5 h-3.5" />
             使えるポイント: {availablePoints}P
           </span>
@@ -156,7 +156,7 @@ export default function GachaShop({
             id="btn_gacha_single"
           >
             <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" />単発ガチャ</span>
-            <span className="text-xs font-mono opacity-80">{SINGLE_COST}P</span>
+            <span className="text-xs tabular-nums opacity-80">{SINGLE_COST}P</span>
           </button>
           <button
             onClick={() => handlePull(10)}
@@ -165,7 +165,7 @@ export default function GachaShop({
             id="btn_gacha_ten"
           >
             <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" />10連ガチャ</span>
-            <span className="text-xs font-mono opacity-80">{TEN_COST}P (100Pお得)</span>
+            <span className="text-xs tabular-nums opacity-80">{TEN_COST}P (100Pお得)</span>
           </button>
         </div>
 

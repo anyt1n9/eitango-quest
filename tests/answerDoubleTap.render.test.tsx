@@ -36,6 +36,13 @@ const common = {
 beforeEach(() => vi.clearAllMocks());
 afterEach(() => cleanup());
 
+/** 答えたあと次の問題へ進める（正解は少しで自動で、不正解は「次の問題へ」を押して） */
+function advance() {
+  const next = document.getElementById("btn_next_question");
+  if (next) fireEvent.click(next);
+  else act(() => { vi.advanceTimersByTime(1500); });
+}
+
 /** 再描画を挟まずに続けて押す（fireEvent を並べると2回目は既に答えた状態になる） */
 function tapTogether(...els: HTMLElement[]) {
   act(() => { for (const el of els) el.click(); });
@@ -116,7 +123,7 @@ describe("次の問題では、ふつうに答えられる", () => {
     render(<Quiz {...two} recordAnswer={recordAnswer} />);
     const pick = () => within(document.getElementById("quiz_options_container")!).getAllByRole("button")[0];
     fireEvent.click(pick());
-    act(() => { vi.advanceTimersByTime(6500); }); // 不正解でも6秒で次へ進む
+    advance(); // 正解なら少しで、不正解なら「次の問題へ」で進む
     fireEvent.click(pick());
     expect(recordAnswer).toHaveBeenCalledTimes(2);
   });
@@ -126,7 +133,7 @@ describe("次の問題では、ふつうに答えられる", () => {
     render(<SentenceQuiz {...two} recordAnswer={recordAnswer} />);
     const pick = () => within(document.getElementById("sentence_quiz_options_grid")!).getAllByRole("button")[0];
     fireEvent.click(pick());
-    act(() => { vi.advanceTimersByTime(6500); });
+    advance();
     fireEvent.click(pick());
     expect(recordAnswer).toHaveBeenCalledTimes(2);
   });
@@ -148,6 +155,33 @@ describe("次の問題では、ふつうに答えられる", () => {
     fireEvent.click(next);
     answer("zzz");
     expect(recordAnswer).toHaveBeenCalledTimes(2);
+  });
+
+  it("綴り: 「次の問題へ」を2回続けて押しても、1問しか進まない", () => {
+    vi.useRealTimers();
+    const THREE = [...TWO, makeWord({ id: "c", word: "charlie", translation: "チャーリー" })];
+    const setStats = vi.fn();
+    render(<SpellingQuiz {...common} vocabulary={THREE} customWords={THREE} questionCount={3} setStats={setStats} />);
+    const form = document.querySelector("form") as HTMLFormElement;
+    const input = form.querySelector('input[type="text"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "zzz" } });
+    fireEvent.submit(form);
+    tapTogether(document.getElementById("btn_spelling_next")!, document.getElementById("btn_spelling_next")!);
+    expect(document.getElementById("spelling_running_card")).toHaveTextContent("Q: 2 / 3");
+  });
+
+  it("綴り: 最後の問題で「結果を見る」を2回押しても、点数は1回だけ足す", () => {
+    vi.useRealTimers();
+    const setStats = vi.fn();
+    const updateRankingScore = vi.fn();
+    render(<SpellingQuiz {...common} setStats={setStats} updateRankingScore={updateRankingScore} />);
+    const form = document.querySelector("form") as HTMLFormElement;
+    const input = form.querySelector('input[type="text"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: WORD.word } });
+    fireEvent.submit(form);
+    tapTogether(document.getElementById("btn_spelling_next")!, document.getElementById("btn_spelling_next")!);
+    expect(setStats).toHaveBeenCalledTimes(1);
+    expect(updateRankingScore).toHaveBeenCalledTimes(1);
   });
 
   it("綴り: 空のまま送っても、そのあと答えられる", () => {

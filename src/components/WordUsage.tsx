@@ -90,7 +90,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
                   {p.label}
                 </span>
                 {/* ---- がその動詞の位置。WordNet が示す型をそのまま見せる */}
-                <span className="font-mono text-[11px] font-semibold text-sky-800 dark:text-sky-300">
+                <span className="tabular-nums text-[11px] font-semibold text-sky-800 dark:text-sky-300">
                   {p.pattern}
                 </span>
               </li>
@@ -135,7 +135,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
                 key={i}
                 className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1"
               >
-                <span className="font-mono text-[11px] font-black text-gray-900 dark:text-slate-100">{c.phrase}</span>
+                <span className="tabular-nums text-[11px] font-black text-gray-900 dark:text-slate-100">{c.phrase}</span>
                 <span className="ml-1.5 text-[11px] font-bold text-gray-600 dark:text-slate-400">{c.meaning}</span>
               </li>
             ))}
@@ -156,7 +156,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
                 key={i}
                 className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1 flex items-center gap-1.5"
               >
-                <span className="font-mono text-[11px] font-black text-gray-900 dark:text-slate-100">{f.word}</span>
+                <span className="tabular-nums text-[11px] font-black text-gray-900 dark:text-slate-100">{f.word}</span>
                 <span className="text-[9px] font-black text-sky-700 dark:text-sky-300">
                   {POS_SHARE_LABELS[f.pos] || f.pos}
                 </span>
@@ -170,7 +170,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
       <div className="text-[10px] text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-sky-200/70 dark:border-slate-700 space-y-0.5">
         {patterns.length > 0 && (
           <p>
-            文の形は英英辞典 WordNet が動詞ごとに持つ型です（<span className="font-mono">----</span> がこの動詞の位置）。
+            文の形は英英辞典 WordNet が動詞ごとに持つ型です（<span className="tabular-nums">----</span> がこの動詞の位置）。
             意味ごとではなく、その語のすべての意味をまとめた一覧なので、
             意味によっては使えない形も含まれます。載っていない形もあります。
           </p>
