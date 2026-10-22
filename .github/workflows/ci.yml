@@ -24,9 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 本番（Render）と同じ版で確かめるため、版は package.json の engines から読む
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: package.json
           cache: npm
 
       - name: 依存関係のインストール
