@@ -980,12 +980,24 @@ app.post("/api/gemini/parse-pdf", async (req, res) => {
 });
 
 
-// どのルートにも当たらなかった /api/* は JSON の 404 で返す（メソッドを問わない）。
-// 下の画面のフォールバックまで落ちると、存在しない API に index.html が 200 で返り、
-// 画面は JSON のつもりで HTML を読もうとして「Unexpected token '<'」になっていた
-app.use("/api", (_req, res) => {
-  res.status(404).json({ error: "指定された API はありません。" });
-});
+/**
+ * /api/* の締めくくり。どのルートにも当たらなかったものは JSON の 404、
+ * ルートの中で投げられた例外は JSON の 500 で返す（メソッドを問わない）。
+ * 下の画面のフォールバックや Express 既定のエラーページまで落ちると HTML が返り、
+ * 存在しない API には index.html が 200 で返っていた。画面は JSON のつもりで読もうとして
+ * 「Unexpected token '<'」になる。
+ */
+export function finishApiRoutes(target: express.Express) {
+  target.use("/api", (_req, res) => {
+    res.status(404).json({ error: "指定された API はありません。" });
+  });
+  target.use("/api", (err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (res.headersSent) return next(err);
+    console.error("API Error: ", err);
+    res.status(500).json({ error: "サーバーで問題が発生しました。時間をおいて再度お試しください。" });
+  });
+}
+finishApiRoutes(app);
 
 /**
  * ビルド済みのファイル（dist/）を配り、画面のパスには index.html を返す。

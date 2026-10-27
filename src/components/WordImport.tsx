@@ -44,6 +44,19 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
   const [isAdding, setIsAdding] = useState(false);
   const [addingError, setAddingError] = useState("");
 
+  /**
+   * いちばん新しい単語帳。取り込みは解析やAIの応答を待つので、始めた時点の vocabulary で
+   * 重複を確かめると、待っているあいだに別の取り込みで入った語も「新しい語」に数える
+   * （単語帳には足されないのに「N件登録しました」と出て、ボーナスも入る）。
+   * 足す語を決めたらすぐここにも足し、再描画の前に終わった次の取り込みにも見えるようにする。
+   */
+  const latestVocabularyRef = useRef(vocabulary);
+  latestVocabularyRef.current = vocabulary;
+  const commitNewWords = (words: Word[]) => {
+    latestVocabularyRef.current = appendNewWords(latestVocabularyRef.current, words);
+    setVocabulary(prev => appendNewWords(prev, words));
+  };
+
   // CSV一括アップロード用ステート
   const [csvError, setCsvError] = useState("");
   const [csvSuccess, setCsvSuccess] = useState("");
@@ -155,7 +168,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         // 露骨な表現・罵倒語・差別語を含む行（src/offensiveTerms.ts）。収録データから外した語を
         // 取り込みでまた入れられないようにする。見出しが普通の語でも、訳や例文で当たれば外す
         let blockedCount = 0;
-        let tempVocabulary = [...vocabulary];
+        let tempVocabulary = [...latestVocabularyRef.current];
 
         for (let i = startIndex; i < rows.length; i++) {
           const row = rows[i];
@@ -237,7 +250,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           }
         }
 
-        setVocabulary(prev => appendNewWords(prev, newWords));
+        commitNewWords(newWords);
         
         const scoreBonus = Math.min(newWords.length * 20, 1000);
         addBonus(scoreBonus);
@@ -369,7 +382,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
           let duplicateCount = 0;
           const newWordsToAdd: Word[] = [];
-          const tempVocabulary = [...vocabulary];
+          const tempVocabulary = [...latestVocabularyRef.current];
 
           for (const w of words) {
             const isDuplicate = tempVocabulary.some(tv => tv.word.toLowerCase() === w.word.toLowerCase());
@@ -385,7 +398,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
             throw new Error(`追加された単語はありません（抽出された ${duplicateCount} 件の単語はすべて既に登録されています）。`);
           }
 
-          setVocabulary(prev => appendNewWords(prev, newWordsToAdd));
+          commitNewWords(newWordsToAdd);
 
           const scoreBonus = Math.min(newWordsToAdd.length * 25, 1200);
           addBonus(scoreBonus);
@@ -504,14 +517,14 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
       }
 
       // 既存の単語と同じ英単語があれば重複追加を防ぐ
-      const isDuplicate = vocabulary.some(w => w.word.toLowerCase() === newWordObject.word.toLowerCase());
+      const isDuplicate = latestVocabularyRef.current.some(w => w.word.toLowerCase() === newWordObject.word.toLowerCase());
       if (isDuplicate) {
         setAddingError(`「${newWordObject.word}」は既に登録されています！`);
         setIsAdding(false);
         return;
       }
 
-      setVocabulary(prev => appendNewWords(prev, [newWordObject]));
+      commitNewWords([newWordObject]);
       setNewWord("");
       playChime("bonus");
       

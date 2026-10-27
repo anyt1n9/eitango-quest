@@ -277,7 +277,8 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   `serverRoutes.test.ts` でそういう要求を送るときは専用のIP（`X-Forwarded-For`）で叩く。
   本文の読み込みの失敗（413・400）は、解析の直後のエラー処理で**日本語の JSON** にする。
   Express の既定は HTML で、画面が「Unexpected token '<'」をそのまま出していた。
-  存在しない `/api/...` は JSON の 404、ビルド済みの配信（`serveBuiltApp`）は
+  存在しない `/api/...` は JSON の 404、ルートの中の例外は JSON の 500（`finishApiRoutes`）、
+  ビルド済みの配信（`serveBuiltApp`）は
   拡張子の付いたパス（`/assets/*.js` など）と `/api/` に 404 を返し、index.html を返さない。
   以前は何にでも index.html を 200 で返しており、デプロイ後に古いチャンクを取りに来た
   画面が HTML を JS として読んで壊れ、サービスワーカーがそれをキャッシュしかねなかった。
@@ -363,7 +364,8 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 - **壊れた保存データのテスト** — `tests/srs.test.ts` の「保存データの検査」と
   `tests/srsBroken.render.test.tsx`。復習の記録（`quest_srs`）は読み込むときに
   `src/srs.ts` の `sanitizeSrs()` を通し、形の合わない項目（null・箱が数でない・
-  期日が日付でない）を捨てる。そのまま使っていたときは、1件の `null` で
+  期日が暦に無い日付）を捨てる。期日は文字列で比べるので、`2026-99-99` を通すと
+  その語はいつまでも期日前になる。そのまま使っていたときは、1件の `null` で
   `getDueWordIds` が投げて ErrorBoundary の画面になり、読み直しても同じ記録を
   読むので二度と先へ進めなかった（バックアップの復元や手での編集で起こりうる）。
 - **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」、
@@ -372,8 +374,11 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   `tests/answerDoubleTap.render.test.tsx`（クイズの解答の二度押し）、
   `tests/choiceQuiz.render.test.tsx`（類義語・語義分別の解答と「次へ」の二度押し）、
   `tests/pdfImportGuard.render.test.tsx`（PDFの二度落とし）。
-  単語帳へ足すとき（CSV・PDF・AI）は `src/importWords.ts` の `appendNewWords()` を
-  関数形の中で使い、待っているあいだに足された語と綴りが重なるものを弾く。
+  単語帳へ足すとき（CSV・PDF・AI）は `commitNewWords()` を通す。重複は
+  始めた時点の `vocabulary` ではなく**いちばん新しい単語帳**（`latestVocabularyRef`）で数える。
+  始めた時点で数えていたときは、待っているあいだに別の取り込みで入った語も「新しい語」になり、
+  単語帳には足されないのに「N件登録しました」と出てボーナスも入った。
+  足す語を決めたらすぐ ref にも足す（再描画の前に次の取り込みが終わることがある）。
   **成功時に一覧へ足す・点数を足す・学習の記録を進める処理には、必ず `useRef` の同期ガードを置く。**
   解答の二度押しは特に重い。四択・例文穴埋め・綴りのいずれも、スマホのダブルタップで
   1回の解答が2回分として記録され、間隔反復の箱が2段上がっていた（まだ覚えていない語が

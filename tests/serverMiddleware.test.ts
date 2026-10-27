@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 import type { Express } from "express";
@@ -20,6 +20,7 @@ import path from "path";
 
 let app: Express;
 let serveBuiltApp: (target: Express, distPath: string) => void;
+let finishApiRoutes: (target: Express) => void;
 
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
@@ -27,6 +28,7 @@ beforeAll(async () => {
   const mod = await import("../server");
   app = mod.app;
   serveBuiltApp = mod.serveBuiltApp;
+  finishApiRoutes = mod.finishApiRoutes;
 });
 
 describe("本文の読み込みの失敗は日本語の JSON で返す", () => {
@@ -57,6 +59,27 @@ describe("存在しない API", () => {
     expect(res.status).toBe(404);
     expect(res.type).toMatch(/json/);
     expect(res.body.error).toBe("指定された API はありません。");
+  });
+});
+
+describe("API の中で起きた例外（finishApiRoutes）", () => {
+  it("Express 既定の HTML ではなく、JSON の 500 で返す", async () => {
+    const api = express();
+    api.get("/api/boom", () => { throw new Error("boom"); });
+    api.post("/api/later", (_req, _res, next) => { setTimeout(() => next(new Error("later")), 0); });
+    finishApiRoutes(api);
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      for (const res of [await request(api).get("/api/boom"), await request(api).post("/api/later")]) {
+        expect(res.status).toBe(500);
+        expect(res.type).toMatch(/json/);
+        expect(res.body.error).toBe("サーバーで問題が発生しました。時間をおいて再度お試しください。");
+      }
+      // 例外の中身（スタックなど）は利用者に返さず、記録にだけ残す
+      expect(log).toHaveBeenCalledTimes(2);
+    } finally {
+      log.mockRestore();
+    }
   });
 });
 

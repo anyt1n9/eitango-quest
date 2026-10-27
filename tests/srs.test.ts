@@ -131,6 +131,19 @@ describe("保存データの検査（sanitizeSrs）", () => {
     });
   });
 
+  it("形は合っていても暦に無い日付は捨てる（期日の比較が狂う）", () => {
+    const out = sanitizeSrs({
+      noMonth: { ...GOOD, dueDate: "2026-99-99" },
+      feb30: { ...GOOD, dueDate: "2026-02-30" },
+      notLeap: { ...GOOD, dueDate: "2027-02-29" },
+      leap: { ...GOOD, dueDate: "2028-02-29" },
+      badLast: { ...GOOD, lastReview: "2026-13-01" }
+    });
+    expect(Object.keys(out).sort()).toEqual(["badLast", "leap"]);
+    // 最終解答日だけが壊れていれば、期日で補う
+    expect(out.badLast.lastReview).toBe(GOOD.dueDate);
+  });
+
   it("オブジェクトでなければ空にする", () => {
     expect(sanitizeSrs(null)).toEqual({});
     expect(sanitizeSrs([GOOD])).toEqual({});

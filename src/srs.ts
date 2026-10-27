@@ -62,6 +62,16 @@ export function nextSrsState(
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
+ * 暦に実在する YYYY-MM-DD か。形だけ見ると "2026-99-99" も通り、期日の比較（文字列）で
+ * その語がいつまでも期日前になる（"2026-02-30" のように月をまたぐ値も同じく狂う）。
+ */
+function isCalendarDate(s: unknown): s is string {
+  if (typeof s !== "string" || !DATE_RE.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+/**
  * 保存されていた SRS データ（quest_srs）から、形の正しい要素だけを残す。
  *
  * 読み込み（readStoredObject）は「オブジェクトであること」しか見ず、バックアップの復元も
@@ -79,12 +89,12 @@ export function sanitizeSrs(raw: unknown): Record<string, SrsState> {
     if (!s || typeof s !== "object") continue;
     const v = s as Partial<SrsState>;
     if (!Number.isInteger(v.box) || v.box! < 0 || v.box! > MAX_BOX) continue;
-    if (typeof v.dueDate !== "string" || !DATE_RE.test(v.dueDate)) continue;
+    if (!isCalendarDate(v.dueDate)) continue;
     const count = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : 0);
     out[id] = {
       box: v.box!,
       dueDate: v.dueDate,
-      lastReview: typeof v.lastReview === "string" && DATE_RE.test(v.lastReview) ? v.lastReview : v.dueDate,
+      lastReview: isCalendarDate(v.lastReview) ? v.lastReview : v.dueDate,
       reps: count(v.reps),
       lapses: count(v.lapses),
     };
