@@ -59,4 +59,7 @@ export const NON_BACKUP_KEYS: Record<string, string> = {
   // 復元先の端末はまだ許可していないので、持っていくと
   // 「開いただけでGoogleへ問い合わせる」ことになる
   quest_drive_linked: "端末ごとの連携状態で、移すと未許可の端末から通信が出るため",
+  // 追加した単語のうち、壊れていて単語帳に入れられなかった要素の控え（src/storedWords.ts）。
+  // 黙って失わないために残すだけで、アプリは読まない。持っていっても使い道が無い
+  quest_vocab_custom_rejected: "読み込めなかった要素の控えで、アプリでは使わないため",
 };

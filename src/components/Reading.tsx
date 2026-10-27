@@ -279,6 +279,11 @@ export default function Reading({
    * 二度押しでは報酬が2回入る（CLAUDE.md の「連打」）。
    */
   const completingRef = useRef<Set<string>>(new Set());
+  // 再描画で readPassages に入れば、そちらが止める。印は再描画までのあいだだけ持つ
+  // （残し続けると、readPassages から外れたときに受け取れなくなる）
+  useEffect(() => {
+    completingRef.current.clear();
+  }, [readPassages]);
 
   const handleCompletePassage = (passage: Passage) => {
     if (readPassages.includes(passage.id) || completingRef.current.has(passage.id)) return;

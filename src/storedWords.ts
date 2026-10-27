@@ -18,15 +18,34 @@ const POS: PartOfSpeech[] = ["verb", "noun", "adjective", "adverb", "other"];
  * 収録語や前の要素と同じ ID のものも捨てる（同じ ID が2語あると、どちらの記録か区別できない）。
  */
 export function sanitizeStoredWords(raw: unknown[], takenIds: Set<string> = new Set()): Word[] {
+  return splitStoredWords(raw, takenIds).words;
+}
+
+/**
+ * sanitizeStoredWords と同じ検査で、使える語（words）と捨てた要素（rejected）に分ける。
+ * 捨てた要素は次の保存で quest_vocab_custom から消えるので、呼び出し側が別のキーに控える
+ * （綴りだけ残っていて訳の欠けた語などを、黙って失わないため）。
+ */
+export function splitStoredWords(
+  raw: unknown[],
+  takenIds: Set<string> = new Set()
+): { words: Word[]; rejected: unknown[] } {
   const seen = new Set(takenIds);
   const out: Word[] = [];
+  const rejected: unknown[] = [];
   const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
   for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
-    const w = item as Partial<Word>;
-    if (typeof w.id !== "string" || w.id === "" || seen.has(w.id)) continue;
-    if (typeof w.word !== "string" || w.word.trim() === "") continue;
-    if (typeof w.translation !== "string" || w.translation.trim() === "") continue;
+    if (item === null || item === undefined) continue; // 控えても中身が無い
+    const w = (typeof item === "object" ? item : {}) as Partial<Word>;
+    if (
+      typeof item !== "object" ||
+      typeof w.id !== "string" || w.id === "" || seen.has(w.id) ||
+      typeof w.word !== "string" || w.word.trim() === "" ||
+      typeof w.translation !== "string" || w.translation.trim() === ""
+    ) {
+      rejected.push(item);
+      continue;
+    }
     seen.add(w.id);
     out.push({
       id: w.id,
@@ -40,5 +59,5 @@ export function sanitizeStoredWords(raw: unknown[], takenIds: Set<string> = new 
       ...(POS.includes(w.pos as PartOfSpeech) ? { pos: w.pos } : {})
     });
   }
-  return out;
+  return { words: out, rejected };
 }

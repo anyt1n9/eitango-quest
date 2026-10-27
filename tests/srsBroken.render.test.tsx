@@ -60,6 +60,15 @@ describe("壊れた quest_vocab_custom（追加した単語）", () => {
     expect(await screen.findByText("zebra", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByText("画面の表示中に問題が発生しました")).toBeNull();
     expect(screen.queryByText("duplicate")).toBeNull();
+    // 単語帳に入れられなかった要素は、次の保存で消える前に別のキーへ控えてある
+    expect(JSON.parse(localStorage.getItem("quest_vocab_custom_rejected") || "[]")).toEqual([
+      "zebra",
+      { id: "c1" },
+      { id: "j1", word: "duplicate", translation: "収録語と同じID" }
+    ]);
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem("quest_vocab_custom") || "[]").map((w: { id: string }) => w.id)).toEqual(["c2"])
+    );
     window.history.pushState({}, "", "/");
   });
 });

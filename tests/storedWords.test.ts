@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeStoredWords } from "../src/storedWords";
+import { sanitizeStoredWords, splitStoredWords } from "../src/storedWords";
 
 /**
  * 保存されていた追加単語（quest_vocab_custom）の検査。
@@ -38,5 +38,13 @@ describe("追加した単語の検査（sanitizeStoredWords）", () => {
   it("収録語や前の要素と同じ ID は捨てる", () => {
     const out = sanitizeStoredWords([{ ...GOOD, id: "j1" }, GOOD, { ...GOOD, word: "other" }], new Set(["j1"]));
     expect(out.map(w => w.word)).toEqual(["zebra"]);
+  });
+
+  it("捨てた要素は rejected に返す（呼び出し側が控えて、黙って失わない）", () => {
+    const noTranslation = { id: "a", word: "zebra" };
+    const { words, rejected } = splitStoredWords([null, "zebra", noTranslation, { ...GOOD, id: "j1" }, GOOD], new Set(["j1"]));
+    expect(words.map(w => w.id)).toEqual(["ai_1"]);
+    // null は中身が無いので控えない
+    expect(rejected).toEqual(["zebra", noTranslation, { ...GOOD, id: "j1" }]);
   });
 });

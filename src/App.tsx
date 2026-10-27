@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { Level, Word, UserStats, RankingUser } from "./types";
-import { sanitizeStoredWords } from "./storedWords";
+import { splitStoredWords } from "./storedWords";
 import { loadVocabulary } from "./vocabulary";
 import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
@@ -131,8 +131,16 @@ export default function App() {
     loadVocabulary().then(words => {
       if (!alive) return;
       initialVocabIdsRef.current = new Set(words.map(w => w.id));
-      // 追加した単語は形を確かめてから入れる（壊れた要素1件で画面ごと落ちないように）
-      setVocabulary([...words, ...sanitizeStoredWords(readStoredArray<unknown>("quest_vocab_custom"), initialVocabIdsRef.current)]);
+      // 追加した単語は形を確かめてから入れる（壊れた要素1件で画面ごと落ちないように）。
+      // 捨てた要素は次の保存で消えるので、別のキーに控えて黙って失わないようにする
+      const custom = splitStoredWords(readStoredArray<unknown>("quest_vocab_custom"), initialVocabIdsRef.current);
+      if (custom.rejected.length > 0) {
+        writeStored("quest_vocab_custom_rejected", [
+          ...readStoredArray<unknown>("quest_vocab_custom_rejected"),
+          ...custom.rejected
+        ]);
+      }
+      setVocabulary([...words, ...custom.words]);
       setVocabularyReady(true);
     }).catch(() => {
       // 単語データは別のチャンクなので、通信断やサービスワーカー更新の直後は

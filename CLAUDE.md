@@ -369,7 +369,8 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   `getDueWordIds` が投げて ErrorBoundary の画面になり、読み直しても同じ記録を
   読むので二度と先へ進めなかった（バックアップの復元や手での編集で起こりうる）。
   追加した単語（`quest_vocab_custom`）も同じで、`src/storedWords.ts` の `sanitizeStoredWords()` を通す
-  （綴り・訳・ID の無い要素と、収録語と同じ ID を捨てる）。このファイルは起動時に読むので、
+  （綴り・訳・ID の無い要素と、収録語と同じ ID を捨てる）。捨てた要素は次の保存で元のキーから
+  消えるので、`quest_vocab_custom_rejected` に足して控える（黙って失わない。アプリは読まない）。このファイルは起動時に読むので、
   型以外を import しないこと（`importWords.ts` は不適切語の一覧を抱えていて重い）。
 - **ログインボーナスのテスト** — `tests/loginBonus.test.ts` と `tests/records.render.test.tsx`。
   保存している `currentStreak` は「最後に受け取った日の時点の日数」なので、画面にも点数にも
