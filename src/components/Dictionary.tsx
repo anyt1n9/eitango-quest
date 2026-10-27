@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { pageWindow } from "../pagination";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Search, 
@@ -1073,18 +1074,8 @@ export default function Dictionary({
               前へ
             </button>
 
-            {/* 周辺ページ番号を表示（最大5ページ程度） */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
-              // currentPage を中心にした5ページを算出
-              let pageNum = currentPage - 2 + idx;
-              if (currentPage <= 2) {
-                pageNum = idx + 1;
-              } else if (currentPage >= totalPages - 1) {
-                pageNum = totalPages - 4 + idx;
-              }
-              // ガード
-              if (pageNum < 1 || pageNum > totalPages) return null;
-
+            {/* 周辺ページ番号を表示（いまのページを中心に最大5ページ。src/pagination.ts） */}
+            {pageWindow(currentPage, totalPages).map(pageNum => {
               return (
                 <button
                   key={pageNum}

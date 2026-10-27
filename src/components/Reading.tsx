@@ -274,17 +274,30 @@ export default function Reading({
     }
   };
 
+  /**
+   * 読破の二重実行よけ。readPassages が効くのは再描画のあとなので、
+   * 二度押しでは報酬が2回入る（CLAUDE.md の「連打」）。
+   */
+  const completingRef = useRef<Set<string>>(new Set());
+  // 再描画で readPassages に入れば、そちらが止める。印は再描画までのあいだだけ持つ
+  // （残し続けると、readPassages から外れたときに受け取れなくなる）
+  useEffect(() => {
+    completingRef.current.clear();
+  }, [readPassages]);
+
   const handleCompletePassage = (passage: Passage) => {
-    if (readPassages.includes(passage.id)) return;
+    if (readPassages.includes(passage.id) || completingRef.current.has(passage.id)) return;
+    completingRef.current.add(passage.id);
 
     // 読了追加
-    setReadPassages(prev => [...prev, passage.id]);
+    setReadPassages(prev => (prev.includes(passage.id) ? prev : [...prev, passage.id]));
 
-    // スコア加算
+    // スコア加算。累計回答数（completedQuestions）には数えない。
+    // 正解数を足さずに回答数だけ足していたので、読破するたびに
+    // 「記録」の累計正答率が下がっていた（読破が1問の不正解として数えられていた）
     setStats(prev => ({
       ...prev,
-      score: prev.score + passage.pointReward,
-      completedQuestions: prev.completedQuestions + 1 // 読破も実績にカウント
+      score: prev.score + passage.pointReward
     }));
 
     updateRankingScore(passage.pointReward);

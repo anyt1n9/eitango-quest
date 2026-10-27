@@ -2,7 +2,8 @@ import React, { useState, useRef } from "react";
 import { Trophy, Calendar, Sparkles, RotateCcw, Loader2, ThumbsUp } from "lucide-react";
 import { Word, UserStats, RankingUser } from "../types";
 import SimpleMarkdown from "./SimpleMarkdown";
-import { todayStr, SrsState } from "../srs";
+import { SrsState } from "../srs";
+import { LOGIN_BONUS_DAYS, loginBonusState } from "../loginBonus";
 import { playChime } from "../sound";
 import { getWordPos } from "../pos";
 import StudyCalendar from "./StudyCalendar";
@@ -78,16 +79,13 @@ export default function Records({
   const senior3Stats = levelCounts(vocabulary, "senior3", solvedHistory, srsData);
   const advancedStats = levelCounts(vocabulary, "advanced", solvedHistory, srsData);
 
-  // デイリーログインボーナスの定義
-  const bonusDays = Array.from({ length: 7 }, (_, i) => ({
-    day: i + 1,
-    points: (i + 1) * 100 + (i === 6 ? 500 : 0) // 最終日はスペシャル
-  }));
+  // デイリーログインボーナス（7日で1周。最終日はスペシャル）。
+  // スタンプの表示と受け取りは、同じ「いまの連続日数」から決める（src/loginBonus.ts）
+  const bonusDays = LOGIN_BONUS_DAYS;
+  const bonusState = loginBonusState(stats);
 
   // 今日ログイン可能か判定
-  const checkCanClaimToday = () => {
-    return stats.lastLoginDate !== todayStr();
-  };
+  const checkCanClaimToday = () => bonusState.canClaim;
 
   /**
    * 受け取りの二重実行よけ。
@@ -105,12 +103,7 @@ export default function Records({
     claimingRef.current = true;
 
     playChime("bonus");
-    const today = todayStr();
-
-    // スコア追加
-    const rawIndex = stats.currentStreak % 7;
-    const points = bonusDays[rawIndex].points;
-    const nextStreak = (stats.lastLoginDate === getYesterdayString()) ? stats.currentStreak + 1 : 1;
+    const { today, points, nextStreak } = bonusState;
 
     // 加算は関数形で行い、すでに今日受け取っていれば何もしない。
     // 別の経路（別タブなど）から更新されていても二重に足さない
@@ -127,12 +120,6 @@ export default function Records({
     });
 
     alert(`ログインボーナス獲得！\n【+${points} P】を獲得しました！連続ログイン ${nextStreak}日目！ 🎉`);
-  };
-
-  const getYesterdayString = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return todayStr(d);
   };
 
   // AIアドバイスの取得
@@ -246,9 +233,7 @@ export default function Records({
             {bonusDays.map((bonus, idx) => {
               // 過去に受け取った日、もしくは本日の進捗
               const isClaimedToday = !checkCanClaimToday();
-              const claimedCount = isClaimedToday 
-                ? ((stats.currentStreak - 1) % 7) + 1 
-                : stats.currentStreak % 7;
+              const claimedCount = bonusState.stampsClaimed;
               
               // どのスタンプが現在マークされているか
               let status: "claimed" | "active" | "locked" = "locked";
@@ -360,7 +345,7 @@ export default function Records({
             </div>
             <div className="bg-emerald-50/70 border border-emerald-150 rounded-2xl p-4 text-center">
               <span className="text-[10px] text-emerald-700 font-black tracking-wider uppercase block">連続ログイン</span>
-              <p className="text-2xl font-black text-emerald-800 tabular-nums mt-1">{stats.currentStreak}<span className="text-xs text-emerald-700 ml-0.5">日</span></p>
+              <p className="text-2xl font-black text-emerald-800 tabular-nums mt-1">{bonusState.streak}<span className="text-xs text-emerald-700 ml-0.5">日</span></p>
             </div>
             <div className="bg-indigo-50/70 border border-indigo-150 rounded-2xl p-4 text-center">
               <span className="text-[10px] text-indigo-600 font-black tracking-wider uppercase block">累計回答数</span>

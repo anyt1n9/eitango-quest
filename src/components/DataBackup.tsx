@@ -18,7 +18,10 @@ interface DataBackupProps {
  */
 function restoreFailedText(result: { failed: string[]; notRestored: string[] }): string {
   const head = `保存容量が足りず、復元できませんでした（${result.failed.length}件）。`;
-  const tail = "不要な単語や長文を削除してから、もう一度お試しください。";
+  // 空きを作る手段として、この画面から実際に消せるものだけを挙げる。
+  // 以前は「不要な単語を削除」と案内していたが、追加した単語を消す機能は無い。
+  // いちばん大きいのは背景の画像（数百KB）で、これはバックアップにも含めていない
+  const tail = "メニューの「背景の画像」を外す、AIで作った長文や英語日記を削除するなどして空きを作ってから、もう一度お試しください。";
   if (result.notRestored.length === 0) {
     return `${head}この端末のデータは復元前の状態に戻しました。${tail}`;
   }

@@ -90,7 +90,7 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 
 - **ロジックのテスト** — `src/` の副作用の無いモジュール（`srs` / `pos` / `distractors` /
   `selectQuestions` / `mastery` / `rivalGrowth` / `shuffle` / `storage` / `spelling` /
-  `readingQuiz`）を対象にする。乱数を使う関数は `random` 引数か `Math.random` の
+  `readingQuiz` / `pagination`）を対象にする。乱数を使う関数は `random` 引数か `Math.random` の
   差し替えで決定的にする（`tests/helpers.ts` の `seededRandom`）。
 - **データのテスト** — `tests/vocabulary.data.test.ts` と `tests/passages.data.test.ts`。
   収録語 7,700 語超と長文25本を全件検査する。型検査もビルドも通り抜ける不具合
@@ -368,12 +368,23 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   その語はいつまでも期日前になる。そのまま使っていたときは、1件の `null` で
   `getDueWordIds` が投げて ErrorBoundary の画面になり、読み直しても同じ記録を
   読むので二度と先へ進めなかった（バックアップの復元や手での編集で起こりうる）。
+  追加した単語（`quest_vocab_custom`）も同じで、`src/storedWords.ts` の `sanitizeStoredWords()` を通す
+  （綴り・訳・ID の無い要素と、収録語と同じ ID を捨てる）。捨てた要素は次の保存で元のキーから
+  消えるので、`quest_vocab_custom_rejected` に足して控える（黙って失わない。アプリは読まない）。このファイルは起動時に読むので、
+  型以外を import しないこと（`importWords.ts` は不適切語の一覧を抱えていて重い）。
+- **ログインボーナスのテスト** — `tests/loginBonus.test.ts` と `tests/records.render.test.tsx`。
+  保存している `currentStreak` は「最後に受け取った日の時点の日数」なので、画面にも点数にも
+  そのまま使わない。`src/loginBonus.ts` の `currentLoginStreak()`（昨日か今日に受け取っていなければ0）を通す。
+  起動時にも0へ戻しているが、開いたまま日をまたぐ（ホーム画面から開くと何日も閉じない）と
+  古い日数が残り、「連続4日」と出したうえ、受け取ると「1日目」と言いながら5日目の点数を足していた。
+  テストの stats も「連続3日なら最後に受け取ったのは昨日」のように、実際にありうる組で作ること。
 - **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」、
   `tests/aiWordAdd.render.test.tsx`（AIで単語を1件ずつ追加）、
   `tests/aiDiary.render.test.tsx` と `tests/reading.render.test.tsx` の「生成の連打」、
   `tests/answerDoubleTap.render.test.tsx`（クイズの解答の二度押し）、
   `tests/choiceQuiz.render.test.tsx`（類義語・語義分別の解答と「次へ」の二度押し）、
-  `tests/pdfImportGuard.render.test.tsx`（PDFの二度落とし）。
+  `tests/pdfImportGuard.render.test.tsx`（PDFの二度落とし）、
+  `tests/reading.render.test.tsx` の「読破」（読破の報酬の二度押し）。
   単語帳へ足すとき（CSV・PDF・AI）は `commitNewWords()` を通す。重複は
   始めた時点の `vocabulary` ではなく**いちばん新しい単語帳**（`latestVocabularyRef`）で数える。
   始めた時点で数えていたときは、待っているあいだに別の取り込みで入った語も「新しい語」になり、
@@ -404,6 +415,10 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   同じ `act` の中で `element.click()`（フォームなら `form.requestSubmit()`）を
   続けて呼ぶこと。
   非同期の処理（AI呼び出しなど）でも同じで、`await` を挟むとその間に再描画が入る。
+- **累計の回答数と正答率** — 「記録」の累計正答率は `correctAnswers / completedQuestions` なので、
+  `completedQuestions` に足すのは**設問に答えたときだけ**にし、正解数と必ず組で足す。
+  長文の読破で回答数だけ +1 していたため、読破するたびに正答率が下がっていた
+  （`tests/reading.render.test.tsx` の「読破」）。
 - **画面とURLのテスト** — `tests/routes.test.ts`。画面とパスが往復すること、
   知らないパスでも白い画面にならないことを検査する。
 - **入口のテスト** — `tests/dashboardEntry.render.test.tsx`（「今日」の画面）と
