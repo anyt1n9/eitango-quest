@@ -1,6 +1,6 @@
 import { Level, Word } from "./types";
 import { readStoredString, writeStored } from "./storage";
-import { isMastered, SolvedHistory } from "./mastery";
+import { isLearning, isMastered, SolvedHistory } from "./mastery";
 import { SrsState } from "./srs";
 import { LEVEL_ORDER } from "./levelLabels";
 
@@ -53,6 +53,8 @@ export function levelCounts(
   const completed = levelWords.filter(w => solvedHistory[w.id] && solvedHistory[w.id].attemptCount > 0).length;
   // 習得済み＝間隔反復のボックス2以上（1回の偶然の正解では到達しない）
   const correct = levelWords.filter(w => isMastered(w.id, solvedHistory, srsData)).length;
+  // 覚えかけ＝1回正解して、あと1回の正解で習得済みに入る語
+  const learning = levelWords.filter(w => isLearning(w.id, solvedHistory, srsData)).length;
   const masterRate = total > 0 ? Math.round((correct / total) * 100) : 0;
-  return { total, completed, correct, masterRate };
+  return { total, completed, correct, learning, masterRate };
 }

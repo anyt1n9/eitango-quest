@@ -5,6 +5,7 @@ import { makeWord } from "./fixtures";
 import { todayProps, TodayHarness } from "./todayProps";
 import { LEVEL_TONE } from "../src/levelTheme";
 import { LEVEL_LABELS } from "../src/levelLabels";
+import { todayStr, tomorrowOf } from "../src/srs";
 
 /**
  * 「今日」の画面（起動して最初に見える画面）の入口。
@@ -224,7 +225,8 @@ describe("今日の復習", () => {
     expect(document.getElementById("today_review_card")).toBeNull();
     expect(document.getElementById("btn_junior_word")).toHaveTextContent("学習を始める");
     expect(document.getElementById("btn_junior_word")!.className).toContain("bg-[var(--lv-solid)]");
-    expect(screen.getByTestId("today_review_status")).toHaveTextContent("復習する単語はありません");
+    // まだ何も解いていなければ、次の復習も無い
+    expect(screen.getByTestId("today_review_status")).toHaveTextContent("まだありません");
   });
 
   it("押せる大きさがある（スマホでも指で押せる）", () => {
@@ -287,5 +289,46 @@ describe("画面の詰まりを減らす", () => {
     const page = document.getElementById("dashboard_page")!;
     expect(page.querySelector(".font-mono"), "等幅フォントが残っている").toBeNull();
     expect(page.textContent).not.toMatch(/[A-Z]{3,} [A-Z]{3,}/);
+  });
+});
+
+/**
+ * 「覚えた」は同じ語に2回正解して入る（src/mastery.ts）。はじめて解いた日は
+ * 9問正解しても「覚えた0語・習熟度0%」のままで、記録が保存されていないように見えた。
+ */
+describe("解いたあとの手ごたえ", () => {
+  const NINE = Array.from({ length: 9 }, (_, i) => makeWord({ id: `n${i}`, word: `word${i}`, level: "junior" }));
+  const tomorrow = tomorrowOf(todayStr());
+  const answeredOnce = Object.fromEntries(
+    NINE.map(w => [w.id, { box: 1, dueDate: tomorrow, lastReview: todayStr(), reps: 1, lapses: 0 }])
+  );
+
+  it("1回正解した語を「覚えかけ」として数え、あと何をすれば「覚えた」に入るかを書く", () => {
+    renderToday({ vocabulary: NINE, srsData: answeredOnce });
+    expect(document.getElementById("level_mastery_summary")).toHaveTextContent("覚えた 0語・覚えかけ 9語 ／ 全 9語");
+    expect(document.getElementById("learning_hint")).toHaveTextContent("もう1回正解すると「覚えた」に入ります");
+  });
+
+  it("覚えかけが無ければ、説明は出さない", () => {
+    renderToday({ vocabulary: NINE });
+    expect(document.getElementById("learning_hint")).toBeNull();
+  });
+
+  it("今日の復習が無い日は、次にいつ何語来るかを出す", () => {
+    renderToday({ vocabulary: NINE, srsData: answeredOnce });
+    expect(document.getElementById("next_review_text")).toHaveTextContent("今日はなし・明日に9語");
+  });
+
+  it("収録から外した語の古い記録は、次の復習に数えない", () => {
+    renderToday({ vocabulary: NINE.slice(0, 3), srsData: answeredOnce });
+    expect(document.getElementById("next_review_text")).toHaveTextContent("明日に3語");
+  });
+});
+
+describe("今日の復習と苦手な単語の違い", () => {
+  it("並べて出すときは、それぞれが何かを一言添える", () => {
+    renderToday({ wrongWords: ["j1"] });
+    expect(screen.getByTestId("today_review_status")).toHaveTextContent("解いた語を、忘れかけたころにもう一度出します");
+    expect(document.getElementById("review_banner")).toHaveTextContent("間違えた語。いつでも解き直せて、復習で正解すると外れます");
   });
 });

@@ -211,7 +211,7 @@ export default function Dictionary({
     }
   };
 
-  // 苦手単語の判定用セット。配列のまま includes で引くと、収録約7,800語に対して
+  // 苦手単語の判定用セット。配列のまま includes で引くと、収録約7,700語に対して
   // O(単語数 × 苦手単語数) の走査が毎レンダー発生するため Set にする。
   const wrongWordSet = useMemo(() => new Set(wrongWords), [wrongWords]);
 

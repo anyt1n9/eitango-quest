@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nextSrsState, isDue, getDueWordIds, todayStr, SrsState, sanitizeSrs } from "../src/srs";
+import { nextSrsState, isDue, getDueWordIds, todayStr, SrsState, sanitizeSrs, nextReview, tomorrowOf } from "../src/srs";
 
 describe("todayStr", () => {
   it("ローカル日付を YYYY-MM-DD で返す", () => {
@@ -162,5 +162,28 @@ describe("保存データの検査（sanitizeSrs）", () => {
     expect(next.box).toBe(1);
     expect(next.reps).toBe(1);
     expect(next.lapses).toBe(0);
+  });
+});
+
+describe("次の復習（nextReview）", () => {
+  const s = (dueDate: string) => ({ box: 1, dueDate, lastReview: "2026-10-27", reps: 1, lapses: 0 });
+
+  it("今日より後でいちばん近い期日と、その日の語数", () => {
+    const srs = { a: s("2026-10-28"), b: s("2026-10-28"), c: s("2026-10-30"), d: s("2026-10-27") };
+    expect(nextReview(srs, "2026-10-27")).toEqual({ date: "2026-10-28", count: 2 });
+  });
+
+  it("期日が今日以前のもの（今日の復習）は数えない。無ければ null", () => {
+    expect(nextReview({ d: s("2026-10-27"), e: s("2026-10-01") }, "2026-10-27")).toBeNull();
+    expect(nextReview({}, "2026-10-27")).toBeNull();
+  });
+
+  it("語を絞れる（収録から外した語の古い記録を数えない）", () => {
+    const srs = { a: s("2026-10-28"), gone: s("2026-10-28") };
+    expect(nextReview(srs, "2026-10-27", new Set(["a"]))).toEqual({ date: "2026-10-28", count: 1 });
+  });
+
+  it("翌日は暦日で求める（月末）", () => {
+    expect(tomorrowOf("2026-10-31")).toBe("2026-11-01");
   });
 });

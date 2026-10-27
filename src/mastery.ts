@@ -29,6 +29,25 @@ export function isMastered(
   return !!h && h.correctCount >= 2;
 }
 
+/**
+ * 覚えかけ（1回は正解したが、まだ習得済みに届いていない）。
+ *
+ * 習得済みは「正解が不正解より2回多い」なので、はじめて解いた日にいくつ正解しても
+ * 「覚えた」は0語のまま動かない。そこだけを見せていたため、9問正解したあとも
+ * ホームが「覚えた0語・習熟度0%」のままで、記録が保存されていないように見えた。
+ * あと1回の正解で習得済みに入る語として、別に数えて見せる。
+ */
+export function isLearning(
+  wordId: string,
+  solvedHistory: SolvedHistory,
+  srsData: Record<string, SrsState>
+): boolean {
+  const srs = srsData[wordId];
+  if (srs) return srs.box >= 1 && srs.box < MASTERY_BOX;
+  const h = solvedHistory[wordId];
+  return !!h && h.correctCount === 1;
+}
+
 /** 習得済みの単語数を数える */
 export function countMastered(
   wordIds: string[],

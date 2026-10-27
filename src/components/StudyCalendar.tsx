@@ -66,7 +66,6 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
   // 集計サマリー
   const todayKey = todayStr(today);
   const entries = Object.entries(dailyLog);
-  const totalAnswers = entries.reduce((sum, [, v]) => sum + v.count, 0);
   const activeDays = entries.filter(([, v]) => v.count > 0).length;
 
   // 連続学習日数（今日または昨日を起点に途切れるまで遡る）
@@ -121,9 +120,9 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
         <div className="px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-xl">
           学習した日: <span className="tabular-nums text-sm">{activeDays}</span> 日
         </div>
-        <div className="px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-xl">
-          累計解答: <span className="tabular-nums text-sm">{totalAnswers}</span> 問
-        </div>
+        {/* 累計の解答数は、同じ「記録」の画面の「累計回答数」が受け持つ。
+            ここでも日別の記録から数えて出していたが、数え方が違ったため
+            同じ画面に「累計解答 11問」と「累計回答数 10問」が並んでいた */}
       </div>
 
       {/* ヒートマップ本体（横スクロール対応） */}

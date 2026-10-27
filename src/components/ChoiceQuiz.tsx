@@ -137,10 +137,9 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
     const score = results.filter(r => r.isCorrect).length;
     const points = choiceQuizPoints(score, questions.length);
     updateRankingScore(points);
+    // 回答数・正答数は1問ごとに App（recordPractice）が数える。ここで足すと二重になる
     setStats(prev => ({
       ...prev,
-      completedQuestions: prev.completedQuestions + questions.length,
-      correctAnswers: prev.correctAnswers + score,
       score: prev.score + points
     }));
     setFinished(true);
