@@ -16,7 +16,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
-import { parseCSV, buildDistractors, normalizeImportedWord } from "../importWords";
+import { parseCSV, buildDistractors, normalizeImportedWord, appendNewWords } from "../importWords";
 import { isOffensiveText, isOffensiveWord, OFFENSIVE_WORD_MESSAGE } from "../offensiveTerms";
 import { playChime } from "../sound";
 import { shuffle } from "../shuffle";
@@ -24,6 +24,7 @@ import { inferPartOfSpeech } from "../pos";
 import { toFillInSentence } from "../fillIn";
 import { ExpandIcon } from "./AppIcons";
 import { LEVEL_LABELS, LEVEL_ORDER } from "../levelLabels";
+import { readJsonResponse } from "../apiClient";
 
 interface WordImportProps {
   vocabulary: Word[];
@@ -236,7 +237,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           }
         }
 
-        setVocabulary(prev => [...prev, ...newWords]);
+        setVocabulary(prev => appendNewWords(prev, newWords));
         
         const scoreBonus = Math.min(newWords.length * 20, 1000);
         addBonus(scoreBonus);
@@ -300,8 +301,23 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
     }
   };
 
+  /*
+   * PDF の解析中に次の PDF を受け付けない（同期的に止める）。
+   *
+   * クリックでの選択は isPdfParsing で止めていたが、ドロップには歯止めが無く、
+   * 解析中に同じ PDF をもう一度落とすと処理が2本並んで走った。どちらも始めた時点の
+   * 単語帳で重複を確かめるため、同じ語が別の ID で2件登録され、ボーナスも二重に入った。
+   * isPdfParsing は state なので効くのは再描画のあと。AI 追加の addingRef と同じ作りで塞ぐ。
+   */
+  const pdfParsingRef = useRef(false);
+  const finishPdfParsing = () => {
+    pdfParsingRef.current = false;
+    setIsPdfParsing(false);
+  };
+
   // PDFファイルのアップロードとスマート解析
   const handlePdfUpload = async (file: File) => {
+    if (pdfParsingRef.current) return;
     setPdfError("");
     setPdfSuccess("");
 
@@ -310,6 +326,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
       return;
     }
 
+    pdfParsingRef.current = true;
     setIsPdfParsing(true);
     try {
       const reader = new FileReader();
@@ -328,7 +345,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
           // 先に本文を読む。ここで通信エラーとして丸めてしまうと、
           // 「AIを呼び出せませんでした」というサーバーの理由が利用者に届かない
-          const data = await response.json().catch(() => ({}));
+          const data = await readJsonResponse(response);
           if (!response.ok || data.error) {
             throw new Error(
               data.error || "サーバーとの通信に失敗しました。快適な接続環境下で再度お試しください。"
@@ -368,7 +385,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
             throw new Error(`追加された単語はありません（抽出された ${duplicateCount} 件の単語はすべて既に登録されています）。`);
           }
 
-          setVocabulary(prev => [...prev, ...newWordsToAdd]);
+          setVocabulary(prev => appendNewWords(prev, newWordsToAdd));
 
           const scoreBonus = Math.min(newWordsToAdd.length * 25, 1200);
           addBonus(scoreBonus);
@@ -383,19 +400,19 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           console.error(err);
           setPdfError(err.message || "PDFファイルの解析に失敗しました。");
         } finally {
-          setIsPdfParsing(false);
+          finishPdfParsing();
         }
       };
 
       reader.onerror = () => {
         setPdfError("ファイルの読み込み中にエラーが発生しました。");
-        setIsPdfParsing(false);
+        finishPdfParsing();
       };
 
     } catch (err: any) {
       console.error(err);
       setPdfError("ファイルの登録プロセスで問題が発生しました。");
-      setIsPdfParsing(false);
+      finishPdfParsing();
     }
   };
 
@@ -471,7 +488,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         body: JSON.stringify({ word: newWord.trim() })
       });
       
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok || data.error) {
         throw new Error(data.error || "単語の追加に失敗しました。");
       }
@@ -494,7 +511,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         return;
       }
 
-      setVocabulary(prev => [...prev, newWordObject]);
+      setVocabulary(prev => appendNewWords(prev, [newWordObject]));
       setNewWord("");
       playChime("bonus");
       

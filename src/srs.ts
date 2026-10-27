@@ -45,16 +45,51 @@ export function nextSrsState(
   isCorrect: boolean,
   today: string = todayStr()
 ): SrsState {
-  const prevBox = prev ? prev.box : 0;
+  // 保存データが壊れていても（box が数値でない・範囲外）、日付が NaN にならないようにする
+  const prevBox = prev && Number.isInteger(prev.box) ? Math.min(Math.max(prev.box, 0), MAX_BOX) : 0;
   const newBox = isCorrect ? Math.min(prevBox + 1, MAX_BOX) : Math.max(prevBox - 1, 0);
   const interval = INTERVAL_DAYS[newBox];
+  const count = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : 0);
   return {
     box: newBox,
     dueDate: addDays(today, interval),
     lastReview: today,
-    reps: (prev ? prev.reps : 0) + 1,
-    lapses: (prev ? prev.lapses : 0) + (isCorrect ? 0 : 1),
+    reps: count(prev?.reps) + 1,
+    lapses: count(prev?.lapses) + (isCorrect ? 0 : 1),
   };
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * 保存されていた SRS データ（quest_srs）から、形の正しい要素だけを残す。
+ *
+ * 読み込み（readStoredObject）は「オブジェクトであること」しか見ず、バックアップの復元も
+ * 値が文字列かどうかしか見ないので、`{"w1":null}` や `{"w1":{"box":"a"}}` がそのまま入りうる
+ * （手で直したファイル・古い形式の残骸）。そのまま使うと
+ *   - 要素が null → isDue が state.dueDate で TypeError。App の useMemo の中で投げるので
+ *     ErrorBoundary の画面になり、読み直しても同じデータで再発して先へ進めない
+ *   - box が数値でない → 次の期日が "NaN-NaN-NaN" で保存される
+ * 壊れた要素は捨てる（その語は未学習に戻るだけで、他の語の記録は残る）。
+ */
+export function sanitizeSrs(raw: unknown): Record<string, SrsState> {
+  const out: Record<string, SrsState> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [id, s] of Object.entries(raw as Record<string, unknown>)) {
+    if (!s || typeof s !== "object") continue;
+    const v = s as Partial<SrsState>;
+    if (!Number.isInteger(v.box) || v.box! < 0 || v.box! > MAX_BOX) continue;
+    if (typeof v.dueDate !== "string" || !DATE_RE.test(v.dueDate)) continue;
+    const count = (n: unknown) => (typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : 0);
+    out[id] = {
+      box: v.box!,
+      dueDate: v.dueDate,
+      lastReview: typeof v.lastReview === "string" && DATE_RE.test(v.lastReview) ? v.lastReview : v.dueDate,
+      reps: count(v.reps),
+      lapses: count(v.lapses),
+    };
+  }
+  return out;
 }
 
 /** その単語が今日復習対象か（期日が今日以前か） */

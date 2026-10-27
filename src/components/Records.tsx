@@ -10,6 +10,7 @@ import { AdviceIcon, WeaknessIcon } from "./AppIcons";
 import { ACCENT_TONE, TONE_STYLE } from "../levelTheme";
 import { levelCounts } from "../studySettings";
 import { SolvedHistory } from "../mastery";
+import { readJsonResponse } from "../apiClient";
 
 interface WeaknessStat {
   label: string;
@@ -152,7 +153,7 @@ export default function Records({
         })
       });
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok || data.error) {
         throw new Error(data.error || "アドバイスの取得に失敗しました。");
       }
@@ -195,7 +196,7 @@ export default function Records({
         body: JSON.stringify({ wrongWords: targetWords })
       });
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok || data.error) {
         throw new Error(data.error || "弱点分析の取得に失敗しました。");
       }

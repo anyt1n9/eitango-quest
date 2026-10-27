@@ -44,6 +44,12 @@ app.use((_req, res, next) => {
   next();
 });
 
+// すべての /api/gemini/* にレート制限を適用する。**本文の読み込みより前に置くこと。**
+// Express のミドルウェアは登録順に走るので、後ろに置くと本文を読んで JSON を解析し終えてから
+// 断ることになる。以前はその順だったため、制限を超えたクライアントでも parse-pdf に
+// 15MB の JSON を何度でも送れ、サーバーは毎回読み込みと解析を済ませてから 429 を返していた。
+app.use("/api/gemini", aiRateLimiter);
+
 // ボディサイズ制限:
 // PDFアップロードだけが大きなボディを必要とするため、そのルートのみ15MBを許可し、
 // それ以外は1MBに抑える。以前は全ルート一律50MBで、巨大JSONの連投による
@@ -52,14 +58,33 @@ app.use("/api/gemini/parse-pdf", express.json({ limit: "15mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "100kb", extended: true }));
 
+/**
+ * 本文の読み込みで起きた失敗（大きすぎる・JSON として壊れている）を、日本語の JSON で返す。
+ * Express の既定では HTML のエラーページが返り、画面の response.json() が
+ * 「Unexpected token '<'」を投げて、その英文が利用者にそのまま出ていた。
+ */
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!err || typeof err.type !== "string" || typeof err.status !== "number" || err.status < 400 || err.status >= 500) {
+    return next(err);
+  }
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      error: req.path.startsWith("/api/gemini/parse-pdf")
+        ? "PDFファイルが大きすぎます。10MB以下のファイルをご利用ください。"
+        : "送信するデータが大きすぎます。"
+    });
+  }
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "リクエストの形式が正しくありません。" });
+  }
+  return res.status(err.status).json({ error: "リクエストを処理できませんでした。" });
+});
+
 // 入力バリデーション・レート制限・予算上限は server/guards.ts に切り出してある
 // （AIの利用料に直結するため、画面や外部通信から独立してテストできる形にした）。
 
 // デプロイ環境(Cloud Run など)は PORT 環境変数でリッスンするポートを指定するため、それを優先する
 const PORT = Number(process.env.PORT) || 3000;
-
-// すべての /api/gemini/* エンドポイントにレート制限を適用（ルート定義より前に置く）
-app.use("/api/gemini", aiRateLimiter);
 
 /**
  * AI を呼べないときの応答。
@@ -955,6 +980,33 @@ app.post("/api/gemini/parse-pdf", async (req, res) => {
 });
 
 
+// どのルートにも当たらなかった /api/* は JSON の 404 で返す（メソッドを問わない）。
+// 下の画面のフォールバックまで落ちると、存在しない API に index.html が 200 で返り、
+// 画面は JSON のつもりで HTML を読もうとして「Unexpected token '<'」になっていた
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "指定された API はありません。" });
+});
+
+/**
+ * ビルド済みのファイル（dist/）を配り、画面のパスには index.html を返す。
+ *
+ * 見つからなかった GET をすべて index.html にしていたため、デプロイで古くなった
+ * ハッシュ付きのチャンク（/assets/Foo-abc123.js）や存在しない /api/... にも
+ * HTML が **200** で返っていた。ブラウザとサービスワーカーは成功として扱うので
+ * HTML をキャッシュしかねず、画面は JS のつもりで HTML を読んで壊れる。
+ * 拡張子の付いたパス（ファイルを指すもの）と /api/ 配下は 404 にする。
+ * 画面のパス（/dictionary、/reading/<id> など）は拡張子を持たない（id に「.」は使っていない）。
+ */
+export function serveBuiltApp(target: express.Express, distPath: string) {
+  target.use(express.static(distPath));
+  target.get("*", (req, res) => {
+    if (req.path.startsWith("/api/") || path.extname(req.path)) {
+      return res.status(404).type("text/plain").send("Not Found");
+    }
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
 /**
  * 開発中かどうか。
  *
@@ -991,11 +1043,7 @@ async function main() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+    serveBuiltApp(app, path.join(process.cwd(), "dist"));
   }
 
   app.listen(PORT, "0.0.0.0", () => {

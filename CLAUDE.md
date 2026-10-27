@@ -269,6 +269,21 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   そのままクイズに出題していた。
   **集計で作れるもの**（学習アドバイス・苦手分析）は 200 で返してよいが、
   出どころ（`source: "local"` など）を必ず明記する。
+- **サーバーの手前の層のテスト** — `tests/serverMiddleware.test.ts`。
+  **レート制限（`aiRateLimiter`）は本文の解析（`express.json`）より前に置く。**
+  後ろに置いていたときは、制限を超えたクライアントでも parse-pdf に 15MB の JSON を
+  何度でも送れた（毎回読み込みと解析を済ませてから 429 を返していた）。
+  そのぶん、本文が大きすぎる・壊れている要求も1回に数えられるので、
+  `serverRoutes.test.ts` でそういう要求を送るときは専用のIP（`X-Forwarded-For`）で叩く。
+  本文の読み込みの失敗（413・400）は、解析の直後のエラー処理で**日本語の JSON** にする。
+  Express の既定は HTML で、画面が「Unexpected token '<'」をそのまま出していた。
+  存在しない `/api/...` は JSON の 404、ビルド済みの配信（`serveBuiltApp`）は
+  拡張子の付いたパス（`/assets/*.js` など）と `/api/` に 404 を返し、index.html を返さない。
+  以前は何にでも index.html を 200 で返しており、デプロイ後に古いチャンクを取りに来た
+  画面が HTML を JS として読んで壊れ、サービスワーカーがそれをキャッシュしかねなかった。
+  画面のパスに「.」を含めないこと（長文・文法・AI生成の ID も含む）。
+  画面の側は、こちらの API の応答を `src/apiClient.ts` の `readJsonResponse()` で読む。
+  手前のプロキシが返す 502 / 504 は HTML なので、`res.json()` を直接呼ぶと同じ英文が出る。
 - **文枠のテスト** — `tests/sentenceFrames.test.ts`。例文の材料である
   `scripts/rewrite_template_sentences.ts` の文枠を検査する。枠を足すときは
   「穴埋め記号はちょうど1つ」「a/an の直後に穴埋めを置かない」「連体専用の枠は
@@ -345,11 +360,20 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
   （`readStoredArray` / `readStoredObject` / `prefersDarkTheme` と同じ扱い）。
   消すときも同じで、`removeStored()` を使う。英語日記は開いた直後にキャッシュを
   消しに行くため、生の `removeItem` だと塞がれた環境で画面ごと落ちていた。
+- **壊れた保存データのテスト** — `tests/srs.test.ts` の「保存データの検査」と
+  `tests/srsBroken.render.test.tsx`。復習の記録（`quest_srs`）は読み込むときに
+  `src/srs.ts` の `sanitizeSrs()` を通し、形の合わない項目（null・箱が数でない・
+  期日が日付でない）を捨てる。そのまま使っていたときは、1件の `null` で
+  `getDueWordIds` が投げて ErrorBoundary の画面になり、読み直しても同じ記録を
+  読むので二度と先へ進めなかった（バックアップの復元や手での編集で起こりうる）。
 - **連打のテスト** — `tests/gachaShop.render.test.tsx` の「連打」、
   `tests/aiWordAdd.render.test.tsx`（AIで単語を1件ずつ追加）、
   `tests/aiDiary.render.test.tsx` と `tests/reading.render.test.tsx` の「生成の連打」、
   `tests/answerDoubleTap.render.test.tsx`（クイズの解答の二度押し）、
-  `tests/choiceQuiz.render.test.tsx`（類義語・語義分別の解答と「次へ」の二度押し）。
+  `tests/choiceQuiz.render.test.tsx`（類義語・語義分別の解答と「次へ」の二度押し）、
+  `tests/pdfImportGuard.render.test.tsx`（PDFの二度落とし）。
+  単語帳へ足すとき（CSV・PDF・AI）は `src/importWords.ts` の `appendNewWords()` を
+  関数形の中で使い、待っているあいだに足された語と綴りが重なるものを弾く。
   **成功時に一覧へ足す・点数を足す・学習の記録を進める処理には、必ず `useRef` の同期ガードを置く。**
   解答の二度押しは特に重い。四択・例文穴埋め・綴りのいずれも、スマホのダブルタップで
   1回の解答が2回分として記録され、間隔反復の箱が2段上がっていた（まだ覚えていない語が

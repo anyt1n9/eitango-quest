@@ -162,3 +162,23 @@ export function normalizeImportedWord(
     pos
   };
 }
+
+/**
+ * 取り込んだ語を単語帳に足す。同じ綴りの語（大文字小文字は区別しない）は足さない。
+ * `setVocabulary(prev => appendNewWords(prev, words))` の形で、**更新の時点の単語帳**に対して使う。
+ *
+ * 重複の確認を取り込みを始めた時点の単語帳（props の vocabulary）だけで行うと、
+ * PDF の解析中に別の PDF・CSV・AI 追加が終わった場合に、どちらも相手の語を知らないまま
+ * 同じ語を別の ID で2件登録していた。
+ */
+export function appendNewWords(prev: Word[], words: Word[]): Word[] {
+  const seen = new Set(prev.map(w => w.word.toLowerCase()));
+  const added: Word[] = [];
+  for (const w of words) {
+    const key = w.word.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    added.push(w);
+  }
+  return added.length === 0 ? prev : [...prev, ...added];
+}

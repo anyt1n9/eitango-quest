@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCSV, buildDistractors, normalizeImportedWord } from "../src/importWords";
+import { parseCSV, buildDistractors, normalizeImportedWord, appendNewWords } from "../src/importWords";
 import { makeWord } from "./fixtures";
 import { Word } from "../src/types";
 
@@ -178,5 +178,24 @@ describe("不適切な語（src/offensiveTerms.ts）", () => {
     expect(w!.sentenceOptions).not.toContain("bitch");
     expect(w!.options).toContain("静かな");
     expect(w!.sentenceOptions).toContain("quiet");
+  });
+});
+
+describe("取り込んだ語を単語帳に足す（appendNewWords）", () => {
+  it("更新の時点の単語帳にある綴りは足さない（大文字小文字は区別しない）", () => {
+    // PDF の解析中に別の取り込みが同じ語を足していても、二重に登録しない（issue #107）
+    const prev = [makeWord({ id: "a", word: "Evaluate" })];
+    const out = appendNewWords(prev, [makeWord({ id: "b", word: "evaluate" }), makeWord({ id: "c", word: "assess" })]);
+    expect(out.map(w => w.id)).toEqual(["a", "c"]);
+  });
+
+  it("取り込む語どうしの重複も1件にする", () => {
+    const out = appendNewWords([], [makeWord({ id: "b", word: "assess" }), makeWord({ id: "c", word: "Assess" })]);
+    expect(out.map(w => w.id)).toEqual(["b"]);
+  });
+
+  it("足す語が無ければ同じ配列を返す（無駄な再描画を起こさない）", () => {
+    const prev = [makeWord({ id: "a", word: "assess" })];
+    expect(appendNewWords(prev, [makeWord({ id: "b", word: "assess" })])).toBe(prev);
   });
 });

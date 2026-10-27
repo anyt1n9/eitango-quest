@@ -28,6 +28,7 @@ import WordUsageInfo from "./WordUsage";
 import { SrsState } from "../srs";
 import { isMastered } from "../mastery";
 import { LEVEL_TONE, TONE_STYLE, CUSTOM_TONE } from "../levelTheme";
+import { readJsonResponse } from "../apiClient";
 
 interface DictionaryProps {
   vocabulary: Word[];
@@ -105,7 +106,7 @@ export default function Dictionary({
         body: JSON.stringify({ word: trimmed, translation: translationText })
       });
 
-      const payload = await response.json();
+      const payload = await readJsonResponse(response);
       if (!response.ok || payload.error) {
         throw new Error(payload.error || "類義語・反意語を取得できませんでした。");
       }
@@ -145,7 +146,7 @@ export default function Dictionary({
         body: JSON.stringify({ word: trimmed })
       });
 
-      const payload = await response.json();
+      const payload = await readJsonResponse(response);
       if (!response.ok || payload.error) {
         throw new Error(payload.error || "詳細な頻度分析を取得できませんでした。");
       }

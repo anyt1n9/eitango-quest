@@ -52,7 +52,7 @@ const AboutApp = lazy(() =>
 const LearnHub = lazy(() => import("./components/LearnHub"));
 const Records = lazy(() => import("./components/Records"));
 const MenuScreen = lazy(() => import("./components/MenuScreen"));
-import { SrsState, nextSrsState, getDueWordIds, todayStr } from "./srs";
+import { SrsState, nextSrsState, getDueWordIds, todayStr, sanitizeSrs } from "./srs";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Sun, Moon, CheckCircle2, ArrowLeft, Trophy, Calendar } from "lucide-react";
@@ -223,8 +223,9 @@ export default function App() {
   }, [bgMotion]);
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
+  // 壊れた要素（null・数値でない box など）は読み込みの時点で捨てる（src/srs.ts の sanitizeSrs）
   const [srsData, setSrsData] = useState<Record<string, SrsState>>(() =>
-    readStoredObject<Record<string, SrsState>>("quest_srs", {})
+    sanitizeSrs(readStoredObject<Record<string, unknown>>("quest_srs", {}))
   );
 
   // デイリー学習目標の進捗（今日の解答数）
