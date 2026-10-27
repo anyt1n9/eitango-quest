@@ -204,10 +204,9 @@ export default function SpellingQuiz({
     // 綴りを書く問題は四択より難しいので1問50P、パーフェクトボーナス250P
     const addedPoints = finalScore * 50 + (finalScore === questions.length ? 250 : 0);
     updateRankingScore(addedPoints);
+    // 回答数・正答数は1問ごとに App（recordPractice）が数える。ここで足すと二重になる
     setStats(prev => ({
       ...prev,
-      completedQuestions: prev.completedQuestions + questions.length,
-      correctAnswers: prev.correctAnswers + finalScore,
       score: prev.score + addedPoints
     }));
   };

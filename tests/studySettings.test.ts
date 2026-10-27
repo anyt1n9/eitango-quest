@@ -79,8 +79,12 @@ describe("レベルごとの数", () => {
       makeWord({ id: "b", word: "b", level: "junior" }),
       makeWord({ id: "c", word: "c", level: "senior" })
     ];
-    const srs = { a: { box: 2, dueDate: "2099-01-01", lastReview: "2026-01-01", reps: 2, lapses: 0 } };
-    expect(levelCounts(words, "junior", {}, srs)).toEqual({ total: 2, completed: 0, correct: 1, masterRate: 50 });
+    const srs = {
+      a: { box: 2, dueDate: "2099-01-01", lastReview: "2026-01-01", reps: 2, lapses: 0 },
+      // 1回だけ正解した語は「覚えかけ」で、習得済みには数えない
+      b: { box: 1, dueDate: "2099-01-01", lastReview: "2026-01-01", reps: 1, lapses: 0 }
+    };
+    expect(levelCounts(words, "junior", {}, srs)).toEqual({ total: 2, completed: 0, correct: 1, learning: 1, masterRate: 50 });
     expect(levelCounts(words, "advanced", {}, srs).masterRate).toBe(0);
   });
 });

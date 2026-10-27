@@ -49,10 +49,11 @@ describe("学習カレンダー", () => {
     expect(within(screen.getByText(/連続学習/).closest("div")!).getByText("0")).toBeInTheDocument();
   });
 
-  it("累計と学習した日数を出す", () => {
+  it("学習した日数を出す（累計の解答数は「記録」の累計回答数だけが出す）", () => {
     render(<StudyCalendar dailyLog={log(0, 1)} dailyGoal={20} />);
     expect(screen.getByText(/学習した日/).textContent).toContain("2");
-    expect(screen.getByText(/累計解答/).textContent).toContain("20");
+    // 同じ画面に数え方の違う2つの累計が並んでいた
+    expect(screen.queryByText(/累計解答/)).toBeNull();
   });
 
   it("未来のマスには記録を出さない", () => {

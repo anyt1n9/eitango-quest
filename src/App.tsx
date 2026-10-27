@@ -569,6 +569,14 @@ export default function App() {
    */
   const recordPractice = useCallback((isCorrect: boolean) => {
     const today = todayStr();
+    // 累計の回答数・正答数（「記録」）も1問ごとに数える。以前はクイズを最後まで解いたときに
+    // まとめて足していたので、途中でやめた問題は学習カレンダーにだけ入り、
+    // 同じ画面に「累計解答 11問」と「累計回答数 10問」が並んでいた
+    setStats(prev => ({
+      ...prev,
+      completedQuestions: prev.completedQuestions + 1,
+      correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0)
+    }));
     setDailyProgress(prev => {
       const base = prev.date === today ? prev.count : 0;
       return { date: today, count: base + 1 };
@@ -700,7 +708,7 @@ export default function App() {
   );
 
   // 今日復習すべき単語（SRSの期日が今日以前のもの）
-  // 収録単語は約7,800語あるため、ID一覧を配列のまま includes で引くと
+  // 収録単語は約7,700語あるため、ID一覧を配列のまま includes で引くと
   // 毎レンダーで O(単語数 × 復習対象数) の走査になる。Set で定数時間の判定にする。
   const today = todayStr();
   const dueWords: Word[] = useMemo(() => {

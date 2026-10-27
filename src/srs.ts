@@ -114,3 +114,35 @@ export function getDueWordIds(
 ): string[] {
   return Object.keys(srs).filter((id) => isDue(srs[id], today));
 }
+
+/**
+ * 次に復習が来る日と、その日の語数（今日より後でいちばん近い期日）。無ければ null。
+ *
+ * 今日の復習が0語の日に「復習する単語はありません」とだけ出していたので、
+ * 解いた語が復習に回っているのか（記録されたのか）が画面から分からなかった。
+ * wordIds を渡すと、その語だけを数える（収録から外した語の古い記録を数えない）。
+ */
+export function nextReview(
+  srs: Record<string, SrsState>,
+  today: string = todayStr(),
+  wordIds?: Set<string>
+): { date: string; count: number } | null {
+  let date: string | null = null;
+  let count = 0;
+  for (const [id, s] of Object.entries(srs)) {
+    if (wordIds && !wordIds.has(id)) continue;
+    if (s.dueDate <= today) continue;
+    if (date === null || s.dueDate < date) {
+      date = s.dueDate;
+      count = 1;
+    } else if (s.dueDate === date) {
+      count++;
+    }
+  }
+  return date === null ? null : { date, count };
+}
+
+/** 次の日の YYYY-MM-DD（暦日で足す） */
+export function tomorrowOf(today: string = todayStr()): string {
+  return addDays(today, 1);
+}

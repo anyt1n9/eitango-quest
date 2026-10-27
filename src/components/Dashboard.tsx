@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { Level, Word } from "../types";
-import { SrsState } from "../srs";
+import { SrsState, nextReview, todayStr, tomorrowOf } from "../srs";
 import { SolvedHistory } from "../mastery";
 import { ListeningIcon, SpellingIcon } from "./AppIcons";
 import { LEVEL_TONE, TONE_STYLE, ACCENT_TONE } from "../levelTheme";
@@ -93,6 +93,20 @@ export default function Dashboard({
   const goalReached = todayCount >= dailyGoal;
   const tone = LEVEL_TONE[selectedLevel];
 
+  // 今日の復習が0語の日は、次にいつ何語来るかを出す（解いた語が復習に回っていることが見えるように）
+  const vocabularyIds = React.useMemo(() => new Set(vocabulary.map(w => w.id)), [vocabulary]);
+  const today = todayStr();
+  // 復習の記録は数千件になりうるので、依存が変わったときだけ数え直す
+  const next = React.useMemo(
+    () => (hasDue ? null : nextReview(srsData, today, vocabularyIds)),
+    [hasDue, srsData, today, vocabularyIds]
+  );
+  const nextLabel = next
+    ? next.date === tomorrowOf(today)
+      ? "明日"
+      : `${Number(next.date.slice(5, 7))}/${Number(next.date.slice(8, 10))}`
+    : "";
+
   return (
     <div className="space-y-4" id="dashboard_page">
       {/* 見出しはカードの外に出しているので、背景の飾り（葉・波）や写真の上に重なる。
@@ -157,9 +171,16 @@ export default function Dashboard({
               </option>
             ))}
           </select>
-          <p className="text-[11px] text-gray-500 px-0.5">
-            覚えた {current.correct}語 ／ 全 {current.total}語
+          <p className="text-[11px] text-gray-500 px-0.5" id="level_mastery_summary">
+            覚えた {current.correct}語・覚えかけ {current.learning}語 ／ 全 {current.total}語
           </p>
+          {/* 「覚えた」は同じ語に2回正解して入る。はじめて解いた日はいくつ正解しても0語のままなので、
+              理由を書かないと「保存されていない」と受け取られる */}
+          {current.learning > 0 && (
+            <p className="text-[11px] text-gray-500 px-0.5" id="learning_hint">
+              覚えかけ＝あと1回正解すると「覚えた」に入る語
+            </p>
+          )}
         </div>
 
         <div className="space-y-1.5" data-testid="count_picker">
@@ -264,18 +285,25 @@ export default function Dashboard({
           </div>
         </div>
 
+        {/* 「今日の復習」と「苦手な単語」は別のもの。並べて出すので、それぞれ何かを一言添える */}
         {!hasDue && (
-          <div className="flex items-baseline justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800 text-sm" data-testid="today_review_status">
-            <span className="font-black text-gray-900">今日の復習</span>
-            <span className="text-xs text-gray-500">復習する単語はありません</span>
+          <div className="flex items-start justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800" data-testid="today_review_status">
+            <span className="min-w-0">
+              <span className="block text-sm font-black text-gray-900">今日の復習</span>
+              <span className="block text-[11px] text-gray-500 leading-snug">解いた語を、忘れかけたころにもう一度出します</span>
+            </span>
+            <span className="text-xs text-gray-600 text-right shrink-0" id="next_review_text">
+              {next ? `今日はなし・${nextLabel}に${next.count}語` : "まだありません"}
+            </span>
           </div>
         )}
 
         {wrongWords.length > 0 && (
           <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800" id="review_banner">
-            <span className="text-sm">
+            <span className="text-sm min-w-0">
               <span className="font-black text-gray-900">苦手な単語</span>
               <span className="ml-2 text-xs text-gray-600">{wrongWords.length}語</span>
+              <span className="block text-[11px] text-gray-500 leading-snug">間違えた語。ここから解き直して正解すると外れます</span>
             </span>
             <button
               type="button"

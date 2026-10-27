@@ -229,7 +229,8 @@ test("アプリケーション説明は、利用規約と同じく1枚の画面�
   await expect(page).toHaveURL(/\/about$/);
   await expect(page.getByRole("heading", { name: /Eigorira（エイゴリラ）とは/ })).toBeVisible({ timeout: 30_000 });
   // 中身が「何がどれだけ入っているか」まで書いてある
-  await expect(page.getByText(/英単語 7,730語/)).toBeVisible();
+  // 数字そのものが収録データと合っているかは tests/appDescription.data.test.ts が見る
+  await expect(page.getByText(/英単語 [\d,]+語/)).toBeVisible();
   await expect(page.getByRole("heading", { name: /5つの出題形式/ })).toBeVisible();
 
   // 規約と同じ戻り方。「戻る」で開いたタブ（メニュー）へ帰れて、端末の戻るで開き直せる

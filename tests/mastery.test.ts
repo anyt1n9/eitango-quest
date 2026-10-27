@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isMastered, countMastered, MASTERY_BOX } from "../src/mastery";
+import { isMastered, isLearning, countMastered, MASTERY_BOX } from "../src/mastery";
 import { SrsState } from "../src/srs";
 
 const srs = (box: number): SrsState =>
@@ -43,5 +43,38 @@ describe("countMastered", () => {
 
   it("空配列なら0", () => {
     expect(countMastered([], {}, {})).toBe(0);
+  });
+});
+
+/**
+ * 覚えかけ＝1回は正解したが、まだ習得済みに届いていない語。
+ * はじめて解いた日は何問正解しても「覚えた0語」のままなので、ホームではこちらも数えて見せる。
+ */
+describe("isLearning", () => {
+  it("ボックス1（あと1回の正解で習得済み）だけが覚えかけ", () => {
+    expect(isLearning("w1", {}, { w1: srs(1) })).toBe(true);
+    expect(isLearning("w1", {}, { w1: srs(0) })).toBe(false);
+    expect(isLearning("w1", {}, { w1: srs(MASTERY_BOX) })).toBe(false);
+  });
+
+  it("SRSデータの無い語は解答履歴で見る（正解1回）", () => {
+    expect(isLearning("w1", { w1: { correctCount: 1, attemptCount: 3 } }, {})).toBe(true);
+    expect(isLearning("w1", { w1: { correctCount: 2, attemptCount: 2 } }, {})).toBe(false);
+    expect(isLearning("w1", { w1: { correctCount: 0, attemptCount: 1 } }, {})).toBe(false);
+    expect(isLearning("w1", {}, {})).toBe(false);
+  });
+
+  it("習得済みから1回間違えて下がった語も、あと1回の正解で戻るので覚えかけ", () => {
+    // ボックス2（習得済み）で間違えるとボックス1に下がる（src/srs.ts の nextSrsState）
+    const demoted = { ...srs(1), lapses: 1, reps: 3 };
+    expect(isLearning("w1", {}, { w1: demoted })).toBe(true);
+    expect(isMastered("w1", {}, { w1: demoted })).toBe(false);
+  });
+
+  it("覚えかけと習得済みは重ならない", () => {
+    for (let box = 0; box <= 7; box++) {
+      const s = { w1: srs(box) };
+      expect(isLearning("w1", {}, s) && isMastered("w1", {}, s), `box ${box}`).toBe(false);
+    }
   });
 });

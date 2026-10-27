@@ -261,10 +261,9 @@ export default function SentenceQuiz({
     const addedPoints = finalScore * 40 + (finalScore === questions.length ? 200 : 0);
     updateRankingScore(addedPoints);
 
+    // 回答数・正答数は1問ごとに App（recordPractice）が数える。ここで足すと二重になる
     setStats(prev => ({
       ...prev,
-      completedQuestions: prev.completedQuestions + questions.length,
-      correctAnswers: prev.correctAnswers + finalScore,
       score: prev.score + addedPoints
     }));
   };
