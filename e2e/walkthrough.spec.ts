@@ -309,8 +309,12 @@ test("合計スコアと連続日数は、どの画面でもヘッダーに出�
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto("/");
   await page.evaluate(() => {
+    // 連続日数は昨日受け取っていれば続いている（1日以上空いていれば0と出す）
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     localStorage.setItem("quest_stats", JSON.stringify({
-      score: 3550, currentStreak: 4, lastLoginDate: null,
+      score: 3550, currentStreak: 4, lastLoginDate: yesterday,
       completedQuestions: 0, correctAnswers: 0
     }));
   });

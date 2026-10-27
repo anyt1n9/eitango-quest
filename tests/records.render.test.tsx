@@ -5,6 +5,14 @@ import userEvent from "@testing-library/user-event";
 import Records from "../src/components/Records";
 import { makeWord, makeStats } from "./fixtures";
 import { ACCENT_TONE } from "../src/levelTheme";
+import { todayStr } from "../src/srs";
+
+/** 今日から n 日前の YYYY-MM-DD */
+function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return todayStr(d);
+}
 
 /**
  * 記録の画面（画面下のタブの「記録」）。
@@ -20,7 +28,8 @@ const VOCAB = [
 
 function renderRecords(props: Partial<ComponentProps<typeof Records>> = {}) {
   const all: ComponentProps<typeof Records> = {
-    stats: makeStats(),
+    // 連続1日目（昨日受け取った）。DAY1 は受取済み・DAY2 が今日ぶん
+    stats: makeStats({ currentStreak: 1, lastLoginDate: daysAgo(1) }),
     setStats: vi.fn(),
     vocabulary: VOCAB,
     solvedHistory: {},
@@ -187,6 +196,44 @@ describe("ログインボーナス", () => {
 
     expect(setStats).toHaveBeenCalledTimes(1);
     expect(alertSpy).toHaveBeenCalledTimes(1);
+    alertSpy.mockRestore();
+  });
+
+  /**
+   * 保存している連続日数は「最後に受け取った日の時点」のもの。開いたまま日をまたぐと
+   * 起動時の巻き戻しが走らず、途切れているのに「連続3日」と出したうえ、
+   * 受け取ると「1日目」と言いながら4日目の点数（400P）を足していた。
+   */
+  it("途切れていれば、表示も点数も1日目から数え直す", async () => {
+    const user = userEvent.setup();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const setStats = vi.fn();
+    renderRecords({ setStats, stats: makeStats({ score: 1000, currentStreak: 3, lastLoginDate: daysAgo(2) }) });
+
+    const streakPanel = within(document.getElementById("self_records_panel")!);
+    expect(streakPanel.getByText("連続ログイン").parentElement!.textContent).toContain("0日");
+    const buttons = Array.from(document.querySelectorAll('[id^="btn_claim_bonus_day_"]'));
+    expect(buttons.map(b => b.id), "今日ぶんが DAY1 になっていない").toEqual(["btn_claim_bonus_day_1"]);
+
+    await user.click(document.getElementById("btn_claim_bonus_day_1")!);
+    const after = setStats.mock.calls[0][0](makeStats({ score: 1000, currentStreak: 3, lastLoginDate: daysAgo(2) }));
+    expect(after.score).toBe(1100);
+    expect(after.currentStreak).toBe(1);
+    expect(alertSpy.mock.calls[0][0]).toContain("+100 P");
+    expect(alertSpy.mock.calls[0][0]).toContain("1日目");
+    alertSpy.mockRestore();
+  });
+
+  it("続いていれば、次の日のスタンプと点数になる", async () => {
+    const user = userEvent.setup();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const setStats = vi.fn();
+    renderRecords({ setStats, stats: makeStats({ currentStreak: 3, lastLoginDate: daysAgo(1) }) });
+
+    await user.click(document.getElementById("btn_claim_bonus_day_4")!);
+    expect(setStats.mock.calls[0][0](makeStats({ currentStreak: 3, lastLoginDate: daysAgo(1) })).currentStreak).toBe(4);
+    expect(alertSpy.mock.calls[0][0]).toContain("+400 P");
+    expect(alertSpy.mock.calls[0][0]).toContain("4日目");
     alertSpy.mockRestore();
   });
 

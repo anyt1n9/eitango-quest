@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { Level, Word, UserStats, RankingUser } from "./types";
+import { sanitizeStoredWords } from "./storedWords";
 import { loadVocabulary } from "./vocabulary";
 import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
@@ -53,6 +54,7 @@ const LearnHub = lazy(() => import("./components/LearnHub"));
 const Records = lazy(() => import("./components/Records"));
 const MenuScreen = lazy(() => import("./components/MenuScreen"));
 import { SrsState, nextSrsState, getDueWordIds, todayStr, sanitizeSrs } from "./srs";
+import { currentLoginStreak } from "./loginBonus";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Sun, Moon, CheckCircle2, ArrowLeft, Trophy, Calendar } from "lucide-react";
@@ -129,7 +131,8 @@ export default function App() {
     loadVocabulary().then(words => {
       if (!alive) return;
       initialVocabIdsRef.current = new Set(words.map(w => w.id));
-      setVocabulary([...words, ...readStoredArray<Word>("quest_vocab_custom")]);
+      // 追加した単語は形を確かめてから入れる（壊れた要素1件で画面ごと落ちないように）
+      setVocabulary([...words, ...sanitizeStoredWords(readStoredArray<unknown>("quest_vocab_custom"), initialVocabIdsRef.current)]);
       setVocabularyReady(true);
     }).catch(() => {
       // 単語データは別のチャンクなので、通信断やサービスワーカー更新の直後は
@@ -700,6 +703,8 @@ export default function App() {
   const todayCount = dailyProgress.date === today ? dailyProgress.count : 0;
   // ログインボーナスをまだ受け取っていない（「記録」のタブに印を付ける）
   const bonusClaimable = stats.lastLoginDate !== today;
+  // いまの連続ログイン日数（1日以上空いていれば、保存している日数によらず0）
+  const loginStreak = currentLoginStreak(stats);
   // 画面下のタブ。出題中（一時的な画面）は出さない
   const activeTab = isTransient(currentScreen) || isTabRoot(currentScreen) || !parentScreen
     ? tabForScreen(currentScreen)
@@ -828,9 +833,9 @@ export default function App() {
               <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               <span
                 className="text-xs font-black tabular-nums text-gray-700 dark:text-slate-200"
-                aria-label={`ログイン連続 ${stats.currentStreak}日`}
+                aria-label={`ログイン連続 ${loginStreak}日`}
               >
-                {stats.currentStreak}日
+                {loginStreak}日
               </span>
             </div>
           </div>

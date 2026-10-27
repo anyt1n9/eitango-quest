@@ -192,6 +192,53 @@ describe("復習への繋がり", () => {
   });
 });
 
+describe("読破", () => {
+  /** 最初の長文を開き、設問に全部正解して「読破を完了」を出す */
+  async function answerAll(user: ReturnType<typeof userEvent.setup>) {
+    await openFirstPassage(user);
+    const section = document.getElementById("passage_comprehension_section")!;
+    for (const q of passages[0].questions ?? []) {
+      await user.click(within(section).getByText(q.options[q.correctIndex]));
+    }
+    return screen.getAllByRole("button", { name: new RegExp(`読破を完了して \\+${passages[0].pointReward}P`) })[0];
+  }
+
+  it("累計の回答数・正答率には数えない（読破は設問の解答ではない）", async () => {
+    // 回答数だけ +1 していたので、読破するたびに「記録」の累計正答率が下がっていた
+    localStorage.clear();
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+    const user = userEvent.setup();
+    const setStats = vi.fn();
+    renderReading({ setStats });
+    await user.click(await answerAll(user));
+
+    expect(setStats).toHaveBeenCalledTimes(1);
+    const before = makeStats({ score: 100, completedQuestions: 10, correctAnswers: 9 });
+    const after = setStats.mock.calls[0][0](before);
+    expect(after.score).toBe(100 + passages[0].pointReward);
+    expect(after.completedQuestions).toBe(10);
+    expect(after.correctAnswers).toBe(9);
+    vi.restoreAllMocks();
+  });
+
+  it("二度押ししても、報酬は1回だけ", async () => {
+    localStorage.clear();
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const user = userEvent.setup();
+    const setStats = vi.fn();
+    const updateRankingScore = vi.fn();
+    renderReading({ setStats, updateRankingScore });
+    const button = await answerAll(user);
+    // 再描画を挟まずに2回押す
+    act(() => { button.click(); button.click(); });
+
+    expect(setStats).toHaveBeenCalledTimes(1);
+    expect(updateRankingScore).toHaveBeenCalledTimes(1);
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    vi.restoreAllMocks();
+  });
+});
+
 describe("文法ガイドへの導線", () => {
   it("長文に付いた文法を押すと、その項目を開こうとする", async () => {
     const user = userEvent.setup();
