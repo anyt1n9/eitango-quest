@@ -20,6 +20,7 @@ import { UserStats, RankingUser } from "../types";
 import { getAudioContext } from "../sound";
 import { readStoredArray, writeStored } from "../storage";
 import { PuzzleIcon } from "./AppIcons";
+import { readJsonResponse } from "../apiClient";
 
 // TTS用の簡易発音ヘルパー
 const speakWord = (text: string) => {
@@ -176,7 +177,7 @@ export default function MapAndPuzzle({
         body: JSON.stringify({ word: wordToQuery.trim() })
       });
       
-      const payload = await response.json();
+      const payload = await readJsonResponse(response);
       if (!response.ok || payload.error) {
         throw new Error(payload.error || "情報の取得に失敗しました。");
       }

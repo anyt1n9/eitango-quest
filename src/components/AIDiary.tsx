@@ -21,6 +21,7 @@ import { Word } from "../types";
 import { getAudioContext } from "../sound";
 import { SrsState } from "../srs";
 import { isMastered } from "../mastery";
+import { readJsonResponse } from "../apiClient";
 
 // 簡単なクリック/ファンファーレ音効果
 const playLocalSound = (type: "unlock" | "sparkle") => {
@@ -208,7 +209,7 @@ export default function AIDiary({
         body: JSON.stringify({ words: learnedWordStrings })
       });
 
-      const payload = await response.json();
+      const payload = await readJsonResponse(response);
       if (!response.ok || payload.error) {
         throw new Error(payload.error || "日記を構築できませんでした。");
       }

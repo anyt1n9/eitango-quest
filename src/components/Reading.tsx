@@ -9,6 +9,7 @@ import { loadGrammar } from "../grammar";
 import { canUseSpeech, onVoicesChanged, speak, stopSpeaking } from "../speech";
 import { ArrowLeft, BookOpen, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
 import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
+import { readJsonResponse } from "../apiClient";
 
 interface ReadingProps {
   stats: UserStats;
@@ -212,7 +213,7 @@ export default function Reading({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ level: genLevel })
       });
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok || data.error) {
         throw new Error(data.error || "AI長文の生成に失敗しました。");
       }

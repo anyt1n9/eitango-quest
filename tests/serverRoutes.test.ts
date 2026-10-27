@@ -268,8 +268,11 @@ describe("学習アドバイス", () => {
 describe("ボディサイズの上限", () => {
   it("通常のエンドポイントは大きすぎるボディを弾く", async () => {
     // 以前は全ルート一律50MBで、巨大JSONの連投でメモリを枯渇させられた
+    // レート制限は本文の解析より前で数えるので、ここも1回に数えられる。
+    // 既定のIPの枠を他のテストと分け合わないよう、専用のIPで叩く
     const res = await request(app)
       .post("/api/gemini/word-frequency")
+      .set("X-Forwarded-For", "192.0.2.10")
       .set("Content-Type", "application/json")
       .send(JSON.stringify({ word: "a", pad: "x".repeat(2 * 1024 * 1024) }));
     expect(res.status).toBe(413);
@@ -279,6 +282,7 @@ describe("ボディサイズの上限", () => {
     // 15MBまで許可されているので、2MBは通って中身の検証まで進む
     const res = await request(app)
       .post("/api/gemini/parse-pdf")
+      .set("X-Forwarded-For", "192.0.2.11")
       .set("Content-Type", "application/json")
       .send(JSON.stringify({ pad: "x".repeat(2 * 1024 * 1024) }));
     expect(res.status).not.toBe(413);
@@ -324,6 +328,7 @@ describe("壊れたリクエスト", () => {
   it("JSONとして壊れたボディでサーバーが落ちない", async () => {
     const res = await request(app)
       .post("/api/gemini/word-frequency")
+      .set("X-Forwarded-For", "192.0.2.12")
       .set("Content-Type", "application/json")
       .send("{not json");
     expect(res.status).toBeGreaterThanOrEqual(400);

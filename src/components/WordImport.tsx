@@ -16,7 +16,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
-import { parseCSV, buildDistractors, normalizeImportedWord } from "../importWords";
+import { parseCSV, buildDistractors, normalizeImportedWord, appendNewWords } from "../importWords";
 import { isOffensiveText, isOffensiveWord, OFFENSIVE_WORD_MESSAGE } from "../offensiveTerms";
 import { playChime } from "../sound";
 import { shuffle } from "../shuffle";
@@ -24,6 +24,7 @@ import { inferPartOfSpeech } from "../pos";
 import { toFillInSentence } from "../fillIn";
 import { ExpandIcon } from "./AppIcons";
 import { LEVEL_LABELS, LEVEL_ORDER } from "../levelLabels";
+import { readJsonResponse } from "../apiClient";
 
 interface WordImportProps {
   vocabulary: Word[];
@@ -42,6 +43,19 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
   const [newWord, setNewWord] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [addingError, setAddingError] = useState("");
+
+  /**
+   * いちばん新しい単語帳。取り込みは解析やAIの応答を待つので、始めた時点の vocabulary で
+   * 重複を確かめると、待っているあいだに別の取り込みで入った語も「新しい語」に数える
+   * （単語帳には足されないのに「N件登録しました」と出て、ボーナスも入る）。
+   * 足す語を決めたらすぐここにも足し、再描画の前に終わった次の取り込みにも見えるようにする。
+   */
+  const latestVocabularyRef = useRef(vocabulary);
+  latestVocabularyRef.current = vocabulary;
+  const commitNewWords = (words: Word[]) => {
+    latestVocabularyRef.current = appendNewWords(latestVocabularyRef.current, words);
+    setVocabulary(prev => appendNewWords(prev, words));
+  };
 
   // CSV一括アップロード用ステート
   const [csvError, setCsvError] = useState("");
@@ -154,7 +168,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         // 露骨な表現・罵倒語・差別語を含む行（src/offensiveTerms.ts）。収録データから外した語を
         // 取り込みでまた入れられないようにする。見出しが普通の語でも、訳や例文で当たれば外す
         let blockedCount = 0;
-        let tempVocabulary = [...vocabulary];
+        let tempVocabulary = [...latestVocabularyRef.current];
 
         for (let i = startIndex; i < rows.length; i++) {
           const row = rows[i];
@@ -236,7 +250,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           }
         }
 
-        setVocabulary(prev => [...prev, ...newWords]);
+        commitNewWords(newWords);
         
         const scoreBonus = Math.min(newWords.length * 20, 1000);
         addBonus(scoreBonus);
@@ -300,8 +314,23 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
     }
   };
 
+  /*
+   * PDF の解析中に次の PDF を受け付けない（同期的に止める）。
+   *
+   * クリックでの選択は isPdfParsing で止めていたが、ドロップには歯止めが無く、
+   * 解析中に同じ PDF をもう一度落とすと処理が2本並んで走った。どちらも始めた時点の
+   * 単語帳で重複を確かめるため、同じ語が別の ID で2件登録され、ボーナスも二重に入った。
+   * isPdfParsing は state なので効くのは再描画のあと。AI 追加の addingRef と同じ作りで塞ぐ。
+   */
+  const pdfParsingRef = useRef(false);
+  const finishPdfParsing = () => {
+    pdfParsingRef.current = false;
+    setIsPdfParsing(false);
+  };
+
   // PDFファイルのアップロードとスマート解析
   const handlePdfUpload = async (file: File) => {
+    if (pdfParsingRef.current) return;
     setPdfError("");
     setPdfSuccess("");
 
@@ -310,6 +339,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
       return;
     }
 
+    pdfParsingRef.current = true;
     setIsPdfParsing(true);
     try {
       const reader = new FileReader();
@@ -328,7 +358,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
           // 先に本文を読む。ここで通信エラーとして丸めてしまうと、
           // 「AIを呼び出せませんでした」というサーバーの理由が利用者に届かない
-          const data = await response.json().catch(() => ({}));
+          const data = await readJsonResponse(response);
           if (!response.ok || data.error) {
             throw new Error(
               data.error || "サーバーとの通信に失敗しました。快適な接続環境下で再度お試しください。"
@@ -352,7 +382,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
           let duplicateCount = 0;
           const newWordsToAdd: Word[] = [];
-          const tempVocabulary = [...vocabulary];
+          const tempVocabulary = [...latestVocabularyRef.current];
 
           for (const w of words) {
             const isDuplicate = tempVocabulary.some(tv => tv.word.toLowerCase() === w.word.toLowerCase());
@@ -368,7 +398,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
             throw new Error(`追加された単語はありません（抽出された ${duplicateCount} 件の単語はすべて既に登録されています）。`);
           }
 
-          setVocabulary(prev => [...prev, ...newWordsToAdd]);
+          commitNewWords(newWordsToAdd);
 
           const scoreBonus = Math.min(newWordsToAdd.length * 25, 1200);
           addBonus(scoreBonus);
@@ -383,19 +413,19 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           console.error(err);
           setPdfError(err.message || "PDFファイルの解析に失敗しました。");
         } finally {
-          setIsPdfParsing(false);
+          finishPdfParsing();
         }
       };
 
       reader.onerror = () => {
         setPdfError("ファイルの読み込み中にエラーが発生しました。");
-        setIsPdfParsing(false);
+        finishPdfParsing();
       };
 
     } catch (err: any) {
       console.error(err);
       setPdfError("ファイルの登録プロセスで問題が発生しました。");
-      setIsPdfParsing(false);
+      finishPdfParsing();
     }
   };
 
@@ -471,7 +501,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         body: JSON.stringify({ word: newWord.trim() })
       });
       
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok || data.error) {
         throw new Error(data.error || "単語の追加に失敗しました。");
       }
@@ -487,14 +517,14 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
       }
 
       // 既存の単語と同じ英単語があれば重複追加を防ぐ
-      const isDuplicate = vocabulary.some(w => w.word.toLowerCase() === newWordObject.word.toLowerCase());
+      const isDuplicate = latestVocabularyRef.current.some(w => w.word.toLowerCase() === newWordObject.word.toLowerCase());
       if (isDuplicate) {
         setAddingError(`「${newWordObject.word}」は既に登録されています！`);
         setIsAdding(false);
         return;
       }
 
-      setVocabulary(prev => [...prev, newWordObject]);
+      commitNewWords([newWordObject]);
       setNewWord("");
       playChime("bonus");
       
