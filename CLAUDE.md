@@ -659,6 +659,12 @@ express の要求（`~2.0.7`）の範囲内なのでロックファイルだけ�
 なお `server.ts` は `trust proxy` を**段数**（`1`）で指定しており、勧告の対象である
 サブネットでの照合は使っていない（到達しない経路だったが、上の理由で直している）。
 
+`body-parser` の勧告（圧縮された本文の後ろに余分なバイトを付けた DoS）は 1.20.9 に上げて直した。
+こちらは**到達する経路**だった。`express.json()` は既定で `Content-Encoding: gzip` の本文を展開する
+（`inflate: true`）。express の要求の範囲内なのでロックファイルだけの変更。
+同じときに出た undici（jsdom 経由）・serialize-javascript と fast-uri（vite-plugin-pwa 経由）は
+開発とビルドにしか使わない。
+
 ## 画面とURL
 
 画面ごとに URL を持つ（`src/routes.ts`）。持たせていなかったときは、
