@@ -96,7 +96,11 @@ export default function Dashboard({
   // 今日の復習が0語の日は、次にいつ何語来るかを出す（解いた語が復習に回っていることが見えるように）
   const vocabularyIds = React.useMemo(() => new Set(vocabulary.map(w => w.id)), [vocabulary]);
   const today = todayStr();
-  const next = hasDue ? null : nextReview(srsData, today, vocabularyIds);
+  // 復習の記録は数千件になりうるので、依存が変わったときだけ数え直す
+  const next = React.useMemo(
+    () => (hasDue ? null : nextReview(srsData, today, vocabularyIds)),
+    [hasDue, srsData, today, vocabularyIds]
+  );
   const nextLabel = next
     ? next.date === tomorrowOf(today)
       ? "明日"
@@ -174,7 +178,7 @@ export default function Dashboard({
               理由を書かないと「保存されていない」と受け取られる */}
           {current.learning > 0 && (
             <p className="text-[11px] text-gray-500 px-0.5" id="learning_hint">
-              覚えかけ＝1回正解した語。もう1回正解すると「覚えた」に入ります
+              覚えかけ＝あと1回正解すると「覚えた」に入る語
             </p>
           )}
         </div>
@@ -299,7 +303,7 @@ export default function Dashboard({
             <span className="text-sm min-w-0">
               <span className="font-black text-gray-900">苦手な単語</span>
               <span className="ml-2 text-xs text-gray-600">{wrongWords.length}語</span>
-              <span className="block text-[11px] text-gray-500 leading-snug">間違えた語。いつでも解き直せて、復習で正解すると外れます</span>
+              <span className="block text-[11px] text-gray-500 leading-snug">間違えた語。ここから解き直して正解すると外れます</span>
             </span>
             <button
               type="button"

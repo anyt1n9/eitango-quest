@@ -306,7 +306,7 @@ describe("解いたあとの手ごたえ", () => {
   it("1回正解した語を「覚えかけ」として数え、あと何をすれば「覚えた」に入るかを書く", () => {
     renderToday({ vocabulary: NINE, srsData: answeredOnce });
     expect(document.getElementById("level_mastery_summary")).toHaveTextContent("覚えた 0語・覚えかけ 9語 ／ 全 9語");
-    expect(document.getElementById("learning_hint")).toHaveTextContent("もう1回正解すると「覚えた」に入ります");
+    expect(document.getElementById("learning_hint")).toHaveTextContent("あと1回正解すると「覚えた」に入る語");
   });
 
   it("覚えかけが無ければ、説明は出さない", () => {
@@ -329,6 +329,7 @@ describe("今日の復習と苦手な単語の違い", () => {
   it("並べて出すときは、それぞれが何かを一言添える", () => {
     renderToday({ wrongWords: ["j1"] });
     expect(screen.getByTestId("today_review_status")).toHaveTextContent("解いた語を、忘れかけたころにもう一度出します");
-    expect(document.getElementById("review_banner")).toHaveTextContent("間違えた語。いつでも解き直せて、復習で正解すると外れます");
+    // 外れるのは苦手な単語の復習（苦手克服テスト）で正解したときだけ。今日の復習で正解しても外れない
+    expect(document.getElementById("review_banner")).toHaveTextContent("間違えた語。ここから解き直して正解すると外れます");
   });
 });

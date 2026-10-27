@@ -64,6 +64,13 @@ describe("isLearning", () => {
     expect(isLearning("w1", {}, {})).toBe(false);
   });
 
+  it("習得済みから1回間違えて下がった語も、あと1回の正解で戻るので覚えかけ", () => {
+    // ボックス2（習得済み）で間違えるとボックス1に下がる（src/srs.ts の nextSrsState）
+    const demoted = { ...srs(1), lapses: 1, reps: 3 };
+    expect(isLearning("w1", {}, { w1: demoted })).toBe(true);
+    expect(isMastered("w1", {}, { w1: demoted })).toBe(false);
+  });
+
   it("覚えかけと習得済みは重ならない", () => {
     for (let box = 0; box <= 7; box++) {
       const s = { w1: srs(box) };
