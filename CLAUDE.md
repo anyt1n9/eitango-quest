@@ -14,6 +14,8 @@ npm run test:e2e  # playwright test（ビルド済みのサーバーを立てて
 コードを変更したら、コミット前に上記を通すこと。
 同じものをプルリクエストと main への push で GitHub Actions が実行する
 （`.github/workflows/ci.yml`）。
+実行環境は `ubuntu-24.04` に固定している。`ubuntu-latest` が 26.04 に上がった日から、
+Playwright 1.56 がブラウザを入れられずにすべての実行が落ちたため。上げるときは Playwright を先に上げる。
 
 ## 単語データの読み込み
 

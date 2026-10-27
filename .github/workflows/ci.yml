@@ -19,7 +19,11 @@ permissions:
 jobs:
   verify:
     name: 型検査・テスト・ビルド
-    runs-on: ubuntu-latest
+    # ubuntu-latest は版が自動で上がる。26.04 に切り替わった日から、Playwright（1.56）が
+    # ブラウザを入れられず（"does not support chromium on ubuntu26.04-x64"）、
+    # コードと関係なくすべての実行が落ちた。Playwright が対応している版に固定する。
+    # 上げるときは、Playwright を新しい版に対応したものへ上げてから
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
