@@ -3,6 +3,7 @@ import { ArrowLeft, Download, Upload, Target, Database, ShieldCheck, AlertTriang
 import { applyBackupPayload, buildBackupPayload, isBackupPayload, isNewerBackup, payloadTime } from "../backupPayload";
 import { isGoogleSyncConfigured, requestDriveToken } from "../googleAuth";
 import { DriveError } from "../driveBackup";
+import { todayStr } from "../srs";
 import { fetchRemote, isDriveLinked, markDriveLinked, pushToDrive } from "../driveSync";
 
 interface DataBackupProps {
@@ -64,7 +65,8 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `eitango-quest-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      // 日付は端末の暦日（toISOString は UTC なので、日本では朝9時まで前日の日付になる）
+      a.download = `eitango-quest-backup-${todayStr()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
