@@ -94,6 +94,14 @@ describe("CSV の文字コード", () => {
     expect(decodeCsvBytes(SJIS.buffer)).toBe("apple,りんご");
   });
 
+  it("UTF-16（Excel の「Unicode テキスト」）や NUL を含むファイルは断る", () => {
+    // 英字だけの UTF-16 は UTF-8 として読めてしまい、NUL の混ざった綴りが登録される
+    const utf16 = (s: string) => new Uint8Array([...s].flatMap(ch => [ch.charCodeAt(0) & 0xff, ch.charCodeAt(0) >> 8]));
+    expect(() => decodeCsvBytes(utf16("apple,red"))).toThrow(CSV_ENCODING_ERROR);
+    expect(() => decodeCsvBytes(new Uint8Array([0xff, 0xfe, ...utf16("apple,red")]))).toThrow(CSV_ENCODING_ERROR);
+    expect(() => decodeCsvBytes(new Uint8Array([0xfe, 0xff, 0x00, 0x61]))).toThrow(CSV_ENCODING_ERROR);
+  });
+
   it("どちらでも読めない・置換文字が残っているものは、保存し直しを案内して止める", () => {
     // Shift_JIS でも不正な並び（2バイト目が範囲外）
     expect(() => decodeCsvBytes(new Uint8Array([0x61, 0x2c, 0x82, 0x20, 0xff]))).toThrow(CSV_ENCODING_ERROR);

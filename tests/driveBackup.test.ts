@@ -192,6 +192,8 @@ describe("ドライブから取ってくる", () => {
     });
     const cases: [string, boolean, RegExp][] = [
       ["insufficientPermissions", true, /もう一度ログイン/],
+      // 一覧に無い許可系の理由も、これまでどおりログインし直しを案内する
+      ["appNotAuthorizedToFile", true, /もう一度ログイン/],
       ["storageQuotaExceeded", false, /空き容量が足りません/],
       ["userRateLimitExceeded", false, /少し時間をおいて/],
       ["rateLimitExceeded", false, /少し時間をおいて/]

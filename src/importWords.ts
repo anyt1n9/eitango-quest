@@ -32,17 +32,25 @@ const FALLBACK_SENTENCE_JA = "私は今日、[_____]を勉強したいです。"
  * 先頭の `"` が最後まで閉じられなかったとき（`"unterminated,x`）も同じことが起きるので、
  * その `"` を文字として読み直す。
  */
+/** 閉じられなかった引用符を読み直す回数の上限（壊れたファイルで解析が何度も走らないように） */
+const MAX_REPARSE = 20;
+
 export function parseCSV(text: string): string[][] {
   // 閉じられなかった引用符の位置。ここは文字として読み直す（1回に1つずつ増えるので必ず止まる）
   const literalQuotes = new Set<number>();
-  for (;;) {
-    const { rows, unclosedAt } = parseCSVOnce(text, literalQuotes);
+  for (let n = 0; ; n++) {
+    // 上限まで読み直しても閉じないものが残るファイルは、引用符をすべて文字として読む
+    const { rows, unclosedAt } = parseCSVOnce(text, literalQuotes, n >= MAX_REPARSE);
     if (unclosedAt < 0) return rows;
     literalQuotes.add(unclosedAt);
   }
 }
 
-function parseCSVOnce(text: string, literalQuotes: Set<number>): { rows: string[][]; unclosedAt: number } {
+function parseCSVOnce(
+  text: string,
+  literalQuotes: Set<number>,
+  quotesAsText = false
+): { rows: string[][]; unclosedAt: number } {
   const lines: string[][] = [];
   let row: string[] = [];
   let inQuotes = false;
@@ -53,7 +61,7 @@ function parseCSVOnce(text: string, literalQuotes: Set<number>): { rows: string[
     const char = text[i];
     const nextChar = text[i + 1];
 
-    if (char === '"' && !literalQuotes.has(i)) {
+    if (char === '"' && !quotesAsText && !literalQuotes.has(i)) {
       if (inQuotes && nextChar === '"') {
         entry += '"';
         i++;
@@ -106,6 +114,10 @@ export const CSV_ENCODING_ERROR =
  */
 export function decodeCsvBytes(data: ArrayBuffer | Uint8Array): string {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  // UTF-16（Excel の「Unicode テキスト」）は BOM か NUL バイトで分かる。英字だけなら UTF-8 として
+  // 読めてしまい、NUL の混ざった綴りが登録される。NUL はほかのバイナリ（xlsx など）でも出るので同じく断る
+  const utf16Bom = (bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff);
+  if (utf16Bom || bytes.includes(0)) throw new Error(CSV_ENCODING_ERROR);
   let text: string | null = null;
   for (const encoding of ["utf-8", "shift_jis"]) {
     try {

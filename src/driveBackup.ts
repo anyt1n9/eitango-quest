@@ -25,8 +25,6 @@ export interface DriveFile {
   modifiedTime?: string;
 }
 
-/** 403 のうち、許可（ログイン）の問題を表す理由。これ以外の 403 はログインし直しても直らない */
-const AUTH_REASONS = ["insufficientPermissions", "forbidden", "authError"];
 /** 利用回数の上限（短い間に続けて保存した・1日の上限） */
 const RATE_REASONS = ["userRateLimitExceeded", "rateLimitExceeded", "dailyLimitExceeded"];
 /** ドライブの空き容量が無い */
@@ -47,8 +45,10 @@ export class DriveError extends Error {
   /** ログインし直しが要る（トークンが切れた・取り消された・権限が足りない） */
   get needsSignIn(): boolean {
     if (this.status === 401) return true;
-    // 理由が読めなかった 403 は、これまでどおり許可の問題として扱う
-    return this.status === 403 && (this.reason === "" || AUTH_REASONS.includes(this.reason));
+    // ログインし直しても直らないと分かっている理由（回数の上限・容量切れ）だけを外す。
+    // 許可系の理由は insufficientPermissions のほかにも appNotAuthorizedToFile などがあり、
+    // 一覧で拾うと漏れたものが「接続できませんでした」だけになって、取れる手が無くなる
+    return this.status === 403 && !RATE_REASONS.includes(this.reason) && !QUOTA_REASONS.includes(this.reason);
   }
   /** 利用者に見せる文言 */
   get userMessage(): string {
