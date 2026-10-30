@@ -108,7 +108,15 @@ export function pathToRoute(pathname: string): Route {
   for (const [screen, path] of entries) {
     if (clean === path) return { screen };
     if (WITH_PARAM.includes(screen) && clean.startsWith(path + "/")) {
-      const param = decodeURIComponent(clean.slice(path.length + 1));
+      // 壊れた % エスケープ（/reading/100% や途中で切れた共有リンク）は decodeURIComponent が
+      // 投げる。App の初期化子で投げると再読み込みしても同じ URL を読むので戻れなくなるため、
+      // 中身は無かったものとしてその画面の一覧を開く
+      let param: string;
+      try {
+        param = decodeURIComponent(clean.slice(path.length + 1));
+      } catch {
+        return { screen };
+      }
       // さらに深い階層は受け付けない（/grammar/a/b のような形）
       if (param && !param.includes("/")) return { screen, param };
       return { screen };

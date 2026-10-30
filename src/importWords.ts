@@ -24,23 +24,55 @@ const FALLBACK_SENTENCE_JA = "私は今日、[_____]を勉強したいです。"
 /**
  * CSV を行と列に分ける。
  * 引用符の中の改行とカンマ、二重引用符のエスケープに対応する。
+ *
+ * 引用符として扱うのは**フィールドの先頭の `"`** だけ。途中の `"`（`5" pipe` のインチ記号など）は
+ * 文字として残す。どこにあっても引用符の開始と見なしていたときは、そこから先の改行とカンマが
+ * すべて引用符の中になり、ファイルの残り全部が1つのセルになっていた。1列の行は読み飛ばすので、
+ * 前に正常な行があれば「N件登録しました」のまま残りの単語が黙って失われた（issue #118）。
+ * 先頭の `"` が最後まで閉じられなかったとき（`"unterminated,x`）も同じことが起きるので、
+ * その `"` を文字として読み直す。
  */
+/** 閉じられなかった引用符を読み直す回数の上限（壊れたファイルで解析が何度も走らないように） */
+const MAX_REPARSE = 20;
+
 export function parseCSV(text: string): string[][] {
+  // 閉じられなかった引用符の位置。ここは文字として読み直す（1回に1つずつ増えるので必ず止まる）
+  const literalQuotes = new Set<number>();
+  for (let n = 0; ; n++) {
+    // 上限まで読み直しても閉じないものが残るファイルは、引用符をすべて文字として読む
+    const { rows, unclosedAt } = parseCSVOnce(text, literalQuotes, n >= MAX_REPARSE);
+    if (unclosedAt < 0) return rows;
+    literalQuotes.add(unclosedAt);
+  }
+}
+
+function parseCSVOnce(
+  text: string,
+  literalQuotes: Set<number>,
+  quotesAsText = false
+): { rows: string[][]; unclosedAt: number } {
   const lines: string[][] = [];
   let row: string[] = [];
   let inQuotes = false;
+  let quoteStart = -1;
   let entry = "";
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     const nextChar = text[i + 1];
 
-    if (char === '"') {
+    if (char === '"' && !quotesAsText && !literalQuotes.has(i)) {
       if (inQuotes && nextChar === '"') {
         entry += '"';
         i++;
+      } else if (inQuotes) {
+        inQuotes = false;
+      } else if (entry.trim() === "") {
+        // フィールドの先頭（前に空白しか無い）の " だけを引用符の開始とする
+        inQuotes = true;
+        quoteStart = i;
       } else {
-        inQuotes = !inQuotes;
+        entry += char;
       }
     } else if (char === "," && !inQuotes) {
       row.push(entry.trim());
@@ -61,7 +93,42 @@ export function parseCSV(text: string): string[][] {
     row.push(entry.trim());
     lines.push(row);
   }
-  return lines.filter(r => r.length > 0 && r.some(c => c !== ""));
+  return {
+    rows: lines.filter(r => r.length > 0 && r.some(c => c !== "")),
+    unclosedAt: inQuotes ? quoteStart : -1
+  };
+}
+
+/** CSV の文字コードを読み取れなかったときの文言 */
+export const CSV_ENCODING_ERROR =
+  "文字コードを読み取れませんでした。UTF-8 で保存し直してください（Excel なら「CSV UTF-8（コンマ区切り）」）。";
+
+/**
+ * CSV ファイルの中身（バイト列）を文字列にする。UTF-8 で読めなければ Shift_JIS で読む。
+ *
+ * 日本語版 Excel の「CSV（コンマ区切り）」は Shift_JIS で保存される。UTF-8 として読んでいたときは
+ * 訳が置換文字（\uFFFD）だらけになり、それでも空ではないので取り込みを通り抜け、
+ * 「N件登録しました」と表示されて文字化けした訳が単語帳に入り、四択の正解にもなった（issue #114）。
+ * どちらも不正な並びで止まる読み方（fatal）にして、どちらでも読めなければ保存し直しを案内する。
+ * 読めても置換文字が残っている（前に文字化けしたまま保存したファイル）ときも同じく止める。
+ */
+export function decodeCsvBytes(data: ArrayBuffer | Uint8Array): string {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  // UTF-16（Excel の「Unicode テキスト」）は BOM か NUL バイトで分かる。英字だけなら UTF-8 として
+  // 読めてしまい、NUL の混ざった綴りが登録される。NUL はほかのバイナリ（xlsx など）でも出るので同じく断る
+  const utf16Bom = (bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff);
+  if (utf16Bom || bytes.includes(0)) throw new Error(CSV_ENCODING_ERROR);
+  let text: string | null = null;
+  for (const encoding of ["utf-8", "shift_jis"]) {
+    try {
+      text = new TextDecoder(encoding, { fatal: true }).decode(bytes);
+      break;
+    } catch {
+      // 次の文字コードを試す（Shift_JIS を扱えない環境では構築で投げる）
+    }
+  }
+  if (text === null || text.includes("\uFFFD")) throw new Error(CSV_ENCODING_ERROR);
+  return text;
 }
 
 /**

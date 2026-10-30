@@ -181,11 +181,45 @@ describe("ドライブから取ってくる", () => {
     }
   });
 
+  /**
+   * Drive API は利用回数の上限や容量切れでも 403 を返す。403 をまとめて「ログインし直して」と
+   * 案内していたので、ログインを繰り返しても直らず原因が分からなかった（issue #115）
+   */
+  it("403 は理由を読み、許可の問題だけをログインし直しにする", async () => {
+    const fail = (reason: string) => () => ({
+      ok: false, status: 403,
+      json: async () => ({ error: { code: 403, errors: [{ reason }] } })
+    });
+    const cases: [string, boolean, RegExp][] = [
+      ["insufficientPermissions", true, /もう一度ログイン/],
+      // 一覧に無い許可系の理由も、これまでどおりログインし直しを案内する
+      ["appNotAuthorizedToFile", true, /もう一度ログイン/],
+      ["storageQuotaExceeded", false, /空き容量が足りません/],
+      ["userRateLimitExceeded", false, /少し時間をおいて/],
+      ["rateLimitExceeded", false, /少し時間をおいて/]
+    ];
+    for (const [reason, signIn, message] of cases) {
+      const { impl } = stubFetch([fail(reason)]);
+      const err = await findBackupFile("tok", impl).catch(e => e) as DriveError;
+      expect(err.reason, reason).toBe(reason);
+      expect(err.needsSignIn, reason).toBe(signIn);
+      expect(err.userMessage, reason).toMatch(message);
+    }
+  });
+
+  it("本文が JSON でない 403 は、これまでどおり許可の問題として扱う", async () => {
+    const { impl } = stubFetch([() => ({ ok: false, status: 403, json: async () => { throw new SyntaxError("not json"); } })]);
+    const err = await findBackupFile("tok", impl).catch(e => e) as DriveError;
+    expect(err.needsSignIn).toBe(true);
+  });
+
   it("通信そのものの失敗は、ログインし直しとは区別する", async () => {
     const { impl } = stubFetch([() => ({ ok: false, status: 500, json: async () => ({}) })]);
     const err = await readBackupFile("tok", "f1", impl).catch(e => e);
     expect(err).toBeInstanceOf(DriveError);
     expect((err as DriveError).needsSignIn).toBe(false);
+    // 利用者に「Drive API 500」をそのまま見せない
+    expect((err as DriveError).userMessage).toMatch(/一時的な問題/);
   });
 });
 

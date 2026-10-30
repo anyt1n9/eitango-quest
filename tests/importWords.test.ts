@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCSV, buildDistractors, normalizeImportedWord, appendNewWords } from "../src/importWords";
+import { parseCSV, decodeCsvBytes, CSV_ENCODING_ERROR, buildDistractors, normalizeImportedWord, appendNewWords } from "../src/importWords";
 import { makeWord } from "./fixtures";
 import { Word } from "../src/types";
 
@@ -52,6 +52,61 @@ describe("CSVの読み取り", () => {
 
   it("空の入力でも落ちない", () => {
     expect(parseCSV("")).toEqual([]);
+  });
+
+  /**
+   * どこにある " も引用符の開始と見なしていたため、途中の " から先の改行とカンマが
+   * すべて引用符の中になり、ファイルの残り全部が1つのセルになっていた（issue #118）
+   */
+  it("フィールドの途中の \" は文字として残し、後ろの行も読む", () => {
+    expect(parseCSV('5" pipe,パイプ\nnext,次\nthird,三\n')).toEqual([
+      ['5" pipe', "パイプ"], ["next", "次"], ["third", "三"]
+    ]);
+  });
+
+  it("閉じられなかった引用符は文字として読み直し、後ろの行を飲み込まない", () => {
+    expect(parseCSV('"unterminated,x\nnext,次')).toEqual([['"unterminated', "x"], ["next", "次"]]);
+    // 正しく閉じた引用符はこれまでどおり（同じファイルに閉じ忘れがあっても）
+    expect(parseCSV('"a, b",c\n"open,d\ne,f')).toEqual([["a, b", "c"], ['"open', "d"], ["e", "f"]]);
+  });
+
+  it("前に空白があっても、フィールドの先頭の \" は引用符として扱う", () => {
+    expect(parseCSV('a, "b, c"')).toEqual([["a", "b, c"]]);
+  });
+});
+
+/**
+ * 日本語版 Excel の「CSV（コンマ区切り）」は Shift_JIS。UTF-8 として読んでいたので、
+ * 訳が置換文字だらけのまま「N件登録しました」と登録されていた（issue #114）
+ */
+describe("CSV の文字コード", () => {
+  // "apple,りんご" を Shift_JIS で書いたもの（り=82E8 ん=82F1 ご=82B2）
+  const SJIS = new Uint8Array([0x61, 0x70, 0x70, 0x6c, 0x65, 0x2c, 0x82, 0xe8, 0x82, 0xf1, 0x82, 0xb2]);
+
+  it("UTF-8 はそのまま読む（先頭の BOM は落とす）", () => {
+    const utf8 = new TextEncoder().encode("apple,りんご");
+    expect(decodeCsvBytes(utf8)).toBe("apple,りんご");
+    expect(decodeCsvBytes(new Uint8Array([0xef, 0xbb, 0xbf, ...utf8]))).toBe("apple,りんご");
+  });
+
+  it("UTF-8 として読めなければ Shift_JIS で読む", () => {
+    expect(decodeCsvBytes(SJIS)).toBe("apple,りんご");
+    expect(decodeCsvBytes(SJIS.buffer)).toBe("apple,りんご");
+  });
+
+  it("UTF-16（Excel の「Unicode テキスト」）や NUL を含むファイルは断る", () => {
+    // 英字だけの UTF-16 は UTF-8 として読めてしまい、NUL の混ざった綴りが登録される
+    const utf16 = (s: string) => new Uint8Array([...s].flatMap(ch => [ch.charCodeAt(0) & 0xff, ch.charCodeAt(0) >> 8]));
+    expect(() => decodeCsvBytes(utf16("apple,red"))).toThrow(CSV_ENCODING_ERROR);
+    expect(() => decodeCsvBytes(new Uint8Array([0xff, 0xfe, ...utf16("apple,red")]))).toThrow(CSV_ENCODING_ERROR);
+    expect(() => decodeCsvBytes(new Uint8Array([0xfe, 0xff, 0x00, 0x61]))).toThrow(CSV_ENCODING_ERROR);
+  });
+
+  it("どちらでも読めない・置換文字が残っているものは、保存し直しを案内して止める", () => {
+    // Shift_JIS でも不正な並び（2バイト目が範囲外）
+    expect(() => decodeCsvBytes(new Uint8Array([0x61, 0x2c, 0x82, 0x20, 0xff]))).toThrow(CSV_ENCODING_ERROR);
+    // 前に文字化けしたまま UTF-8 で保存されたファイル
+    expect(() => decodeCsvBytes(new TextEncoder().encode("apple,\uFFFD\uFFFD"))).toThrow(CSV_ENCODING_ERROR);
   });
 });
 

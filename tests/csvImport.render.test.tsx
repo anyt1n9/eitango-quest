@@ -23,7 +23,7 @@ import { Word } from "../src/types";
 const VOCAB = [makeWord({ id: "j1", word: "beautiful", level: "junior" })];
 
 /** CSV を読み込ませて、保存された単語を返す */
-async function importCsv(csv: string): Promise<Word[]> {
+async function importCsv(csv: BlobPart, fileName = "words.csv"): Promise<Word[]> {
   const setVocabulary = vi.fn();
   vi.spyOn(window, "alert").mockImplementation(() => {});
 
@@ -39,7 +39,7 @@ async function importCsv(csv: string): Promise<Word[]> {
   const user = userEvent.setup();
   await user.click(document.getElementById("btn_toggle_import_panel")!);
   const input = document.getElementById("csv_file_input") as HTMLInputElement;
-  await user.upload(input, new File([csv], "words.csv", { type: "text/csv" }));
+  await user.upload(input, new File([csv], fileName, { type: "text/csv" }));
 
   // FileReader は非同期なので、保存が呼ばれるまで待つ
   await vi.waitFor(() => expect(setVocabulary).toHaveBeenCalled());
@@ -127,5 +127,40 @@ describe("テンプレートのコピー", () => {
     await user.click(screen.getByText("テキストをコピー"));
     expect(await screen.findByRole("alert")).toHaveTextContent("コピーできませんでした");
     expect(screen.queryByText("コピーしました！")).toBeNull();
+  });
+});
+
+describe("CSV のファイル", () => {
+  it("拡張子が大文字（.CSV）でも取り込める（issue #116）", async () => {
+    // Windows のツールは WORDS.CSV のように書き出す。「CSVファイルを選択してください」で断っていた
+    const words = await importCsv("library,図書館,junior", "WORDS.CSV");
+    expect(words.map(w => w.word)).toContain("library");
+  });
+
+  it("Shift_JIS（日本語版 Excel の CSV）も文字化けせずに取り込める（issue #114）", async () => {
+    // "library,りんご" を Shift_JIS で書いたもの（訳は何でもよいので、手で書けるかなにする）
+    const sjis = new Uint8Array([0x6c, 0x69, 0x62, 0x72, 0x61, 0x72, 0x79, 0x2c, 0x82, 0xe8, 0x82, 0xf1, 0x82, 0xb2]);
+    const words = await importCsv(sjis);
+    expect(words.find(w => w.word === "library")!.translation).toBe("りんご");
+  });
+
+  it("文字化けしたファイルは登録せず、保存し直しを案内する（issue #114）", async () => {
+    const setVocabulary = vi.fn();
+    render(<WordImport vocabulary={VOCAB} setVocabulary={setVocabulary} setStats={vi.fn()} setRanking={vi.fn()} />);
+    const user = userEvent.setup();
+    await user.click(document.getElementById("btn_toggle_import_panel")!);
+    await user.upload(
+      document.getElementById("csv_file_input") as HTMLInputElement,
+      new File(["library,\uFFFD\uFFFD\uFFFD"], "words.csv", { type: "text/csv" })
+    );
+    expect(await screen.findByText(/UTF-8 で保存し直してください/)).toBeInTheDocument();
+    expect(setVocabulary).not.toHaveBeenCalled();
+  });
+
+  it("途中に \" がある行のあとの単語も取り込む（issue #118）", async () => {
+    // 問題の行を先頭に置く（直す前は、ここから先の行がすべて1つのセルに飲み込まれていた）
+    const words = await importCsv('inch,5" の長さ\nlibrary,図書館\nstation,駅\npipe,"5"" のパイプ"');
+    const added = words.map(w => w.word);
+    expect(added).toEqual(expect.arrayContaining(["pipe", "library", "station", "inch"]));
   });
 });

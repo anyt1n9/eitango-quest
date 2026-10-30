@@ -126,11 +126,11 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
       await action(token);
     } catch (err) {
       if (options.silent) return; // 起動時の下見は、失敗しても何も言わない
-      const needsSignIn = err instanceof DriveError && err.needsSignIn;
+      // ドライブの失敗は理由ごとの文言にする（403 には許可切れのほか、回数・容量の上限もある）
       setMessage({
         type: "error",
-        text: needsSignIn
-          ? "Googleドライブへの許可が切れています。もう一度ログインしてください。"
+        text: err instanceof DriveError
+          ? err.userMessage
           : err instanceof Error
             ? err.message
             : "Googleドライブに接続できませんでした。"
