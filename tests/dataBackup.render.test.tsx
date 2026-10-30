@@ -78,6 +78,27 @@ describe("書き出し", () => {
     expect(payload.data.quest_stats).toContain("120");
   });
 
+  it("ファイル名の日付は端末の暦日（日本の朝でも前日にならない）", async () => {
+    const originalTz = process.env.TZ;
+    process.env.TZ = "Asia/Tokyo";
+    // 日本時間 10/30 の朝7時半。UTC ではまだ 10/29
+    vi.useFakeTimers({ now: new Date("2026-10-30T07:30:00+09:00").getTime(), toFake: ["Date"] });
+    try {
+      let name = "";
+      vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+        name = this.download;
+      });
+      captureExport();
+      renderBackup();
+      screen.getByText(/エクスポート（書き出し）/).click();
+      expect(name).toBe("eitango-quest-backup-2026-10-30.json");
+    } finally {
+      vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
+    }
+  });
+
   it("書き出したと伝える", async () => {
     const user = userEvent.setup();
     captureExport();

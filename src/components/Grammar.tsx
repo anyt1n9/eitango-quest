@@ -81,9 +81,11 @@ export default function Grammar({
     writeStored(WRONG_KEY, wrongTopics);
   }, [wrongTopics]);
 
-  // 仕上がった項目は復習の一覧から外す
+  // 仕上がった項目は復習の一覧から外す。
+  // 読み込みに失敗したとき（loadGrammar は空を返す）に走らせると、どの項目も
+  // 「見つからない」ので一覧が空になり、そのまま保存されて間違えた記録が消える
   useEffect(() => {
-    if (!topics || wrongTopics.length === 0) return;
+    if (!topics || topics.length === 0 || wrongTopics.length === 0) return;
     const stillWrong = wrongTopics.filter(id => {
       const t = findTopic(topics, id);
       return t ? !isTopicCleared(t, progress) : false;
@@ -105,6 +107,35 @@ export default function Grammar({
       <p className="text-sm text-gray-400 font-semibold text-center py-16" id="grammar_loading">
         文法データを読み込んでいます…
       </p>
+    );
+  }
+
+  // 収録の項目は必ずあるので、空は読み込みの失敗（loadGrammar が空を返す）。
+  // 以前はそのまま目次を描き、「0 項目」「条件に合う項目が見つかりませんでした」と出ていた
+  if (topics.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-3 px-6 py-16 text-center" id="grammar_load_failed">
+        <p className="text-xs font-bold text-rose-700" id="grammar_load_error" role="alert">
+          文法データを読み込めませんでした。<br />通信の状態を確かめて、もう一度お試しください。
+        </p>
+        {/* 単語データと同じく画面ごと開き直す（失敗した import() は同じ画面では取り直されない） */}
+        <button
+          type="button"
+          id="btn_retry_grammar"
+          onClick={() => window.location.reload()}
+          className="min-h-11 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black cursor-pointer transition"
+        >
+          もう一度読み込む
+        </button>
+        <button
+          type="button"
+          onClick={onBackToDashboard}
+          className="min-h-11 px-5 text-xs font-bold text-gray-600 dark:text-slate-300 hover:text-indigo-600 cursor-pointer"
+          id="btn_grammar_back"
+        >
+          戻る
+        </button>
+      </div>
     );
   }
 

@@ -715,6 +715,14 @@ export default function App() {
     const dueWordIdSet = new Set(getDueWordIds(srsData, today));
     return vocabulary.filter(w => dueWordIdSet.has(w.id));
   }, [srsData, vocabulary, today]);
+  // 苦手な単語のうち、いまの単語帳にある語。収録から外した語（不適切な語の見出しなど）や
+  // 読み込みで捨てた追加単語の ID も保存には残るので、そのまま数えると
+  // 「今日」は「苦手な単語 3語」なのに一覧は2語（全部外れていれば「ありません」）になっていた。
+  // 保存からは消さない（数えるときだけ除く。次の復習の数え方 nextReview と同じ）
+  const wrongWordsInVocabulary = useMemo(() => {
+    const ids = new Set(vocabulary.map(w => w.id));
+    return wrongWords.filter(id => ids.has(id));
+  }, [vocabulary, wrongWords]);
   // 今日解いた問題数（日付が変わっていたら0）
   const todayCount = dailyProgress.date === today ? dailyProgress.count : 0;
   // ログインボーナスをまだ受け取っていない（「記録」のタブに印を付ける）
@@ -872,7 +880,7 @@ export default function App() {
             vocabulary={vocabulary}
             solvedHistory={solvedHistory}
             srsData={srsData}
-            wrongWords={wrongWords}
+            wrongWords={wrongWordsInVocabulary}
             onStartQuiz={handleStartQuiz}
             onStartReview={() => navigate("review")}
             dueCount={dueWords.length}
@@ -900,7 +908,7 @@ export default function App() {
             setRanking={setRanking}
             solvedHistory={solvedHistory}
             srsData={srsData}
-            wrongWords={wrongWords}
+            wrongWords={wrongWordsInVocabulary}
             onStartQuiz={handleStartQuiz}
             level={selectedLevel}
             questionCount={quizQuestionCount}
@@ -921,7 +929,7 @@ export default function App() {
             vocabulary={vocabulary}
             solvedHistory={solvedHistory}
             srsData={srsData}
-            wrongWords={wrongWords}
+            wrongWords={wrongWordsInVocabulary}
             ranking={ranking}
             setRanking={setRanking}
             dailyLog={dailyLog}
