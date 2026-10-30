@@ -85,6 +85,14 @@ describe("紛らわしいパス", () => {
     expect(pathToRoute("/dictionary#top").screen).toBe("dictionary");
   });
 
+  it("壊れた % エスケープでも投げず、その画面の一覧を開く（issue #117）", () => {
+    // decodeURIComponent が URIError を投げ、App の初期化中に落ちて再読み込みでも戻れなかった
+    expect(pathToRoute("/reading/100%")).toEqual({ screen: "reading" });
+    expect(pathToRoute("/grammar/%E0%A4%A")).toEqual({ screen: "grammar" });
+    // 正しいエスケープはこれまでどおり読む
+    expect(pathToRoute("/reading/a%20b")).toEqual({ screen: "reading", param: "a b" });
+  });
+
   it("知らないパスはダッシュボードにする", () => {
     // 古いブックマークや打ち間違いで真っ白にしない
     for (const p of ["/nope", "/quiz", "/grammarx", "", "///"]) {

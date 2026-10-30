@@ -25,14 +25,55 @@ export interface DriveFile {
   modifiedTime?: string;
 }
 
-/** 呼び出し側が理由で分岐できるようにしたエラー */
+/** 403 のうち、許可（ログイン）の問題を表す理由。これ以外の 403 はログインし直しても直らない */
+const AUTH_REASONS = ["insufficientPermissions", "forbidden", "authError"];
+/** 利用回数の上限（短い間に続けて保存した・1日の上限） */
+const RATE_REASONS = ["userRateLimitExceeded", "rateLimitExceeded", "dailyLimitExceeded"];
+/** ドライブの空き容量が無い */
+const QUOTA_REASONS = ["storageQuotaExceeded", "quotaExceeded"];
+
+/**
+ * 呼び出し側が理由で分岐できるようにしたエラー。
+ *
+ * Google Drive API は、許可が足りないときだけでなく、利用回数の上限や容量切れでも 403 を返す。
+ * 403 をまとめて「ログインし直して」と案内していたときは、続けて保存した・容量が尽きた人が
+ * ログインを繰り返しても直らず、本当の原因が分からなかった（issue #115）。
+ * 理由は応答の `error.errors[0].reason` にある。
+ */
 export class DriveError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(message: string, readonly status: number, readonly reason: string = "") {
     super(message);
   }
-  /** ログインし直しが要る（トークンが切れた・取り消された） */
+  /** ログインし直しが要る（トークンが切れた・取り消された・権限が足りない） */
   get needsSignIn(): boolean {
-    return this.status === 401 || this.status === 403;
+    if (this.status === 401) return true;
+    // 理由が読めなかった 403 は、これまでどおり許可の問題として扱う
+    return this.status === 403 && (this.reason === "" || AUTH_REASONS.includes(this.reason));
+  }
+  /** 利用者に見せる文言 */
+  get userMessage(): string {
+    if (this.needsSignIn) return "Googleドライブへの許可が切れています。もう一度ログインしてください。";
+    if (this.status === 429 || RATE_REASONS.includes(this.reason)) {
+      return "Googleドライブへの操作が続いたため、いったん断られました。少し時間をおいてから、もう一度お試しください。";
+    }
+    if (QUOTA_REASONS.includes(this.reason)) {
+      return "Googleドライブの空き容量が足りません。ドライブの容量を空けてから、もう一度お試しください。";
+    }
+    if (this.status >= 500) {
+      return "Googleドライブ側で一時的な問題が起きています。時間をおいて、もう一度お試しください。";
+    }
+    return `Googleドライブに接続できませんでした（${this.status}）。`;
+  }
+}
+
+/** 失敗した応答から理由（`error.errors[0].reason`）を読む。読めなければ空 */
+async function readDriveReason(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    const reason = body?.error?.errors?.[0]?.reason;
+    return typeof reason === "string" ? reason : "";
+  } catch {
+    return ""; // 本文が JSON でなくても、状態コードで扱う
   }
 }
 
@@ -49,7 +90,7 @@ async function callDrive(
     headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` }
   });
   if (!res.ok) {
-    throw new DriveError(`Drive API ${res.status}`, res.status);
+    throw new DriveError(`Drive API ${res.status}`, res.status, await readDriveReason(res));
   }
   return res;
 }

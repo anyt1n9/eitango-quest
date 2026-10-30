@@ -16,7 +16,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
-import { parseCSV, buildDistractors, normalizeImportedWord, appendNewWords } from "../importWords";
+import { parseCSV, decodeCsvBytes, buildDistractors, normalizeImportedWord, appendNewWords } from "../importWords";
 import { isOffensiveText, isOffensiveWord, OFFENSIVE_WORD_MESSAGE } from "../offensiveTerms";
 import { playChime } from "../sound";
 import { shuffle } from "../shuffle";
@@ -136,7 +136,8 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
     setCsvError("");
     setCsvSuccess("");
 
-    if (!file.name.endsWith(".csv")) {
+    // 拡張子の大文字小文字は問わない（Windows のツールは WORDS.CSV のように書き出す）
+    if (!/\.csv$/i.test(file.name)) {
       setCsvError("CSVファイル（.csv）を選択してください。");
       return;
     }
@@ -144,7 +145,8 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const text = e.target?.result as string;
+        // 文字コードは中身から決める（日本語版 Excel の CSV は Shift_JIS。src/importWords.ts）
+        const text = decodeCsvBytes(e.target?.result as ArrayBuffer);
         if (!text) {
           throw new Error("ファイルが空、または読み込めませんでした。");
         }
@@ -268,7 +270,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
     reader.onerror = () => {
       setCsvError("ファイルの読み込み中にエラーが発生しました。");
     };
-    reader.readAsText(file, "UTF-8");
+    reader.readAsArrayBuffer(file);
   };
 
   // ファイル入力が変更されたとき
@@ -334,7 +336,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
     setPdfError("");
     setPdfSuccess("");
 
-    if (!file.name.endsWith(".pdf") && file.type !== "application/pdf") {
+    if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") {
       setPdfError("PDFファイル（.pdf）を選択してください。");
       return;
     }
