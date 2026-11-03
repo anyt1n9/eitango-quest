@@ -27,6 +27,8 @@ function renderSettings(glass: "off" | "light" | "strong" | "clear" = "off") {
       onVeilChange={vi.fn()}
       glass={glass}
       onGlassChange={onGlassChange}
+      ocean={false}
+      onOceanChange={vi.fn()}
       onBack={vi.fn()}
     />
   );
