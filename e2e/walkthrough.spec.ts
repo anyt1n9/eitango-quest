@@ -416,7 +416,7 @@ test("海の3D背景（試験中）は、選んだ人にだけ読み込み、出
   // three.js と3Dモデル（約1.3MB）を読むので、選んでいない人の端末には何も届けない
   const fetched: string[] = [];
   page.on("response", res => fetched.push(new URL(res.url()).pathname));
-  const oceanFiles = () => fetched.filter(p => p.startsWith("/ocean/") || /\/(three|OceanBackground)-[^/]+\.js$/.test(p));
+  const oceanFiles = () => fetched.filter(p => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(p));
 
   await page.goto("/");
   await waitForVocabulary(page);
@@ -431,7 +431,7 @@ test("海の3D背景（試験中）は、選んだ人にだけ読み込み、出
   // WebGL が使える端末では3Dを、使えない端末では海の色の地を出す（どちらでも画面は落ちない）
   const kind = await scene.getAttribute("data-kind");
   expect(["ocean", "ocean-fallback"]).toContain(kind);
-  if (kind === "ocean") await expect.poll(() => fetched.includes("/ocean/ocean.glb")).toBe(true);
+  if (kind === "ocean") await expect.poll(() => fetched.some(p => /\/assets\/ocean-[^/]+\.glb$/.test(p))).toBe(true);
   expect(await scene.evaluate(e => getComputedStyle(e).pointerEvents), "背景が押す操作を奪っている").toBe("none");
 
   // 出題中は隠す（作り直さないよう、外さずに止めて隠す）

@@ -66,7 +66,9 @@ export type Verdict =
   | { kind: "keep"; fps: number }
   | { kind: "throttled"; fps: number }
   | { kind: "down"; to: OceanTier; fps: number }
-  | { kind: "up"; to: OceanTier; fps: number };
+  | { kind: "up"; to: OceanTier; fps: number }
+  /** 「低」でも重い。これ以上は軽くできないので、動かすのをやめて止めた1枚にする */
+  | { kind: "freeze"; fps: number };
 
 export function median(xs: number[]): number {
   if (xs.length === 0) return 0;
@@ -89,6 +91,7 @@ export function judge(sample: FrameSample, ctx: JudgeContext): Verdict {
   }
   const idx = TIER_ORDER.indexOf(ctx.tier);
   if (fps < ctx.cap * 0.72 && idx < TIER_ORDER.length - 1) return { kind: "down", to: TIER_ORDER[idx + 1], fps };
+  if (ctx.tier === "low" && fps < ctx.cap * 0.6) return { kind: "freeze", fps };
   if (ctx.tier === "mid" && fps > 57 && !ctx.coarsePointer && !ctx.triedHigh) return { kind: "up", to: "high", fps };
   return { kind: "keep", fps };
 }

@@ -63,6 +63,16 @@ describe("下げる・上げる", () => {
   });
 });
 
+describe("「低」でも重い端末", () => {
+  it("これ以上は軽くできないので、動かすのをやめる（止めた1枚にする）", () => {
+    expect(judge(sampleOf(jitter(70, 15)), ctx({ tier: "low", cap: 30 })).kind).toBe("freeze");
+  });
+
+  it("「低」の上限どおり（30コマ前後）なら止めない", () => {
+    expect(judge(sampleOf(jitter(34, 4)), ctx({ tier: "low", cap: 30 })).kind).toBe("keep");
+  });
+});
+
 describe("画質ごとの量", () => {
   it("高 → 中 → 低 の順に軽くなる", () => {
     const t = tierSpecs(3);

@@ -2,7 +2,7 @@
  * 海の3D背景（three.js）。
  *
  * 画像ファイルは使わない。光の筋・水底の光の網目・漂う粒・魚の群れはその場で計算して描き、
- * マンタ・サンゴ・岩・海草は Blender でプログラム生成した3Dモデル（public/ocean/ocean.glb、
+ * マンタ・サンゴ・岩・海草は Blender でプログラム生成した3Dモデル（src/ocean/assets/ocean.glb、
  * 生成は scripts/blender/make_ocean_assets.py）を読む。
  *
  * 水は赤い光から吸収するので、深いほど赤が消えて青だけが残る（色はすべて
@@ -20,6 +20,8 @@ export interface OceanStatus {
   fps: number;
   /** ブラウザが毎秒30コマに制限しているとみなしたか */
   throttled: boolean;
+  /** 「低」でも重いため、止めた1枚にしたか */
+  frozen: boolean;
   modelsLoaded: boolean;
 }
 
@@ -35,6 +37,11 @@ export interface OceanOptions {
   modelUrl: string;
   motion: boolean;
   onStatus?: (s: OceanStatus) => void;
+  /**
+   * 描き続けられなくなった（3Dモデルを取れない・WebGL を失って戻らない）。
+   * 呼ばれたら、呼び出し側は片付けて静かな地に切り替える
+   */
+  onFail?: (reason: "model" | "context-lost") => void;
 }
 
 /** 日光が水を1m 通るごとに弱まる割合（赤・緑・青）。赤が最初に消える */
@@ -558,6 +565,9 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
 
   /* ---- state ---- */
   let tier: OceanTier = "mid";
+  let frozen = false;
+  let lost = false;
+  let lostTimer = 0;
   let active = true;
   let motion = opts.motion;
   let disposed = false;
@@ -697,9 +707,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     const wasProbing = sample.probing;
     sample.probing = false;
     if (v.kind === "down") applyTier(v.to);
+    if (v.kind === "freeze") { frozen = true; refresh(); }
     if (v.kind === "up") { if (v.to === "high") sample.triedHigh = true; applyTier(v.to); }
     if (wasProbing && v.kind === "keep") applyTier("low");
-    opts.onStatus?.({ tier, fps: v.fps, throttled: sample.throttled, modelsLoaded });
+    opts.onStatus?.({ tier, fps: v.fps, throttled: sample.throttled, frozen, modelsLoaded });
   }
 
   function frame(now: number) {
@@ -715,7 +726,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     autoTune(now);
   }
 
-  function running() { return active && motion && !document.hidden && !disposed; }
+  function running() { return active && motion && !frozen && !lost && !document.hidden && !disposed; }
   function start() {
     if (raf || !running()) return;
     last = performance.now();
@@ -729,7 +740,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     if (running()) start();
     else {
       stop();
-      if (active && !disposed) draw();   // 止めるときも、いまの1枚は描いておく
+      if (active && !disposed && !lost) draw();   // 止めるときも、いまの1枚は描いておく
     }
   }
 
@@ -741,8 +752,32 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     sample.probing = tier === "low";
     sample.start = 0;
   };
-  const onVisibility = () => refresh();
-  const onResize = () => { resize(); if (!running() && active) draw(); };
+  // スマホは裏に回ったときなどに WebGL を取り上げることがある。たいていは戻ってくる
+  // （three.js が準備し直す）ので、画面が見えているのに3秒たっても戻らないときだけ諦める
+  const giveUpLater = () => {
+    window.clearTimeout(lostTimer);
+    lostTimer = window.setTimeout(() => {
+      if (lost && !document.hidden && !disposed) opts.onFail?.("context-lost");
+    }, 3000);
+  };
+  const onLost = (e: Event) => {
+    e.preventDefault();
+    lost = true;
+    stop();
+    if (!document.hidden) giveUpLater();
+  };
+  const onRestored = () => {
+    lost = false;
+    window.clearTimeout(lostTimer);
+    refresh();
+  };
+  const onVisibility = () => {
+    if (lost && !document.hidden) giveUpLater();
+    refresh();
+  };
+  const onResize = () => { resize(); if (!running() && active && !lost) draw(); };
+  canvas.addEventListener("webglcontextlost", onLost);
+  canvas.addEventListener("webglcontextrestored", onRestored);
   document.addEventListener("pointerdown", remeasure, { passive: true });
   document.addEventListener("visibilitychange", onVisibility);
   window.addEventListener("resize", onResize);
@@ -760,9 +795,13 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       buildFromGltf(root);
       applyTier(tier);
       if (!running() && active) draw();
-      opts.onStatus?.({ tier, fps: sample.fps, throttled: sample.throttled, modelsLoaded });
+      opts.onStatus?.({ tier, fps: sample.fps, throttled: sample.throttled, frozen, modelsLoaded });
     })
-    .catch((e) => console.warn("海の3Dモデルを読み込めませんでした", e));
+    .catch((e) => {
+      // サンゴ礁もマンタも無い水だけが残るので、静かな地に切り替えてもらう
+      console.warn("海の3Dモデルを読み込めませんでした", e);
+      if (!disposed) opts.onFail?.("model");
+    });
 
   return {
     setActive(v: boolean) { active = v; refresh(); },
@@ -770,6 +809,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     dispose() {
       disposed = true;
       stop();
+      window.clearTimeout(lostTimer);
+      // 先に外す（下の forceContextLoss が webglcontextlost を起こすため）
+      canvas.removeEventListener("webglcontextlost", onLost);
+      canvas.removeEventListener("webglcontextrestored", onRestored);
       document.removeEventListener("pointerdown", remeasure);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", onResize);

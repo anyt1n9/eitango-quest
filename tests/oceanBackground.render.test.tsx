@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { StrictMode } from "react";
+import { render, screen, cleanup, act } from "@testing-library/react";
 
 /**
  * 海の3D背景（OceanBackground）の振る舞い。
@@ -12,12 +13,19 @@ import { render, screen, cleanup } from "@testing-library/react";
  *   - WebGL が使えない端末では、海の色の地に切り替えて画面を落とさない
  */
 
-const created: { setActive: ReturnType<typeof vi.fn>; setMotion: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>; motion: boolean }[] = [];
+type Fake = {
+  setActive: ReturnType<typeof vi.fn>; setMotion: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn>;
+  motion: boolean; canvas: HTMLCanvasElement; fail: (reason: string) => void;
+};
+const created: Fake[] = [];
 let failCreate = false;
 vi.mock("../src/ocean/oceanScene", () => ({
-  createOceanScene: (_canvas: HTMLCanvasElement, opts: { motion: boolean }) => {
+  createOceanScene: (canvas: HTMLCanvasElement, opts: { motion: boolean; onFail?: (r: string) => void }) => {
     if (failCreate) throw new Error("Error creating WebGL context.");
-    const s = { setActive: vi.fn(), setMotion: vi.fn(), dispose: vi.fn(), motion: opts.motion };
+    const s = {
+      setActive: vi.fn(), setMotion: vi.fn(), dispose: vi.fn(), motion: opts.motion, canvas,
+      fail: (reason: string) => opts.onFail?.(reason),
+    };
     created.push(s);
     return s;
   },
@@ -86,6 +94,29 @@ describe("海の3D背景", () => {
     const { unmount } = render(<OceanBackground active={true} motion={true} />);
     unmount();
     expect(created[0].dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("描く場所（canvas）は作るたびに新しくする（開発時の StrictMode で、手放した WebGL を使い回さない）", async () => {
+    const OceanBackground = await load();
+    const { container } = render(<StrictMode><OceanBackground active={true} motion={true} /></StrictMode>);
+    // StrictMode は「作る→片付ける→作る」と走る
+    expect(created.length).toBe(2);
+    expect(created[0].dispose).toHaveBeenCalledTimes(1);
+    expect(created[1].canvas).not.toBe(created[0].canvas);
+    expect(created[0].canvas.isConnected, "片付けた canvas が残っている").toBe(false);
+    expect(container.querySelectorAll("canvas")).toHaveLength(1);
+  });
+
+  it("3Dモデルを取れない・WebGL を失って戻らないときは、片付けて海の色の地にする", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const OceanBackground = await load();
+    const { container } = render(<OceanBackground active={true} motion={true} />);
+    act(() => created[0].fail("model"));
+    expect(screen.getByTestId("background_scene").dataset.kind).toBe("ocean-fallback");
+    expect(created[0].dispose).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("canvas")).toBeNull();
+    expect(created).toHaveLength(1);
+    warn.mockRestore();
   });
 
   it("WebGL が使えない端末では、海の色の地に切り替える（画面は落とさない）", async () => {

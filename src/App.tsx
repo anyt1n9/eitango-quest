@@ -42,6 +42,28 @@ const GachaShop = lazy(() => import("./components/GachaShop"));
 const BackgroundSettings = lazy(() => import("./components/BackgroundSettings"));
 // 海の3D背景は three.js と3Dモデル（約1.3MB）を読むので、選んだ人にだけ読み込む
 const OceanBackground = lazy(() => import("./components/OceanBackground"));
+
+/**
+ * 海の3D背景を読み込めなかったとき（通信が切れている・デプロイ直後で古いファイルが無い）に、
+ * いつもの背景へ戻す。背景は飾りなので、失敗を最上位の ErrorBoundary まで届けて
+ * アプリ全体を止めてはいけない。設定は保存されているので、読み直しても同じ所で落ち、
+ * 設定の画面にも行けなくなる。読み直しはしない（失敗した import は同じ画面では取り直されない）
+ */
+type OceanGuardProps = { children: React.ReactNode; fallback: React.ReactNode };
+class OceanGuard extends React.Component<OceanGuardProps, { failed: boolean }> {
+  // props の型を明示する（ErrorBoundary と同じ。declare なので実行時のコードは生成されない）
+  declare props: OceanGuardProps;
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.warn("海の3D背景を読み込めなかったため、いつもの背景に戻します", error);
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
 const PrivacyPolicy = lazy(() =>
   import("./components/LegalPages").then(m => ({ default: m.PrivacyPolicy }))
 );
@@ -793,9 +815,11 @@ export default function App() {
           出題中は出さない。視界のすみで何かが動くと、単語より先にそちらへ目が行く */}
       {bgOcean ? (
         // 出題中も外さずに隠すだけにする（作り直すと3Dモデルの準備がやり直しになる）
-        <Suspense fallback={null}>
-          <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} />
-        </Suspense>
+        <OceanGuard fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}>
+          <Suspense fallback={null}>
+            <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} />
+          </Suspense>
+        </OceanGuard>
       ) : (
         !isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />
       )}

@@ -2,7 +2,8 @@
 海の3D背景（src/ocean/oceanScene.ts）で使う3Dモデルを、Blender をプログラムで動かして作る。
 
 画像や購入品を使わず、形・色・物陰の暗さ(AO)まで、このファイルだけで作る（権利の心配が無く、
-数値を変えれば何度でも作り直せる）。出力は public/ocean/ocean.glb。手順は CLAUDE.md の「海の3D背景」。
+数値を変えれば何度でも作り直せる）。アプリが読むのは src/ocean/assets/ocean.glb（数値を詰めたもの）。
+手順は CLAUDE.md の「海の3D背景」。
 
   python scripts/blender/make_ocean_assets.py <出力フォルダ> [--preview]
 

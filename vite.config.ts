@@ -38,10 +38,11 @@ export default defineConfig(() => {
           navigateFallback: '/index.html',
           runtimeCaching: [
             {
-              // 一度取ったら端末に置いておき、オフラインでも海を出す（裏で新しい版を確かめる）
-              urlPattern: ({ url }) =>
-                url.pathname.startsWith('/ocean/') || /\/assets\/(three|OceanBackground)-[^/]+\.js$/.test(url.pathname),
-              handler: 'StaleWhileRevalidate',
+              // 一度取ったら端末に置いておき、オフラインでも海を出す。
+              // 3Dモデルも含めて名前に中身のハッシュが付くので、置いたものが古くなることは無い
+              // （名前が固定だと、作り直したモデルの直後に古いモデルと新しいコードが組み合わさる）
+              urlPattern: ({ url }) => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(url.pathname),
+              handler: 'CacheFirst',
               options: { cacheName: 'ocean-3d', expiration: { maxEntries: 8 } },
             },
           ],
