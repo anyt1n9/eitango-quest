@@ -624,6 +624,49 @@ sRGB 0.83 以上まで持ち上げる必要があった）。
 - `quest_bg_image` はバックアップ対象外。書き出したJSONが写真で膨らみ、
   学習の記録を移すという本来の用途を邪魔するため。
 
+## 海の3D背景（試験中）
+
+背景を three.js で描く海にできる（メニュー →「背景の画像・透明感」→「海の3D背景」。`quest_bg_ocean`）。
+**既定はオフ。** 画面の作り直し（A案）と合わせて既定にするまでは、選んだ人にだけ出す。
+
+- 構成：`src/ocean/oceanScene.ts`（three.js の場面）、`src/ocean/quality.ts`（画質の自動判定。純粋な関数）、
+  `src/components/OceanBackground.tsx`（App から `lazy()`）、`public/ocean/ocean.glb`（3Dモデル）、
+  `scripts/blender/make_ocean_assets.py`（3Dモデルの生成）。
+- **選んでいない人の端末には何も届けない。** three.js は `manualChunks` で `three-*.js` に分け、
+  `OceanBackground-*.js` と一緒にサービスワーカーの事前配布から外している（`globIgnores`）。
+  使った人の端末にだけ、取りに来たときに置いておく（`runtimeCaching`。オフラインでも海が出る）。
+  e2e の「起動時に、まだ開いていない画面の JS を読み込まない」と「海の3D背景（試験中）は…」が見張る。
+- **出題中は隠すが、外さない**（`active=false`）。外すと次に出すとき3Dモデルの組み立てとシェーダーの準備が
+  やり直しになる。描くのも止める。「視差効果を減らす」・メニューの「背景の動き」では止めた1枚を出す。
+  WebGL が使えない端末では例外を受け止め、海の色の地（`data-kind="ocean-fallback"`）にする。
+- **画質（高・中・低）は自動で決める。** 描けたコマの間隔で判定するが、**毎秒30コマに張り付いているのは
+  ブラウザの制限**（iPhone の省電力モード、埋め込み表示で画面に触れるまで）で、端末の重さではない。
+  試作ではこれを取り違え、iPhone 14 で「低・30fps」にしていた（手で「高」にすると 50〜55fps 出た）。
+  重い端末はコマの間隔がばらつくので、33ms への張り付きで見分ける。画面に触れたら測り直す。
+  スマホは「高」へ自動では上げない（電池と熱）。iPhone 14 は「中」で 60fps（実測）。
+- 色は「日光が水を通ってどれだけ残るか」から計算する（赤・緑・青ごとの減り方 `KD`。赤が最初に消える）。
+  いまの水深は 6m 固定（表層）。水の見通し（`FOG`）は、試作で「モデルがかすんで見えない」と言われて半分以下にした。
+- 試作で直した見え方：海草を長方形1枚で描くと短冊に見えた（細い葉の株にした）。水底の光の網目を
+  ボロノイの境界そのままで描くと、直線のひび割れ（タイル）に見えた（境界をゆがめて曲線にした）。
+
+**3Dモデルは画像も購入品も使わず、Blender をプログラムで動かして作る**（権利の心配が無く、数値を変えて作り直せる）。
+マンタ・枝サンゴ2種・ノウサンゴ・ウミウチワ・岩2種・海草。名前の末尾 `_0/_1/_2` が画質の高・中・低に対応する。
+色は頂点ごとに持ち、物陰の暗さ（AO）も焼き込む。作り直す手順：
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install bpy==4.5.3   # Blender を Python から使う版（Python 3.11 が要る）
+.venv/bin/python scripts/blender/make_ocean_assets.py /tmp/ocean --preview   # preview.png で形を確かめる
+npx @gltf-transform/cli@4.1.1 quantize /tmp/ocean/ocean_assets.glb public/ocean/ocean.glb \
+  --quantize-position 14 --quantize-normal 8 --quantize-color 8            # 数値を詰める（2.0MB → 1.3MB）
+```
+
+数値を詰めた形（KHR_mesh_quantization）は three.js がそのまま読める（展開用の追加ファイルが要らない）。
+読み込んだあとは `plainGeometry()` で float に戻す（詰めたまま拡大すると、範囲を超えた値が切り詰められる）。
+
+テストは `tests/oceanQuality.test.ts`（30コマの制限を重さと取り違えないこと）、
+`tests/oceanBackground.render.test.tsx`（出題中に作り直さない・止める・片付ける・WebGL が無い端末）、
+`tests/oceanSetting.render.test.tsx`（既定はオフ・設定で選べて保存される）。
+
 ## 学習データの持ち出し（ファイル／Googleドライブ）
 
 学習の記録は端末の localStorage にしか無いので、持ち出す手段を2つ用意している。

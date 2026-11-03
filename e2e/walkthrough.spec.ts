@@ -412,6 +412,38 @@ test("背景の画像はメニューから選べ、消せば もとの飾りに�
   expect(await page.evaluate(() => localStorage.getItem("quest_bg_image"))).toBeNull();
 });
 
+test("海の3D背景（試験中）は、選んだ人にだけ読み込み、出題中は隠す", async ({ page }) => {
+  // three.js と3Dモデル（約1.3MB）を読むので、選んでいない人の端末には何も届けない
+  const fetched: string[] = [];
+  page.on("response", res => fetched.push(new URL(res.url()).pathname));
+  const oceanFiles = () => fetched.filter(p => p.startsWith("/ocean/") || /\/(three|OceanBackground)-[^/]+\.js$/.test(p));
+
+  await page.goto("/");
+  await waitForVocabulary(page);
+  expect(oceanFiles(), "選んでいないのに海の3D背景を読み込んでいる").toEqual([]);
+
+  await goTab(page, "menu");
+  await page.locator("#nav_background_btn").click();
+  await page.locator("#btn_ocean_on").click();
+  const scene = page.locator(".bg-ocean3d");
+  await expect(scene).toHaveCount(1);
+  await expect.poll(() => fetched.some(p => /\/three-[^/]+\.js$/.test(p))).toBe(true);
+  // WebGL が使える端末では3Dを、使えない端末では海の色の地を出す（どちらでも画面は落ちない）
+  const kind = await scene.getAttribute("data-kind");
+  expect(["ocean", "ocean-fallback"]).toContain(kind);
+  if (kind === "ocean") await expect.poll(() => fetched.includes("/ocean/ocean.glb")).toBe(true);
+  expect(await scene.evaluate(e => getComputedStyle(e).pointerEvents), "背景が押す操作を奪っている").toBe("none");
+
+  // 出題中は隠す（作り直さないよう、外さずに止めて隠す）
+  await goTab(page, "today");
+  await page.locator("#btn_junior_word").click();
+  await expect(page.locator("#quiz_options_container")).toBeVisible();
+  await expect(page.locator('[data-testid="background_scene"]'), "出題中に背景が出ている").toHaveCount(0);
+  expect(await scene.evaluate(e => getComputedStyle(e).visibility)).toBe("hidden");
+  await page.locator("#btn_quit_quiz").click();
+  await expect(page.locator('[data-testid="background_scene"]')).toHaveCount(1);
+});
+
 test("知らないパスでも白い画面にならない", async ({ page }) => {
   await page.goto("/no-such-page");
   await expect(page.locator("#btn_junior_reverse")).toBeVisible({ timeout: 30_000 });
@@ -1087,7 +1119,9 @@ test("起動時に、まだ開いていない画面の JS を読み込まない"
     // タブの「教材」「記録」「メニュー」と、教材の中の単語の取り込み
     "LearnHub", "Records", "MenuScreen", "WordImport",
     // 類義語・語義分別の画面とデータ（データは開いた画面が取りに行く）
-    "SynonymQuiz", "SenseQuiz", "synonyms", "senseQuiz"
+    "SynonymQuiz", "SenseQuiz", "synonyms", "senseQuiz",
+    // 海の3D背景（試験中）は、選んだ人にだけ読み込む
+    "three", "OceanBackground"
   ];
   for (const name of deferred) {
     expect(loaded.filter(f => f.startsWith(name)), `${name} を起動時に読み込んでいる`).toEqual([]);

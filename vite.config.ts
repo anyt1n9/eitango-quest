@@ -32,7 +32,19 @@ export default defineConfig(() => {
           // バンドルに 1.5MB の単語データ(vocabulary.ts)が含まれるため、プリキャッシュ上限を引き上げる
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,svg,woff,woff2}'],
+          // 海の3D背景（試験中）の three.js と画面は、使う人だけが取りに来る。
+          // インストール時に全員へ配ると、使わない人の端末にも数百KBの通信が出る
+          globIgnores: ['**/three-*.js', '**/OceanBackground-*.js'],
           navigateFallback: '/index.html',
+          runtimeCaching: [
+            {
+              // 一度取ったら端末に置いておき、オフラインでも海を出す（裏で新しい版を確かめる）
+              urlPattern: ({ url }) =>
+                url.pathname.startsWith('/ocean/') || /\/assets\/(three|OceanBackground)-[^/]+\.js$/.test(url.pathname),
+              handler: 'StaleWhileRevalidate',
+              options: { cacheName: 'ocean-3d', expiration: { maxEntries: 8 } },
+            },
+          ],
         },
         devOptions: {
           // 開発時(vite middleware)は Service Worker を無効化してHMRと干渉させない
@@ -40,6 +52,16 @@ export default defineConfig(() => {
         },
       }),
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          // three.js を名前の分かる別ファイルにする（上の globIgnores で配るのを止めるため）
+          manualChunks(id: string) {
+            if (id.includes('/node_modules/three/')) return 'three';
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

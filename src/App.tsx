@@ -40,6 +40,8 @@ const Grammar = lazy(() => import("./components/Grammar"));
 const DataBackup = lazy(() => import("./components/DataBackup"));
 const GachaShop = lazy(() => import("./components/GachaShop"));
 const BackgroundSettings = lazy(() => import("./components/BackgroundSettings"));
+// 海の3D背景は three.js と3Dモデル（約1.3MB）を読むので、選んだ人にだけ読み込む
+const OceanBackground = lazy(() => import("./components/OceanBackground"));
 const PrivacyPolicy = lazy(() =>
   import("./components/LegalPages").then(m => ({ default: m.PrivacyPolicy }))
 );
@@ -232,6 +234,12 @@ export default function App() {
   useEffect(() => {
     writeStored("quest_bg_motion", bgMotion ? "on" : "off");
   }, [bgMotion]);
+
+  /** 海の3D背景（試験中）。three.js と3Dモデルを読むので、はじめは使わない */
+  const [bgOcean, setBgOcean] = useState<boolean>(() => readStoredString("quest_bg_ocean") === "on");
+  useEffect(() => {
+    writeStored("quest_bg_ocean", bgOcean ? "on" : "off");
+  }, [bgOcean]);
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
   // 壊れた要素（null・数値でない box など）は読み込みの時点で捨てる（src/srs.ts の sanitizeSrs）
@@ -783,7 +791,14 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col justify-between transition-colors duration-300" id="app_root_container">
       {/* 背景の飾り（明るいテーマ＝ジャングル／暗いテーマ＝海）。
           出題中は出さない。視界のすみで何かが動くと、単語より先にそちらへ目が行く */}
-      {!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}
+      {bgOcean ? (
+        // 出題中も外さずに隠すだけにする（作り直すと3Dモデルの準備がやり直しになる）
+        <Suspense fallback={null}>
+          <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} />
+        </Suspense>
+      ) : (
+        !isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />
+      )}
       {/*
         ナビゲーションヘッダー。
 
@@ -1224,6 +1239,8 @@ export default function App() {
             onVeilChange={changeBgVeil}
             glass={glass}
             onGlassChange={changeGlass}
+            ocean={bgOcean}
+            onOceanChange={setBgOcean}
             onBack={goBack}
           />
         )}
