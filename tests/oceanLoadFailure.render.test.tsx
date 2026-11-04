@@ -44,7 +44,8 @@ describe("海の3D背景を読み込めなかったとき", () => {
     const { default: App } = await import("../src/App");
     render(<App />);
     await waitFor(() => expect(document.getElementById("vocabulary_loading_screen")).toBeNull());
-    await waitFor(() => expect(screen.getByTestId("background_scene").dataset.kind).toBe("scene"));
+    // 3D は画面が落ち着いてから読み込む（App の oceanMounted）ので、少し待つ
+    await waitFor(() => expect(screen.getByTestId("background_scene").dataset.kind).toBe("scene"), { timeout: 5000 });
     expect(screen.queryByText(/問題が発生しました/)).toBeNull();
     expect(document.getElementById("btn_junior_word")).not.toBeNull();
     // 設定は消さない（通信が戻れば、次に開いたとき海が出る）

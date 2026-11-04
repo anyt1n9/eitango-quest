@@ -13,7 +13,7 @@
  */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { judge, tierSpecs, type OceanTier } from "./quality";
+import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
 
 export interface OceanStatus {
   tier: OceanTier;
@@ -237,6 +237,17 @@ const REEF_PLAN: ReefPlan[] = [
 export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions): OceanScene {
   // WebGL を使えない端末ではここで投げる（呼び出し側が静かな背景に切り替える）
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+  // GPU ではなく CPU で描いている WebGL では3Dを描かない（呼び出し側が海の色の地に切り替える）
+  {
+    const gl = renderer.getContext();
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : "";
+    if (isSoftwareRenderer(name)) {
+      renderer.dispose();
+      renderer.forceContextLoss();
+      throw new Error(`GPU の無い WebGL のため3Dを描きません（${name}）`);
+    }
+  }
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 
   const dpr = window.devicePixelRatio || 1;

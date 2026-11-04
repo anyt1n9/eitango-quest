@@ -419,36 +419,51 @@ test("背景の画像はメニューから選べ、消せば もとの飾りに�
   expect(await page.evaluate(() => localStorage.getItem("quest_bg_image"))).toBeNull();
 });
 
-test("海の3D背景（試験中）は、選んだ人にだけ読み込み、出題中は隠す", async ({ page }) => {
-  // three.js と3Dモデル（約1.3MB）を読むので、選んでいない人の端末には何も届けない
+test("海の3D背景は既定で出し、「使わない」を選んだ人には何も届けない。出題中は隠す", async ({ page, context }) => {
+  // three.js と3Dモデル（約2MB）を読む。既定で使うが、最初の画面が出てから読み込む
   const fetched: string[] = [];
   page.on("response", res => fetched.push(new URL(res.url()).pathname));
   const oceanFiles = () => fetched.filter(p => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(p));
 
   await page.goto("/");
   await waitForVocabulary(page);
-  expect(oceanFiles(), "選んでいないのに海の3D背景を読み込んでいる").toEqual([]);
-
-  await goTab(page, "menu");
-  await page.locator("#nav_background_btn").click();
-  await page.locator("#btn_ocean_on").click();
   const scene = page.locator(".bg-ocean3d");
   await expect(scene).toHaveCount(1);
-  await expect.poll(() => fetched.some(p => /\/three-[^/]+\.js$/.test(p))).toBe(true);
+  await expect.poll(() => fetched.some(p => /\/three-[^/]+\.js$/.test(p)), { timeout: 15_000 }).toBe(true);
   // WebGL が使える端末では3Dを、使えない端末では海の色の地を出す（どちらでも画面は落ちない）
+  await expect.poll(() => scene.getAttribute("data-kind"), { timeout: 15_000 }).not.toBe("ocean-loading");
   const kind = await scene.getAttribute("data-kind");
   expect(["ocean", "ocean-fallback"]).toContain(kind);
   if (kind === "ocean") await expect.poll(() => fetched.some(p => /\/assets\/ocean-[^/]+\.glb$/.test(p))).toBe(true);
   expect(await scene.evaluate(e => getComputedStyle(e).pointerEvents), "背景が押す操作を奪っている").toBe("none");
+  // 起動しただけでは「選んだ」ことにしない
+  expect(await page.evaluate(() => localStorage.getItem("quest_bg_ocean_choice"))).toBeNull();
 
   // 出題中は隠す（作り直さないよう、外さずに止めて隠す）
-  await goTab(page, "today");
   await page.locator("#btn_junior_word").click();
   await expect(page.locator("#quiz_options_container")).toBeVisible();
   await expect(page.locator('[data-testid="background_scene"]'), "出題中に背景が出ている").toHaveCount(0);
   expect(await scene.evaluate(e => getComputedStyle(e).visibility)).toBe("hidden");
   await page.locator("#btn_quit_quiz").click();
   await expect(page.locator('[data-testid="background_scene"]')).toHaveCount(1);
+
+  // 「使わない」を選ぶと、いつもの飾りに戻り、次に開いたときは何も読み込まない
+  await goTab(page, "menu");
+  await page.locator("#nav_background_btn").click();
+  await page.locator("#btn_ocean_off").click();
+  await expect(scene).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("quest_bg_ocean_choice"))).toBe("off");
+
+  const fresh = await context.newPage();
+  const fetched2: string[] = [];
+  fresh.on("response", res => fetched2.push(new URL(res.url()).pathname));
+  await fresh.goto("/");
+  await waitForVocabulary(fresh);
+  await fresh.waitForTimeout(3000);
+  expect(fetched2.filter(p => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(p)),
+    "「使わない」を選んだのに海の3D背景を読み込んでいる").toEqual([]);
+  await expect(fresh.locator(".bg-ocean3d")).toHaveCount(0);
+  void oceanFiles;
 });
 
 test("知らないパスでも白い画面にならない", async ({ page }) => {
@@ -1147,9 +1162,9 @@ test("起動時に、まだ開いていない画面の JS を読み込まない"
     // タブの「教材」「記録」「メニュー」と、教材の中の単語の取り込み
     "LearnHub", "Records", "MenuScreen", "WordImport",
     // 類義語・語義分別の画面とデータ（データは開いた画面が取りに行く）
-    "SynonymQuiz", "SenseQuiz", "synonyms", "senseQuiz",
-    // 海の3D背景（試験中）は、選んだ人にだけ読み込む
-    "three", "OceanBackground"
+    "SynonymQuiz", "SenseQuiz", "synonyms", "senseQuiz"
+    // 海の3D背景（three / OceanBackground）は既定で使うが、画面が落ち着いてから読み込む。
+    // 「使わない」を選んだ人に届かないことは「海の3D背景は既定で出し…」が見る
   ];
   for (const name of deferred) {
     expect(loaded.filter(f => f.startsWith(name)), `${name} を起動時に読み込んでいる`).toEqual([]);
@@ -1166,7 +1181,9 @@ test("起動時に読み込む JS が大きくなりすぎていない", async (
   let bytes = 0;
   page.on("response", async res => {
     const name = res.url().split("/").pop() || "";
-    if (!name.endsWith(".js") || name.startsWith("vocabulary")) return;
+    // 海の3D背景（three・OceanBackground）も数えない。最初の画面が出てから、
+    // 画面が落ち着くのを待って読み込む背景で、起動を待たせるものではない
+    if (!name.endsWith(".js") || /^(vocabulary|three|OceanBackground)-/.test(name)) return;
     const body = await res.body().catch(() => null);
     if (body) bytes += body.length;
   });

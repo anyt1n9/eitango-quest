@@ -683,15 +683,32 @@ sRGB 0.83 以上まで持ち上げる必要があった）。
 - `quest_bg_image` はバックアップ対象外。書き出したJSONが写真で膨らみ、
   学習の記録を移すという本来の用途を邪魔するため。
 
-## 海の3D背景（試験中）
+## 海の3D背景
 
-背景を three.js で描く海にできる（メニュー →「背景の画像・透明感」→「海の3D背景」。`quest_bg_ocean`）。
-**既定はオフ。** 画面の作り直し（A案）と合わせて既定にするまでは、選んだ人にだけ出す。
+背景を three.js で描く海にしている（メニュー →「背景の画像・透明感」→「海の3D背景」で止められる）。
+**既定は使う**（A案への作り直しの段階②-3で既定にした。それまでは試験中で既定はオフだった）。
+
+- **使うかどうかの決め方は `src/oceanSetting.ts` の `initialOcean()`。**
+  1. 本人が設定で選んだもの（`quest_bg_ocean_choice`）
+  2. 試験中に「使う」を選んでいた人（`quest_bg_ocean` が "on"）
+  3. 自分の写真を背景にしている人は使わない（海で写真を隠さない）
+  4. 端末のデータ節約（Save-Data）がオンなら使わない（three.js と3Dモデルで約2MB）
+  5. それ以外は使う
+
+  **起動時に保存しないこと。** 試験中は App が起動のたびに `quest_bg_ocean` へ "off" を書いていたため、
+  そのキーの "off" は本人の選択と区別できない（だから新しいキーにして、古い方は "on" だけ読む）。
+  背景の画像を選んだときは、海を「使わない」に切り替える（選んだ画像が海に隠れて見えないため）。
+- **最初の画面を待たせない。** 3D は `requestIdleCallback`（無ければ 800ms 後）まで読み込まず、
+  それまでは同じ海の色の地（`OceanPlaceholder`、`data-kind="ocean-loading"`）を出す。
+  起動時の JS の量（e2e）には three / OceanBackground を数えない。
+- **GPU の無い WebGL では3Dを描かない**（`isSoftwareRenderer`。SwiftShader・llvmpipe など）。
+  描けはするが CPU を使い切り、画面の操作まで重くなる（e2e がこれで 2.5分 → 9.9分 になった）。
+  仮想マシン・GPU を止められたパソコン・CI がこれに当たり、海の色の地（`ocean-fallback`）になる。
 
 - 構成：`src/ocean/oceanScene.ts`（three.js の場面）、`src/ocean/quality.ts`（画質の自動判定。純粋な関数）、
   `src/components/OceanBackground.tsx`（App から `lazy()`）、`src/ocean/assets/ocean.glb`（3Dモデル。
   `?url` で読み、名前に中身のハッシュが付く）、`scripts/blender/make_ocean_assets.py`（3Dモデルの生成）。
-- **選んでいない人の端末には何も届けない。** three.js は `manualChunks` で `three-*.js` に分け、
+- **使わない人の端末には何も届けない。** three.js は `manualChunks` で `three-*.js` に分け、
   `OceanBackground-*.js` と一緒にサービスワーカーの事前配布から外している（`globIgnores`）。
   使った人の端末にだけ、取りに来たときに置いておく（`runtimeCaching`。オフラインでも海が出る）。
   3Dモデルも名前にハッシュを付ける。名前が固定だと、作り直したモデルを出した直後に
@@ -699,7 +716,7 @@ sRGB 0.83 以上まで持ち上げる必要があった）。
   **読み込みの失敗でアプリを止めない。** 部品（`OceanBackground-*.js`）を取れないと `lazy()` が投げるが、
   App の `OceanGuard` で受け止めて、いつもの背景に戻す。最上位の ErrorBoundary まで届くと、
   設定が保存されているので読み直しても同じ所で落ち、設定の画面にも行けなくなる。
-  e2e の「起動時に、まだ開いていない画面の JS を読み込まない」と「海の3D背景（試験中）は…」が見張る。
+  e2e の「海の3D背景は既定で出し、「使わない」を選んだ人には何も届けない…」が見張る。
 - **出題中は隠すが、外さない**（`active=false`）。外すと次に出すとき3Dモデルの組み立てとシェーダーの準備が
   やり直しになる。描くのも止める。「視差効果を減らす」・メニューの「背景の動き」では止めた1枚を出す。
   WebGL が使えない端末では例外を受け止め、海の色の地（`data-kind="ocean-fallback"`）にする。
@@ -734,7 +751,8 @@ npx @gltf-transform/cli@4.1.1 quantize /tmp/ocean/ocean_assets.glb src/ocean/ass
 
 テストは `tests/oceanQuality.test.ts`（30コマの制限を重さと取り違えないこと）、
 `tests/oceanBackground.render.test.tsx`（出題中に作り直さない・止める・片付ける・canvas を使い回さない・
-WebGL が無い端末・続けられなくなったとき）、`tests/oceanSetting.render.test.tsx`（既定はオフ・設定で選べて保存される）、
+WebGL が無い端末・続けられなくなったとき）、`tests/oceanSetting.render.test.tsx`（既定で出す・起動しただけでは保存しない・
+試験中の "off" で止めない・写真の人は写真のまま・設定で選べて保存される）、`tests/oceanDefault.test.ts`（決め方）、
 `tests/oceanLoadFailure.render.test.tsx`（部品を取れなくてもアプリは使えるまま）。
 
 ## 学習データの持ち出し（ファイル／Googleドライブ）
