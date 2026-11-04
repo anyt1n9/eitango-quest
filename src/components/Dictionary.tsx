@@ -23,7 +23,7 @@ import {
 import { Word, Level, PartOfSpeech } from "../types";
 import Phonetic from "./Phonetic";
 import { getWordPos, getWordPosLabel, POS_LABELS } from "../pos";
-import { LEVEL_LABELS } from "../levelLabels";
+import { LEVEL_LABELS, LEVEL_STAGES } from "../levelLabels";
 import WordSenses from "./WordSenses";
 import WordUsageInfo from "./WordUsage";
 import { SrsState } from "../srs";
@@ -338,37 +338,37 @@ export default function Dictionary({
   };
 
   return (
-    <div className="space-y-6" id="dictionary_section_root">
-      {/* 見出し。辞書は画面下のタブ（調べる）から開く画面なので、戻るは置かない */}
-      <div className="flex items-end justify-between gap-3 px-1">
-        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-indigo-700" aria-hidden="true" />
-          単語辞書
-        </h1>
-        <p className="text-xs text-gray-600 font-bold" id="dictionary_counts">
+    <div className="space-y-4" id="dictionary_section_root">
+      {/* 見出し。辞書は画面下のタブ（調べる）から開く画面なので、戻るは置かない。
+          カードの外に出しているので、背景の飾りや写真に紛れないよう地の色を不透明で敷く */}
+      <div className="flex items-end justify-between gap-3 px-4 py-3 rounded-2xl bg-slate-50">
+        <h1 className="text-2xl font-bold text-gray-900">調べる</h1>
+        <p className="text-sm text-gray-500 tabular-nums" id="dictionary_counts">
           収録 {vocabulary.length.toLocaleString()}語・覚えた {masteredCount.toLocaleString()}語
         </p>
       </div>
 
       {/* 検索・ソート・フィルターコントロールパネル */}
-      <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
           {/* 検索フォーム */}
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-              <Search className="w-4 h-4" />
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
+              <Search className="w-5 h-5" aria-hidden="true" />
             </span>
             <input
-              type="text"
-              placeholder="英単語、日本語訳、例文をキーワード検索..."
+              type="search"
+              placeholder="英単語・日本語・例文で検索"
+              aria-label="単語を検索"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-sans"
+              className="w-full min-h-12 pl-11 pr-11 bg-white border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
               id="search_input_vocabulary"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 cursor-pointer"
+                aria-label="検索語を消す"
+                className="absolute inset-y-0 right-0 w-11 flex items-center justify-center text-gray-500 hover:text-gray-800 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -382,9 +382,9 @@ export default function Dictionary({
               aria-expanded={showFilters}
               aria-controls="dictionary_filters"
               id="btn_toggle_dictionary_filters"
-              className="min-h-11 px-4 rounded-full border border-indigo-300 bg-white text-indigo-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              className="min-h-10 px-3.5 rounded-full border border-gray-200 bg-white text-gray-900 text-sm font-medium flex items-center gap-1.5 cursor-pointer hover:border-gray-400"
             >
-              <ArrowUpDown className="w-4 h-4" aria-hidden="true" />
+              <ArrowUpDown className="w-4 h-4 text-gray-500" aria-hidden="true" />
               並び順・絞り込み
               {(filterLevel !== "all" ? 1 : 0) + (filterPos !== "all" ? 1 : 0) > 0 && (
                 <span className="min-w-5 h-5 px-1 rounded-full bg-rose-700 text-white text-xs flex items-center justify-center">
@@ -397,7 +397,7 @@ export default function Dictionary({
               <button
                 type="button"
                 onClick={() => setFilterLevel("all")}
-                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold cursor-pointer"
+                className="min-h-10 px-3 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium cursor-pointer"
                 aria-label={`${filterLevelLabel(filterLevel)}の絞り込みを外す`}
               >
                 {filterLevelLabel(filterLevel)} ×
@@ -407,7 +407,7 @@ export default function Dictionary({
               <button
                 type="button"
                 onClick={() => setFilterPos("all")}
-                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold cursor-pointer"
+                className="min-h-10 px-3 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium cursor-pointer"
                 aria-label={`${POS_LABELS[filterPos]}の絞り込みを外す`}
               >
                 {POS_LABELS[filterPos]} ×
@@ -420,13 +420,13 @@ export default function Dictionary({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* ソートセレクタ */}
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-              <ArrowUpDown className="w-4 h-4" />
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
+              <ArrowUpDown className="w-4 h-4" aria-hidden="true" />
             </span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full min-h-12 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition appearance-none cursor-pointer"
               id="sort_select_vocabulary"
               aria-label="並び順"
             >
@@ -439,13 +439,13 @@ export default function Dictionary({
 
           {/* 表示件数 */}
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-              <Layers className="w-4 h-4" />
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
+              <Layers className="w-4 h-4" aria-hidden="true" />
             </span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full min-h-12 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition appearance-none cursor-pointer"
               id="pagesize_select_vocabulary"
               aria-label="1ページの件数"
             >
@@ -459,7 +459,7 @@ export default function Dictionary({
 
         {/* フィルター用横スクロールタブ */}
         <div className="flex flex-wrap items-center gap-1.5 pt-1" id="filter_tabs_container">
-          <span className="text-xs font-bold text-gray-400 mr-2">絞り込み:</span>
+          <span className="text-sm text-gray-600 mr-1">レベル</span>
           {(
             [
               { value: "all", label: "すべて" },
@@ -479,16 +479,14 @@ export default function Dictionary({
               <button
                 key={tab.value}
                 onClick={() => setFilterLevel(tab.value)}
-                className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                className={`text-sm px-3 min-h-10 rounded-full border transition cursor-pointer ${
                   isActive
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
-                    : "bg-gray-50 hover:bg-gray-100 border-gray-250 text-gray-600"
+                    ? "bg-indigo-50 border-indigo-600 text-indigo-800 font-bold"
+                    : "bg-white hover:border-gray-400 border-gray-200 text-gray-700 font-medium"
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
-                  isActive ? "bg-black/20 text-white" : "bg-gray-200/60 text-gray-600"
-                }`}>
+                <span className="ml-1.5 text-xs tabular-nums text-gray-500">
                   {count}
                 </span>
               </button>
@@ -499,7 +497,7 @@ export default function Dictionary({
         {/* 品詞での絞り込み。名詞だけ・動詞だけをまとめて見たいときに使う。
             明示が無い語は綴りと訳から推定した品詞で数える */}
         <div className="flex flex-wrap items-center gap-1.5 pt-1" id="pos_filter_container" data-testid="pos_filter">
-          <span className="text-xs font-bold text-gray-400 mr-2">品詞:</span>
+          <span className="text-sm text-gray-600 mr-1">品詞</span>
           {([{ value: "all" as const, label: "すべて" },
              ...POS_FILTERS.map(p => ({ value: p, label: POS_LABELS[p] }))]
           ).map(tab => {
@@ -511,16 +509,14 @@ export default function Dictionary({
                 onClick={() => setFilterPos(tab.value)}
                 id={`pos_filter_${tab.value}`}
                 aria-pressed={isActive}
-                className={`text-xs font-bold px-3 min-h-11 rounded-xl border transition-all cursor-pointer ${
+                className={`text-sm px-3 min-h-10 rounded-full border transition cursor-pointer ${
                   isActive
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
-                    : "bg-gray-50 hover:bg-gray-100 border-gray-250 text-gray-600"
+                    ? "bg-indigo-50 border-indigo-600 text-indigo-800 font-bold"
+                    : "bg-white hover:border-gray-400 border-gray-200 text-gray-700 font-medium"
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
-                  isActive ? "bg-black/20 text-white" : "bg-gray-200/60 text-gray-600"
-                }`}>
+                <span className="ml-1.5 text-xs tabular-nums text-gray-500">
                   {count}
                 </span>
               </button>
@@ -531,19 +527,21 @@ export default function Dictionary({
         )}
       </div>
 
-      {/* 検索・絞り込み結果情報 */}
-      <div className="flex items-center justify-between px-2 text-xs font-medium text-gray-500 tabular-nums">
+      {/* メイン単語の一覧。1語を1枚のカードにすると1語あたり約115pxあり、スマホの1画面に
+          5語ほどしか入らなかった。1枚の表を細い線で区切り、1行を約60pxにする */}
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      {/* 検索・絞り込みの結果。カードの中に置く（背景の飾りの上に小さな文字を出さない） */}
+      <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-500 tabular-nums border-b border-gray-200 bg-slate-50">
         <div>
-          該当：<span className="text-indigo-600 font-bold">{totalItems}語</span> 
-          {searchQuery && ` (キーワード: "${searchQuery}")`}
+          該当 <span className="text-gray-900 font-bold">{totalItems.toLocaleString()}語</span>
+          {searchQuery && `（「${searchQuery}」）`}
         </div>
         <div>
           ページ：{currentPage} / {totalPages}
         </div>
       </div>
 
-      {/* メイン単語アコーディオンリスト */}
-      <div className="space-y-2.5" id="dictionary_words_container">
+      <div className="divide-y divide-gray-200" id="dictionary_words_container">
         {paginatedVocabulary.length > 0 ? (
           paginatedVocabulary.map((word) => {
             const isExpanded = expandedWordId === word.id;
@@ -556,25 +554,21 @@ export default function Dictionary({
             const isCompleted = isMastered(word.id, solvedHistory, srsData);
             const attemptCount = history ? history.attemptCount : 0;
 
+            // 状態は色の箱ではなく、短い文字で示す（行が詰まっているので、箱を並べると読みにくい）
             let statusBadge = null;
             if (isWrong) {
-              statusBadge = (
-                <span className="bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
-                  <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
-                  苦手
-                </span>
-              );
+              statusBadge = <span className="text-xs font-bold text-rose-800 shrink-0">苦手</span>;
             } else if (isCompleted) {
               statusBadge = (
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                <span className="text-xs font-bold text-emerald-800 flex items-center gap-0.5 shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
                   習得済
                 </span>
               );
             } else if (attemptCount > 0) {
               statusBadge = (
-                <span className="bg-gray-100 text-gray-600 border border-gray-200 text-xs font-bold px-2 py-0.5 rounded-lg shrink-0">
-                  未定着 ({attemptCount}回挑戦)
+                <span className="text-xs text-gray-500 shrink-0">
+                  未定着（{attemptCount}回挑戦）
                 </span>
               );
             }
@@ -593,76 +587,56 @@ export default function Dictionary({
                   e.preventDefault();
                   setExpandedWordId(isExpanded ? null : word.id);
                 }}
-                className={`bg-white border rounded-2xl p-4 cursor-pointer transition-all ${
-                  isExpanded 
-                    ? "border-indigo-300 ring-2 ring-indigo-600/10 shadow-sm" 
-                    : "border-gray-150 hover:border-gray-300 hover:bg-gray-50/20"
+                className={`px-4 py-2 cursor-pointer transition ${
+                  isExpanded ? "bg-indigo-50/40" : "hover:bg-gray-50"
                 }`}
                 id={`dictionary_word_item_${word.id}`}
               >
-                {/* 語・訳・印を縦に重ねる。以前は1行に横並びで、スマホでは
-                    訳が「〜につ…」と切れ、発音ボタンが2行目へ折り返していた */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-gray-900 font-bold text-lg select-all truncate">
+                <div className="flex items-center gap-3 min-h-12">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 min-w-0">
+                      <span className="font-headword text-lg text-gray-900 select-all truncate">
                         {word.word}
                       </span>
-                      {/* 発音スピーカーボタン */}
-                      <button
-                        onClick={(e) => handleSpeakWord(word.word, e)}
-                        className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-200/70 border border-gray-150 rounded-lg text-gray-600 transition shrink-0"
-                        title="発音を再生"
-                        aria-label={`${word.word} の発音を聴く`}
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                      </button>
-                      {/* 発音記号(IPA) */}
-                      <Phonetic word={word.word} className="text-xs truncate" />
-                    </div>
-
-                    <p className="text-sm font-bold text-indigo-950 line-clamp-2">
-                      {word.translation}
-                    </p>
-
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 ${badge?.className}`}>
-                        {badge?.text}
-                      </span>
-                      {/* 品詞バッジ */}
-                      <span className="text-xs font-bold px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-600 shrink-0">
-                        {getWordPosLabel(word)}
-                      </span>
-                      {/* 習得ステータス */}
+                      <span className="text-xs text-gray-500 shrink-0">{getWordPosLabel(word)}</span>
                       {statusBadge}
                     </div>
+                    <p className={`text-sm text-gray-700 ${isExpanded ? "" : "truncate"}`}>
+                      {word.translation}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* 苦手リストの出し入れ。カードを開く操作と混ざらないよう伝播を止める */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setWrongWords(prev =>
-                          prev.includes(word.id)
-                            ? prev.filter(id => id !== word.id)
-                            : [...prev, word.id]
-                        );
-                      }}
-                      title={isWrong ? "苦手リストから外す" : "苦手リストに入れて復習に回す"}
-                      aria-label={`${word.word} を苦手リストに${isWrong ? "入れている（外す）" : "入れる"}`}
-                      aria-pressed={isWrong}
-                      id={`btn_toggle_weak_${word.id}`}
-                      className={`shrink-0 w-11 h-11 rounded-xl border flex items-center justify-center transition cursor-pointer ${
-                        isWrong
-                          ? "bg-rose-100 border-rose-250 text-rose-700 hover:bg-rose-200"
-                          : "bg-white border-gray-200 text-gray-600 hover:text-rose-700 hover:border-rose-200"
-                      }`}
-                    >
-                      <Flame className={`w-4 h-4 ${isWrong ? "fill-rose-300" : ""}`} />
-                    </button>
-                    <ChevronRight className={`w-4 h-4 text-gray-600 shrink-0 transition-transform duration-300 ${isExpanded ? "rotate-90 text-indigo-600" : ""}`} />
-                  </div>
+                  {/* レベルは短い呼び方（初級・中級1…）で、レベルの色の文字にする */}
+                  <span
+                    className={`text-xs font-bold shrink-0 ${isCustom ? CUSTOM_TONE : LEVEL_TONE[word.level]} ${TONE_STYLE.text}`}
+                    title={badge.text}
+                  >
+                    {isCustom ? "追加" : LEVEL_STAGES[word.level]}
+                  </span>
+
+                  {/* 苦手リストの出し入れ。行を開く操作と混ざらないよう伝播を止める */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWrongWords(prev =>
+                        prev.includes(word.id)
+                          ? prev.filter(id => id !== word.id)
+                          : [...prev, word.id]
+                      );
+                    }}
+                    title={isWrong ? "苦手リストから外す" : "苦手リストに入れて復習に回す"}
+                    aria-label={`${word.word} を苦手リストに${isWrong ? "入れている（外す）" : "入れる"}`}
+                    aria-pressed={isWrong}
+                    id={`btn_toggle_weak_${word.id}`}
+                    className={`shrink-0 w-11 h-11 -mr-1 rounded-xl flex items-center justify-center transition cursor-pointer ${
+                      isWrong
+                        ? "text-rose-700 hover:bg-rose-50"
+                        : "text-gray-400 hover:text-rose-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Flame className={`w-5 h-5 ${isWrong ? "fill-rose-300" : ""}`} aria-hidden="true" />
+                  </button>
+                  <ChevronRight className={`w-4 h-4 text-gray-500 shrink-0 -ml-1 transition-transform duration-300 ${isExpanded ? "rotate-90" : ""}`} aria-hidden="true" />
                 </div>
 
                 {/* 詳細開閉ブロック */}
@@ -674,7 +648,22 @@ export default function Dictionary({
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-4 border-t border-gray-100 pt-4 space-y-4 text-xs md:text-sm" onClick={(e) => e.stopPropagation()}>
+                      <div className="mt-2 pb-2 space-y-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                        {/* 発音。一覧の行には置かない（1ページ50語ぶんの発音記号を一度に取りに行かないためにも） */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={(e) => handleSpeakWord(word.word, e)}
+                            className="w-11 h-11 flex items-center justify-center bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-gray-700 transition shrink-0 cursor-pointer"
+                            title="発音を再生"
+                            aria-label={`${word.word} の発音を聴く`}
+                          >
+                            <Volume2 className="w-5 h-5" aria-hidden="true" />
+                          </button>
+                          <Phonetic word={word.word} className="text-sm" />
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 ${badge.className}`}>
+                            {badge.text}
+                          </span>
+                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                           {/* 左側: 和訳詳細と例文 */}
@@ -1041,35 +1030,36 @@ export default function Dictionary({
             );
           })
         ) : (
-          <div className="text-center py-16 bg-white border rounded-2xl" id="dictionary_empty_state">
-            <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-800 font-bold text-base">該当する単語は見つかりませんでした</p>
-            <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto leading-relaxed">
+          <div className="text-center py-14 px-4" id="dictionary_empty_state">
+            <BookOpen className="w-10 h-10 text-gray-400 mx-auto mb-3" aria-hidden="true" />
+            <p className="text-gray-900 font-bold text-base">該当する単語は見つかりませんでした</p>
+            <p className="text-sm text-gray-500 mt-1 max-w-xs mx-auto leading-relaxed">
               キーワードを変更するか、絞り込みフィルターを切り替えてみてください。自分で追加した単語を検索するのもおすすめです。
             </p>
           </div>
         )}
       </div>
+      </div>
 
       {/* ページネーションコントロール */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-gray-150 rounded-2xl p-4 shadow-2xs tabular-nums text-xs text-gray-600">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 tabular-nums text-sm text-gray-600">
           <div>
             表示中：<span className="font-bold text-gray-800">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-gray-800">{Math.min(currentPage * pageSize, totalItems)}</span> 件目 / 全 <span className="font-bold text-indigo-600">{totalItems}</span> 件
           </div>
           
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
             <button
               onClick={() => goToPage(1)}
               disabled={currentPage === 1}
-              className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
+              className="min-w-11 min-h-11 px-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               &lt;&lt;
             </button>
             <button
               onClick={() => goToPage(Math.max(currentPage - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
+              className="min-h-11 px-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               前へ
             </button>
@@ -1080,10 +1070,11 @@ export default function Dictionary({
                 <button
                   key={pageNum}
                   onClick={() => goToPage(pageNum)}
-                  className={`w-8 h-8 rounded-lg font-bold border transition transition-all cursor-pointer ${
+                  aria-current={currentPage === pageNum ? "page" : undefined}
+                  className={`min-w-11 min-h-11 rounded-xl border transition cursor-pointer ${
                     currentPage === pageNum
-                      ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
-                      : "bg-gray-50 hover:bg-gray-100 border-gray-250 text-gray-700"
+                      ? "bg-indigo-50 border-indigo-600 text-indigo-800 font-bold"
+                      : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700 font-medium"
                   }`}
                 >
                   {pageNum}
@@ -1094,14 +1085,14 @@ export default function Dictionary({
             <button
               onClick={() => goToPage(Math.min(currentPage + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
+              className="min-h-11 px-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               次へ
             </button>
             <button
               onClick={() => goToPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
+              className="min-w-11 min-h-11 px-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               &gt;&gt;
             </button>

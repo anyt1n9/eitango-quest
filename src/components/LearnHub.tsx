@@ -59,9 +59,9 @@ function Row({ id, title, note, Icon, onClick }: {
       type="button"
       id={id}
       onClick={onClick}
-      className="w-full min-h-14 flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-slate-800 transition cursor-pointer"
+      className="w-full min-h-14 flex items-center gap-3 px-5 py-3 text-left hover:bg-gray-50 transition cursor-pointer"
     >
-      <span className="w-9 h-9 shrink-0 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
+      <span className="w-9 h-9 shrink-0 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
         <Icon className="w-5 h-5" />
       </span>
       <span className="flex-1 min-w-0">
@@ -102,14 +102,16 @@ export default function LearnHub({
   const diaryOpen = mastered >= DIARY_UNLOCK;
 
   return (
-    <div className="space-y-6" id="learn_page">
-      <h1 className="text-xl font-bold text-gray-900 px-1">教材</h1>
+    <div className="space-y-4" id="learn_page">
+      {/* カードの外の見出しは、背景の飾りに紛れないよう地の色を不透明で敷く */}
+      <h1 className="text-2xl font-bold text-gray-900 px-4 py-3 rounded-2xl bg-slate-50">教材</h1>
 
-      <section aria-labelledby="learn_quiz_heading" className="space-y-2.5">
-        <div className="flex items-end justify-between gap-3 px-1">
-          <div>
+      {/* 見出しもカードの中に入れる（カードの外に置くと、背景の飾りや写真の上に小さな文字が出る） */}
+      <section aria-labelledby="learn_quiz_heading" className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <h2 id="learn_quiz_heading" className="text-base font-bold text-gray-900">単語クイズ</h2>
-            <p className="text-xs text-gray-500 mt-0.5" id="learn_quiz_setting">
+            <p className="text-sm text-gray-500 mt-0.5" id="learn_quiz_setting">
               {LEVEL_LABELS[level]}・{count}問
             </p>
           </div>
@@ -117,7 +119,7 @@ export default function LearnHub({
             type="button"
             onClick={onChangeLevel}
             id="btn_learn_change_level"
-            className="min-h-11 px-2 text-xs font-bold text-indigo-700 cursor-pointer"
+            className="min-h-11 px-2 -mr-2 -mt-2 text-sm font-bold text-indigo-700 cursor-pointer shrink-0"
           >
             レベルを変える
           </button>
@@ -129,11 +131,9 @@ export default function LearnHub({
               type="button"
               id={`btn_learn_${f.type}`}
               onClick={() => onStartQuiz(level, f.type, count)}
-              className="min-h-24 flex flex-col items-start gap-1.5 p-3 text-left bg-white border border-gray-100 dark:border-slate-800 rounded-2xl hover:border-indigo-300 transition cursor-pointer"
+              className="min-h-20 flex flex-col items-start gap-1 p-3 text-left bg-white border border-gray-200 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition cursor-pointer"
             >
-              <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
-                <f.Icon className="w-4.5 h-4.5" />
-              </span>
+              <f.Icon className="w-5 h-5 text-gray-500" />
               <span className="text-sm font-bold text-gray-900">{f.name}</span>
               <span className="text-xs text-gray-500 leading-snug">{f.desc}</span>
             </button>
@@ -142,11 +142,9 @@ export default function LearnHub({
             type="button"
             id="btn_learn_wrong_words"
             onClick={onStartReview}
-            className="min-h-24 flex flex-col items-start gap-1.5 p-3 text-left bg-white border border-gray-100 dark:border-slate-800 rounded-2xl hover:border-indigo-300 transition cursor-pointer"
+            className="min-h-20 flex flex-col items-start gap-1 p-3 text-left bg-white border border-gray-200 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition cursor-pointer"
           >
-            <span className="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
-              <Target className="w-4.5 h-4.5" />
-            </span>
+            <Target className="w-5 h-5 text-rose-700" />
             <span className="text-sm font-bold text-gray-900">苦手な単語</span>
             <span className="text-xs text-gray-500 leading-snug">
               {wrongWords.length > 0 ? `間違えた ${wrongWords.length}語を復習` : "間違えた語はまだありません"}
@@ -155,9 +153,9 @@ export default function LearnHub({
         </div>
       </section>
 
-      <section aria-labelledby="learn_read_heading" className="space-y-2.5">
-        <h2 id="learn_read_heading" className="text-base font-bold text-gray-900 px-1">読む・文法</h2>
-        <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-slate-800">
+      <section aria-labelledby="learn_read_heading" className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <h2 id="learn_read_heading" className="text-base font-bold text-gray-900 px-5 pt-4 pb-2">読む・文法</h2>
+        <div className="divide-y divide-gray-200 border-t border-gray-200">
           <Row id="learn_open_reading" title="長文ストーリー" note="各レベルの単語だけで書いた長文を読む" Icon={ReadingIcon} onClick={onOpenReading} />
           <Row id="learn_open_grammar" title="文法ガイド" note="中学〜大学の34項目。説明と練習問題" Icon={BookMarked} onClick={onOpenGrammar} />
           <Row id="learn_open_verb_forms" title="動詞の活用" note="過去形・過去分詞・ing形の一覧" Icon={Repeat} onClick={onOpenVerbForms} />
@@ -165,23 +163,21 @@ export default function LearnHub({
         </div>
       </section>
 
-      <section aria-labelledby="learn_write_heading" className="space-y-2.5">
-        <h2 id="learn_write_heading" className="text-base font-bold text-gray-900 px-1">書く</h2>
+      <section aria-labelledby="learn_write_heading" className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <h2 id="learn_write_heading" className="text-base font-bold text-gray-900 px-5 pt-4 pb-2">書く</h2>
         {/* まだ使えないうちは控えめに出す。以前は「学習メニュー」の中でいちばん目立つ
             オレンジのボタンが、使えない機能のものだった */}
         <button
           type="button"
           id="learn_open_diary"
           onClick={onOpenDiary}
-          className={`w-full min-h-14 flex items-center gap-3 px-4 py-3 text-left rounded-2xl transition cursor-pointer ${
+          className={`w-full min-h-14 flex items-center gap-3 px-5 py-3 text-left transition cursor-pointer border-t ${
             diaryOpen
-              ? "bg-white border border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800"
-              : "bg-gray-50 border border-dashed border-gray-300"
+              ? "border-gray-200 hover:bg-gray-50"
+              : "bg-slate-50 border-dashed border-gray-300"
           }`}
         >
-          <span className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${
-            diaryOpen ? "bg-indigo-50 text-indigo-700" : "bg-gray-100 text-gray-600"
-          }`}>
+          <span className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center bg-gray-100 text-gray-700">
             {diaryOpen ? <DiaryIcon className="w-5 h-5" /> : <Lock className="w-4.5 h-4.5" />}
           </span>
           <span className="flex-1 min-w-0">
