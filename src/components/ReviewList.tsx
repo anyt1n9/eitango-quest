@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Brain, Volume2, Trash2, CheckCircle2, ChevronRight, GraduationCap } from "lucide-react";
+import { Brain, Volume2, Trash2, CheckCircle2, ChevronRight, GraduationCap } from "lucide-react";
 import { Word, Level } from "../types";
 import { LEVEL_STAGES } from "../levelLabels";
 import { QuizFormat } from "../quizFormats";
 import QuizFormatPicker from "./QuizFormatPicker";
 import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
 import { showHoles } from "../fillIn";
+import BackButton from "./BackButton";
 
 interface ReviewListProps {
   vocabulary: Word[];
@@ -69,14 +70,7 @@ export default function ReviewList({
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6" id="review_list_card">
           
           <div className="flex items-center justify-between">
-            <button
-              onClick={onBackToDashboard}
-              className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
-              id="btn_back_from_review"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>戻る</span>
-            </button>
+            <BackButton onClick={onBackToDashboard} id="btn_back_from_review" />
             <span className="bg-rose-100 text-rose-800 text-xs px-3.5 py-1.5 rounded-full font-bold tabular-nums">
               {wrongWordObjects.length} 語
             </span>

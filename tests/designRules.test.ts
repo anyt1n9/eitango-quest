@@ -42,6 +42,20 @@ describe("画面の決まり", () => {
     expect(offenders(/\brounded-3xl\b/)).toEqual([]);
   });
 
+  it("英語の札を大文字・字間の飾りで作らない（開発ツールのような印象になる）", () => {
+    expect(offenders(/\b(?:uppercase|tracking-wider|tracking-widest)\b/).filter(l => !l.includes("SpellingQuiz"))).toEqual([]);
+  });
+
+  it("等幅フォントは、発音記号・綴りクイズ・CSVの見本・エラーの文面にだけ使う", () => {
+    const allowed = ["Phonetic.tsx", "SpellingQuiz.tsx", "WordImport.tsx", "ErrorBoundary.tsx"];
+    expect(offenders(/\bfont-mono\b/).filter(l => !allowed.some(a => l.includes(a)))).toEqual([]);
+  });
+
+  it("下の階層の画面の「戻る」は共通の部品（BackButton）を使う", () => {
+    // 以前は画面ごとに書いていて、文字の大きさ・色・枠の有無が少なくとも7通りあった
+    expect(offenders(/<ArrowLeft\b/)).toEqual([]);
+  });
+
   it("出題中の上の帯は共通の部品を使う（「Q: 1 / 10」のような英語の札を書かない）", () => {
     expect(offenders(/Q: \{/)).toEqual([]);
     expect(offenders(/中断して戻る<\/span>/)).toEqual([]);

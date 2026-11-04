@@ -1,10 +1,11 @@
 import React, { useRef, useState } from "react";
-import { ArrowLeft, Image as ImageIcon, Trash2, Upload, Waves } from "lucide-react";
+import { Image as ImageIcon, Trash2, Upload, Waves } from "lucide-react";
 import {
   checkFile, fileToScaledDataUrl, saveBackgroundImage, clearBackgroundImage,
   MAX_EDGE, MAX_FILE_BYTES, VEIL_CHOICES, VeilLevel
 } from "../backgroundImage";
 import { GLASS_CHOICES, GlassLevel } from "../glass";
+import BackButton from "./BackButton";
 
 /**
  * 背景の画像を選ぶ画面。
@@ -70,14 +71,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
   return (
     <div className="space-y-6" id="background_settings_screen">
       <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition mb-4 min-h-11"
-          id="btn_back_from_background"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>戻る</span>
-        </button>
+        <BackButton onClick={onBack} id="btn_back_from_background" />
 
         <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mt-2">
           <span className="p-1.5 bg-indigo-100 rounded-xl text-indigo-700">
@@ -171,7 +165,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
 
           {image && (
             <div className="mt-6 pt-5 border-t border-gray-100" data-testid="veil_picker">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">画像の上の幕</h3>
+              <h3 className="text-xs font-bold text-gray-500 mb-1">画像の上の幕</h3>
               <p className="text-xs text-gray-500 mb-3 max-w-md">
                 カードの外に出ている小さな文字（辞書の語数や文法のレベルなど）は、
                 画像の柄に紛れることがあります。読みにくいときは濃くしてください。
@@ -203,7 +197,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
               画像を選んでいなくても、はじめからの飾り（ジャングル／海）が
               背後にあるので、常に出す */}
           <div className="mt-6 pt-5 border-t border-gray-100" data-testid="glass_picker">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">カードとボタンの透明感</h3>
+            <h3 className="text-xs font-bold text-gray-500 mb-1">カードとボタンの透明感</h3>
             <p className="text-xs text-gray-500 mb-3 max-w-md">
               「今日」の画面の学習の設定と、その中のボタンを半透明にして、背景を透かします。
               透かすほど背景は見えますが、文字は読みにくくなります。

@@ -691,7 +691,7 @@ export default function Dictionary({
                               
                               {/* 例文を表示。穴埋めの場所もわかりやすく。 */}
                               <div className="pl-1 space-y-2">
-                                <p className="font-sans font-bold text-gray-800 italic text-sm md:text-base leading-relaxed tracking-wide">
+                                <p className="font-sans font-bold text-gray-800 italic text-sm md:text-base leading-relaxed">
                                   {/* [_____] を 補完済みの英単語に置換して太字＆アンダーライン表示 */}
                                   {word.sentence.includes("[_____]") ? (
                                     <>
@@ -944,7 +944,7 @@ export default function Dictionary({
                                     {/* 類義語 */}
                                     {relData.synonyms && relData.synonyms.length > 0 && (
                                       <div>
-                                        <span className="text-xs font-bold text-teal-700 uppercase tracking-wide block mb-2">類義語 (Synonyms)</span>
+                                        <span className="text-xs font-bold text-teal-700 block mb-2">類義語</span>
                                         <div className="space-y-2">
                                           {relData.synonyms.map((s: any, i: number) => (
                                             <div key={i} className="bg-teal-50/40 border border-teal-100/60 rounded-xl p-2.5">
@@ -964,7 +964,7 @@ export default function Dictionary({
                                     {/* 反意語 */}
                                     {relData.antonyms && relData.antonyms.length > 0 && (
                                       <div>
-                                        <span className="text-xs font-bold text-rose-700 uppercase tracking-wide block mb-2">反意語 (Antonyms)</span>
+                                        <span className="text-xs font-bold text-rose-700 block mb-2">反意語</span>
                                         <div className="flex flex-wrap gap-2">
                                           {relData.antonyms.map((a: any, i: number) => (
                                             <span key={i} className="bg-rose-50/60 border border-rose-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
@@ -979,7 +979,7 @@ export default function Dictionary({
                                     {/* コロケーション */}
                                     {relData.collocations && relData.collocations.length > 0 && (
                                       <div>
-                                        <span className="text-xs font-bold text-indigo-700 uppercase tracking-wide block mb-2">コロケーション (よく使われる組み合わせ)</span>
+                                        <span className="text-xs font-bold text-indigo-700 block mb-2">コロケーション (よく使われる組み合わせ)</span>
                                         <div className="space-y-1.5">
                                           {relData.collocations.map((c: any, i: number) => (
                                             <div key={i} className="flex items-baseline justify-between gap-3 bg-indigo-50/40 border border-indigo-100/60 rounded-lg px-3 py-2">

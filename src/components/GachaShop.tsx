@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Sparkles, Gift, Lock, Check, Coins } from "lucide-react";
+import { Sparkles, Gift, Lock, Check, Coins } from "lucide-react";
 import {
   REWARD_POOL,
   RARITY_LABELS,
@@ -8,6 +8,7 @@ import {
   RewardRarity,
   drawReward
 } from "../data/rewards";
+import BackButton from "./BackButton";
 
 interface PulledResult {
   id: string;
@@ -119,58 +120,53 @@ export default function GachaShop({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" id="gacha_shop_root">
-      <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-6">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition"
-            id="btn_back_from_gacha"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>戻る</span>
-          </button>
-          <span className="bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-bold tabular-nums flex items-center gap-1.5">
-            <Coins className="w-3.5 h-3.5" />
-            使えるポイント: {availablePoints}P
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <BackButton onClick={onBackToDashboard} id="btn_back_from_gacha" />
+          <span className="text-sm text-gray-600 tabular-nums flex items-center gap-1.5">
+            <Coins className="w-4 h-4 text-gray-500" aria-hidden="true" />
+            使えるポイント <span className="font-bold text-gray-900">{availablePoints}P</span>
           </span>
         </div>
 
-        <div className="flex items-center gap-3 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 text-white shadow-sm">
-          <div className="p-3 bg-white/15 rounded-xl">
-            <Gift className="w-7 h-7 animate-pulse" />
-          </div>
-          <div>
-            <h3 className="font-bold text-lg tracking-tight">ごほうびガチャ</h3>
-            <p className="text-xs text-violet-100 mt-0.5 font-medium leading-relaxed">
-              学習で貯めたポイントを使って、アバターや称号をゲットしよう！総獲得スコア({totalScore}P)は減りません。
+        {/* 見出し。以前は紫のグラデーションの帯で、その下の2つのボタンも塗りつぶし（青と金）だった。
+            塗りつぶしは単発の1つにし、10連は枠だけにする */}
+        <div className="flex items-start gap-3">
+          <span className="w-10 h-10 shrink-0 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
+            <Gift className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900">ごほうびガチャ</h1>
+            <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
+              学習で貯めたポイントで、アバターや称号が手に入ります。総獲得スコア（{totalScore}P）は減りません。
             </p>
           </div>
         </div>
 
         {/* ガチャ実行ボタン */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button
             onClick={() => handlePull(1)}
             disabled={isPulling}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold py-4 rounded-2xl shadow hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-sm cursor-pointer"
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold min-h-15 rounded-xl transition flex flex-col items-center justify-center gap-0.5 text-base cursor-pointer"
             id="btn_gacha_single"
           >
-            <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" />単発ガチャ</span>
-            <span className="text-xs tabular-nums opacity-80">{SINGLE_COST}P</span>
+            <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" aria-hidden="true" />単発ガチャ</span>
+            <span className="text-sm font-medium tabular-nums">{SINGLE_COST}P</span>
           </button>
           <button
             onClick={() => handlePull(10)}
             disabled={isPulling}
-            className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 disabled:opacity-60 text-slate-950 font-bold py-4 rounded-2xl shadow hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-sm cursor-pointer"
+            className="bg-white hover:bg-gray-50 border border-gray-300 disabled:opacity-60 text-gray-900 font-bold min-h-15 rounded-xl transition flex flex-col items-center justify-center gap-0.5 text-base cursor-pointer"
             id="btn_gacha_ten"
           >
-            <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" />10連ガチャ</span>
-            <span className="text-xs tabular-nums opacity-80">{TEN_COST}P (100Pお得)</span>
+            <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-gray-500" aria-hidden="true" />10連ガチャ</span>
+            <span className="text-sm font-medium text-gray-600 tabular-nums">{TEN_COST}P（100Pお得）</span>
           </button>
         </div>
 
         {pullError && (
-          <p className="text-xs text-rose-600 font-bold bg-rose-50 border border-rose-100 rounded-lg p-3 text-center">
+          <p className="text-sm text-rose-800 font-medium bg-rose-50 border border-rose-200 rounded-xl p-3 text-center" role="alert">
             {pullError}
           </p>
         )}
@@ -212,7 +208,7 @@ export default function GachaShop({
                           NEW!
                         </span>
                       )}
-                      <span className={`text-xs font-bold uppercase ${colors.text}`}>
+                      <span className={`text-xs font-bold ${colors.text}`}>
                         {RARITY_LABELS[r.rarity]}
                       </span>
                       {r.type === "avatar" ? (
@@ -286,7 +282,7 @@ export default function GachaShop({
                   ) : (
                     <Lock className="w-5 h-5 text-gray-350" />
                   )}
-                  <span className={`text-xs font-bold uppercase ${owned ? colors.text : "text-gray-350"}`}>
+                  <span className={`text-xs font-bold ${owned ? colors.text : "text-gray-350"}`}>
                     {RARITY_LABELS[r.rarity]}
                   </span>
                 </button>

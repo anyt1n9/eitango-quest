@@ -875,7 +875,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                   </span>
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 tracking-tight">インポート用 CSV テンプレート例</h3>
-                    <p className="text-xs text-gray-400 font-mono">CSV Import Templates & Specs</p>
+                    <p className="text-xs text-gray-500">列の並びと書き方</p>
                   </div>
                 </div>
                 <button
@@ -923,7 +923,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                 <div className="border border-gray-150 rounded-xl overflow-hidden shadow-3xs overflow-x-auto">
                   <table className="w-full text-xs text-left border-collapse font-sans min-w-[500px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-gray-250 text-gray-600 font-bold text-xs uppercase font-mono tracking-wider">
+                      <tr className="bg-slate-50 border-b border-gray-250 text-gray-600 font-bold text-xs font-mono">
                         <th className="p-2.5">1列目 (word)</th>
                         <th className="p-2.5">2列目 (translation)</th>
                         {csvTemplateType === "full" && (
