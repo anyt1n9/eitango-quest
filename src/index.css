@@ -473,8 +473,10 @@ html, body {
 
 /* 透明のときは、カードの中の選択欄・ボタン・問題数の台も地をほとんど置かない。
    これらが不透明のままだと、カードの面積の大半がふさがり、透明にした意味が無かった。
-   縁だけは残して、押せる場所の輪郭を出す */
-:root[data-glass="clear"] .glass-panel .bg-white,
+   縁だけは残して、押せる場所の輪郭を出す。
+   選んでいるもの（問題数の「白く浮かせる」）は対象から外す。外さないと台と同じ地になり、
+   どれを選んでいるのかが細い縁取りでしか分からなくなる */
+:root[data-glass="clear"] .glass-panel .bg-white:not([aria-pressed="true"]),
 :root[data-glass="clear"] .glass-panel .bg-gray-100,
 :root[data-glass="clear"] .glass-panel select {
   background-color: color-mix(in srgb, var(--color-white) 18%, transparent) !important;

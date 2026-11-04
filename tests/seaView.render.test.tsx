@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent, act } from "@testing-library/react";
+import { useEffect } from "react";
 import userEvent from "@testing-library/user-event";
 
 /**
@@ -9,7 +10,8 @@ import userEvent from "@testing-library/user-event";
  * カードの裏を泳いでいるあいだは見えない。「せっかくの海で動いている生き物が見えない」と言われた。
  * 読みやすさを削らずに海を見せるため、画面の文字を一時的に隠すボタンを置いている。
  *
- *   - 3D の海を描けている端末でだけ出す（海の色の地だけのときは、眺めるものが無い）
+ *   - 3D の海を描けているときだけ出す（OceanBackground の onDrawingChange）。部品を読み込み中のとき・
+ *     3Dモデルを取れず海の色の地になったときに押すと、文字だけが消えて眺めるもののない地が出る
  *   - 隠すだけで外さない（入力の途中・開いていた詳細を失わない）。隠したものは操作も読み上げも受けない（inert）
  *   - どこを押しても・Esc でも戻り、押したボタンへ戻る
  */
@@ -19,9 +21,20 @@ vi.mock("../src/oceanSetting", async importOriginal => ({
   ...(await importOriginal<typeof import("../src/oceanSetting")>()),
   canRenderOcean: () => gpu.ok,
 }));
-// three.js は jsdom で動かないので、描けている海の代わりを置く
+// three.js は jsdom で動かないので、海の代わりを置く。描けたかどうかはテストから決める
+const ocean = vi.hoisted(() => ({
+  drawsOnMount: true,
+  report: (_drawing: boolean) => {},
+}));
 vi.mock("../src/components/OceanBackground", () => ({
-  default: () => <div className="bg-scene bg-ocean3d" data-kind="ocean" aria-hidden="true" />,
+  default: ({ onDrawingChange }: { onDrawingChange?: (d: boolean) => void }) => {
+    useEffect(() => {
+      ocean.report = d => onDrawingChange?.(d);
+      if (ocean.drawsOnMount) onDrawingChange?.(true);
+      return () => onDrawingChange?.(false);
+    }, [onDrawingChange]);
+    return <div className="bg-scene bg-ocean3d" data-kind="ocean" aria-hidden="true" />;
+  },
 }));
 vi.mock("../src/vocabulary", () => ({
   loadVocabulary: () => Promise.resolve(WORDS),
@@ -38,6 +51,7 @@ const WORDS = [
 
 beforeEach(() => {
   gpu.ok = true;
+  ocean.drawsOnMount = true;
   localStorage.clear();
   window.history.pushState({}, "", "/");
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -101,6 +115,25 @@ describe("海を眺める", () => {
       timeout: 5000,
     });
     expect(screen.queryByRole("button", { name: /海を眺める/ })).toBeNull();
+  });
+
+  it("部品を読み込んだだけで、まだ描けていないあいだは出さない", async () => {
+    ocean.drawsOnMount = false;
+    await renderApp();
+    await waitFor(() => expect(document.querySelector('.bg-ocean3d[data-kind="ocean"]')).not.toBeNull(), { timeout: 5000 });
+    expect(screen.queryByRole("button", { name: /海を眺める/ })).toBeNull();
+    act(() => ocean.report(true));
+    expect(screen.getByRole("button", { name: /海を眺める/ })).toBeTruthy();
+  });
+
+  it("途中で描けなくなったら（3Dモデルを取れない・WebGL を失った）ボタンを下げ、眺めていれば画面に戻す", async () => {
+    await renderApp();
+    await userEvent.click(await seaButton());
+    expect(screen.getByRole("button", { name: "画面に戻る" })).toBeTruthy();
+    act(() => ocean.report(false));
+    expect(screen.queryByRole("button", { name: "画面に戻る" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /海を眺める/ })).toBeNull();
+    expect(document.getElementById("main_payload")!.classList.contains("sea-hidden")).toBe(false);
   });
 
   it("海を使わない人には出さない", async () => {

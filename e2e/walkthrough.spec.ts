@@ -1150,6 +1150,9 @@ test.describe("透明のときの作り", () => {
       const bg = await page.locator(sel).evaluate(e => getComputedStyle(e).backgroundColor);
       expect(alphaOf(bg), `${sel} の地が不透明のまま（${bg}）`).toBeLessThan(0.5);
     }
+    // ただし選んでいる問題数は透かさない（台と同じ地になると、どれを選んでいるのか分からない）
+    const pressed = await page.locator("#btn_question_count_10").evaluate(e => getComputedStyle(e).backgroundColor);
+    expect(alphaOf(pressed), `選んでいる問題数まで透けている（${pressed}）`).toBe(1);
     // 「今日」のほかのカードも透かす（1枚だけ透けても、残りの裏で生き物が隠れる）
     const progress = await page.locator("#today_progress").evaluate(e => getComputedStyle(e).backgroundColor);
     expect(progress).toBe("rgba(0, 0, 0, 0)");

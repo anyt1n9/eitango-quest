@@ -462,13 +462,16 @@ export default function App() {
    * カードは読みやすさのために不透明（ガラスでも地を8割以上残す）なので、
    * 生き物がカードの裏を泳いでいるあいだは見えない。スマホは画面の幅いっぱいにカードが並ぶので、
    * 泳ぐ道筋を変えても隠れる。読みやすさを削らずに海を見せるには、見る時間を分けるほかない。
-   * 3D を描けている端末でだけ出す（海の色の地だけのときは、眺めるものが無い）。
+   * 3D を描けているときだけ出す（OceanBackground の onDrawingChange）。部品を読み込み中のとき・
+   * 3Dモデルを取れず海の色の地になったとき・部品を取れずいつもの背景に戻ったときに押すと、
+   * 文字だけが消えて眺めるもののない地が出る。
    * どこを押しても・Esc でも戻る。画面が変わったら（端末の戻るボタンなど）閉じる。
    */
   const [seaView, setSeaView] = useState(false);
   const seaViewButtonRef = useRef<HTMLButtonElement>(null);
   const seaViewExitRef = useRef<HTMLButtonElement>(null);
-  const canViewSea = bgOcean && oceanMounted && !oceanUnsupported && !isTransient(currentScreen);
+  const [oceanDrawing, setOceanDrawing] = useState(false);
+  const canViewSea = bgOcean && oceanDrawing && !isTransient(currentScreen);
   const closeSeaView = () => {
     setSeaView(false);
     // 押した場所（ヘッダーのボタン）へ戻す。隠していたあいだに見失わないように
@@ -890,7 +893,7 @@ export default function App() {
         <OceanGuard fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}>
           {oceanMounted ? (
             <Suspense fallback={<OceanPlaceholder active={!isTransient(currentScreen)} />}>
-              <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} />
+              <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} onDrawingChange={setOceanDrawing} />
             </Suspense>
           ) : (
             <OceanPlaceholder active={!isTransient(currentScreen)} unsupported={oceanUnsupported} />

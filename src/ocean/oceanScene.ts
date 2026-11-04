@@ -258,6 +258,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 160);
   const camBase = new THREE.Vector3(0, 0, 3);
+  // 生き物の泳ぐ範囲の横の広がり。画面の形で決まるので resize() でだけ計算し直す（src/ocean/swim.ts）
+  let spread = 1;
   const lookBase = new THREE.Vector3(0, -2.6, -10);
 
   const U = {
@@ -617,15 +619,18 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     camera.aspect = w / h;
     camera.fov = w / h < 0.8 ? 68 : 55;
     camera.updateProjectionMatrix();
+    spread = swimSpread(camera.aspect);
   }
 
   /* ---- per-frame ---- */
   const up = new THREE.Vector3(0, 1, 0);
   const vx = new THREE.Vector3(), vy = new THREE.Vector3(), vz = new THREE.Vector3(), m4 = new THREE.Matrix4(), sv = new THREE.Vector3();
-  // 横長の画面では泳ぐ範囲を左右に広げ、カードの列の外（余白）にも出す（src/ocean/swim.ts）
+  // 横長の画面では泳ぐ範囲を左右に広げ、カードの列の外（余白）にも出す（spread）
   function updateFish(dt: number, t: number) {
     const n = fish.count;
-    const tx = SCHOOL_C.x + Math.sin(t * 0.13) * SCHOOL_SWAY * swimSpread(camera.aspect), ty = SCHOOL_C.y + Math.sin(t * 0.21) * 1.4, tz = SCHOOL_C.z + Math.cos(t * 0.11) * 5;
+    const tx = SCHOOL_C.x + Math.sin(t * 0.13) * SCHOOL_SWAY * spread;
+    const ty = SCHOOL_C.y + Math.sin(t * 0.21) * 1.4;
+    const tz = SCHOOL_C.z + Math.cos(t * 0.11) * 5;
     for (let i = 0; i < n; i++) {
       const ix = i * 3;
       let cx = 0, cy = 0, cz = 0, ax = 0, ay = 0, az = 0, sx = 0, sy = 0, sz = 0, cnt = 0;
@@ -675,7 +680,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   const qRoll = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1);
   function updateManta(t: number) {
     const th = t * ((2 * Math.PI) / 46) + 1.2;
-    const rx = MANTA_RADIUS * swimSpread(camera.aspect);
+    const rx = MANTA_RADIUS * spread;
     mantaPos.set(Math.cos(th) * rx, -0.9 + Math.sin(th * 2) * 0.6, -11 + Math.sin(th) * 4);
     manta.position.copy(mantaPos);
     vz.set(-Math.sin(th) * rx, Math.cos(th * 2) * 1.2, Math.cos(th) * 4).normalize();

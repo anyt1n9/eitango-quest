@@ -20,6 +20,13 @@ interface Props {
   active: boolean;
   /** メニューの「背景の動き」 */
   motion: boolean;
+  /**
+   * 3D の海を描けているか（作れた＝true、続けられなくなった・外した＝false）。
+   * App の「海を眺める」はこれが true のときだけ出す。部品を読み込み中のときや、
+   * 3Dモデルを取れず・WebGL を失って海の色の地になったときに押すと、文字だけが消えて
+   * 眺めるもののない地が出てしまう
+   */
+  onDrawingChange?: (drawing: boolean) => void;
 }
 
 function usePrefersReducedMotion(): boolean {
@@ -35,7 +42,7 @@ function usePrefersReducedMotion(): boolean {
   return reduce;
 }
 
-export default function OceanBackground({ active, motion }: Props) {
+export default function OceanBackground({ active, motion, onDrawingChange }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<OceanScene | null>(null);
   const [failed, setFailed] = useState(false);
@@ -43,6 +50,8 @@ export default function OceanBackground({ active, motion }: Props) {
   const moving = motion && !reduceMotion;
   const latest = useRef({ active, moving });
   latest.current = { active, moving };
+  const reportDrawing = useRef(onDrawingChange);
+  reportDrawing.current = onDrawingChange;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -71,7 +80,10 @@ export default function OceanBackground({ active, motion }: Props) {
     }
     scene.setActive(latest.current.active);
     sceneRef.current = scene;
+    reportDrawing.current?.(true);
     return () => {
+      // 続けられなくなった（failed）ときも、外したときも、ここを通る
+      reportDrawing.current?.(false);
       scene.dispose();
       canvas.remove();
       sceneRef.current = null;
