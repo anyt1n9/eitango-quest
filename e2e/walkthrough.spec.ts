@@ -423,18 +423,33 @@ test("海の3D背景は既定で出し、「使わない」を選んだ人には
   // three.js と3Dモデル（約2MB）を読む。既定で使うが、最初の画面が出てから読み込む
   const fetched: string[] = [];
   page.on("response", res => fetched.push(new URL(res.url()).pathname));
-  const oceanFiles = () => fetched.filter(p => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(p));
+  const oceanFilesOf = (list: string[]) => list.filter(p => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(p));
 
   await page.goto("/");
   await waitForVocabulary(page);
   const scene = page.locator(".bg-ocean3d");
   await expect(scene).toHaveCount(1);
-  await expect.poll(() => fetched.some(p => /\/three-[^/]+\.js$/.test(p)), { timeout: 15_000 }).toBe(true);
-  // WebGL が使える端末では3Dを、使えない端末では海の色の地を出す（どちらでも画面は落ちない）
   await expect.poll(() => scene.getAttribute("data-kind"), { timeout: 15_000 }).not.toBe("ocean-loading");
   const kind = await scene.getAttribute("data-kind");
-  expect(["ocean", "ocean-fallback"]).toContain(kind);
-  if (kind === "ocean") await expect.poll(() => fetched.some(p => /\/assets\/ocean-[^/]+\.glb$/.test(p))).toBe(true);
+  // この端末で GPU を使って描けるか（アプリの canRenderOcean と同じ確かめ方）
+  const gpu = await page.evaluate(() => {
+    const gl = document.createElement("canvas")
+      .getContext("webgl", { failIfMajorPerformanceCaveat: true }) as WebGLRenderingContext | null;
+    if (!gl) return false;
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : "";
+    return !/swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
+  });
+  if (gpu) {
+    // GPU のある端末では3Dを（WebGL を作れなければ海の色の地を）出す。どちらでも画面は落ちない
+    expect(["ocean", "ocean-fallback"]).toContain(kind);
+    expect(fetched.some(p => /\/three-[^/]+\.js$/.test(p))).toBe(true);
+    if (kind === "ocean") await expect.poll(() => fetched.some(p => /\/assets\/ocean-[^/]+\.glb$/.test(p))).toBe(true);
+  } else {
+    // GPU の無い端末（CI・仮想マシン）には three.js を届けず、海の色の地のままにする
+    expect(kind).toBe("ocean-fallback");
+    expect(oceanFilesOf(fetched), "GPU の無い端末に3Dのファイルを届けている").toEqual([]);
+  }
   expect(await scene.evaluate(e => getComputedStyle(e).pointerEvents), "背景が押す操作を奪っている").toBe("none");
   // 起動しただけでは「選んだ」ことにしない
   expect(await page.evaluate(() => localStorage.getItem("quest_bg_ocean_choice"))).toBeNull();
@@ -460,10 +475,8 @@ test("海の3D背景は既定で出し、「使わない」を選んだ人には
   await fresh.goto("/");
   await waitForVocabulary(fresh);
   await fresh.waitForTimeout(3000);
-  expect(fetched2.filter(p => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(p)),
-    "「使わない」を選んだのに海の3D背景を読み込んでいる").toEqual([]);
+  expect(oceanFilesOf(fetched2), "「使わない」を選んだのに海の3D背景を読み込んでいる").toEqual([]);
   await expect(fresh.locator(".bg-ocean3d")).toHaveCount(0);
-  void oceanFiles;
 });
 
 test("知らないパスでも白い画面にならない", async ({ page }) => {

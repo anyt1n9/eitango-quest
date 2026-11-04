@@ -697,11 +697,15 @@ sRGB 0.83 以上まで持ち上げる必要があった）。
 
   **起動時に保存しないこと。** 試験中は App が起動のたびに `quest_bg_ocean` へ "off" を書いていたため、
   そのキーの "off" は本人の選択と区別できない（だから新しいキーにして、古い方は "on" だけ読む）。
-  背景の画像を選んだときは、海を「使わない」に切り替える（選んだ画像が海に隠れて見えないため）。
+  背景の画像を選んだときは、その場で海を止める（選んだ画像が海に隠れて見えないため）。ただし「使わない」は
+  保存せず、保存していた選択を消す（`clearOceanChoice`）。保存すると本人が選んでいない選択が最優先になり、
+  あとで画像を消しても海に戻らなくなる。
 - **最初の画面を待たせない。** 3D は `requestIdleCallback`（無ければ 800ms 後）まで読み込まず、
   それまでは同じ海の色の地（`OceanPlaceholder`、`data-kind="ocean-loading"`）を出す。
   起動時の JS の量（e2e）には three / OceanBackground を数えない。
-- **GPU の無い WebGL では3Dを描かない**（`isSoftwareRenderer`。SwiftShader・llvmpipe など）。
+- **GPU の無い WebGL では3Dを描かず、three.js も取りに行かない。** 読み込む前に `canRenderOcean()` で
+  軽く確かめる（`failIfMajorPerformanceCaveat` で WebGL を作れるか、描き手の名前が SwiftShader・llvmpipe などでないか。
+  `isSoftwareRenderer`）。名前を隠すブラウザでも前者で分かる。`oceanScene.ts` の中でも同じ名前の確かめをしている。
   描けはするが CPU を使い切り、画面の操作まで重くなる（e2e がこれで 2.5分 → 9.9分 になった）。
   仮想マシン・GPU を止められたパソコン・CI がこれに当たり、海の色の地（`ocean-fallback`）になる。
 

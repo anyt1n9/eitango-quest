@@ -10,6 +10,13 @@ import { render, screen, cleanup, waitFor } from "@testing-library/react";
  * 読み直しても同じ所で落ち、設定の画面にも行けなくなる。
  */
 
+// jsdom には WebGL が無いので、下調べ（canRenderOcean）では「描けない」になり、部品を取りに行かない。
+// ここでは部品を取りに行って失敗する場合を見たいので、描ける端末として扱う
+vi.mock("../src/oceanSetting", async importOriginal => ({
+  ...(await importOriginal<typeof import("../src/oceanSetting")>()),
+  canRenderOcean: () => true,
+}));
+
 vi.mock("../src/vocabulary", () => ({
   loadVocabulary: () => Promise.resolve(WORDS),
   loadedVocabulary: () => null,

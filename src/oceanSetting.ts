@@ -1,4 +1,5 @@
-import { readStoredString, writeStored } from "./storage";
+import { readStoredString, removeStored, writeStored } from "./storage";
+import { isSoftwareRenderer } from "./ocean/quality";
 
 /**
  * 海の3D背景を使うかどうか。既定は「使う」（段階②-3で既定にした）。
@@ -47,4 +48,39 @@ export function initialOcean(env: OceanEnv): boolean {
 /** 利用者が選んだときだけ呼ぶ（起動時に書くと、次から「本人が選んだ」と区別できなくなる） */
 export function saveOceanChoice(on: boolean): void {
   writeStored(OCEAN_CHOICE_KEY, on ? "on" : "off");
+}
+
+/**
+ * 背景の画像を選んだとき。「使わない」を保存するのではなく、保存していた選択を消す。
+ * 「使わない」を書くと、本人が選んでいない選択が最優先になり、あとで画像を消しても
+ * 海に戻らなくなる。消しておけば、次の起動では「画像のある人は画像のまま」が効き、
+ * 画像を消したあとは既定（使う）に戻る。
+ */
+export function clearOceanChoice(): void {
+  removeStored(OCEAN_CHOICE_KEY);
+  removeStored(OCEAN_LEGACY_KEY);
+}
+
+/**
+ * three.js（約700KB）を取りに行く前に、この端末で3Dを描いてよいかを軽く確かめる。
+ *
+ *   - `failIfMajorPerformanceCaveat` を付けて WebGL を作れない端末は、GPU ではなく
+ *     CPU で肩代わりする描き方しか無い（名前を隠すブラウザでもこれで分かる）
+ *   - 作れても、描き手の名前が SwiftShader・llvmpipe などなら CPU で描いている
+ *
+ * 確かめたら WebGL はすぐ手放す（端末の WebGL の数には上限がある）。
+ */
+export function canRenderOcean(doc: Document = document): boolean {
+  try {
+    const canvas = doc.createElement("canvas");
+    const gl = (canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true }) ||
+      null) as WebGLRenderingContext | null;
+    if (!gl) return false;
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : "";
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return !isSoftwareRenderer(name);
+  } catch {
+    return false;
+  }
 }
