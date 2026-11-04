@@ -119,7 +119,7 @@ export default function GachaShop({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" id="gacha_shop_root">
-      <div className="bg-white border rounded-3xl p-6 shadow-sm space-y-6">
+      <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <button
             onClick={onBackToDashboard}
@@ -129,7 +129,7 @@ export default function GachaShop({
             <ArrowLeft className="w-4 h-4" />
             <span>戻る</span>
           </button>
-          <span className="bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-black tabular-nums flex items-center gap-1.5">
+          <span className="bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-bold tabular-nums flex items-center gap-1.5">
             <Coins className="w-3.5 h-3.5" />
             使えるポイント: {availablePoints}P
           </span>
@@ -140,7 +140,7 @@ export default function GachaShop({
             <Gift className="w-7 h-7 animate-pulse" />
           </div>
           <div>
-            <h3 className="font-extrabold text-lg tracking-tight">ごほうびガチャ</h3>
+            <h3 className="font-bold text-lg tracking-tight">ごほうびガチャ</h3>
             <p className="text-xs text-violet-100 mt-0.5 font-medium leading-relaxed">
               学習で貯めたポイントを使って、アバターや称号をゲットしよう！総獲得スコア({totalScore}P)は減りません。
             </p>
@@ -152,7 +152,7 @@ export default function GachaShop({
           <button
             onClick={() => handlePull(1)}
             disabled={isPulling}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-extrabold py-4 rounded-2xl shadow hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-sm cursor-pointer"
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold py-4 rounded-2xl shadow hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-sm cursor-pointer"
             id="btn_gacha_single"
           >
             <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" />単発ガチャ</span>
@@ -161,7 +161,7 @@ export default function GachaShop({
           <button
             onClick={() => handlePull(10)}
             disabled={isPulling}
-            className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 disabled:opacity-60 text-slate-950 font-extrabold py-4 rounded-2xl shadow hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-sm cursor-pointer"
+            className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 disabled:opacity-60 text-slate-950 font-bold py-4 rounded-2xl shadow hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-sm cursor-pointer"
             id="btn_gacha_ten"
           >
             <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" />10連ガチャ</span>
@@ -186,7 +186,7 @@ export default function GachaShop({
               id="gacha_result_panel"
             >
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-black text-gray-800">抽選結果</h4>
+                <h4 className="text-sm font-bold text-gray-800">抽選結果</h4>
                 <button
                   onClick={() => setPullResults(null)}
                   className="text-xs font-bold text-gray-400 hover:text-gray-700 cursor-pointer"
@@ -208,20 +208,20 @@ export default function GachaShop({
                       }`}
                     >
                       {!r.isDuplicate && (
-                        <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow">
+                        <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow">
                           NEW!
                         </span>
                       )}
-                      <span className={`text-[9px] font-black uppercase ${colors.text}`}>
+                      <span className={`text-xs font-bold uppercase ${colors.text}`}>
                         {RARITY_LABELS[r.rarity]}
                       </span>
                       {r.type === "avatar" ? (
                         <span className="text-4xl">{r.value}</span>
                       ) : (
-                        <span className="text-xs font-black text-gray-800 leading-tight">{r.value}</span>
+                        <span className="text-xs font-bold text-gray-800 leading-tight">{r.value}</span>
                       )}
                       {r.isDuplicate && (
-                        <span className="text-[9px] text-gray-400 font-bold">
+                        <span className="text-xs text-gray-400 font-bold">
                           重複 (+{DUPLICATE_REFUND}P還元)
                         </span>
                       )}
@@ -281,12 +281,12 @@ export default function GachaShop({
                     r.type === "avatar" ? (
                       <span className="text-3xl">{r.value}</span>
                     ) : (
-                      <span className="text-[11px] font-black text-gray-800 leading-tight">{r.value}</span>
+                      <span className="text-xs font-bold text-gray-800 leading-tight">{r.value}</span>
                     )
                   ) : (
                     <Lock className="w-5 h-5 text-gray-350" />
                   )}
-                  <span className={`text-[8px] font-black uppercase ${owned ? colors.text : "text-gray-350"}`}>
+                  <span className={`text-xs font-bold uppercase ${owned ? colors.text : "text-gray-350"}`}>
                     {RARITY_LABELS[r.rarity]}
                   </span>
                 </button>

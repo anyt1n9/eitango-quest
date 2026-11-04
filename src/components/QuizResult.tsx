@@ -1,5 +1,5 @@
 import React from "react";
-import { Award, Check, RotateCcw, Trophy, X } from "lucide-react";
+import { Check, RotateCcw, Trophy, X } from "lucide-react";
 
 export interface QuizResultItem {
   key: string;
@@ -46,78 +46,79 @@ export default function QuizResult({
   retryId: string;
   backId: string;
 }) {
+  const rate = total > 0 ? Math.round((score / total) * 100) : 0;
   return (
-    <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6" id={id}>
-      <div className="text-center space-y-2">
-        <div className="w-14 h-14 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center mx-auto">
-          <Award className="w-7 h-7" aria-hidden="true" />
+    <div className="space-y-4" id={id}>
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
+        <div className="text-center space-y-1">
+          <p className="text-sm text-gray-500">{subtitle}</p>
+          <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
         </div>
-        <h2 className="text-2xl font-black text-gray-900">{title}</h2>
-        <p className="text-xs text-gray-600 font-bold">{subtitle}</p>
-      </div>
 
-      <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 flex justify-around text-center">
-        <div>
-          <span className="text-xs text-gray-600 font-bold">正解数</span>
-          <p className="text-3xl font-black text-indigo-700 mt-1 tabular-nums" id="quiz_result_score">
-            {score} <span className="text-xs text-gray-600 font-bold">/ {total}</span>
+        {/* 3つの数を細い線で区切って並べる（色の付いた箱を並べると、どれも同じ強さに見える） */}
+        <dl className="grid grid-cols-3 divide-x divide-gray-200 text-center">
+          <div className="px-2">
+            <dt className="text-xs text-gray-500">正解数</dt>
+            <dd className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900 tabular-nums break-all" id="quiz_result_score">
+              {score} <span className="text-sm text-gray-500 font-medium">/ {total}</span>
+            </dd>
+          </div>
+          <div className="px-2">
+            <dt className="text-xs text-gray-500">正答率</dt>
+            <dd className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900 tabular-nums break-all">
+              {rate}<span className="text-sm text-gray-500 font-medium">%</span>
+            </dd>
+          </div>
+          <div className="px-2">
+            <dt className="text-xs text-gray-500">獲得スコア</dt>
+            <dd className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900 tabular-nums break-all">
+              +{points} <span className="text-sm text-gray-500 font-medium">P</span>
+            </dd>
+          </div>
+        </dl>
+
+        {total > 0 && score === total && (
+          <p className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center text-amber-900 font-bold text-sm flex items-center justify-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-700" aria-hidden="true" />
+            <span>全問正解！ボーナス +{perfectBonus} P</span>
           </p>
-        </div>
-        <div className="border-r border-gray-200" />
-        <div>
-          <span className="text-xs text-gray-600 font-bold">獲得スコア</span>
-          <p className="text-3xl font-black text-emerald-700 mt-1 tabular-nums">
-            +{points} <span className="text-xs text-gray-600 font-bold">P</span>
-          </p>
+        )}
+
+        <div className="flex flex-col sm:flex-row justify-center gap-2.5">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 min-h-13 rounded-xl transition text-base flex items-center justify-center gap-2 cursor-pointer"
+            id={retryId}
+          >
+            <RotateCcw className="w-4 h-4" aria-hidden="true" />
+            <span>もう一度挑戦する</span>
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="bg-white hover:bg-gray-50 text-gray-900 font-bold px-8 min-h-13 rounded-xl border border-gray-300 transition text-base cursor-pointer"
+            id={backId}
+          >
+            戻る
+          </button>
         </div>
       </div>
 
-      {total > 0 && score === total && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center text-amber-900 font-bold text-sm flex items-center justify-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-700" aria-hidden="true" />
-          <span>全問正解！ボーナス +{perfectBonus} P</span>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row justify-center gap-3">
-        <button
-          type="button"
-          onClick={onRetry}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3.5 min-h-12 rounded-2xl shadow transition text-sm flex items-center justify-center gap-2 cursor-pointer"
-          id={retryId}
-        >
-          <RotateCcw className="w-4 h-4" aria-hidden="true" />
-          <span>もう一度挑戦する</span>
-        </button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="bg-white hover:bg-gray-50 text-gray-800 font-extrabold px-8 py-3.5 min-h-12 rounded-2xl border border-gray-200 transition text-sm cursor-pointer"
-          id={backId}
-        >
-          戻る
-        </button>
-      </div>
-
-      <section className="space-y-3" aria-labelledby={`${id}_review_heading`}>
-        <h3 id={`${id}_review_heading`} className="text-sm font-extrabold text-gray-800">{reviewTitle}</h3>
-        <ul className="space-y-2.5" id="quiz_mini_review_pool">
+      <section className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2" aria-labelledby={`${id}_review_heading`}>
+        <h3 id={`${id}_review_heading`} className="text-base font-bold text-gray-900">{reviewTitle}</h3>
+        <ul className="divide-y divide-gray-200" id="quiz_mini_review_pool">
           {items.map(item => (
-            <li
-              key={item.key}
-              className={`p-3.5 border rounded-xl flex items-start justify-between gap-3 ${
-                item.isCorrect ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
-              }`}
-            >
+            <li key={item.key} className="py-3 flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">{item.content}</div>
               {item.isCorrect ? (
-                <span className="shrink-0 text-emerald-900 font-bold text-xs bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <Check className="w-3 h-3" aria-hidden="true" />
+                <span className="shrink-0 text-emerald-800 font-bold text-xs bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>正解</span>
                 </span>
               ) : (
-                <span className="shrink-0 text-rose-900 font-bold text-xs bg-rose-100 px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <X className="w-3 h-3" aria-hidden="true" />
+                <span className="shrink-0 text-rose-800 font-bold text-xs bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>誤答</span>
                 </span>
               )}

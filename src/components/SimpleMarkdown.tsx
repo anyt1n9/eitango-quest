@@ -6,7 +6,7 @@ function renderInline(text: string, keyPrefix: string) {
   return parts.map((p, i) => {
     if (/^\*\*[^*]+\*\*$/.test(p)) {
       return (
-        <strong key={keyPrefix + i} className="font-black text-gray-900 dark:text-slate-100">
+        <strong key={keyPrefix + i} className="font-bold text-gray-900 dark:text-slate-100">
           {p.slice(2, -2)}
         </strong>
       );
@@ -53,10 +53,10 @@ export default function SimpleMarkdown({ text, className = "" }: { text: string;
       const level = h[1].length;
       const cls =
         level <= 1
-          ? "text-lg font-black mt-3 mb-1.5"
+          ? "text-lg font-bold mt-3 mb-1.5"
           : level === 2
-          ? "text-base font-black mt-3 mb-1.5"
-          : "text-sm font-black mt-2 mb-1";
+          ? "text-base font-bold mt-3 mb-1.5"
+          : "text-sm font-bold mt-2 mb-1";
       blocks.push(
         <p key={"h" + idx} className={cls}>
           {renderInline(h[2], "h" + idx + "-")}

@@ -134,11 +134,11 @@ describe("類義語クイズ", () => {
   it("「次へ」の二度押しで問題を飛ばさない", async () => {
     render(<SynonymQuiz {...common()} />);
     await screen.findByText(/この語と同じ意味の語はどれ/);
-    expect(screen.getByText("Q: 1 / 2")).toBeInTheDocument();
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
     act(() => { optionButton("red").click(); });
     const next = document.getElementById("btn_next_question")!;
     act(() => { next.click(); next.click(); });
-    expect(screen.getByText("Q: 2 / 2")).toBeInTheDocument();
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
     // 2問目も答えられる（解答の印が消えている）
     act(() => { optionButton("sad").click(); });
     expect(screen.getByRole("status")).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe("類義語クイズ", () => {
       act(() => { document.getElementById("btn_next_question")!.click(); });
     }
     act(() => { document.getElementById("btn_retry_quiz")!.click(); });
-    expect(await screen.findByText("Q: 1 / 2")).toBeInTheDocument();
+    expect(await screen.findByText("1 / 2")).toBeInTheDocument();
     expect(screen.queryByRole("status")).toBeNull();
     // 新しい出題でも答えられる（前の回の解答の印が残っていない）
     act(() => { optionButton("red").click(); });

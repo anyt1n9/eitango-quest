@@ -65,7 +65,7 @@ function Row({ id, title, note, Icon, onClick }: {
         <Icon className="w-5 h-5" />
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-sm font-black text-gray-900">{title}</span>
+        <span className="block text-sm font-bold text-gray-900">{title}</span>
         <span className="block text-xs text-gray-500 mt-0.5">{note}</span>
       </span>
       <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" />
@@ -103,12 +103,12 @@ export default function LearnHub({
 
   return (
     <div className="space-y-6" id="learn_page">
-      <h1 className="text-xl font-black text-gray-900 px-1">教材</h1>
+      <h1 className="text-xl font-bold text-gray-900 px-1">教材</h1>
 
       <section aria-labelledby="learn_quiz_heading" className="space-y-2.5">
         <div className="flex items-end justify-between gap-3 px-1">
           <div>
-            <h2 id="learn_quiz_heading" className="text-base font-black text-gray-900">単語クイズ</h2>
+            <h2 id="learn_quiz_heading" className="text-base font-bold text-gray-900">単語クイズ</h2>
             <p className="text-xs text-gray-500 mt-0.5" id="learn_quiz_setting">
               {LEVEL_LABELS[level]}・{count}問
             </p>
@@ -117,7 +117,7 @@ export default function LearnHub({
             type="button"
             onClick={onChangeLevel}
             id="btn_learn_change_level"
-            className="min-h-11 px-2 text-xs font-black text-indigo-700 cursor-pointer"
+            className="min-h-11 px-2 text-xs font-bold text-indigo-700 cursor-pointer"
           >
             レベルを変える
           </button>
@@ -134,8 +134,8 @@ export default function LearnHub({
               <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
                 <f.Icon className="w-4.5 h-4.5" />
               </span>
-              <span className="text-sm font-black text-gray-900">{f.name}</span>
-              <span className="text-[11px] text-gray-500 leading-snug">{f.desc}</span>
+              <span className="text-sm font-bold text-gray-900">{f.name}</span>
+              <span className="text-xs text-gray-500 leading-snug">{f.desc}</span>
             </button>
           ))}
           <button
@@ -147,8 +147,8 @@ export default function LearnHub({
             <span className="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
               <Target className="w-4.5 h-4.5" />
             </span>
-            <span className="text-sm font-black text-gray-900">苦手な単語</span>
-            <span className="text-[11px] text-gray-500 leading-snug">
+            <span className="text-sm font-bold text-gray-900">苦手な単語</span>
+            <span className="text-xs text-gray-500 leading-snug">
               {wrongWords.length > 0 ? `間違えた ${wrongWords.length}語を復習` : "間違えた語はまだありません"}
             </span>
           </button>
@@ -156,7 +156,7 @@ export default function LearnHub({
       </section>
 
       <section aria-labelledby="learn_read_heading" className="space-y-2.5">
-        <h2 id="learn_read_heading" className="text-base font-black text-gray-900 px-1">読む・文法</h2>
+        <h2 id="learn_read_heading" className="text-base font-bold text-gray-900 px-1">読む・文法</h2>
         <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-slate-800">
           <Row id="learn_open_reading" title="長文ストーリー" note="各レベルの単語だけで書いた長文を読む" Icon={ReadingIcon} onClick={onOpenReading} />
           <Row id="learn_open_grammar" title="文法ガイド" note="中学〜大学の34項目。説明と練習問題" Icon={BookMarked} onClick={onOpenGrammar} />
@@ -166,7 +166,7 @@ export default function LearnHub({
       </section>
 
       <section aria-labelledby="learn_write_heading" className="space-y-2.5">
-        <h2 id="learn_write_heading" className="text-base font-black text-gray-900 px-1">書く</h2>
+        <h2 id="learn_write_heading" className="text-base font-bold text-gray-900 px-1">書く</h2>
         {/* まだ使えないうちは控えめに出す。以前は「学習メニュー」の中でいちばん目立つ
             オレンジのボタンが、使えない機能のものだった */}
         <button
@@ -185,7 +185,7 @@ export default function LearnHub({
             {diaryOpen ? <DiaryIcon className="w-5 h-5" /> : <Lock className="w-4.5 h-4.5" />}
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block text-sm font-black text-gray-900">AI 英語日記</span>
+            <span className="block text-sm font-bold text-gray-900">AI 英語日記</span>
             {diaryOpen ? (
               <span className="block text-xs text-gray-500 mt-0.5">覚えた単語でAIが書いた日記を読む・書く</span>
             ) : (

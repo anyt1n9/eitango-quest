@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { ArrowLeft, Check, X, Volume2, Loader2 } from "lucide-react";
+import { Volume2, Loader2 } from "lucide-react";
 import { Level, Word, UserStats, QuizHistory } from "../types";
 import { LEVEL_LABELS } from "../levelLabels";
 import Phonetic from "./Phonetic";
@@ -12,6 +12,8 @@ import { canUseSpeech, onVoicesChanged } from "../speech";
 import { DominantSenseHint } from "./WordSenses";
 import AnswerFeedback from "./AnswerFeedback";
 import QuizResult from "./QuizResult";
+import { QuizTopBar, QuizPrompt, optionState, optionClass, OptionKey, OptionMark } from "./QuizParts";
+import { getWordPosLabel, POS_LABELS } from "../pos";
 
 // クイズ回答時の効果音（ダッシュボード側と同じシンセ）
 const playQuizSound = (isCorrect: boolean) => {
@@ -322,7 +324,7 @@ export default function Quiz({
 
   if (questions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border shadow-sm">
+      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border shadow-sm">
         <LoaderComponent />
       </div>
     );
@@ -378,43 +380,23 @@ export default function Quiz({
   const correctOption = reverseMode ? currentQuestion.word : currentQuestion.translation;
   const answeredCorrectly = answered && selectedOption === correctOption;
 
+  const promptText = listeningMode ? "音声を聞いて、意味を選んでください"
+    : reverseMode ? "日本語に合う英単語を選んでください"
+      : "意味を選んでください";
+  const posLabel = getWordPosLabel(currentQuestion);
+
   return (
     <div className="max-w-xl mx-auto" id="quiz_section_root">
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm" id="quiz_running_card">
-        {/* ヘッダー・進捗 */}
-        <div className="flex items-center justify-between mb-5">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
-            id="btn_quit_quiz"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>中断して戻る</span>
-          </button>
-          <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black tabular-nums text-indigo-700">
-            Q: {currentIndex + 1} / {questions.length}
-          </div>
-        </div>
+      <div id="quiz_running_card">
+        <QuizTopBar index={currentIndex} total={questions.length} onQuit={onBackToDashboard} quitId="btn_quit_quiz" />
 
-        {/* 出題プログレスバー */}
-        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-6">
-          <div 
-            className="bg-indigo-600 h-full rounded-full transition-all duration-300"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-          />
-        </div>
-
-        {/* 英単語の出題表示 */}
-        <div className="text-center space-y-4 my-6">
-          <span className="text-xs font-black text-indigo-700">
-            {listeningMode ? "🎧 音声を聞いて意味を選択"
-              : reverseMode ? "日本語に合う英単語を選択"
-              : "英単語の意味を選択"}
-          </span>
+        {/* 出題。英単語は見出しの書体（明朝系）で大きく出す */}
+        <div className="text-center flex flex-col items-center gap-3 mt-8 mb-8 px-2">
+          <QuizPrompt>{reviewMode ? `今日の復習・${promptText}` : promptText}</QuizPrompt>
 
           {reverseMode && !answered ? (
             /* 日→英モードでは、綴りも発音も答えそのものなので出さない */
-            <h2 className="text-2xl md:text-3xl font-black text-gray-900 leading-snug px-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-snug">
               {currentQuestion.translation}
             </h2>
           ) : listeningMode && !answered ? (
@@ -425,23 +407,21 @@ export default function Quiz({
               <div className="flex flex-col items-center gap-3">
                 <button
                   onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
-                  className="w-24 h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all cursor-pointer active:scale-90 flex items-center justify-center shadow-lg"
+                  className="w-24 h-24 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition cursor-pointer active:scale-95 flex items-center justify-center"
                   title="もう一度発音を聴く"
                   aria-label="もう一度発音を聴く"
                   id="listening_replay_btn"
                 >
-                  <Volume2 className="w-10 h-10" />
+                  <Volume2 className="w-10 h-10" aria-hidden="true" />
                 </button>
-                <p className="text-xs text-gray-600 font-semibold">
-                  タップでもう一度再生できます
-                </p>
+                <p className="text-sm text-gray-500">押すともう一度再生します</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2" id="listening_no_speech">
-                <h2 className="text-3xl md:text-4xl font-black text-gray-900">
+                <h2 className="font-headword text-4xl sm:text-5xl text-gray-900 break-words">
                   {currentQuestion.word}
                 </h2>
-                <p className="text-xs text-amber-700 dark:text-amber-400 font-bold">
+                <p className="text-sm text-amber-800 font-medium">
                   この端末では英語の音声を再生できないため、綴りを表示しています
                 </p>
               </div>
@@ -449,75 +429,48 @@ export default function Quiz({
           ) : (
             <>
               {reverseMode && (
-                <p className="text-sm font-bold text-gray-600">
-                  {currentQuestion.translation}
-                </p>
+                <p className="text-base text-gray-600">{currentQuestion.translation}</p>
               )}
-              <div className="flex items-center justify-center gap-3">
-                <h2 className="text-4xl font-black text-gray-900 tracking-tight select-all">
-                  {currentQuestion.word}
-                </h2>
+              <h2 className="font-headword text-4xl sm:text-5xl text-gray-900 break-words select-all">
+                {currentQuestion.word}
+              </h2>
+              <div className="flex items-center justify-center gap-3 flex-wrap text-gray-500">
+                {/* 発音記号(IPA) */}
+                <Phonetic word={currentQuestion.word} className="text-base" />
+                {posLabel !== POS_LABELS.other && (
+                  <span className="text-xs px-2 py-0.5 rounded-md border border-gray-200 text-gray-600">{posLabel}</span>
+                )}
                 <button
                   onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
-                  className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-all cursor-pointer active:scale-90"
+                  className="w-11 h-11 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center transition cursor-pointer active:scale-95"
                   title="発音を聴く"
                   aria-label="発音を聴く"
                 >
-                  <Volume2 className="w-4 h-4" />
+                  <Volume2 className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
-
-              {/* 発音記号(IPA) */}
-              <Phonetic word={currentQuestion.word} className="text-sm" />
             </>
           )}
-
-          <p className="text-xs text-gray-600 font-bold">
-            {reviewMode
-              ? "🔁 今日の復習 (間隔反復)"
-              : `レベル: ${LEVEL_LABELS[level]}`}
-          </p>
         </div>
 
-        {/* 4択選択肢ボタンリスト */}
-        <div className="grid grid-cols-1 gap-3" id="quiz_options_container">
+        {/* 4択。答えたあとも選択肢は見せたままにする（自分の選んだ語と正解を見比べられるように） */}
+        <div className="flex flex-col gap-2.5" id="quiz_options_container">
           {currentQuestion.options.map((option, idx) => {
-            const isSelected = selectedOption === option;
-            const isCorrectAnswer = option === correctOption;
-
-            // 答えたあとも選択肢は見せたままにする。自分の選んだ語と正解を見比べられるように
-            let btnClass = "bg-gray-50 border-gray-200 text-gray-800 hover:bg-gray-100 hover:border-gray-300";
-            if (answered) {
-              if (isCorrectAnswer) btnClass = "bg-emerald-50 border-emerald-400 text-emerald-900 font-black";
-              else if (isSelected) btnClass = "bg-rose-50 border-rose-300 text-rose-900 font-black";
-              else btnClass = "bg-gray-50 border-gray-100 text-gray-600";
-            }
-
+            const state = optionState(answered, option === correctOption, selectedOption === option);
             return (
               <button
                 key={idx}
                 onClick={() => handleSelectOption(option)}
                 disabled={answered}
-                className={`border rounded-2xl p-4 min-h-14 text-left text-sm font-semibold transition-all flex items-center gap-3 cursor-pointer disabled:cursor-default ${btnClass}`}
+                className={`${optionClass(state)} text-left`}
                 id={`option_btn_${idx}`}
               >
-                {/* 数字キーでも選べることを示す。番号が見えていないと使われない。
-                    読み上げと文字の突き合わせには要らないので aria からは隠す */}
-                <span
-                  aria-hidden="true"
-                  className="hidden sm:flex shrink-0 w-6 h-6 rounded-md border border-current/20 items-center justify-center text-[11px] tabular-nums font-black opacity-60"
-                >
-                  {idx + 1}
-                </span>
-                <span data-testid="option_label" className="flex-1">
+                {/* 数字キーでも選べることを示す。番号が見えていないと使われない */}
+                <OptionKey n={idx + 1} state={state} />
+                <span data-testid="option_label" className={`flex-1 ${reverseMode ? "font-headword text-lg" : ""}`}>
                   {option}
                 </span>
-                {answered && isCorrectAnswer && (
-                  <Check className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
-                )}
-                {answered && isSelected && !isCorrectAnswer && (
-                  <X className="w-4 h-4 text-rose-700 shrink-0" aria-hidden="true" />
-                )}
+                <OptionMark state={state} />
               </button>
             );
           })}
@@ -536,16 +489,16 @@ export default function Quiz({
               nextLabel={currentIndex + 1 < questions.length ? "次の問題へ" : "結果を見る"}
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-lg font-black text-gray-900 select-all">{currentQuestion.word}</span>
+                <span className="font-headword text-xl text-gray-900 select-all">{currentQuestion.word}</span>
                 <button
                   type="button"
                   onClick={(e) => handleSpeakWord(currentQuestion.word, e)}
-                  className="p-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 rounded-full transition cursor-pointer"
+                  className="w-9 h-9 bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition cursor-pointer"
                   aria-label="正解の発音を聴く"
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
+                  <Volume2 className="w-4 h-4" aria-hidden="true" />
                 </button>
-                <Phonetic word={currentQuestion.word} className="text-xs" />
+                <Phonetic word={currentQuestion.word} className="text-sm" />
               </div>
               <p className="font-bold text-gray-900">{currentQuestion.translation}</p>
               {/* 覚えている語義より、よく使われる語義が別にある場合だけ補足する */}

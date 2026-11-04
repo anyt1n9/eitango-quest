@@ -106,17 +106,17 @@ export default function SynonymQuiz({
         renderPrompt={q => (
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-3">
-              <h2 className="text-4xl font-black text-gray-900 tracking-tight" id="synonym_prompt_word">{q.word.word}</h2>
+              <h2 className="font-headword text-4xl sm:text-5xl text-gray-900 break-words" id="synonym_prompt_word">{q.word.word}</h2>
               <button
                 onClick={() => speak(q.word.word)}
-                className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition"
+                className="shrink-0 w-11 h-11 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center transition cursor-pointer"
                 title="発音を聴く"
                 aria-label={`${q.word.word} の発音を聴く`}
               >
                 <Volume2 className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-sm font-bold text-gray-700">この語と同じ意味の語はどれ？</p>
+            <p className="text-base text-gray-700">この語と同じ意味の語はどれ？</p>
           </div>
         )}
         renderExplanation={(q, choice) => {
@@ -124,9 +124,9 @@ export default function SynonymQuiz({
           return (
             <>
               <p>
-                <span className="font-black">{q.word.word}</span>（{q.word.translation}）
+                <span className="font-bold">{q.word.word}</span>（{q.word.translation}）
                 {" ＝ "}
-                <span className="font-black">{q.answerWord.word}</span>（{q.answerWord.translation}）
+                <span className="font-bold">{q.answerWord.word}</span>（{q.answerWord.translation}）
               </p>
               {q.others.length > 0 && (
                 <p className="text-gray-700">

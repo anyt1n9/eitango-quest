@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Level, UserStats } from "../types";
 import { LEVEL_LABELS } from "../grammar";
 import { getAudioContext } from "../sound";
 import AnswerFeedback from "./AnswerFeedback";
 import QuizResult from "./QuizResult";
+import { QuizTopBar, QuizPrompt, optionState, optionClass, OptionKey, OptionMark } from "./QuizParts";
 
 /**
  * 選択式クイズの共通の枠（類義語クイズ・語義分別クイズが使う）。
@@ -164,27 +165,18 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
   });
 
   const header = (
-    <div className="flex items-center justify-between mb-5">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
-        id="btn_quit_quiz"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>中断して戻る</span>
-      </button>
-      {questions && questions.length > 0 && !finished && (
-        <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black tabular-nums text-indigo-700">
-          Q: {index + 1} / {questions.length}
-        </div>
-      )}
-    </div>
+    <QuizTopBar
+      index={index}
+      total={questions && !finished ? questions.length : 0}
+      onQuit={onBack}
+      quitId="btn_quit_quiz"
+    />
   );
 
   if (error) {
     return (
       <div className="max-w-xl mx-auto" id="quiz_section_root">
-        <div className="bg-white border rounded-3xl p-6 shadow-sm space-y-4">
+        <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-4">
           {header}
           <p className="text-sm font-bold text-gray-800" role="alert">{error}</p>
         </div>
@@ -194,7 +186,7 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
 
   if (!questions) {
     return (
-      <div className="max-w-xl mx-auto flex flex-col items-center justify-center py-20 bg-white rounded-3xl border shadow-sm gap-3" id="quiz_section_root">
+      <div className="max-w-xl mx-auto flex flex-col items-center justify-center py-20 bg-white rounded-2xl border shadow-sm gap-3" id="quiz_section_root">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
         <span className="text-sm text-gray-600 font-medium">{title}の準備をしています...</span>
       </div>
@@ -204,7 +196,7 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
   if (questions.length === 0) {
     return (
       <div className="max-w-xl mx-auto" id="quiz_section_root">
-        <div className="bg-white border rounded-3xl p-6 shadow-sm space-y-4">
+        <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-4">
           {header}
           <p className="text-sm font-bold text-gray-800">{emptyMessage}</p>
         </div>
@@ -244,53 +236,30 @@ export default function ChoiceQuiz<Q extends ChoiceQuestion>({
 
   return (
     <div className="max-w-xl mx-auto" id="quiz_section_root">
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm" id="quiz_running_card">
+      <div id="quiz_running_card">
         {header}
 
-        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-6">
-          <div
-            className="bg-indigo-600 h-full rounded-full transition-all duration-300"
-            style={{ width: `${((index + 1) / questions.length) * 100}%` }}
-          />
-        </div>
-
-        <div className="text-center space-y-3 mb-6">
-          <span className="text-xs font-black tracking-wider text-indigo-700">
-            {title}・{instruction}
-          </span>
+        <div className="text-center flex flex-col items-center gap-3 mt-8 mb-8 px-2">
+          <QuizPrompt>{title}・{instruction}</QuizPrompt>
           {renderPrompt(q)}
-          <p className="text-xs text-gray-600 font-bold">{LEVEL_LABELS[level]}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3" id="quiz_options_container">
+        <div className="flex flex-col gap-2.5" id="quiz_options_container">
           {q.options.map((option, i) => {
-            const selected = choice === option;
-            const correct = option === q.answer;
-            let tone = "bg-gray-50 border-gray-200 text-gray-800 hover:bg-gray-100 hover:border-gray-300";
-            if (answered) {
-              if (correct) tone = "bg-emerald-50 border-emerald-400 text-emerald-900 font-black";
-              else if (selected) tone = "bg-rose-50 border-rose-300 text-rose-900 font-black";
-              else tone = "bg-gray-50 border-gray-100 text-gray-600";
-            }
+            const state = optionState(answered, option === q.answer, choice === option);
             return (
               <button
                 key={option}
                 id={`option_btn_${i}`}
                 onClick={() => handleSelect(option)}
                 disabled={answered}
-                className={`border rounded-2xl p-4 min-h-14 text-left text-sm font-semibold transition-all flex items-center gap-3 cursor-pointer disabled:cursor-default ${tone}`}
+                className={`${optionClass(state)} text-left`}
               >
-                <span
-                  aria-hidden="true"
-                  className="hidden sm:flex shrink-0 w-6 h-6 rounded-md border border-current/20 items-center justify-center text-[11px] tabular-nums font-black opacity-60"
-                >
-                  {i + 1}
-                </span>
+                <OptionKey n={i + 1} state={state} />
                 <span data-testid="option_label" className="flex-1">
                   {option}
                 </span>
-                {answered && correct && <Check className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />}
-                {answered && selected && !correct && <X className="w-4 h-4 text-rose-700 shrink-0" aria-hidden="true" />}
+                <OptionMark state={state} />
               </button>
             );
           })}

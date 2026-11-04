@@ -55,7 +55,7 @@ export function SenseExampleText({ example, className = "" }: { example: string;
   return (
     <span className={className}>
       {parsed.before}
-      <mark className="bg-transparent text-indigo-800 font-black underline decoration-2 underline-offset-4">
+      <mark className="bg-transparent text-indigo-800 font-bold underline decoration-2 underline-offset-4">
         {parsed.target}
       </mark>
       {parsed.after}
@@ -134,20 +134,20 @@ export default function SenseQuiz({
           return (
             <div className="space-y-3">
               <div className="flex items-start justify-center gap-2">
-                <p className="text-lg md:text-xl font-bold text-gray-900 leading-relaxed" id="sense_prompt_sentence" lang="en">
+                <p className="font-headword text-xl md:text-2xl text-gray-900 leading-relaxed" id="sense_prompt_sentence" lang="en">
                   <SenseExampleText example={sense.example} />
                 </p>
                 <button
                   onClick={() => speak(plainSenseExample(sense.example))}
-                  className="shrink-0 p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition"
+                  className="shrink-0 w-11 h-11 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center transition cursor-pointer"
                   title="英文を聴く"
                   aria-label="英文を聴く"
                 >
                   <Volume2 className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-sm font-bold text-gray-700">
-                この文の <span className="font-black">{q.word.word}</span> の意味はどれ？
+              <p className="text-base text-gray-700">
+                この文の <span className="font-bold">{q.word.word}</span> の意味はどれ？
               </p>
             </div>
           );
@@ -158,11 +158,11 @@ export default function SenseQuiz({
             <>
               <p className="font-bold">{sense.translation}</p>
               <div className="border-t border-gray-200 pt-2 space-y-1.5">
-                <p className="text-xs font-black text-gray-700">{q.word.word} のほかの意味</p>
+                <p className="text-xs font-bold text-gray-700">{q.word.word} のほかの意味</p>
                 <ul className="space-y-1.5">
                   {q.item.senses.map((s, i) => i === q.senseIndex ? null : (
                     <li key={s.meaning} className="text-xs text-gray-800 leading-relaxed">
-                      <span className="font-black">{s.meaning}</span>
+                      <span className="font-bold">{s.meaning}</span>
                       {"："}
                       <SenseExampleText example={s.example} />
                       <span className="block text-gray-700">{s.translation}</span>

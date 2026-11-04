@@ -46,16 +46,16 @@ function Shell({
         <ArrowLeft className="w-4 h-4" />
         戻る
       </button>
-      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
         <div className="flex items-center gap-2.5 mb-1">
           <span className="text-indigo-600 dark:text-indigo-400">{icon}</span>
-          <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-slate-100">{title}</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100">{title}</h1>
         </div>
         {showUpdated && (
           <p className="text-xs text-gray-400 dark:text-slate-500 mb-6">最終更新日: {LAST_UPDATED}</p>
         )}
         {!showUpdated && <div className="mb-6" />}
-        <div className="space-y-5 text-sm leading-relaxed text-gray-700 dark:text-slate-300 [&_h2]:font-black [&_h2]:text-gray-900 dark:[&_h2]:text-slate-100 [&_h2]:text-base [&_h2]:mt-6 [&_h2]:mb-1.5 [&_a]:text-indigo-600 dark:[&_a]:text-indigo-400 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1">
+        <div className="space-y-5 text-sm leading-relaxed text-gray-700 dark:text-slate-300 [&_h2]:font-bold [&_h2]:text-gray-900 dark:[&_h2]:text-slate-100 [&_h2]:text-base [&_h2]:mt-6 [&_h2]:mb-1.5 [&_a]:text-indigo-600 dark:[&_a]:text-indigo-400 [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1">
           {children}
         </div>
       </div>

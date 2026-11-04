@@ -96,7 +96,7 @@ describe("文穴埋めの復習", () => {
     render(<SentenceQuiz {...reviewProps(words)} />);
     // 四択の選択肢ではなく、例文の空所を埋める形になっている
     expect(screen.getByText(/The garden is very/)).toBeInTheDocument();
-    expect(screen.getByText("Q: 1 / 1")).toBeInTheDocument();
+    expect(screen.getByText("1 / 1")).toBeInTheDocument();
   });
 
   it("英語の選択肢を出す（日本語訳の四択にしない）", () => {
@@ -110,7 +110,7 @@ describe("文穴埋めの復習", () => {
     // level は junior だが、customWords は上級の語だけ
     const advanced = [makeWord({ id: "adv", word: "meticulous", level: "advanced" })];
     render(<SentenceQuiz {...reviewProps(advanced)} />);
-    expect(screen.getByText("Q: 1 / 1")).toBeInTheDocument();
+    expect(screen.getByText("1 / 1")).toBeInTheDocument();
   });
 });
 

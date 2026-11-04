@@ -164,22 +164,35 @@ describe("レベル", () => {
     expect(onStartQuiz).toHaveBeenCalledWith("advanced", "spelling", 10);
   });
 
-  it("開始ボタンと問題数は、選んでいるレベルの色になる", async () => {
-    // 色そのものは CSS 側（.level-*）にあり、明るいテーマは森・暗いテーマは海で置き換わる
+  it("開始ボタンは、選んでいるレベルの色になる", async () => {
+    // 色そのものは CSS 側（.level-*）にあり、明暗どちらのテーマでも海の深さの色で置き換わる
     const user = userEvent.setup();
     renderToday();
-    const count = () => document.getElementById("btn_question_count_50")!;
-    expect(count().className).toContain(LEVEL_TONE.junior);
     expect(document.getElementById("btn_junior_word")!.className).toContain(LEVEL_TONE.junior);
 
     await user.selectOptions(levelSelect(), "advanced");
-    expect(count().className).toContain(LEVEL_TONE.advanced);
-    expect(document.getElementById("btn_advanced_word")!.className).toContain(LEVEL_TONE.advanced);
-    expect(count().className, "色を直に書いている").not.toMatch(/-(indigo|blue|amber)-\d/);
+    const start = document.getElementById("btn_advanced_word")!;
+    expect(start.className).toContain(LEVEL_TONE.advanced);
+    expect(start.className, "色を直に書いている").not.toMatch(/-(indigo|blue|amber)-\d/);
+  });
 
-    // 選んでいる問題数は塗りつぶし、他は淡い地（レベルの色で）
-    expect(document.getElementById("btn_question_count_10")!.className).toContain("bg-[var(--lv-solid)]");
-    expect(count().className).toContain("bg-[var(--lv-bg)]");
+  it("問題数は塗りつぶさず、選んでいるものだけ浮かせる（塗りつぶしは開始ボタンの1つにする）", () => {
+    renderToday();
+    const picked = document.getElementById("btn_question_count_10")!;
+    const other = document.getElementById("btn_question_count_50")!;
+    expect(picked).toHaveAttribute("aria-pressed", "true");
+    for (const b of [picked, other]) {
+      expect(b.className, b.id).not.toContain("bg-[var(--lv-solid)]");
+    }
+    expect(picked.className).toContain("bg-white");
+    expect(other.className).not.toContain("bg-white");
+  });
+
+  it("習熟度は1か所にだけ出す（見出し・選択肢・説明に同じ数字を並べない）", () => {
+    renderToday();
+    const page = document.getElementById("dashboard_page")!;
+    expect(page.textContent).not.toContain("習熟度");
+    for (const o of Array.from(levelSelect().options)) expect(o.textContent).toMatch(/覚えた \d[\d,]* \/ \d[\d,]*語/);
   });
 
   it("選んだレベルを App へ伝える（教材の画面と共有するため）", async () => {
@@ -201,7 +214,7 @@ describe("今日の復習", () => {
     const user = userEvent.setup();
     const { onStartSrsReview } = renderToday({ dueCount: 12 });
     const card = document.getElementById("today_review_card")!;
-    expect(within(card).getByText("12語")).toBeInTheDocument();
+    expect(card).toHaveTextContent("12語");
     // 設定の台より前（上）にある
     const settings = document.getElementById("level_selection_section")!;
     expect(card.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

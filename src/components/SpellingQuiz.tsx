@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Check, X, Volume2, Loader2, Lightbulb, Keyboard } from "lucide-react";
+import { ArrowRight, Check, X, Volume2, Loader2, Lightbulb } from "lucide-react";
 import { Level, Word, UserStats } from "../types";
 import { getAudioContext } from "../sound";
+import { QuizTopBar, QuizPrompt } from "./QuizParts";
 import { SrsState } from "../srs";
 import { selectQuizWords } from "../selectQuestions";
 import { isSpellingCorrect, diffChars } from "../spelling";
@@ -225,7 +226,7 @@ export default function SpellingQuiz({
 
   if (questions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border shadow-sm">
+      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border shadow-sm">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
         <span className="mt-3 text-sm text-gray-500 font-medium">綴りクイズの準備をしています...</span>
       </div>
@@ -277,37 +278,15 @@ export default function SpellingQuiz({
 
   return (
     <div className="max-w-xl mx-auto space-y-6" id="spelling_quiz_root">
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm" id="spelling_running_card">
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
-            id="btn_quit_spelling"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>中断して戻る</span>
-          </button>
-          <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black tabular-nums text-indigo-700">
-            Q: {currentIndex + 1} / {questions.length}
-          </div>
-        </div>
+      <div id="spelling_running_card">
+        <QuizTopBar index={currentIndex} total={questions.length} onQuit={onBackToDashboard} quitId="btn_quit_spelling" />
 
-        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-8">
-          <div
-            className="bg-indigo-600 h-full rounded-full transition-all duration-300"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-          />
-        </div>
-
-        <div className="text-center space-y-4 mb-8">
-          <span className="text-xs font-black text-indigo-700 flex items-center justify-center gap-1.5">
-            <Keyboard className="w-3.5 h-3.5" />
-            {reviewMode ? "🔁 復習 — 日本語訳から英単語を書く" : "日本語訳から英単語を書く"}
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+        <div className="text-center flex flex-col items-center gap-3 mt-8 mb-8 px-2">
+          <QuizPrompt>{reviewMode ? "復習・日本語訳に合う英単語を書いてください" : "日本語訳に合う英単語を書いてください"}</QuizPrompt>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
             {currentQuestion.translation}
           </h2>
-          <p className="text-sm text-gray-500 font-medium">
+          <p className="font-headword text-base text-gray-600" lang="en">
             {/* 例文は手がかりとして出すので、答えは必ず伏せる。
                 取り込んだ単語には答えの残った例文がある */}
             {showHoles(toFillInSentence(currentQuestion.sentence, currentQuestion.word))}
@@ -327,12 +306,12 @@ export default function SpellingQuiz({
             spellCheck={false}
             placeholder="英単語を入力"
             aria-label="英単語を入力"
-            className={`w-full text-center text-2xl font-mono font-black tracking-wide px-4 py-4 rounded-2xl border-2 transition outline-none ${
+            className={`w-full text-center text-2xl font-mono font-bold tracking-wide px-4 py-4 rounded-xl border-2 transition outline-none ${
               judged === "correct"
                 ? "border-emerald-400 bg-emerald-50 text-emerald-900"
                 : judged === "incorrect"
                 ? "border-rose-300 bg-rose-50 text-rose-900"
-                : "border-gray-200 focus:border-indigo-500 bg-gray-50"
+                : "border-gray-200 focus:border-indigo-500 bg-white"
             }`}
             id="spelling_input"
           />
@@ -342,16 +321,16 @@ export default function SpellingQuiz({
               <button
                 type="button"
                 onClick={() => setShowHint(true)}
-                className="sm:w-auto px-5 py-3 rounded-2xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="sm:w-auto min-h-12 px-5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-medium text-sm transition cursor-pointer flex items-center justify-center gap-1.5"
                 id="btn_spelling_hint"
               >
-                <Lightbulb className="w-4 h-4 text-amber-500" />
+                <Lightbulb className="w-4 h-4 text-gray-500" aria-hidden="true" />
                 <span>ヒントを見る</span>
               </button>
               <button
                 type="submit"
                 disabled={input.trim() === ""}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-extrabold py-3 rounded-2xl shadow transition cursor-pointer text-sm"
+                className="flex-1 min-h-12 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white font-bold rounded-xl transition cursor-pointer text-base"
                 id="btn_spelling_submit"
               >
                 答え合わせ
@@ -361,16 +340,17 @@ export default function SpellingQuiz({
             <button
               type="button"
               onClick={handleNext}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3.5 rounded-2xl shadow transition cursor-pointer text-sm"
+              className="w-full min-h-13 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition cursor-pointer text-base flex items-center justify-center gap-2"
               id="btn_spelling_next"
             >
-              {currentIndex + 1 < questions.length ? "次の問題へ ➔" : "結果を見る ➔"}
+              <span>{currentIndex + 1 < questions.length ? "次の問題へ" : "結果を見る"}</span>
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
         </form>
 
         {showHint && judged === null && (
-          <p className="mt-4 text-center font-mono text-lg text-amber-700 tracking-widest bg-amber-50 border border-amber-200 rounded-2xl py-3">
+          <p className="mt-4 text-center font-mono text-lg text-amber-800 tracking-widest bg-amber-50 border border-amber-200 rounded-xl py-3">
             {hintText}
           </p>
         )}
@@ -384,18 +364,18 @@ export default function SpellingQuiz({
               // 正誤とその理由（正しい綴り）を読み上げにも伝える
               role="status"
               aria-live="polite"
-              className={`mt-5 rounded-2xl p-4 border text-center ${
+              className={`mt-5 rounded-xl p-4 border text-center ${
                 judged === "correct" ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"
               }`}
             >
               {judged === "correct" ? (
-                <p className="text-emerald-800 font-black text-sm flex items-center justify-center gap-2">
+                <p className="text-emerald-800 font-bold text-sm flex items-center justify-center gap-2">
                   <Check className="w-5 h-5 stroke-3" />
                   正解です！
                 </p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-rose-800 font-black text-sm flex items-center justify-center gap-2">
+                  <p className="text-rose-800 font-bold text-sm flex items-center justify-center gap-2">
                     <X className="w-5 h-5 stroke-3" />
                     おしい！正しい綴りはこちら
                   </p>
@@ -403,7 +383,7 @@ export default function SpellingQuiz({
                   <p className="font-mono text-sm">
                     {diffChars(input, answer).map((c, i) => (
                       // 間違えた文字は rose-600 だと明るい背景に対して比 4.12 で基準に届かない
-                      <span key={i} className={c.ok ? "text-gray-500" : "text-rose-700 font-black underline"}>
+                      <span key={i} className={c.ok ? "text-gray-500" : "text-rose-700 font-bold underline"}>
                         {c.ch}
                       </span>
                     ))}
@@ -417,13 +397,13 @@ export default function SpellingQuiz({
                     text-gray-900 は暗いテーマでは自動的に明るい色になる。
                     dark:text-slate-50 と書くと --color-slate-50 が
                     暗い紺（#020617）に置き換わっているので、逆に読めなくなる */}
-                <span className="font-mono font-black text-xl md:text-2xl tracking-wide text-gray-900 select-all" id="spelling_correct_answer">
+                <span className="font-mono font-bold text-xl md:text-2xl tracking-wide text-gray-900 select-all" id="spelling_correct_answer">
                   {answer}
                 </span>
                 <button
                   type="button"
                   onClick={() => speak(answer)}
-                  className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition cursor-pointer"
+                  className="w-11 h-11 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-full flex items-center justify-center transition cursor-pointer"
                   aria-label="発音を聴く"
                 >
                   <Volume2 className="w-4 h-4" />

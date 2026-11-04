@@ -60,7 +60,7 @@ export default function AdBanner({ slot = ADSENSE_SLOT_FOOTER, className = "" }:
     >
       {/* 「広告」であることを明示（AdSense ポリシー: 誤クリック誘発を避ける） */}
       {/* 以前は英語の「Sponsored」を薄い灰（text-gray-300）で出しており、地の上で読めなかった */}
-      <p className="text-[11px] text-gray-500 text-center mb-1">
+      <p className="text-xs text-gray-500 text-center mb-1">
         広告
       </p>
       <ins

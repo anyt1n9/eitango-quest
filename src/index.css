@@ -12,70 +12,97 @@
   }
 }
 
-/* ── 明るいテーマは「森」 ────────────────────────────────
-   主役の色（indigo / violet）を深い緑に置き換え、地は苔色がかった生成りにする。
+/* ── 明るいテーマは「学習ノート」 ──────────────────────────
+   生成りの紙に白いカード、墨の文字、青のインク1色。
+   以前は森（深い緑）だったが、海の背景（青）と並べると色がぶつかったので、
+   海と同じ寒色の青を主役にして、地と灰色は温かみのある無彩色にした。
    Tailwind の色変数ごと置き換えるので、utility の書き方は変えなくてよい。 */
 :root {
-  --color-indigo-50: #eef6ee;
-  --color-indigo-100: #daecdb;
-  --color-indigo-200: #b7dcba;
-  --color-indigo-300: #8ac590;
-  --color-indigo-400: #55a660;
-  --color-indigo-500: #278036;
-  --color-indigo-600: #1f7a33;
-  --color-indigo-700: #17632a;
-  --color-indigo-800: #125024;
-  --color-indigo-900: #0e401d;
-  --color-indigo-950: #062711;
-  --color-violet-50: #f1f7ea;
-  --color-violet-100: #e0efd4;
-  --color-violet-500: #40802a;
-  --color-violet-600: #35701f;
-  --color-violet-700: #2b5c18;
-  --color-slate-50: #f1f6ec;
-  --color-gray-50: #f4f8f0;
-  /* 補助の文字。地を生成りに寄せたぶん、灰のままでは
-     淡い地（bg-gray-50）の上で 4.5 に届かなくなる（実測 4.41）ので、
-     苔色がかった濃いめの灰にする */
-  --color-gray-500: #566152;
+  /* 主役の色（青のインク）。indigo と violet をこの1色にまとめる */
+  --color-indigo-50: #eef1fb;
+  --color-indigo-100: #dfe5f8;
+  --color-indigo-200: #bfcbf1;
+  --color-indigo-300: #94a6e6;
+  --color-indigo-400: #5f78d8;
+  --color-indigo-500: #3655cc;
+  --color-indigo-600: #2747c7;
+  --color-indigo-700: #1f3aa6;
+  --color-indigo-800: #1b3286;
+  --color-indigo-900: #172a6b;
+  --color-indigo-950: #0e1a44;
+  --color-violet-50: #eef1fb;
+  --color-violet-100: #dfe5f8;
+  --color-violet-500: #3655cc;
+  --color-violet-600: #2747c7;
+  --color-violet-700: #1f3aa6;
+  /* 紙（いちばん奥の地）と、温かみのある灰。Tailwind の既定の灰は青みがあり、紙の上で冷たく見える */
+  --color-slate-50: #fafaf7;
+  --color-gray-50: #f4f3ef;
+  --color-gray-100: #efeee9;
+  --color-gray-200: #e3e2dc;      /* 枠線・区切り */
+  --color-gray-300: #d3d2ca;
+  --color-gray-400: #a8a79f;
+  /* 補助の文字。いちばん濃い淡色の地（gray-100）の上でも 4.5 を超える（実測 5.62） */
+  --color-gray-500: #5e5e58;
+  --color-gray-600: #4d4d48;
+  --color-gray-700: #3a3a36;
+  --color-gray-800: #2a2a27;
+  --color-gray-900: #1b1b19;      /* 墨（見出し・本文） */
+
+  /* 英単語の見出しの書体。日本語の文字と見分けやすく、綴りの形も読み取りやすい */
+  --font-headword: "Source Serif 4", "Source Serif Pro", Georgia, "Noto Serif", "Times New Roman", serif;
+}
+
+/* 角の丸みは3段階だけにする（操作するもの 10px／カード 14px／丸いもの）。
+   以前は 6 種類が混ざっていて、同じ画面の中でもカードごとに丸みが違った */
+@theme {
+  --radius-xl: 10px;
+  --radius-2xl: 14px;
+}
+
+/* 英単語の見出し（クイズの出題・答え合わせ） */
+.font-headword {
+  font-family: var(--font-headword);
+  font-weight: 600;
+  letter-spacing: 0.005em;
 }
 
 /* ── レベルの色 ──────────────────────────────────────
-   5段階を、明るいテーマでは森（若草→新緑→常緑→幹→木漏れ日）、
-   暗いテーマでは海（浅瀬→波間→沖→深海→深淵）で表す。
+   5段階を、海の深さ（浅瀬→波間→沖→深海→深淵）で表す。
+   明るいテーマでも暗いテーマでも同じ色相にした（以前は明るいテーマが森の5色で、
+   テーマを切り替えると同じレベルが別の色になっていた）。
    コンポーネントは色を持たず、この変数を指すだけにしてある
    （src/levelTheme.ts）。 */
 .level-junior {
-  --lv-fg: #3f6212; --lv-bg: #f4f9e6; --lv-bg-strong: #e8f3cd; --lv-border: #cfe6a6;
-  --lv-solid: #3f6b0d; --lv-solid-hover: #33570a;
+  --lv-fg: #075985; --lv-bg: #eef6fb; --lv-bg-strong: #dcedf7; --lv-border: #b9dcef;
+  --lv-solid: #0369a1; --lv-solid-hover: #075985;
 }
 .level-senior {
-  --lv-fg: #15803d; --lv-bg: #e9f7ec; --lv-bg-strong: #d5efdb; --lv-border: #b3e2be;
-  --lv-solid: #15803d; --lv-solid-hover: #116632;
+  --lv-fg: #0f6b63; --lv-bg: #ebf6f4; --lv-bg-strong: #d6eeea; --lv-border: #a9dad3;
+  --lv-solid: #0f766e; --lv-solid-hover: #115e59;
 }
 .level-senior2 {
-  --lv-fg: #0f6d66; --lv-bg: #e2f4f1; --lv-bg-strong: #cbebe6; --lv-border: #a3dbd3;
-  --lv-solid: #0f766e; --lv-solid-hover: #0d5f59;
+  --lv-fg: #1e40af; --lv-bg: #eef2fc; --lv-bg-strong: #dce4f9; --lv-border: #b8c8f2;
+  --lv-solid: #1d4ed8; --lv-solid-hover: #1e40af;
 }
 .level-senior3 {
-  --lv-fg: #7a4420; --lv-bg: #f8f1ea; --lv-bg-strong: #f0e2d3; --lv-border: #ddc6ae;
-  --lv-solid: #7a4420; --lv-solid-hover: #653718;
+  --lv-fg: #3730a3; --lv-bg: #f0f0fb; --lv-bg-strong: #e1e0f7; --lv-border: #c3c1ee;
+  --lv-solid: #4338ca; --lv-solid-hover: #3730a3;
 }
 .level-advanced {
-  --lv-fg: #7a6200; --lv-bg: #fbf7e2; --lv-bg-strong: #f5eec4; --lv-border: #e6dba0;
-  --lv-solid: #856a00; --lv-solid-hover: #6b5500;
+  --lv-fg: #5b21b6; --lv-bg: #f4f0fc; --lv-bg-strong: #e9e0f9; --lv-border: #d2c2f2;
+  --lv-solid: #6d28d9; --lv-solid-hover: #5b21b6;
 }
 /* 追加単語。5段階のどれとも重ならない色にする */
 .level-custom {
-  --lv-fg: #6b4f8a; --lv-bg: #f5f0fa; --lv-bg-strong: #eae0f4; --lv-border: #d6c6e6;
-  --lv-solid: #6b4f8a; --lv-solid-hover: #573f70;
+  --lv-fg: #86198f; --lv-bg: #fbf0fb; --lv-bg-strong: #f5e0f6; --lv-border: #e8c0eb;
+  --lv-solid: #a21caf; --lv-solid-hover: #86198f;
 }
 
-/* レベル以外の色分けも、同じ変数の組で持つ。
-   AIアドバイスと弱点分析は紫と赤で塗られていて、森にも海にも合わなかった */
+/* レベル以外の色分けも、同じ変数の組で持つ */
 .tone-advice {
-  --lv-fg: #17632a; --lv-bg: #eef6ee; --lv-bg-strong: #daecdb; --lv-border: #b7dcba;
-  --lv-solid: #1f7a33; --lv-solid-hover: #17632a;
+  --lv-fg: #1f3aa6; --lv-bg: #eef1fb; --lv-bg-strong: #dfe5f8; --lv-border: #bfcbf1;
+  --lv-solid: #2747c7; --lv-solid-hover: #1f3aa6;
 }
 .tone-weakness {
   --lv-fg: #8a4326; --lv-bg: #faf0ea; --lv-bg-strong: #f3e0d4; --lv-border: #e3c3ae;
@@ -261,14 +288,14 @@ html, body {
 
 /* 補助的な小さい文字。明るいテーマで 2.60、暗いテーマで 2.36 しかなかった。
    text- だけを対象にする（border-gray-400 / bg-gray-400 には触らない）。 */
-.text-gray-400 { color: #62705f !important; }
+.text-gray-400 { color: #636359 !important; }
 .dark .text-gray-400 { color: #94a3b8 !important; }
 
 /* キーボードで操作している場所を見えるようにする。
    ブラウザ既定の outline は auto 1px rgb(16,16,16) で、
    暗いテーマではほぼ見えなかった。 */
 :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid #1f7a33;
+  outline: 2px solid #2747c7;
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -386,7 +413,7 @@ html, body {
 }
 
 /* カード（レベルの台）。地は `bg-white` と同じ変数から作るので、
-   森なら白、海なら深い海の色がそのまま薄くなる */
+   明るいテーマなら白、暗いテーマなら深い海の色がそのまま薄くなる */
 :root[data-glass="light"] .glass-panel,
 :root[data-glass="strong"] .glass-panel {
   background-color: color-mix(in srgb, var(--color-white) calc(var(--glass-alpha) * 100%), transparent);
@@ -400,7 +427,7 @@ html, body {
    海（暗いテーマ）の淡色は半透明の色かぶせ（rgba 0.16 / 0.26）なので、
    その下のカードまで透けると色が抜けて文字が沈む。
    カードの色と混ぜて不透明にし、ガラスでないときと同じ読みやすさに戻す。
-   森（明るいテーマ）の淡色はもともと不透明なので、触らない
+   明るいテーマの淡色はもともと不透明なので、触らない
    （混ぜ直すと地が濃くなり、濃い文字とのコントラストがかえって下がる。実測 4.05）。 */
 :root.dark[data-glass="light"] .glass-panel [class*="level-"],
 :root.dark[data-glass="strong"] .glass-panel [class*="level-"],
@@ -431,7 +458,7 @@ html, body {
 
 /* 透明のときの文字の縁取り。
    地が無いぶん、写真の柄に文字が紛れる。カードの地の色
-   （森なら白、海なら深い海の色）で細い縁を作ると、どんな写真の上でも輪郭が残る。
+   （明るいテーマなら白、暗いテーマなら深い海の色）で細い縁を作ると、どんな写真の上でも輪郭が残る。
    ただしこれは**保証ではない**（コントラストの計算に縁取りは効かない）。 */
 :root[data-glass="clear"] .glass-panel {
   text-shadow:
@@ -451,7 +478,7 @@ html, body {
 
 /* 塗りつぶしボタンの文字は明暗どちらのテーマでも白なので、
    縁取りは常に暗い色にする（カードの縁取りを継いでしまうと、
-   森では白い文字に白い縁が付いて何も起きない） */
+   明るいテーマでは白い文字に白い縁が付いて何も起きない） */
 :root[data-glass="clear"] .glass-chip {
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.45);
 }
@@ -668,14 +695,14 @@ html, body {
   inset: 0;
   /* ぼかしはかけない。かけると写真がモザイクのように見えて、
      何の画像を選んだのか分からなくなる */
-  background: rgba(241, 246, 236, 0.3);
+  background: rgba(250, 250, 247, 0.3);
 }
 .dark .bg-photo-veil { background: rgba(3, 18, 29, 0.34); }
 
 /* 幕の濃さ。画像をはっきり見せたい人と、文字を読みやすくしたい人がいる */
-.bg-scene[data-veil="light"] .bg-photo-veil { background: rgba(241, 246, 236, 0.12); }
+.bg-scene[data-veil="light"] .bg-photo-veil { background: rgba(250, 250, 247, 0.12); }
 .dark .bg-scene[data-veil="light"] .bg-photo-veil { background: rgba(3, 18, 29, 0.16); }
-.bg-scene[data-veil="strong"] .bg-photo-veil { background: rgba(241, 246, 236, 0.6); }
+.bg-scene[data-veil="strong"] .bg-photo-veil { background: rgba(250, 250, 247, 0.6); }
 .dark .bg-scene[data-veil="strong"] .bg-photo-veil { background: rgba(3, 18, 29, 0.64); }
 
 /* 海の3D背景（OceanBackground.tsx。試験中）。
