@@ -866,6 +866,25 @@ express の要求（`~2.0.7`）の範囲内なのでロックファイルだけ�
 同じときに出た undici（jsdom 経由）・serialize-javascript と fast-uri（vite-plugin-pwa 経由）は
 開発とビルドにしか使わない。
 
+**glob・minimatch・ejs の勧告は `package.json` の `overrides` で直した版に差し替えている**
+（どれも `vite-plugin-pwa` → `workbox-build` の中で、サービスワーカーを作るビルドのときにしか動かない）。
+
+- `workbox-build` の中の `glob` を 14.0.3 に（GHSA-3g3m-2fjr-6pw4。AbortSignal で止めたあとも探索が続く）。
+  あわせて `minimatch` が 11.0.3 になる（GHSA-g3hv-75wg-m249。細工したパターンで遅くなる）。
+  `workbox-build@7.4.1` は `glob ^11` を求めるので、`npm audit fix` では上がらない（10.2.6 に上がるだけで対象のまま）。
+  `workbox-build` が glob から使うのは `globSync(pattern, { cwd, follow, ignore })` だけで、glob 14 でも同じ形。
+- `ejs` を 7.0.2 に。`ejs@3` が CLI のためだけに `jake` → `filelist` → 古い `minimatch` を連れてきていた
+  （ejs 5 以降は依存が無い）。サービスワーカーを組む `@trickfilm400/rollup-plugin-off-main-thread` が
+  使うのは `ejs.render` だけで、この部品の 4.0.0 も ejs 7 を使っている。
+- 差し替えたら、**サービスワーカーが配るファイルの一覧が変わらないこと**を確かめる
+  （`dist/sw.js` の `url:"…"` を並べて比べる。このときは61件で一致し、`workbox-*.js` のハッシュも同じだった）。
+  e2e の「ビルド済みのファイルを配り、オフラインでも開ける」も通すこと。
+- 版は `npm install --before=2026-10-30T00:00:00Z` で選んだ（公開から1週間ほどの版。
+  minimatch の最新 11.0.4 は公開2日だったので避けた）。glob 14 と一緒に入る
+  `@isaacs/nonrecursive-glob-match` は glob と同じ作者の新しい部品。
+- **`workbox-build` の求める範囲が直った版を含むようになったら、上書きを外す**
+  （上書きは依存の求める範囲を無視するので、残しておくと次の更新で食い違いに気づけない）。
+
 **残っている4件（low）は deepmerge の1件が連なったもの**（`vite-plugin-pwa` → `workbox-build` →
 `@rollup/plugin-node-resolve` → `deepmerge`。プロトタイプ汚染）。直った版がまだ無く（最新の 4.3.1 も対象）、
 `npm audit fix --force` は `vite-plugin-pwa` を 0.2.1 まで戻すので使わないこと（サービスワーカーが作れなくなる）。
