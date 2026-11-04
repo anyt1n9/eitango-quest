@@ -665,88 +665,64 @@ export default function Dictionary({
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                          {/* 左側: 和訳詳細と例文 */}
-                          <div className="md:col-span-8 space-y-4">
-                            {/* 和訳詳細 */}
-                            <div className="grid grid-cols-12 bg-indigo-50/30 border border-indigo-100 p-3.5 rounded-xl gap-2 items-center">
-                              <div className="col-span-3 font-bold text-indigo-700/80 flex items-center gap-1">
-                                <GraduationCap className="w-4 h-4" />
-                                <span>正しい日本語訳:</span>
-                              </div>
-                              <div className="col-span-9 font-bold text-indigo-900 text-sm md:text-base">
-                                {word.translation}
-                              </div>
-                            </div>
+                        {/* 開いた詳細。以前は和訳・頻度・類義語の欄ごとに藍・青・金・紫・青緑の地とグラデーションで
+                            塗り分けていて、どこを読めばよいのかが色で分からなくなっていた。
+                            見出しは小さな太字にそろえ、地は紙の色1つにする */}
+                        <section className="space-y-1.5">
+                          <h4 className="text-sm font-bold text-gray-900">意味</h4>
+                          <p className="text-base font-bold text-gray-900">{word.translation}</p>
+                        </section>
 
-                            {/* 複数の意味を持つ語では、他の意味と品詞ごとの使用割合も見せる */}
-                            <WordSenses wordId={word.id} ownTranslation={word.translation} ownPos={word.pos} />
+                        {/* 複数の意味を持つ語では、他の意味と品詞ごとの使用割合も見せる */}
+                        <WordSenses wordId={word.id} ownTranslation={word.translation} ownPos={word.pos} />
 
-                            {/* 訳語だけでは英文が組み立てられないので、文型・組んで使う語・語族を補う */}
-                            <WordUsageInfo wordId={word.id} onOpenGrammar={onOpenGrammar} />
+                        {/* 訳語だけでは英文が組み立てられないので、文型・組んで使う語・語族を補う */}
+                        <WordUsageInfo wordId={word.id} onOpenGrammar={onOpenGrammar} />
 
-                            {/* 例文セクション */}
-                            <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-2">
-                              <p className="font-bold text-gray-400 text-xs">例文 (穴埋めテスト用文脈):</p>
-                              
-                              {/* 例文を表示。穴埋めの場所もわかりやすく。 */}
-                              <div className="pl-1 space-y-2">
-                                <p className="font-sans font-bold text-gray-800 italic text-sm md:text-base leading-relaxed">
-                                  {/* [_____] を 補完済みの英単語に置換して太字＆アンダーライン表示 */}
-                                  {word.sentence.includes("[_____]") ? (
-                                    <>
-                                      {word.sentence.split("[_____]")[0]}
-                                      <span className="bg-indigo-100 border-b-2 border-indigo-600 px-1 tabular-nums text-indigo-800 rounded mx-0.5 italic not-italic font-bold">
-                                        {word.word}
-                                      </span>
-                                      {word.sentence.split("[_____]")[1]}
-                                    </>
-                                  ) : (
-                                    word.sentence
+                        {/* 例文 */}
+                        <section className="space-y-1.5">
+                          <h4 className="text-sm font-bold text-gray-900">例文</h4>
+                          <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 space-y-1.5">
+                            <p className="font-headword text-base text-gray-900 leading-relaxed" lang="en">
+                              {/* 穴の位置に見出しの語を戻して太字で示す（穴が2つ以上あってもすべて戻す） */}
+                              {word.sentence.split("[_____]").map((part, i, arr) => (
+                                <React.Fragment key={i}>
+                                  {part}
+                                  {i < arr.length - 1 && (
+                                    <span className="font-sans font-bold text-indigo-800 underline decoration-2 underline-offset-2 mx-0.5">
+                                      {word.word}
+                                    </span>
                                   )}
-                                </p>
-                                <p className="text-gray-500 font-bold pl-0.5 text-xs md:text-sm">
-                                  訳: {word.sentenceTranslation}
-                                </p>
-                              </div>
-                            </div>
+                                </React.Fragment>
+                              ))}
+                            </p>
+                            <p className="text-sm text-gray-600">{word.sentenceTranslation}</p>
                           </div>
+                        </section>
 
-                        </div>
-
-                        {/* —————————— AI単語使用頻度分析セクション —————————— */}
-                        <div className="border border-indigo-100 rounded-2xl overflow-hidden bg-white shadow-3xs">
-                          {/* セクションヘッダー */}
-                          <div className="bg-gradient-to-r from-indigo-50 to-indigo-50/30 p-3.5 px-4 border-b border-indigo-100 flex items-center justify-between">
-                            <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-indigo-600 fill-indigo-200" />
-                              <span>AI 頻度・シチュエーション別使われ方分析</span>
-                            </h4>
-                            <span className="text-xs bg-indigo-600 text-white font-bold px-2 py-0.5 rounded-lg shrink-0">
-                              AI
-                            </span>
-                          </div>
-
-                          {/* コンテンツエリア */}
-                          <div className="p-4 space-y-4">
+                        {/* —————————— AI による使われ方の分析 —————————— */}
+                        <section className="space-y-1.5">
+                          <h4 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                            場面ごとの使われ方（AI）
+                          </h4>
+                          <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 space-y-4">
                             {frequencyLoading[cacheKey(word.word)] ? (
-                              <div className="flex flex-col items-center justify-center py-6 space-y-2">
-                                <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
-                                <p className="text-xs font-bold text-indigo-600">AIが使われ方の統計情報を展開中...</p>
+                              <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-600">
+                                <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" aria-hidden="true" />
+                                <span>AIが使われ方を調べています…</span>
                               </div>
                             ) : frequencyError[cacheKey(word.word)] ? (
-                              <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-2.5">
-                                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                                <div className="space-y-1">
-                                  <p className="text-xs font-bold text-rose-800">
-                                    頻度データの取得に失敗しました。
-                                  </p>
-                                  <p className="text-xs text-rose-600 font-medium">{frequencyError[cacheKey(word.word)]}</p>
+                              <div className="flex items-start gap-2.5" role="alert">
+                                <AlertCircle className="w-5 h-5 text-rose-700 shrink-0" aria-hidden="true" />
+                                <div className="space-y-2">
+                                  <p className="text-sm font-bold text-rose-800">使われ方を取得できませんでした。</p>
+                                  <p className="text-sm text-gray-600">{frequencyError[cacheKey(word.word)]}</p>
                                   <button
                                     onClick={() => handleFetchWordFrequency(word.word)}
-                                    className="px-2.5 py-1 bg-white hover:bg-rose-100 border border-rose-250 text-rose-700 text-xs font-bold rounded-lg transition"
+                                    className="min-h-11 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 text-sm font-bold rounded-xl transition cursor-pointer"
                                   >
-                                    再接続・再試行
+                                    もう一度試す
                                   </button>
                                 </div>
                               </div>
@@ -754,261 +730,169 @@ export default function Dictionary({
                               (() => {
                                 const freqData = wordFrequencies[cacheKey(word.word)];
                                 const { frequencies, overallComment, usageExamples } = freqData;
+                                const domains = [
+                                  { key: "everyday", label: "日常会話", Icon: MessageSquare },
+                                  { key: "business", label: "ビジネス", Icon: Briefcase },
+                                  { key: "academic", label: "学術（論文など）", Icon: GraduationCap }
+                                ] as const;
 
                                 return (
                                   <div className="space-y-4">
-                                    {/* 3つのドメインの頻度比較メーター */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                      
-                                      {/* 日常会話 (everyday) */}
-                                      <div className="bg-blue-50/20 border border-blue-100 rounded-xl p-3 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-1.5 text-blue-800 font-bold text-xs">
-                                            <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
-                                            <span>日常会話での頻度</span>
-                                          </div>
-                                          <span className="text-xs font-bold text-blue-700 tabular-nums">
-                                            {frequencies?.everyday?.label || "普通"}
-                                          </span>
-                                        </div>
-                                        
-                                        {/* メーターバー */}
-                                        <div className="h-2 bg-blue-100 rounded-full overflow-hidden relative">
-                                          <div 
-                                            className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full transition-all duration-700" 
-                                            style={{ width: `${frequencies?.everyday?.percentage || 50}%` }}
-                                          />
-                                        </div>
-                                        <p className="text-xs text-gray-500 leading-relaxed font-medium pl-0.5">
-                                          {frequencies?.everyday?.description}
-                                        </p>
-                                        
-                                        {/* 日常の例文 */}
-                                        {usageExamples?.everyday && (
-                                          <div className="border-t border-blue-50 pt-2 mt-2 space-y-1">
-                                            <span className="text-xs font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">日常例文</span>
-                                            <p className="text-xs font-bold text-gray-800 font-sans italic">
-                                              "{usageExamples.everyday.sentence}"
-                                            </p>
-                                            <p className="text-xs text-gray-500 font-medium font-sans">
-                                              訳: {usageExamples.everyday.translation}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
+                                    {/* 3つの場面を同じ形で並べる（色で分けない。違いは見出しと数で読む） */}
+                                    <ul className="divide-y divide-gray-200">
+                                      {domains.map(({ key, label, Icon }) => {
+                                        const f = frequencies?.[key];
+                                        const ex = usageExamples?.[key];
+                                        return (
+                                          <li key={key} className="py-3 first:pt-0 last:pb-0 space-y-1.5">
+                                            <div className="flex items-center justify-between gap-3">
+                                              <span className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+                                                <Icon className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                                                {label}
+                                              </span>
+                                              <span className="text-sm text-gray-600">{f?.label || "普通"}</span>
+                                            </div>
+                                            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden" aria-hidden="true">
+                                              <div
+                                                className="h-full bg-indigo-600 rounded-full transition-[width] duration-700"
+                                                style={{ width: `${f?.percentage || 50}%` }}
+                                              />
+                                            </div>
+                                            {f?.description && (
+                                              <p className="text-sm text-gray-600 leading-relaxed">{f.description}</p>
+                                            )}
+                                            {ex && (
+                                              <div className="pt-1 space-y-0.5">
+                                                <p className="font-headword text-sm text-gray-900" lang="en">{ex.sentence}</p>
+                                                <p className="text-sm text-gray-600">{ex.translation}</p>
+                                              </div>
+                                            )}
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
 
-                                      {/* ビジネス (business) */}
-                                      <div className="bg-amber-50/20 border border-amber-100 rounded-xl p-3 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs">
-                                            <Briefcase className="w-3.5 h-3.5 text-amber-500" />
-                                            <span>ビジネスでの頻度</span>
-                                          </div>
-                                          <span className="text-xs font-bold text-amber-700 tabular-nums">
-                                            {frequencies?.business?.label || "普通"}
-                                          </span>
-                                        </div>
-                                        
-                                        {/* メーターバー */}
-                                        <div className="h-2 bg-amber-100 rounded-full overflow-hidden relative">
-                                          <div 
-                                            className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full transition-all duration-700" 
-                                            style={{ width: `${frequencies?.business?.percentage || 50}%` }}
-                                          />
-                                        </div>
-                                        <p className="text-xs text-gray-500 leading-relaxed font-medium pl-0.5">
-                                          {frequencies?.business?.description}
-                                        </p>
-
-                                        {/* ビジネスの例文 */}
-                                        {usageExamples?.business && (
-                                          <div className="border-t border-amber-50 pt-2 mt-2 space-y-1">
-                                            <span className="text-xs font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">ビジネス例文</span>
-                                            <p className="text-xs font-bold text-gray-800 font-sans italic">
-                                              "{usageExamples.business.sentence}"
-                                            </p>
-                                            <p className="text-xs text-gray-500 font-medium font-sans">
-                                              訳: {usageExamples.business.translation}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* 学術・講義 (academic) */}
-                                      <div className="bg-purple-50/20 border border-purple-100 rounded-xl p-3 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-1.5 text-purple-800 font-bold text-xs">
-                                            <GraduationCap className="w-3.5 h-3.5 text-purple-500" />
-                                            <span>学術（論文など）での頻度</span>
-                                          </div>
-                                          <span className="text-xs font-bold text-purple-700 tabular-nums">
-                                            {frequencies?.academic?.label || "普通"}
-                                          </span>
-                                        </div>
-                                        
-                                        {/* メーターバー */}
-                                        <div className="h-2 bg-purple-100 rounded-full overflow-hidden relative">
-                                          <div 
-                                            className="h-full bg-gradient-to-r from-purple-400 to-purple-600 rounded-full transition-all duration-700" 
-                                            style={{ width: `${frequencies?.academic?.percentage || 50}%` }}
-                                          />
-                                        </div>
-                                        <p className="text-xs text-gray-500 leading-relaxed font-medium pl-0.5">
-                                          {frequencies?.academic?.description}
-                                        </p>
-
-                                        {/* アカデミックの例文 */}
-                                        {usageExamples?.academic && (
-                                          <div className="border-t border-purple-50 pt-2 mt-2 space-y-1">
-                                            <span className="text-xs font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">学術例文</span>
-                                            <p className="text-xs font-bold text-gray-800 font-sans italic">
-                                              "{usageExamples.academic.sentence}"
-                                            </p>
-                                            <p className="text-xs text-gray-500 font-medium font-sans">
-                                              訳: {usageExamples.academic.translation}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                    </div>
-
-                                    {/* AI総合ニュアンスコメント */}
                                     {overallComment && (
-                                      <div className="bg-indigo-50/30 border border-indigo-100/70 rounded-xl p-3 px-3.5 text-xs md:text-xs">
-                                        <div className="font-bold text-indigo-950 mb-1 flex items-center gap-1">
-                                          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-                                          <span>AIによる総合ニュアンス・アドバイス:</span>
-                                        </div>
-                                        <p className="text-gray-600 dark:text-slate-350 leading-relaxed font-medium pr-4">
-                                          {overallComment}
-                                        </p>
+                                      <div className="border-t border-gray-200 pt-3 space-y-1">
+                                        <p className="text-sm font-bold text-gray-900">まとめ</p>
+                                        <p className="text-sm text-gray-700 leading-relaxed">{overallComment}</p>
                                       </div>
                                     )}
                                   </div>
                                 );
                               })()
                             ) : (
-                              <div className="flex flex-col items-center justify-center py-4 space-y-2">
-                                <p className="text-xs text-gray-400 font-medium">使用頻度のデータが待機中です。</p>
+                              <div className="flex flex-col items-start gap-2">
+                                <p className="text-sm text-gray-600">日常会話・ビジネス・学術で、どのくらい使われるかをAIが調べます。</p>
                                 <button
                                   onClick={() => handleFetchWordFrequency(word.word)}
-                                  className="px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-bold rounded-lg hover:bg-indigo-100 transition"
+                                  className="min-h-11 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 text-sm font-bold rounded-xl transition cursor-pointer"
                                 >
-                                  AI頻度分析を読み込む
+                                  使われ方を調べる
                                 </button>
                               </div>
                             )}
                           </div>
-                        </div>
+                        </section>
 
-                        {/* —————————— 類義語・反意語・コロケーションセクション —————————— */}
-                        <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden">
-                          <div className="bg-teal-50/60 border-b border-teal-100/60 px-4 py-2.5 flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-teal-800 font-bold text-xs">
-                              <Layers className="w-3.5 h-3.5 text-teal-600" />
-                              <span>AI 類義語・反意語・コロケーション</span>
-                            </div>
-                          </div>
-                          <div className="p-4">
+                        {/* —————————— 類義語・反意語・コロケーション —————————— */}
+                        <section className="space-y-1.5">
+                          <h4 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                            <Layers className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                            似た語・反対の語・よく組む語（AI）
+                          </h4>
+                          <div className="bg-slate-50 border border-gray-200 rounded-xl p-4">
                             {(() => {
                               const relKey = cacheKey(word.word);
                               const relData = wordRelations[relKey];
                               if (relationsLoading[relKey]) {
                                 return (
-                                  <div className="flex items-center justify-center gap-2 py-6 text-gray-400 text-xs font-bold">
-                                    <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
-                                    <span>AIが語彙のつながりを分析しています...</span>
+                                  <div className="flex items-center justify-center gap-2 py-4 text-gray-600 text-sm">
+                                    <Loader2 className="w-5 h-5 animate-spin text-indigo-600" aria-hidden="true" />
+                                    <span>AIが語のつながりを調べています…</span>
                                   </div>
                                 );
                               }
                               if (relationsError[relKey]) {
                                 return (
-                                  <div className="flex flex-col items-center gap-2 py-4">
-                                    <p className="text-xs text-rose-600 font-medium">{relationsError[relKey]}</p>
+                                  <div className="flex flex-col items-start gap-2" role="alert">
+                                    <p className="text-sm text-rose-800 font-medium">{relationsError[relKey]}</p>
                                     <button
                                       onClick={() => {
                                         setRelationsError(prev => ({ ...prev, [relKey]: "" }));
                                         handleFetchWordRelations(word.word, word.translation);
                                       }}
-                                      className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-xs font-bold rounded-lg hover:bg-teal-100 transition cursor-pointer"
+                                      className="min-h-11 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 text-sm font-bold rounded-xl transition cursor-pointer"
                                     >
-                                      再試行
+                                      もう一度試す
                                     </button>
                                   </div>
                                 );
                               }
                               if (relData) {
                                 return (
-                                  <div className="space-y-4 text-xs">
-                                    {/* 類義語 */}
+                                  <div className="space-y-4 text-sm">
                                     {relData.synonyms && relData.synonyms.length > 0 && (
                                       <div>
-                                        <span className="text-xs font-bold text-teal-700 block mb-2">類義語</span>
-                                        <div className="space-y-2">
+                                        <p className="font-bold text-gray-900 mb-1.5">類義語</p>
+                                        <ul className="divide-y divide-gray-200">
                                           {relData.synonyms.map((s: any, i: number) => (
-                                            <div key={i} className="bg-teal-50/40 border border-teal-100/60 rounded-xl p-2.5">
-                                              <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="tabular-nums font-bold text-sm text-gray-900">{s.word}</span>
-                                                <span className="text-gray-500 font-medium">{s.translation}</span>
-                                              </div>
-                                              {s.nuance && (
-                                                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{s.nuance}</p>
-                                              )}
-                                            </div>
+                                            <li key={i} className="py-2 first:pt-0">
+                                              <span className="font-headword text-base text-gray-900 mr-2" lang="en">{s.word}</span>
+                                              <span className="text-gray-600">{s.translation}</span>
+                                              {s.nuance && <p className="text-gray-600 mt-0.5 leading-relaxed">{s.nuance}</p>}
+                                            </li>
                                           ))}
-                                        </div>
+                                        </ul>
                                       </div>
                                     )}
 
-                                    {/* 反意語 */}
                                     {relData.antonyms && relData.antonyms.length > 0 && (
                                       <div>
-                                        <span className="text-xs font-bold text-rose-700 block mb-2">反意語</span>
+                                        <p className="font-bold text-gray-900 mb-1.5">反意語</p>
                                         <div className="flex flex-wrap gap-2">
                                           {relData.antonyms.map((a: any, i: number) => (
-                                            <span key={i} className="bg-rose-50/60 border border-rose-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
-                                              <span className="tabular-nums font-bold text-gray-900">{a.word}</span>
-                                              <span className="text-gray-500 font-medium text-xs">{a.translation}</span>
+                                            <span key={i} className="bg-white border border-gray-200 rounded-xl px-3 py-1.5 flex items-baseline gap-1.5">
+                                              <span className="font-headword text-base text-gray-900" lang="en">{a.word}</span>
+                                              <span className="text-gray-600">{a.translation}</span>
                                             </span>
                                           ))}
                                         </div>
                                       </div>
                                     )}
 
-                                    {/* コロケーション */}
                                     {relData.collocations && relData.collocations.length > 0 && (
                                       <div>
-                                        <span className="text-xs font-bold text-indigo-700 block mb-2">コロケーション (よく使われる組み合わせ)</span>
-                                        <div className="space-y-1.5">
+                                        <p className="font-bold text-gray-900 mb-1.5">よく組む語</p>
+                                        <ul className="divide-y divide-gray-200">
                                           {relData.collocations.map((c: any, i: number) => (
-                                            <div key={i} className="flex items-baseline justify-between gap-3 bg-indigo-50/40 border border-indigo-100/60 rounded-lg px-3 py-2">
-                                              <span className="tabular-nums font-bold text-gray-900">{c.phrase}</span>
-                                              <span className="text-gray-500 font-medium text-xs text-right shrink-0">{c.translation}</span>
-                                            </div>
+                                            <li key={i} className="py-2 first:pt-0 flex items-baseline justify-between gap-3">
+                                              <span className="font-headword text-base text-gray-900" lang="en">{c.phrase}</span>
+                                              <span className="text-gray-600 text-right shrink-0">{c.translation}</span>
+                                            </li>
                                           ))}
-                                        </div>
+                                        </ul>
                                       </div>
                                     )}
                                   </div>
                                 );
                               }
                               return (
-                                <div className="flex flex-col items-center justify-center py-4 space-y-2">
-                                  <p className="text-xs text-gray-400 font-medium">
-                                    類義語・反意語・よく使われる組み合わせをAIが解説します。
+                                <div className="flex flex-col items-start gap-2">
+                                  <p className="text-sm text-gray-600">
+                                    似た意味の語・反対の語・よく一緒に使う語を、AIが解説します。
                                   </p>
                                   <button
                                     onClick={() => handleFetchWordRelations(word.word, word.translation)}
-                                    className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-xs font-bold rounded-lg hover:bg-teal-100 transition cursor-pointer"
+                                    className="min-h-11 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 text-sm font-bold rounded-xl transition cursor-pointer"
                                   >
-                                    語彙のつながりを分析する
+                                    語のつながりを調べる
                                   </button>
                                 </div>
                               );
                             })()}
                           </div>
-                        </div>
+                        </section>
 
                         {/* 四択の選択肢はここには出さない。
                             誤答は出題のための材料であって単語の情報ではないうえ、
@@ -1016,9 +900,9 @@ export default function Dictionary({
 
                         {/* 学習履歴詳細 */}
                         {attemptCount > 0 && (
-                          <p className="text-xs text-gray-400 text-right italic">
-                            これまでにこの単語を合計 <span className="font-bold tabular-nums text-gray-600">{attemptCount} 回</span> 回答し、
-                            そのうち正答数は <span className="font-bold tabular-nums text-emerald-600">{history ? history.correctCount : 0} 回</span> です。
+                          <p className="text-sm text-gray-600">
+                            これまでに <span className="font-bold tabular-nums text-gray-900">{attemptCount}回</span> 答えて、
+                            <span className="font-bold tabular-nums text-gray-900">{history ? history.correctCount : 0}回</span> 正解しています。
                           </p>
                         )}
 

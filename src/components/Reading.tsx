@@ -345,7 +345,7 @@ export default function Reading({
           >
             {part}
             {/* マウスで読んでいるときは、重ねるだけで意味が見える */}
-            <span aria-hidden="true" className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/word:block bg-slate-900 text-white text-xs px-2 py-1 rounded shadow-lg max-w-xs whitespace-nowrap z-50 font-sans">
+            <span aria-hidden="true" className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/word:block bg-slate-900 text-white text-xs px-2 py-1 rounded-md shadow max-w-xs whitespace-nowrap z-50 font-sans">
               {matchedWord.translation}
             </span>
           </button>
@@ -623,40 +623,35 @@ export default function Reading({
               )}
             </div>
 
-            {/* 一致スコア報酬 */}
-            <div className="bg-slate-900 text-white rounded-2xl p-6 relative overflow-hidden shadow-md shadow-gray-250">
-              <div className="absolute right-0 top-0 translate-x-1/3 -translate-y-1/3 w-32 h-32 bg-slate-800/60 rounded-full" />
-              <div className="relative z-10 flex flex-col justify-between h-full">
-                <div>
-                  <div className="flex gap-1.5 items-center">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs font-bold text-amber-300">読破の報酬</span>
-                  </div>
-                  <h4 className="text-lg font-bold mt-2 leading-tight">このストーリーの読破を目指そう！</h4>
-                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                    長文を自分の力で最後まで読み、語彙への理解が深まったら、下のボタンを押して読破を完了してください。
+            {/* 読破の報酬。以前は濃い紺のカードに金のグラデーションのボタンで、画面の中でここだけ色が違っていた */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+              <div>
+                <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                  読破の報酬
+                </p>
+                <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                  最後まで読んだら、下のボタンで読破を完了してください。
+                </p>
+              </div>
+              <div className="border-t border-gray-200 pt-4">
+                {isCompleted ? (
+                  <p className="w-full min-h-12 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold rounded-xl text-sm flex items-center justify-center gap-2 select-none">
+                    <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                    <span>報酬獲得済み（+{selectedPassage.pointReward}P）</span>
                   </p>
-                </div>
-
-                <div className="mt-6 border-t border-slate-800 pt-4 flex flex-col gap-2">
-                  {isCompleted ? (
-                    <div className="w-full bg-slate-800 border border-emerald-500/30 text-emerald-400 font-bold py-3 px-4 rounded-xl text-center text-xs flex items-center justify-center gap-2 select-none">
-                      <CheckCircle className="w-4 h-4 text-emerald-500" />
-                      <span>報酬獲得済み (+{selectedPassage.pointReward}P)</span>
-                    </div>
-                  ) : hasQuestions && !allAnswered ? (
-                    <div className="w-full bg-slate-800 border border-slate-700 text-slate-400 font-bold py-3 px-4 rounded-xl text-center text-xs leading-relaxed select-none">
-                      下の「理解度チェック」に全問回答すると<br />読破を完了できます 📝
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleCompletePassage(selectedPassage)}
-                      className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold py-3 px-4 rounded-xl text-center text-xs shadow-md shadow-amber-950/20 active:translate-y-px transition block cursor-pointer select-none"
-                    >
-                      読破を完了して +{selectedPassage.pointReward}P
-                    </button>
-                  )}
-                </div>
+                ) : hasQuestions && !allAnswered ? (
+                  <p className="w-full bg-slate-50 border border-gray-200 text-gray-600 py-3 px-4 rounded-xl text-center text-sm leading-relaxed select-none">
+                    下の「理解度チェック」に全問答えると、読破を完了できます
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => handleCompletePassage(selectedPassage)}
+                    className="w-full min-h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition cursor-pointer select-none"
+                  >
+                    読破を完了して +{selectedPassage.pointReward}P
+                  </button>
+                )}
               </div>
             </div>
 
@@ -733,12 +728,12 @@ export default function Reading({
               <div className="max-w-2xl mx-auto mt-6 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 text-center animate-fade-in">
                 <p className="text-sm font-bold text-indigo-950">
                   理解度チェック結果: <span className="tabular-nums text-xl text-indigo-700">{quizCorrectCount}</span> / {shuffledQuestions.length} 問正解
-                  {quizCorrectCount === shuffledQuestions.length && " 🎉 パーフェクト！"}
+                  {quizCorrectCount === shuffledQuestions.length && "　全問正解です"}
                 </p>
                 {!isCompleted && (
                   <button
                     onClick={() => handleCompletePassage(selectedPassage)}
-                    className="mt-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold py-3 px-8 rounded-xl text-xs shadow-md active:translate-y-px transition cursor-pointer select-none"
+                    className="mt-4 min-h-12 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 font-bold px-6 rounded-xl text-sm transition cursor-pointer select-none"
                   >
                     読破を完了して +{selectedPassage.pointReward}P を獲得
                   </button>
@@ -854,7 +849,7 @@ export default function Reading({
             <div
               key={p.id}
               onClick={() => setSelectedPassage(p)}
-              className="bg-white border hover:border-indigo-200 hover:shadow-md transition-all duration-200 rounded-2xl p-5 shadow-2xs flex flex-col justify-between cursor-pointer group border-gray-200/80"
+              className="bg-white border border-gray-200 hover:border-gray-400 transition-all duration-200 rounded-2xl p-5 flex flex-col justify-between cursor-pointer group border-gray-200/80"
             >
               <div>
                 <div className="flex justify-between items-start gap-2">

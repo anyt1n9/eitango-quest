@@ -577,9 +577,9 @@ export default function MapAndPuzzle({
                         isMasked 
                           ? currentPlaced 
                             ? isCorrect
-                              ? "bg-emerald-50 border-emerald-300 text-emerald-900 shadow-emerald-100/30 shadow-md"
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-900"
                               : isWrong
-                                ? "bg-rose-50 border-rose-300 text-rose-900 shadow-rose-100/30 shadow-md"
+                                ? "bg-rose-50 border-rose-300 text-rose-900"
                                 : "bg-indigo-50/70 border-indigo-300 text-indigo-900 shadow-sm"
                             : "bg-white border-dashed border-gray-300 hover:border-indigo-400 cursor-pointer animate-pulse"
                           : "bg-gray-100 text-gray-800 border-gray-200"
@@ -705,7 +705,7 @@ export default function MapAndPuzzle({
                 {!isAnswerChecked ? (
                   <button
                     onClick={checkAnswer}
-                    className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow hover:shadow-md transition flex items-center gap-1 cursor-pointer select-none"
+                    className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow transition flex items-center gap-1 cursor-pointer select-none"
                     id="btn_submit_puzzle_answers"
                   >
                     <Check className="w-4 h-4" />

@@ -26,7 +26,7 @@ export default function BackButton({
       type="button"
       onClick={onClick}
       id={id}
-      className={`inline-flex items-center gap-0.5 min-h-11 pl-1.5 pr-3 rounded-xl bg-slate-50 text-sm font-bold text-indigo-700 hover:text-indigo-900 hover:bg-gray-100 transition cursor-pointer ${className}`}
+      className={`inline-flex self-start w-fit items-center gap-0.5 min-h-11 pl-1.5 pr-3 rounded-xl bg-slate-50 text-sm font-bold text-indigo-700 hover:text-indigo-900 hover:bg-gray-100 transition cursor-pointer ${className}`}
     >
       <ChevronLeft className="w-5 h-5" aria-hidden="true" />
       <span>{label}</span>

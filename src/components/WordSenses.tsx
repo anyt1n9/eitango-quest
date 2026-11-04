@@ -94,13 +94,13 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
   const borrowedFrom = senses[0]?.from;
 
   return (
-    <div className={`bg-amber-50/50 border border-amber-200/70 dark:bg-slate-800/40 dark:border-slate-700 p-3.5 rounded-xl space-y-2.5 ${className}`}>
+    <div className={`bg-slate-50 border border-gray-200 p-4 rounded-xl space-y-2.5 ${className}`}>
       <div className="flex items-center gap-1.5">
-        <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-        <p className="font-bold text-amber-700 dark:text-amber-400 text-xs">
+        <Layers className="w-4 h-4 text-gray-500" aria-hidden="true" />
+        <p className="font-bold text-gray-900 text-sm">
           この単語の他の意味（{senses.length}件）
           {borrowedFrom && (
-            <span className="ml-1 font-bold text-amber-600/80 dark:text-amber-500">
+            <span className="ml-1 font-medium text-gray-600">
               — 基本形 <span className="tabular-nums">{borrowedFrom}</span> の意味
             </span>
           )}
@@ -113,8 +113,8 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
           return (
             <div key={group.pos} data-testid={`sense_group_${group.pos}`}>
               {/* 割合は品詞のまとまりに1回だけ。語義ごとに繰り返すと意味別の頻度に見える */}
-              <div className="flex items-center gap-1.5 pb-1 border-b border-amber-200/70 dark:border-slate-700">
-                <span className="inline-block px-1.5 py-0.5 rounded-md bg-white border border-amber-200 dark:border-slate-600 text-xs font-bold text-amber-700 dark:text-amber-300">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-gray-200">
+                <span className="inline-block px-1.5 py-0.5 rounded-md bg-white border border-gray-200 text-xs font-bold text-gray-700">
                   {POS_SHARE_LABELS[group.pos] || group.pos}
                 </span>
                 <span className={`text-xs tabular-nums font-bold ${label.muted
@@ -133,7 +133,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
                     && isTaught(s.meaning, ownTranslation);
                   return (
                     <li key={i} className="flex items-start gap-1.5 text-sm leading-snug">
-                      <span className="text-amber-400 dark:text-amber-600 mt-0.5 text-xs">●</span>
+                      <span className="text-gray-400 mt-0.5 text-xs" aria-hidden="true">●</span>
                       <span className={`flex-1 ${taught
                         ? "font-bold text-indigo-800"
                         : "font-medium text-gray-700 dark:text-slate-300"}`}>
@@ -166,7 +166,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
       </div>
 
       {(hasShare || hasUsage || hasImportant) && (
-        <div className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-amber-200/70 dark:border-slate-700 space-y-0.5">
+        <div className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-gray-200 space-y-0.5">
           {hasShare && (
             <p>
               ％は、その品詞が実際の英文で使われる割合です（WordNet の SemCor 頻度による）。

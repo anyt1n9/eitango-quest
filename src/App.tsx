@@ -820,7 +820,7 @@ export default function App() {
         className="min-h-screen bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100 flex flex-col items-center justify-center gap-4"
         id="vocabulary_loading_screen"
       >
-        <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-md">
+        <div className="p-3 bg-indigo-600 rounded-2xl text-white">
           <BrainCircuit className="w-7 h-7" />
         </div>
         <p className="text-sm font-bold text-gray-700 dark:text-slate-200">Eigorira</p>

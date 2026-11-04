@@ -613,7 +613,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                       <button
                         type="submit"
                         disabled={isAdding || !newWord.trim()}
-                        className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-600 text-white font-bold px-5 min-h-11 rounded-xl transition flex items-center gap-1.5 shadow hover:shadow-md cursor-pointer text-xs whitespace-nowrap"
+                        className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-600 text-white font-bold px-5 min-h-11 rounded-xl transition flex items-center gap-1.5 shadow cursor-pointer text-xs whitespace-nowrap"
                         id="btn_submit_add_word"
                       >
                         {isAdding ? (
@@ -1052,7 +1052,7 @@ negotiation,交渉`}
               <button
                 type="button"
                 onClick={() => handleDownloadTemplate(csvTemplateType)}
-                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4 text-white" />
                 <span>このテンプレートの CSV ファイルを直接ダウンロード ➔</span>

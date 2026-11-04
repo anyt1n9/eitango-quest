@@ -14,6 +14,7 @@ import {
   AlertTriangle, PencilLine, ChevronRight, Sparkles, RotateCcw
 } from "lucide-react";
 import BackButton from "./BackButton";
+import { optionState, optionClass, OptionMark } from "./QuizParts";
 
 /**
  * 文法ガイド。
@@ -267,11 +268,12 @@ export default function Grammar({
       ) : (
         <div className="space-y-4" data-testid="grammar_topic_list">
         {topicsByLevel(filtered).map(group => (
-          <div key={group.level} className="space-y-2">
-            <h3 className="text-xs font-bold text-gray-500 dark:text-slate-400 px-1">
+          // レベルの見出しもカードの中に入れる（カードの外に置くと、背景の海や写真の上に小さな文字が出る）
+          <section key={group.level} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <h3 className="text-sm font-bold text-gray-900 px-4 pt-3 pb-2 bg-slate-50 border-b border-gray-200">
               {LEVEL_LABELS[group.level]}
             </h3>
-            <div className="space-y-2">
+            <div className="divide-y divide-gray-200">
               {group.topics.map(t => {
                 const cleared = isTopicCleared(t, progress);
                 return (
@@ -279,35 +281,35 @@ export default function Grammar({
                     key={t.id}
                     onClick={() => setOpenId(t.id)}
                     id={`grammar_topic_${t.id}`}
-                    className="w-full text-left bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-slate-800 transition cursor-pointer flex items-start gap-3"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition cursor-pointer flex items-start gap-3"
                   >
                     <span className="shrink-0 mt-0.5">
                       {cleared
-                        ? <CircleCheck className="w-5 h-5 text-emerald-500" aria-label="仕上がり" />
-                        : <span className="block w-5 h-5 rounded-full border-2 border-gray-200 dark:border-slate-700" />}
+                        ? <CircleCheck className="w-5 h-5 text-emerald-700" aria-label="仕上がり" />
+                        : <span className="block w-5 h-5 rounded-full border-2 border-gray-300" />}
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-gray-900 dark:text-slate-100">{t.title}</span>
-                        <span className="text-xs font-bold text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-slate-700 rounded px-1.5 py-0.5">
+                        <span className="text-sm font-bold text-gray-900">{t.title}</span>
+                        <span className="text-xs text-gray-600 border border-gray-200 rounded-md px-1.5 py-0.5">
                           {t.category}
                         </span>
                         {wrongTopics.includes(t.id) && (
-                          <span className="text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded px-1.5 py-0.5">
+                          <span className="text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 rounded-md px-1.5 py-0.5">
                             要復習
                           </span>
                         )}
                       </span>
-                      <span className="block text-xs font-medium text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      <span className="block text-sm text-gray-600 mt-1 leading-relaxed">
                         {t.summary}
                       </span>
                     </span>
-                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-1" />
+                    <ChevronRight className="w-4 h-4 text-gray-500 shrink-0 mt-1" aria-hidden="true" />
                   </button>
                 );
               })}
             </div>
-          </div>
+          </section>
         ))}
         </div>
       )}
@@ -373,7 +375,7 @@ function TopicDetail({
     <div className="space-y-4" id="grammar_detail">
       <BackButton onClick={onBack} id="btn_grammar_detail_back" label="文法ガイドの一覧に戻る" />
 
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-2 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">
             {LEVEL_LABELS[topic.level]}
@@ -392,11 +394,11 @@ function TopicDetail({
       </div>
 
       {/* 説明 */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm" data-testid="grammar_sections">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4" data-testid="grammar_sections">
         {topic.sections.map((s, i) => (
           <div key={i} className="space-y-1">
             <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 flex items-start gap-1.5">
-              <span className="text-indigo-500 tabular-nums text-xs mt-0.5">{i + 1}.</span>
+              <span className="text-gray-500 tabular-nums text-xs mt-0.5">{i + 1}.</span>
               {s.heading}
             </h3>
             <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed pl-5">{s.body}</p>
@@ -405,18 +407,18 @@ function TopicDetail({
       </div>
 
       {/* 例文 */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-3 shadow-sm" data-testid="grammar_examples">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3" data-testid="grammar_examples">
         <div className="flex items-center gap-1.5">
-          <Lightbulb className="w-4 h-4 text-amber-500" />
+          <Lightbulb className="w-4 h-4 text-gray-500" aria-hidden="true" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">例文</h3>
         </div>
         <ul className="space-y-2.5">
           {topic.examples.map((e, i) => (
-            <li key={i} className="border-l-2 border-amber-300 dark:border-amber-700 pl-3 space-y-0.5">
-              <p className="tabular-nums text-sm font-bold text-gray-900 dark:text-slate-100 leading-snug">{e.english}</p>
+            <li key={i} className="border-l-2 border-gray-300 pl-3 space-y-0.5">
+              <p className="font-headword text-base text-gray-900 leading-snug" lang="en">{e.english}</p>
               <p className="text-xs font-medium text-gray-600 dark:text-slate-400">{e.japanese}</p>
               {e.note && (
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-400">→ {e.note}</p>
+                <p className="text-xs font-bold text-gray-700">→ {e.note}</p>
               )}
             </li>
           ))}
@@ -425,17 +427,17 @@ function TopicDetail({
 
       {/* この文法をとる動詞（収録語から引く） */}
       {verbs.length > 0 && (
-        <div className="bg-sky-50/50 dark:bg-slate-800/40 border border-sky-200/70 dark:border-slate-700 rounded-2xl p-5 space-y-2" data-testid="grammar_verbs">
-          <h3 className="text-sm font-bold text-sky-800 dark:text-sky-300">この形をとる動詞（収録語から）</h3>
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2" data-testid="grammar_verbs">
+          <h3 className="text-sm font-bold text-gray-900">この形をとる動詞（収録語から）</h3>
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
             英英辞典 WordNet が、実際にこの形で使われると記録している動詞です。
             覚えた単語がこの文法とどうつながるかを確かめてください。
           </p>
           <ul className="flex flex-wrap gap-1.5 pt-1">
             {verbs.map(w => (
-              <li key={w.id} className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1">
-                <span className="tabular-nums text-xs font-bold text-gray-900 dark:text-slate-100">{w.word}</span>
-                <span className="ml-1.5 text-xs font-bold text-gray-600 dark:text-slate-400">{w.translation}</span>
+              <li key={w.id} className="bg-slate-50 border border-gray-200 rounded-xl px-2.5 py-1">
+                <span className="font-headword text-sm text-gray-900" lang="en">{w.word}</span>
+                <span className="ml-1.5 text-xs text-gray-600">{w.translation}</span>
               </li>
             ))}
           </ul>
@@ -444,16 +446,16 @@ function TopicDetail({
 
       {/* この文法が出てくる長文 */}
       {readings.length > 0 && (
-        <div className="bg-emerald-50/50 dark:bg-slate-800/40 border border-emerald-200/70 dark:border-slate-700 rounded-2xl p-5 space-y-2" data-testid="grammar_readings">
-          <h3 className="text-sm font-bold text-emerald-800 dark:text-emerald-300">この文法が出てくる長文</h3>
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2" data-testid="grammar_readings">
+          <h3 className="text-sm font-bold text-gray-900">この文法が出てくる長文</h3>
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
             解説を読んだら、実際の英文の中で見つけてみてください。
             「長文ストーリー読破」から読めます。
           </p>
           <ul className="space-y-1.5 pt-1">
             {readings.map(p => (
-              <li key={p.id} className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5">
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 mr-1.5">
+              <li key={p.id} className="bg-slate-50 border border-gray-200 rounded-xl px-3 py-2">
+                <span className="text-xs text-gray-600 mr-1.5">
                   {LEVEL_LABELS[p.level]}
                 </span>
                 <span className="text-xs font-bold text-gray-900 dark:text-slate-100">{p.title}</span>
@@ -464,9 +466,9 @@ function TopicDetail({
       )}
 
       {/* よくある間違い */}
-      <div className="bg-rose-50/50 dark:bg-slate-800/40 border border-rose-200/70 dark:border-slate-700 rounded-2xl p-5 space-y-3" data-testid="grammar_mistakes">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3" data-testid="grammar_mistakes">
         <div className="flex items-center gap-1.5">
-          <AlertTriangle className="w-4 h-4 text-rose-500" />
+          <AlertTriangle className="w-4 h-4 text-gray-500" aria-hidden="true" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">よくある間違い</h3>
         </div>
         <ul className="space-y-3">
@@ -487,11 +489,11 @@ function TopicDetail({
       </div>
 
       {/* 練習問題 */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm" data-testid="grammar_questions">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4" data-testid="grammar_questions">
         <div className="flex items-center gap-1.5">
-          <PencilLine className="w-4 h-4 text-indigo-600" />
+          <PencilLine className="w-4 h-4 text-gray-500" aria-hidden="true" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">練習問題</h3>
-          <span className="text-xs tabular-nums font-bold text-gray-400">
+          <span className="text-sm tabular-nums text-gray-600">
             {(progress[topic.id] || []).length} / {topic.questions.length} 正解
           </span>
         </div>
@@ -506,28 +508,24 @@ function TopicDetail({
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {q.options.map((opt, oi) => {
-                  const isCorrect = oi === q.correctIndex;
-                  let cls = "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 hover:border-indigo-400";
-                  if (answered) {
-                    if (isCorrect) cls = "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 text-emerald-900 dark:text-emerald-300 font-bold";
-                    else if (oi === picked) cls = "bg-rose-50 dark:bg-rose-950/40 border-rose-300 text-rose-900 dark:text-rose-300 font-bold";
-                    else cls = "bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-800 text-gray-400 opacity-60";
-                  }
+                  // 出題画面と同じ見た目にする（答えたら正解を緑・自分の答えを赤。src/components/QuizParts.tsx）
+                  const state = optionState(answered, oi === q.correctIndex, oi === picked);
                   return (
                     <button
                       key={oi}
                       onClick={() => answer(qi, oi)}
                       disabled={answered}
                       id={`grammar_q${qi}_opt${oi}`}
-                      className={`border rounded-xl px-3 py-2 text-left text-sm font-medium transition ${answered ? "cursor-default" : "cursor-pointer"} ${cls}`}
+                      className={`${optionClass(state)} text-left min-h-12 text-sm`}
                     >
-                      {opt}
+                      <span className="flex-1">{opt}</span>
+                      <OptionMark state={state} />
                     </button>
                   );
                 })}
               </div>
               {answered && (
-                <p className="text-xs font-medium text-gray-600 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 leading-relaxed">
+                <p className="text-sm text-gray-700 bg-slate-50 border border-gray-200 rounded-xl px-3 py-2 leading-relaxed" role="status">
                   {picked === q.correctIndex ? "正解。" : `正解は「${q.options[q.correctIndex]}」。`}
                   {q.explanation}
                 </p>

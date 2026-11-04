@@ -349,80 +349,68 @@ export default function AIDiary({
 
       </div>
 
-      {/* 開放ステータス看板 */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-        <div className="absolute right-0 top-0 opacity-[0.03] scale-150 rotate-45 pointer-events-none">
-          <Sparkles className="w-64 h-64 text-indigo-900" />
+      {/* 開放の状態。以前は英語の副題（English Diary Maker…）・「% Unlocked」・跳ねる札・
+          グラデーションの帯とボタンが並んでいた */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <span className="w-10 h-10 shrink-0 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
+            {isUnlocked ? <Unlock className="w-5 h-5" aria-hidden="true" /> : <Lock className="w-5 h-5" aria-hidden="true" />}
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
+              <span>AI 英語日記</span>
+              {isUnlocked && <span className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full">使えます</span>}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+              覚えた単語が <span className="font-bold text-gray-900">200語</span> に届くと使えます。
+              覚えた単語をちりばめた英語の日記を、AIが書きます。
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-3 z-10 max-w-xl">
-          <div className="flex items-center gap-3">
-            <span className="p-2 bg-indigo-50 rounded-2xl text-indigo-700 dark:text-indigo-400">
-              {isUnlocked ? <Unlock className="w-6 h-6 animate-pulse" /> : <Lock className="w-6 h-6 text-gray-400" />}
+        {/* 進み具合 */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-sm text-gray-600 tabular-nums">
+            <span>
+              覚えた単語 <strong className="text-gray-900">{masteredCount}</strong> / 200語
             </span>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                <span>AI 英語日記生成モード</span>
-                {isUnlocked && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full animate-bounce">解放済み</span>}
-              </h2>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">English Diary Maker using learned vocabulary</p>
-            </div>
+            <span>{Math.min(100, Math.round((masteredCount / 200) * 100))}%</span>
           </div>
-          <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed font-medium">
-            クイズで正解した実績（マスター）が <span className="text-indigo-600 dark:text-indigo-400 font-bold text-base">200単語</span> に到達すると自動解放される学習報酬モードです。AIがあなたが覚えた単語プールをくまなく解析し、それらから関連性の高い言葉を美しく散りばめた、自然で豊かなオリジナルストーリー日記を長さ制限なしでパーソナライズ生成します。
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden" aria-hidden="true">
+            <div
+              className="h-full bg-indigo-600 rounded-full transition-[width] duration-500"
+              style={{ width: `${Math.min(100, (masteredCount / 200) * 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {!isUnlocked && (
+          <p className="flex items-start gap-1.5 text-sm text-gray-600 leading-relaxed">
+            <Clock className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>一問一答や例文穴埋めで、あと <strong className="text-gray-900">{200 - masteredCount}語</strong> 覚えると使えます。</span>
           </p>
+        )}
 
-          {/* プログレスバー */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between text-xs text-gray-400">
-              <span className="font-bold flex items-center gap-1">
-                <Award className="w-3.5 h-3.5 text-indigo-500" />
-                <span>習得合計実績:</span>
-                <strong className="text-gray-700 dark:text-slate-200 text-sm pl-0.5">{masteredCount}</strong> / 200 単語
-              </span>
-              <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">
-                {Math.min(100, Math.round((masteredCount / 200) * 100))}% Unlocked
-              </span>
-            </div>
-            <div className="w-full h-3.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-indigo-50/50">
-              <div 
-                className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 dark:from-indigo-600 dark:to-indigo-500 rounded-full transition-all duration-500 shadow-3xs"
-                style={{ width: `${Math.min(100, (masteredCount / 200) * 100)}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 右側アクション */}
-        <div className="z-10 shrink-0 flex flex-col gap-2.5 justify-center md:items-end">
-          {!isUnlocked && (
-            <div className="flex items-center gap-1.5 p-3 rounded-2xl bg-gray-50 dark:bg-slate-850/80 border border-gray-150 dark:border-slate-800 text-xs text-gray-500 dark:text-slate-400 font-medium leading-normal max-w-[240px]">
-              <Clock className="w-4 h-4 text-gray-300 dark:text-slate-500 shrink-0" />
-              <span>一問一答テストや例文穴埋めを行い、あと <strong>{200 - masteredCount} 単語</strong> 正解すると開放！</span>
-            </div>
-          )}
-
-          {isUnlocked && (
-            <button
-              onClick={handleGenerateDiary}
-              disabled={loading}
-              className="px-6 py-4.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-sm rounded-2xl transition shadow-lg hover:shadow-xl cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2.5 select-none"
-              id="generator_diary_btn"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>AI日記執筆中...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 fill-indigo-100" />
-                  <span>AIに英語日記をオーダーする</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
+        {isUnlocked && (
+          <button
+            onClick={handleGenerateDiary}
+            disabled={loading}
+            className="w-full sm:w-auto min-h-12 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base rounded-xl transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 select-none"
+            id="generator_diary_btn"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin" aria-hidden="true" />
+                <span>AIが日記を書いています…</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" aria-hidden="true" />
+                <span>AIに英語日記を書いてもらう</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* メインの書き下ろし日記ディスプレイ */}
@@ -438,11 +426,11 @@ export default function AIDiary({
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
-                  className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl overflow-hidden shadow-md"
+                  className="bg-white border border-gray-200 rounded-2xl overflow-hidden"
                   id="diary_book_content"
                 >
                   {/* ヘッダー・スタンプ風 */}
-                  <div className="bg-gradient-to-r from-gray-50 to-indigo-50/20 dark:from-slate-850 dark:to-slate-900 border-b border-gray-100 dark:border-slate-800 py-4 px-6 flex items-center justify-between">
+                  <div className="bg-slate-50 border-b border-gray-200 py-4 px-5 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <span className="p-1.5 bg-indigo-100 rounded-lg text-sm text-indigo-700 font-bold">
                         日記
@@ -750,7 +738,7 @@ export default function AIDiary({
             <div className="grid grid-cols-2 gap-2.5 pt-2">
               <button
                 onClick={confirmClearAllHistory}
-                className="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition cursor-pointer"
+                className="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 完全に消去する
               </button>

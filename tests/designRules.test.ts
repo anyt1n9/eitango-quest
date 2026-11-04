@@ -51,6 +51,15 @@ describe("画面の決まり", () => {
     expect(offenders(/\bfont-mono\b/).filter(l => !allowed.some(a => l.includes(a)))).toEqual([]);
   });
 
+  it("グラデーションと強い影を使わない（どこを読めばよいのかが色と影で分からなくなる）", () => {
+    // 海の3D背景の地（index.css）はコンポーネントの外なので対象外
+    expect(offenders(/\bbg-gradient-to-/)).toEqual([]);
+    // カードとボタンに影を付けない。例外は、ほかの画面の上に重ねて出すもの
+    // （長文の重要語の欄は狭い画面で本文の上に重ねる。確認の窓は shadow-2xl で浮かせる）と、
+    // ガチャの当たりの光（レアの演出）
+    expect(offenders(/\bshadow-(?:md|lg)\b/).filter(l => !l.includes("GachaShop.tsx"))).toEqual([]);
+  });
+
   it("下の階層の画面の「戻る」は共通の部品（BackButton）を使う", () => {
     // 以前は画面ごとに書いていて、文字の大きさ・色・枠の有無が少なくとも7通りあった
     expect(offenders(/<ArrowLeft\b/)).toEqual([]);
