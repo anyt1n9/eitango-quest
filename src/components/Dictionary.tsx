@@ -755,7 +755,7 @@ export default function Dictionary({
                                             <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden" aria-hidden="true">
                                               <div
                                                 className="h-full bg-indigo-600 rounded-full transition-[width] duration-700"
-                                                style={{ width: `${f?.percentage || 50}%` }}
+                                                style={{ width: `${f?.percentage ?? 50}%` }}
                                               />
                                             </div>
                                             {f?.description && (

@@ -345,7 +345,8 @@ export default function MapAndPuzzle({
     <div className="space-y-6" id="map_puzzle_screen_wrapper">
       {/* 画面ヘッダー */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-150 shadow-xs" id="map_puzzle_sub_header">
-        <BackButton onClick={onBackToDashboard} id="btn_back_to_dashboard_from_map" />
+        {/* 縦に並べる親（狭い画面）の中で横いっぱいに伸びないようにする */}
+        <BackButton onClick={onBackToDashboard} id="btn_back_to_dashboard_from_map" className="self-start" />
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
             <PuzzleIcon className="w-5 h-5" />

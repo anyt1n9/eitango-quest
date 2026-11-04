@@ -10,7 +10,6 @@ import {
   Volume2, 
   BookOpen, 
   Calendar, 
-  Award, 
   CheckCircle,
   Clock,
   ExternalLink,
