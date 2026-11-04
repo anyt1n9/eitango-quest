@@ -64,6 +64,25 @@ class OceanGuard extends React.Component<OceanGuardProps, { failed: boolean }> {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
 }
+/**
+ * 海の3D背景を読み込むまでの地。OceanBackground と同じ海の色のグラデーションだけを、
+ * three.js を待たずに出す（index.css の .bg-ocean3d）
+ */
+function OceanPlaceholder({ active, unsupported = false }: { active: boolean; unsupported?: boolean }) {
+  return (
+    <div
+      className="bg-scene bg-ocean3d"
+      data-testid={active ? "background_scene" : undefined}
+      // 3D を描けない端末では、この地のまま（OceanBackground の「海の色の地」と同じ印）
+      data-kind={unsupported ? "ocean-fallback" : "ocean-loading"}
+      data-active={active ? "true" : "false"}
+      data-veil="light"
+      aria-hidden="true"
+    >
+      <div className="bg-photo-veil" />
+    </div>
+  );
+}
 const PrivacyPolicy = lazy(() =>
   import("./components/LegalPages").then(m => ({ default: m.PrivacyPolicy }))
 );
@@ -88,6 +107,7 @@ import BackButton from "./components/BackButton";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
 import { applyThemeColor } from "./themeColor";
+import { canRenderOcean, clearOceanChoice, currentOceanEnv, initialOcean, saveOceanChoice } from "./oceanSetting";
 import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
@@ -259,11 +279,38 @@ export default function App() {
     writeStored("quest_bg_motion", bgMotion ? "on" : "off");
   }, [bgMotion]);
 
-  /** 海の3D背景（試験中）。three.js と3Dモデルを読むので、はじめは使わない */
-  const [bgOcean, setBgOcean] = useState<boolean>(() => readStoredString("quest_bg_ocean") === "on");
+  /**
+   * 海の3D背景。既定は使う（決め方は src/oceanSetting.ts）。
+   * 起動時には保存しない。試験中は起動のたびに "off" を書いていたため、
+   * 本人が「使わない」を選んだのか、ただ開いただけなのかが区別できなくなっていた
+   */
+  const [bgOcean, setBgOcean] = useState<boolean>(() => initialOcean(currentOceanEnv(readBackgroundImage() !== null)));
+  const changeOcean = (on: boolean) => {
+    setBgOcean(on);
+    saveOceanChoice(on);
+  };
+  // 3D（three.js と3Dモデル）は、起動直後の操作を重くしないよう、画面が落ち着いてから読み込む。
+  // それまでは同じ海の色の地を出しておく（ジャングル→海と入れ替わって見えないように）
+  const [oceanMounted, setOceanMounted] = useState(false);
+  // GPU ではなく CPU で描く端末（仮想マシンなど）では、three.js を取りに行かずに海の色の地のままにする
+  const [oceanUnsupported, setOceanUnsupported] = useState(false);
   useEffect(() => {
-    writeStored("quest_bg_ocean", bgOcean ? "on" : "off");
-  }, [bgOcean]);
+    if (!bgOcean || oceanMounted || oceanUnsupported) return;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const mount = () => {
+      if (canRenderOcean()) setOceanMounted(true);
+      else setOceanUnsupported(true);
+    };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(mount, { timeout: 2500 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(mount, 800);
+    return () => window.clearTimeout(t);
+  }, [bgOcean, oceanMounted, oceanUnsupported]);
 
   // 間隔反復(SRS)の単語ごとのスケジュール状態
   // 壊れた要素（null・数値でない box など）は読み込みの時点で捨てる（src/srs.ts の sanitizeSrs）
@@ -814,9 +861,13 @@ export default function App() {
       {bgOcean ? (
         // 出題中も外さずに隠すだけにする（作り直すと3Dモデルの準備がやり直しになる）
         <OceanGuard fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}>
-          <Suspense fallback={null}>
-            <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} />
-          </Suspense>
+          {oceanMounted ? (
+            <Suspense fallback={<OceanPlaceholder active={!isTransient(currentScreen)} />}>
+              <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} />
+            </Suspense>
+          ) : (
+            <OceanPlaceholder active={!isTransient(currentScreen)} unsupported={oceanUnsupported} />
+          )}
         </OceanGuard>
       ) : (
         !isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />
@@ -1246,13 +1297,22 @@ export default function App() {
         {currentScreen === "background" && (
           <BackgroundSettings
             image={bgImage}
-            onChange={setBgImage}
+            onChange={img => {
+              setBgImage(img);
+              // 画像を選んだら、その画像を見せる（海を使ったままだと、選んだ画像が海に隠れて見えない）。
+              // 「使わない」は保存しない（本人が押したのではないため）。保存していた選択を消すと、
+              // 次の起動では「画像のある人は画像のまま」が効く（src/oceanSetting.ts）
+              if (img && bgOcean) {
+                setBgOcean(false);
+                clearOceanChoice();
+              }
+            }}
             veil={bgVeil}
             onVeilChange={changeBgVeil}
             glass={glass}
             onGlassChange={changeGlass}
             ocean={bgOcean}
-            onOceanChange={setBgOcean}
+            onOceanChange={changeOcean}
             onBack={goBack}
           />
         )}

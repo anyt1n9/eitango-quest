@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { judge, looksLikeBrowserCap30, tierSpecs, type JudgeContext } from "../src/ocean/quality";
+import { judge, looksLikeBrowserCap30, tierSpecs, isSoftwareRenderer, type JudgeContext } from "../src/ocean/quality";
 
 /**
  * 海の3D背景の画質の自動判定。
@@ -87,5 +87,27 @@ describe("画質ごとの量", () => {
     const t = tierSpecs(1);
     expect(t.high.pixelRatio).toBeLessThanOrEqual(1);
     expect(t.mid.pixelRatio).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("GPU の無い WebGL", () => {
+  it("CPU で肩代わりしている WebGL は3Dを描かない（仮想マシン・CI。描くと操作まで重くなる）", () => {
+    for (const name of [
+      "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "llvmpipe (LLVM 15.0.7, 256 bits)",
+      "Microsoft Basic Render Driver",
+      "Google SwiftShader"
+    ]) expect(isSoftwareRenderer(name), name).toBe(true);
+  });
+
+  it("GPU で描いている端末と、名前が取れない端末は描く", () => {
+    for (const name of [
+      "Apple GPU",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+      "Adreno (TM) 640",
+      "Mali-G78",
+      "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      ""
+    ]) expect(isSoftwareRenderer(name), name).toBe(false);
   });
 });

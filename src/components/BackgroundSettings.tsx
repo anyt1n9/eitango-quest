@@ -25,7 +25,7 @@ interface Props {
   /** カードとボタンの透明感（ガラス） */
   glass: GlassLevel;
   onGlassChange: (glass: GlassLevel) => void;
-  /** 海の3D背景（試験中）を使うか */
+  /** 海の3D背景を使うか（既定は使う。src/oceanSetting.ts） */
   ocean: boolean;
   onOceanChange: (on: boolean) => void;
   onBack: () => void;
@@ -84,15 +84,17 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
           選んだ画像は長辺 {MAX_EDGE}px まで縮めてから保存します（{Math.round(MAX_FILE_BYTES / 1024 / 1024)}MB まで）。
         </p>
 
-        {/* 海の3D背景（試験中）。three.js と3Dモデルを読むので、選んだ人にだけ出す */}
-        <div className="mt-6 border-t border-gray-100 pt-6" data-testid="ocean_picker">
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-            <Waves className="w-4 h-4 text-indigo-700" aria-hidden="true" />
-            海の3D背景（試験中）
+        {/* 海の3D背景。はじめから使う（データ節約の端末と、自分の画像を背景にしている人を除く。src/oceanSetting.ts） */}
+        <div className="mt-6 border-t border-gray-200 pt-6" data-testid="ocean_picker">
+          <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <Waves className="w-5 h-5 text-gray-500" aria-hidden="true" />
+            海の3D背景
           </h3>
-          <p className="text-xs text-gray-500 mt-1 mb-3 max-w-md leading-relaxed">
+          <p className="text-sm text-gray-500 mt-1 mb-3 max-w-md leading-relaxed">
             光が差し込むサンゴ礁の海を、背景に動かして表示します。端末の性能に合わせて画質を自動で調整します。
-            はじめて使うときに約1MBを読み込みます。使っている間は、下で選んだ画像の代わりにこちらを出します。
+            はじめて表示するときに約2MBを読み込みます（2回目からは端末に残ったものを使います）。
+            使わないにすると、はじめから入っている飾り（明るいテーマ＝ジャングル／暗いテーマ＝海の絵）か、
+            下で選んだ画像を出します。画像を選ぶと、海の代わりにその画像を出します。
           </p>
           <div className="flex flex-wrap gap-2" role="group" aria-label="海の3D背景">
             {[{ on: true, label: "使う" }, { on: false, label: "使わない" }].map(c => (
@@ -101,10 +103,10 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
                 onClick={() => onOceanChange(c.on)}
                 aria-pressed={ocean === c.on}
                 id={c.on ? "btn_ocean_on" : "btn_ocean_off"}
-                className={`min-h-11 px-5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                className={`min-h-11 px-5 rounded-xl text-sm font-bold border transition cursor-pointer ${
                   ocean === c.on
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                    ? "bg-indigo-50 text-indigo-800 border-indigo-600"
+                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 {c.label}

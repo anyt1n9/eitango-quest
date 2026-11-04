@@ -95,3 +95,16 @@ export function judge(sample: FrameSample, ctx: JudgeContext): Verdict {
   if (ctx.tier === "mid" && fps > 57 && !ctx.coarsePointer && !ctx.triedHigh) return { kind: "up", to: "high", fps };
   return { kind: "keep", fps };
 }
+
+/**
+ * WebGL を GPU ではなく CPU で描いているか（WEBGL_debug_renderer_info の名前で見分ける）。
+ *
+ * GPU を持たない環境（仮想マシン・GPU を止められたパソコン・CI）では、ブラウザが
+ * SwiftShader や llvmpipe で WebGL を肩代わりする。描けはするが、1コマごとに CPU を使い切るので、
+ * 画質を「低」まで下げて測り直すあいだ、画面の操作まで重くなる
+ * （e2e がこれで 2.5分 → 9.9分 になった）。この場合は3Dを描かず、海の色の地にする。
+ * 名前が取れないとき（拡張が無い）は GPU とみなす（画質の自動判定に任せる）。
+ */
+export function isSoftwareRenderer(rendererName: string): boolean {
+  return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(rendererName);
+}
