@@ -1,4 +1,3 @@
-import { Flame } from "lucide-react";
 import { todayStr } from "../srs";
 
 interface StudyCalendarProps {
@@ -100,45 +99,37 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm rounded-2xl p-6" id="study_calendar_section">
-      <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
-        <span className="p-1.5 bg-emerald-100 dark:bg-emerald-950/50 rounded-xl text-emerald-700 dark:text-emerald-400">
-          <Flame className="w-4 h-4" />
-        </span>
-        学習カレンダー
-      </h2>
-      <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-        毎日の解答数を記録しています。マスを濃い緑で埋めて、学習の連続記録を伸ばしましょう！
-      </p>
-
-      {/* サマリーチップ */}
-      <div className="mt-4 flex flex-wrap gap-2.5 text-xs font-bold">
-        <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-150 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 rounded-xl flex items-center gap-1.5">
-          <Flame className="w-3.5 h-3.5" />
-          <span>連続学習 <span className="tabular-nums text-sm">{streak}</span> 日</span>
-        </div>
-        <div className="px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-150 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-xl">
-          学習した日: <span className="tabular-nums text-sm">{activeDays}</span> 日
-        </div>
+    // 記録の画面のログインボーナスのカードの中に置くので、ここではカードにしない
+    // （カードの中にカードを重ねると、枠と余白が二重になる）
+    <div id="study_calendar_section">
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 className="text-base font-bold text-gray-900">学習カレンダー</h2>
         {/* 累計の解答数は、同じ「記録」の画面の「累計回答数」が受け持つ。
             ここでも日別の記録から数えて出していたが、数え方が違ったため
             同じ画面に「累計解答 11問」と「累計回答数 10問」が並んでいた */}
+        <div className="flex gap-3 text-sm text-gray-500 tabular-nums">
+          <div>連続学習 <span className="font-bold text-gray-900">{streak}</span> 日</div>
+          <div>学習した日 <span className="font-bold text-gray-900">{activeDays}</span> 日</div>
+        </div>
       </div>
+      <p className="text-sm text-gray-500 mt-1">
+        1日に解いた問題の数を、マスの濃さで表しています。
+      </p>
 
       {/* ヒートマップ本体（横スクロール対応） */}
-      <div className="mt-5 overflow-x-auto pb-2">
+      <div className="mt-4 overflow-x-auto pb-2">
         <div className="inline-block min-w-full">
           {/* 月ラベル行 */}
           <div className="flex gap-1 mb-1 pl-8">
             {monthLabels.map((label, i) => (
-              <div key={i} className="w-3.5 shrink-0 text-xs text-gray-400 dark:text-slate-500 font-bold whitespace-nowrap overflow-visible">
+              <div key={i} className="w-3.5 shrink-0 text-xs text-gray-500 whitespace-nowrap overflow-visible">
                 {label || ""}
               </div>
             ))}
           </div>
           <div className="flex gap-1">
             {/* 曜日ラベル列 */}
-            <div className="flex flex-col gap-1 w-7 shrink-0 text-xs text-gray-400 dark:text-slate-500 font-bold">
+            <div className="flex flex-col gap-1 w-7 shrink-0 text-xs text-gray-500">
               {["日", "月", "火", "水", "木", "金", "土"].map((d, i) => (
                 <div key={d} className="h-3.5 flex items-center">{i % 2 === 1 ? d : ""}</div>
               ))}
@@ -168,7 +159,7 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
       </div>
 
       {/* 凡例 */}
-      <div className="mt-2 flex items-center justify-end gap-1.5 text-xs text-gray-400 dark:text-slate-500 font-medium">
+      <div className="mt-2 flex items-center justify-end gap-1.5 text-xs text-gray-500">
         <span>少ない</span>
         {intensityClass.map((cls, i) => (
           <div key={i} className={`w-3 h-3 rounded-[3px] ${cls}`} />

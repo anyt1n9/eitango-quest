@@ -644,6 +644,9 @@ test("「調べる」は辞書、「教材」から活用表・文法ガイド�
   // 一覧は最初の1画面から見える（並び順・絞り込みは畳んである）
   const list = (await page.locator("#dictionary_words_container").boundingBox())!;
   expect(list.y).toBeLessThan(page.viewportSize()!.height);
+  // 1語を1枚のカードにしていたときは1語あたり約115pxあり、1画面に5語ほどしか入らなかった
+  const row = (await page.locator("#dictionary_words_container > [role=button]").first().boundingBox())!;
+  expect(row.height, "辞書の1行が高すぎる").toBeLessThan(80);
 
   await goTab(page, "learn");
   await page.locator("#learn_open_verb_forms").click();
