@@ -119,6 +119,36 @@ describe("海の3D背景", () => {
     warn.mockRestore();
   });
 
+  it("描けているかを App に伝える（作れたら true、続けられなくなった・外したら false）", async () => {
+    // App の「海を眺める」はこれが true のときだけ出す
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const OceanBackground = await load();
+    const drawing = vi.fn();
+    const { unmount } = render(<OceanBackground active={true} motion={true} onDrawingChange={drawing} />);
+    expect(drawing).toHaveBeenLastCalledWith(true);
+    act(() => created[0].fail("model"));
+    expect(drawing).toHaveBeenLastCalledWith(false);
+
+    drawing.mockClear();
+    const second = render(<OceanBackground active={true} motion={true} onDrawingChange={drawing} />);
+    expect(drawing).toHaveBeenLastCalledWith(true);
+    second.unmount();
+    expect(drawing).toHaveBeenLastCalledWith(false);
+    unmount();
+    warn.mockRestore();
+  });
+
+  it("WebGL を作れなければ、描けているとは伝えない", async () => {
+    failCreate = true;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const OceanBackground = await load();
+    const drawing = vi.fn();
+    render(<OceanBackground active={true} motion={true} onDrawingChange={drawing} />);
+    await screen.findByTestId("background_scene");
+    expect(drawing).not.toHaveBeenCalledWith(true);
+    warn.mockRestore();
+  });
+
   it("WebGL が使えない端末では、海の色の地に切り替える（画面は落とさない）", async () => {
     failCreate = true;
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

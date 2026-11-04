@@ -100,7 +100,7 @@ import { SrsState, nextSrsState, getDueWordIds, todayStr, sanitizeSrs } from "./
 import { currentLoginStreak } from "./loginBonus";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Sun, Moon, CheckCircle2, Trophy, Calendar } from "lucide-react";
+import { BrainCircuit, Sun, Moon, CheckCircle2, Trophy, Calendar, Fish } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
 import BackButton from "./components/BackButton";
@@ -456,6 +456,36 @@ export default function App() {
   // 必ずダッシュボードに戻されていた。
   const initialRoute = resolveOnEntry(pathToRoute(window.location.pathname));
   const [currentScreen, setCurrentScreen] = useState<Screen>(initialRoute.screen);
+  /**
+   * 海を眺める。画面の文字（ヘッダー・中身・タブ）を一時的に隠して、海だけを見せる。
+   *
+   * カードは読みやすさのために不透明（ガラスでも地を8割以上残す）なので、
+   * 生き物がカードの裏を泳いでいるあいだは見えない。スマホは画面の幅いっぱいにカードが並ぶので、
+   * 泳ぐ道筋を変えても隠れる。読みやすさを削らずに海を見せるには、見る時間を分けるほかない。
+   * 3D を描けているときだけ出す（OceanBackground の onDrawingChange）。部品を読み込み中のとき・
+   * 3Dモデルを取れず海の色の地になったとき・部品を取れずいつもの背景に戻ったときに押すと、
+   * 文字だけが消えて眺めるもののない地が出る。
+   * どこを押しても・Esc でも戻る。画面が変わったら（端末の戻るボタンなど）閉じる。
+   */
+  const [seaView, setSeaView] = useState(false);
+  const seaViewButtonRef = useRef<HTMLButtonElement>(null);
+  const seaViewExitRef = useRef<HTMLButtonElement>(null);
+  const [oceanDrawing, setOceanDrawing] = useState(false);
+  const canViewSea = bgOcean && oceanDrawing && !isTransient(currentScreen);
+  const closeSeaView = () => {
+    setSeaView(false);
+    // 押した場所（ヘッダーのボタン）へ戻す。隠していたあいだに見失わないように
+    requestAnimationFrame(() => seaViewButtonRef.current?.focus());
+  };
+  useEffect(() => {
+    if (!seaView) return;
+    seaViewExitRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeSeaView(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [seaView]);
+  useEffect(() => { setSeaView(false); }, [currentScreen]);
+  useEffect(() => { if (!canViewSea) setSeaView(false); }, [canViewSea]);
   /**
    * 学習のレベルと1回の問題数。「今日」と「教材」の両方から使う。
    *
@@ -863,7 +893,7 @@ export default function App() {
         <OceanGuard fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}>
           {oceanMounted ? (
             <Suspense fallback={<OceanPlaceholder active={!isTransient(currentScreen)} />}>
-              <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} />
+              <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} onDrawingChange={setOceanDrawing} />
             </Suspense>
           ) : (
             <OceanPlaceholder active={!isTransient(currentScreen)} unsupported={oceanUnsupported} />
@@ -884,7 +914,11 @@ export default function App() {
       */}
       {/* ホーム画面から開くと（black-translucent）、時計の帯の下まで画面が広がるので、その高さぶん下げる */}
       {!isTransient(currentScreen) && (
-      <header className="bg-slate-50 border-b border-gray-200 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] px-4 sticky top-0 z-40 transition-colors duration-300" id="navigation_bar">
+      <header
+        className={`sea-fade ${seaView ? "sea-hidden " : ""}bg-slate-50 border-b border-gray-200 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] px-4 sticky top-0 z-40`}
+        id="navigation_bar"
+        inert={seaView}
+      >
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           <div
             onClick={handleGoHome}
@@ -909,11 +943,26 @@ export default function App() {
             </div>
           </div>
 
+          {/* 海を眺める（画面の文字を隠して海だけを見せる）。3D の海を描けているときだけ */}
+          {canViewSea && (
+            <button
+              type="button"
+              ref={seaViewButtonRef}
+              onClick={() => setSeaView(true)}
+              className="ml-auto shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+              title="海を眺める（画面の文字を隠します）"
+              aria-label="海を眺める（画面の文字を隠します）"
+              id="btn_sea_view"
+            >
+              <Fish className="w-5 h-5" aria-hidden="true" />
+            </button>
+          )}
+
           {/* テーマの切り替え。メニューの中に入れていたが、
               明るさは学習中でも切りたいので、開かずに押せる場所に出す */}
           <button
             onClick={() => setIsDark(!isDark)}
-            className="ml-auto mr-1 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+            className={`${canViewSea ? "" : "ml-auto "}mr-1 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer`}
             title={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
             aria-label={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
             id="theme_toggle_btn"
@@ -944,7 +993,8 @@ export default function App() {
 
       {/* メインステージ。画面下のタブを出している間は、その高さぶん下を空ける */}
       <main
-        className={`relative z-10 flex-1 pb-8 px-4 max-w-4xl w-full mx-auto ${
+        inert={seaView}
+        className={`sea-fade ${seaView ? "sea-hidden " : ""}relative z-10 flex-1 pb-8 px-4 max-w-4xl w-full mx-auto ${
           // 出題中はヘッダーを出さないので、時計の帯の高さぶんはここで空ける
           isTransient(currentScreen) ? "pt-[calc(1rem+env(safe-area-inset-top))]" : "pt-6"
         }`}
@@ -1346,7 +1396,25 @@ export default function App() {
           }}
           dueCount={dueWords.length}
           bonusClaimable={bonusClaimable}
+          hidden={seaView}
         />
+      )}
+
+      {/* 海を眺めているあいだの戻り口。画面のどこを押しても戻る（下の札は、戻り方を知らせるため） */}
+      {seaView && (
+        <button
+          type="button"
+          ref={seaViewExitRef}
+          onClick={closeSeaView}
+          id="btn_sea_view_exit"
+          aria-label="画面に戻る"
+          className="fixed inset-0 z-50 flex items-end justify-center pb-[calc(1.5rem+env(safe-area-inset-bottom))] cursor-pointer"
+        >
+          {/* カードの外の小さな文字なので、地の色を不透明で敷く */}
+          <span className="px-4 py-2.5 rounded-full bg-slate-50 border border-gray-200 text-sm font-bold text-gray-900" aria-hidden="true">
+            どこかを押すと画面に戻ります
+          </span>
+        </button>
       )}
     </div>
   );

@@ -18,6 +18,8 @@ interface TabBarProps {
   dueCount: number;
   /** ログインボーナスをまだ受け取っていなければ「記録」に印を付ける */
   bonusClaimable: boolean;
+  /** 海を眺めているあいだは見えなくする（消すと開き直したときに位置がずれるので、残して隠す） */
+  hidden?: boolean;
 }
 
 /**
@@ -27,12 +29,13 @@ interface TabBarProps {
  * 印は「開かなくても気づける」ためのもの。しまい込んだせいで復習やボーナスに
  * 気づかれないのでは、まとめた意味がない。
  */
-export default function TabBar({ active, onSelect, dueCount, bonusClaimable }: TabBarProps) {
+export default function TabBar({ active, onSelect, dueCount, bonusClaimable, hidden = false }: TabBarProps) {
   return (
     <nav
       aria-label="メイン"
       id="tab_bar"
-      className="fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 pb-[env(safe-area-inset-bottom)]"
+      inert={hidden}
+      className={`sea-fade ${hidden ? "sea-hidden " : ""}fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 pb-[env(safe-area-inset-bottom)]`}
     >
       <div className="max-w-4xl mx-auto grid grid-cols-5">
         {TABS.map(({ tab, label, Icon }) => {
