@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { removeStored, writeStored } from "../storage";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  ArrowLeft, 
+  
   Sparkles, 
   Lock, 
   Unlock, 
@@ -22,6 +22,7 @@ import { getAudioContext } from "../sound";
 import { SrsState } from "../srs";
 import { isMastered } from "../mastery";
 import { readJsonResponse } from "../apiClient";
+import BackButton from "./BackButton";
 
 // 簡単なクリック/ファンファーレ音効果
 const playLocalSound = (type: "unlock" | "sparkle") => {
@@ -343,20 +344,9 @@ export default function AIDiary({
     <div className="space-y-6" id="ai_diary_view">
       {/* 戻るボタンヘッダー */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={onBackToDashboard}
-          className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 transition"
-          id="diary_back_btn"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>戻る</span>
-        </button>
+        <BackButton onClick={onBackToDashboard} id="diary_back_btn" />
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-indigo-700 bg-indigo-55 px-3 py-1 rounded-full uppercase tracking-wider font-mono">
-            Premium Mode
-          </span>
-        </div>
+
       </div>
 
       {/* 開放ステータス看板 */}
@@ -373,13 +363,13 @@ export default function AIDiary({
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                 <span>AI 英語日記生成モード</span>
-                {isUnlocked && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full uppercase animate-bounce">解放済み</span>}
+                {isUnlocked && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full animate-bounce">解放済み</span>}
               </h2>
-              <p className="text-xs text-gray-400 dark:text-slate-500 font-mono mt-0.5">English Diary Maker using learned vocabulary</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">English Diary Maker using learned vocabulary</p>
             </div>
           </div>
           <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed font-medium">
-            クイズで正解した実績（マスター）が <span className="text-indigo-600 dark:text-indigo-400 font-bold text-base font-mono">200単語</span> に到達すると自動解放される学習報酬モードです。AIがあなたが覚えた単語プールをくまなく解析し、それらから関連性の高い言葉を美しく散りばめた、自然で豊かなオリジナルストーリー日記を長さ制限なしでパーソナライズ生成します。
+            クイズで正解した実績（マスター）が <span className="text-indigo-600 dark:text-indigo-400 font-bold text-base">200単語</span> に到達すると自動解放される学習報酬モードです。AIがあなたが覚えた単語プールをくまなく解析し、それらから関連性の高い言葉を美しく散りばめた、自然で豊かなオリジナルストーリー日記を長さ制限なしでパーソナライズ生成します。
           </p>
 
           {/* プログレスバー */}
@@ -388,9 +378,9 @@ export default function AIDiary({
               <span className="font-bold flex items-center gap-1">
                 <Award className="w-3.5 h-3.5 text-indigo-500" />
                 <span>習得合計実績:</span>
-                <strong className="text-gray-700 dark:text-slate-200 font-mono text-sm pl-0.5">{masteredCount}</strong> / 200 単語
+                <strong className="text-gray-700 dark:text-slate-200 text-sm pl-0.5">{masteredCount}</strong> / 200 単語
               </span>
-              <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 font-bold">
+              <span className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">
                 {Math.min(100, Math.round((masteredCount / 200) * 100))}% Unlocked
               </span>
             </div>
@@ -454,8 +444,8 @@ export default function AIDiary({
                   {/* ヘッダー・スタンプ風 */}
                   <div className="bg-gradient-to-r from-gray-50 to-indigo-50/20 dark:from-slate-850 dark:to-slate-900 border-b border-gray-100 dark:border-slate-800 py-4 px-6 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="p-1.5 bg-indigo-100 rounded-lg text-[13px] text-indigo-700 dark:text-indigo-400 font-bold uppercase font-mono">
-                        Diary
+                      <span className="p-1.5 bg-indigo-100 rounded-lg text-sm text-indigo-700 font-bold">
+                        日記
                       </span>
                       <span className="text-xs text-gray-400 dark:text-slate-500 font-bold tracking-tight flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
@@ -543,12 +533,12 @@ export default function AIDiary({
 
                     {/* 英語テキスト */}
                     <div className="bg-gray-50/50 dark:bg-slate-850/50 border border-gray-100/50 dark:border-slate-800 rounded-2xl p-6 relative">
-                      <p className="text-base md:text-lg text-gray-800 dark:text-slate-100 font-sans leading-relaxed tracking-wide font-medium">
+                      <p className="text-base md:text-lg text-gray-800 dark:text-slate-100 font-sans leading-relaxed font-medium">
                         {highlightDiaryText(diary.diaryText, diary.usedWords)}
                       </p>
                       
                       <div className="flex justify-end mt-4">
-                        <span className="text-xs text-gray-450 dark:text-slate-500 font-mono">
+                        <span className="text-xs text-gray-450 dark:text-slate-500">
                           長さ: {diary.diaryText.length} 文字
                         </span>
                       </div>
@@ -593,7 +583,7 @@ export default function AIDiary({
                                   }
                                 } catch(_) {}
                               }}
-                              className="px-2.5 py-1 bg-amber-50 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 text-amber-900 dark:text-slate-100 border border-amber-100 dark:border-slate-700 rounded-lg text-xs font-bold font-mono inline-flex items-center gap-1 cursor-pointer transition select-none"
+                              className="px-2.5 py-1 bg-amber-50 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 text-amber-900 dark:text-slate-100 border border-amber-100 dark:border-slate-700 rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition select-none"
                               title={orig ? `和訳: ${orig.translation}` : ""}
                             >
                               <span>{word}</span>
@@ -629,7 +619,7 @@ export default function AIDiary({
           {/* 右カラム: 歴史（バックナンバー履歴リスト） */}
           <div className="md:col-span-4 space-y-4">
             <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-              <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 tracking-wider uppercase font-mono mb-3.5 flex items-center justify-between">
+              <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 mb-3.5 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-gray-450" />
                   <span>過去のAI英語日記履歴 ({history.length})</span>
@@ -701,7 +691,7 @@ export default function AIDiary({
                           </div>
                         )}
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-bold text-gray-400 dark:text-slate-500 font-mono">
+                          <span className="font-bold text-gray-400 dark:text-slate-500">
                             {hEntry.date}
                           </span>
                           <div className="flex items-center gap-1.5">

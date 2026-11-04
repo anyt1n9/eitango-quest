@@ -556,7 +556,7 @@ test("長文の重要語を押すと、スマホでもその場で意味が出�
 test("メニューのポイントは、ガチャで使える額と一致する", async ({ page }) => {
   // stats.score は「これまでに稼いだ合計」で、ガチャを引いても減らない。
   // ヘッダーがその合計を「P」として出していたため、ガチャ画面には
-  // 「3,000 P」（ヘッダー）と「使えるポイント: 2,550P」が同時に並んでいた。
+  // 「3,000 P」（ヘッダー）と「使えるポイント 2,550P」が同時に並んでいた。
   // 使い切りかけている人には、3,000P と表示されたまま「足りません」と断られる。
   await page.goto("/");
   await page.evaluate(() => {
@@ -576,7 +576,7 @@ test("メニューのポイントは、ガチャで使える額と一致する",
 
   // ガチャ画面の「使えるポイント」と同じ数字であること
   await page.locator("#nav_gacha_btn").click();
-  await expect(page.locator("#gacha_shop_root")).toContainText("使えるポイント: 2550P");
+  await expect(page.locator("#gacha_shop_root")).toContainText("使えるポイント 2550P");
   await goTab(page, "menu");
   await expect(page.getByTestId("menu_points")).toContainText("2550");
 

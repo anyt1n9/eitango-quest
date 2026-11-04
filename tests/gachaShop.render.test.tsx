@@ -78,7 +78,7 @@ afterEach(() => {
 describe("引けるかどうか", () => {
   it("使えるポイントを表示する", () => {
     renderShop({ availablePoints: 320 });
-    expect(screen.getByText(/使えるポイント: 320P/)).toBeInTheDocument();
+    expect(document.getElementById("gacha_shop_root")).toHaveTextContent("使えるポイント 320P");
   });
 
   it("ポイントが足りなければ引けない", () => {

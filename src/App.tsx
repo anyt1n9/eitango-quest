@@ -81,9 +81,10 @@ import { SrsState, nextSrsState, getDueWordIds, todayStr, sanitizeSrs } from "./
 import { currentLoginStreak } from "./loginBonus";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
-import { BrainCircuit, Sun, Moon, CheckCircle2, ArrowLeft, Trophy, Calendar } from "lucide-react";
+import { BrainCircuit, Sun, Moon, CheckCircle2, Trophy, Calendar } from "lucide-react";
 import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
+import BackButton from "./components/BackButton";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
 import { applyThemeColor } from "./themeColor";
@@ -723,17 +724,11 @@ export default function App() {
   /** 復習の形式を選ぶ画面。出題対象と説明を添える */
   const renderReviewFormatPicker = (words: Word[], title: string, note: string) => (
     <div className="max-w-xl mx-auto">
-      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-        <button
-          onClick={handleLeaveQuiz}
-          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>戻る</span>
-        </button>
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
+        <BackButton onClick={handleLeaveQuiz} />
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">{title}</h2>
-          <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mt-1">{note}</p>
+          <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+          <p className="text-sm text-gray-500 leading-relaxed mt-1">{note}</p>
         </div>
         <QuizFormatPicker words={words} onSelect={setReviewFormat} />
       </div>

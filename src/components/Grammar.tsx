@@ -10,9 +10,10 @@ import { loadUsage } from "../usage";
 import { passages } from "../data/passages";
 import { readStoredArray, readStoredObject, writeStored } from "../storage";
 import {
-  ArrowLeft, BookMarked, Search, Check, X, CircleCheck, Lightbulb,
+  BookMarked, Search, Check, X, CircleCheck, Lightbulb,
   AlertTriangle, PencilLine, ChevronRight, Sparkles, RotateCcw
 } from "lucide-react";
+import BackButton from "./BackButton";
 
 /**
  * 文法ガイド。
@@ -154,14 +155,7 @@ export default function Grammar({
 
   return (
     <div className="space-y-4" id="grammar_screen">
-      <button
-        onClick={onBackToDashboard}
-        className="flex items-center gap-1 text-xs font-bold text-gray-600 dark:text-slate-300 hover:text-indigo-600 cursor-pointer"
-        id="btn_grammar_back"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        戻る
-      </button>
+      <BackButton onClick={onBackToDashboard} id="btn_grammar_back" />
 
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm">
         <div className="flex items-start gap-2">
@@ -377,14 +371,7 @@ function TopicDetail({
 
   return (
     <div className="space-y-4" id="grammar_detail">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1 text-xs font-bold text-gray-600 dark:text-slate-300 hover:text-indigo-600 cursor-pointer"
-        id="btn_grammar_detail_back"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        文法ガイドの一覧に戻る
-      </button>
+      <BackButton onClick={onBack} id="btn_grammar_detail_back" label="文法ガイドの一覧に戻る" />
 
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-2 shadow-sm">
         <div className="flex items-center gap-2 flex-wrap">

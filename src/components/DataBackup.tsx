@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { ArrowLeft, Download, Upload, Target, Database, ShieldCheck, AlertTriangle, Cloud, CloudDownload, RefreshCw } from "lucide-react";
+import { Download, Upload, Target, Database, ShieldCheck, AlertTriangle, Cloud, CloudDownload, RefreshCw } from "lucide-react";
 import { applyBackupPayload, buildBackupPayload, isBackupPayload, isNewerBackup, payloadTime } from "../backupPayload";
 import { isGoogleSyncConfigured, requestDriveToken } from "../googleAuth";
 import { DriveError } from "../driveBackup";
 import { todayStr } from "../srs";
 import { fetchRemote, isDriveLinked, markDriveLinked, pushToDrive } from "../driveSync";
+import BackButton from "./BackButton";
 
 interface DataBackupProps {
   dailyGoal: number;
@@ -210,13 +211,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
     <div className="max-w-xl mx-auto space-y-6" id="data_backup_root">
       <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>戻る</span>
-          </button>
+          <BackButton onClick={onBackToDashboard} />
           <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-bold">
             <Database className="w-3.5 h-3.5" />
             データ設定
@@ -253,7 +248,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
               max={500}
               value={goalInput}
               onChange={(e) => setGoalInput(Number(e.target.value))}
-              className="w-28 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 font-bold font-mono text-center"
+              className="w-28 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-slate-100 font-bold text-center"
             />
             <span className="text-sm text-gray-500 dark:text-slate-400 font-bold">問 / 日</span>
             <button

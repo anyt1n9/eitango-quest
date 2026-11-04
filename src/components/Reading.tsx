@@ -7,9 +7,10 @@ import { readStoredArray, readStoredString, writeStored } from "../storage";
 import { sanitizePassage, sanitizePassages } from "../passageValidation";
 import { loadGrammar } from "../grammar";
 import { canUseSpeech, onVoicesChanged, speak, stopSpeaking } from "../speech";
-import { ArrowLeft, BookOpen, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
+import { BookOpen, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, Trash2, Wand2, Check, X, Volume2, Square } from "lucide-react";
 import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
 import { readJsonResponse } from "../apiClient";
+import BackButton from "./BackButton";
 
 interface ReadingProps {
   stats: UserStats;
@@ -369,17 +370,14 @@ export default function Reading({
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passage_detail_screen">
         {/* ヘッダーエリア */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-gray-150">
-          <button
+          <BackButton
             onClick={() => {
               setSelectedPassage(null);
               setSelectedWordObj(null);
             }}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-900 transition border border-gray-200 rounded-xl px-3 py-2 cursor-pointer"
             id="back_to_passages_list_btn"
-          >
-            <ArrowLeft className="w-4.5 h-4.5" />
-            <span>長文一覧へ</span>
-          </button>
+            label="長文一覧へ"
+          />
           
           <div className="flex flex-wrap items-center gap-2">
             <span className={`text-xs px-3 py-1 rounded-full font-bold border ${badge.bg}`}>
@@ -504,7 +502,7 @@ export default function Reading({
                   }`}
                 >
                   {/* 英語本文 */}
-                  <p className="text-gray-800 text-base sm:text-lg leading-relaxed font-sans font-medium tracking-wide">
+                  <p className="text-gray-800 text-base sm:text-lg leading-relaxed font-sans font-medium">
                     {renderEnglishWithHighlights(eng, selectedPassage.vocabularyHighlight, selectedPassage.level)}
                   </p>
 
@@ -541,7 +539,7 @@ export default function Reading({
             
             {/* 特徴辞書 */}
             <div className="bg-slate-50 border border-gray-150 rounded-2xl p-5 shadow-2xs">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 mb-4">
+              <h3 className="text-xs font-bold text-gray-500 flex items-center gap-2 mb-4">
                 <BookOpen className="w-4 h-4 text-indigo-600" />
                 <span>収録されている重要語彙</span>
               </h3>
@@ -757,14 +755,7 @@ export default function Reading({
     <div className="bg-white border border-gray-150 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passages_list_screen">
       {/* 上部ヘッダー。「戻る」はほかの画面と同じく左上に置く */}
       <div className="space-y-4 pb-6 border-b border-gray-150">
-        <button
-          onClick={onBackToDashboard}
-          className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-900 transition border border-gray-200 rounded-xl px-3 py-2 min-h-11 cursor-pointer bg-white shadow-2xs"
-          id="btn_reading_to_dashboard"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>戻る</span>
-        </button>
+        <BackButton onClick={onBackToDashboard} id="btn_reading_to_dashboard" />
         <div>
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-indigo-600" />

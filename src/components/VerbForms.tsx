@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Level, Word } from "../types";
 import { LEVEL_LABELS } from "../levelLabels";
 import { buildVerbTable, PATTERN_NOTES, VerbForms as Forms } from "../verbForms";
-import { ArrowLeft, Search, Repeat, Volume2, X } from "lucide-react";
+import { Search, Repeat, Volume2, X } from "lucide-react";
+import BackButton from "./BackButton";
 
 /**
  * 動詞の活用表（原形 → 過去形 → 過去分詞）。
@@ -85,14 +86,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
   return (
     <div className="space-y-4" id="verb_forms_screen">
       <div className="flex items-center gap-2">
-        <button
-          onClick={onBackToDashboard}
-          className="flex items-center gap-1 text-xs font-bold text-gray-600 dark:text-slate-300 hover:text-indigo-600 cursor-pointer"
-          id="btn_verb_forms_back"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          戻る
-        </button>
+        <BackButton onClick={onBackToDashboard} id="btn_verb_forms_back" />
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm">
