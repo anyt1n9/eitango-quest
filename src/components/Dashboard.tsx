@@ -152,10 +152,12 @@ export default function Dashboard({
         </div>
       </header>
 
+      {/* ガラス（glass-panel）は「今日」のカード3枚すべてに付ける。学習の設定の1枚だけ透かしていたときは、
+          残りのカードの裏を泳ぐ海の生き物が隠れたままだった */}
       {hasDue && (
         <section
           aria-labelledby="today_review_heading"
-          className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3"
+          className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-3"
           id="today_review_card"
         >
           <div className="flex items-baseline justify-between gap-3">
@@ -172,7 +174,7 @@ export default function Dashboard({
             type="button"
             onClick={onStartSrsReview}
             id="dashboard_open_srs_review_btn"
-            className={`w-full min-h-12 h-13 rounded-xl font-bold text-base cursor-pointer transition ${ACCENT_TONE.advice} ${TONE_STYLE.solid}`}
+            className={`w-full min-h-12 h-13 rounded-xl font-bold text-base cursor-pointer transition ${ACCENT_TONE.advice} ${TONE_STYLE.solid} glass-chip`}
           >
             復習を始める
           </button>
@@ -293,7 +295,7 @@ export default function Dashboard({
       {showProgressCard && (
         <section
           aria-label="今日の進み具合"
-          className="bg-white border border-gray-200 rounded-2xl px-5 py-1 divide-y divide-gray-200"
+          className="glass-panel bg-white border border-gray-200 rounded-2xl px-5 py-1 divide-y divide-gray-200"
           id="today_progress"
         >
           {/* 「今日の復習」と「苦手な単語」は別のもの。並べて出すので、それぞれ何かを一言添える */}

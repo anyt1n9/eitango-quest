@@ -229,6 +229,18 @@ html, body {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 海を眺める（App の seaView）。画面の文字を消さずに見えなくする
+   （消すと入力の途中・開いていた詳細・スクロールの位置が失われる）。
+   上の `*` の規則より強くするため、クラスで透明度の遷移を足す */
+.sea-fade {
+  transition-property: opacity, background-color, border-color;
+  transition-duration: 300ms;
+}
+.sea-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Ensure nice dark scrollbar */
 .dark ::-webkit-scrollbar {
   width: 8px;
@@ -405,11 +417,14 @@ html, body {
   --glass-blur: 18px;
 }
 /* 透明。地をまったく置かない（＝背後の写真がそのまま文字の地になる）。
-   ここだけは基準を保証できないので、e2e の実測でも別扱いにしている */
+   ここだけは基準を保証できないので、e2e の実測でも別扱いにしている。
+   ぼかしは弱くする。以前は24pxで、裏を泳ぐ海の生き物が形の無いしみになり、
+   透明を選んでも「せっかくの海の生き物が見えない」状態だった。3px なら形は残り、
+   細かい光の粒だけがならされる */
 :root[data-glass="clear"] {
   --glass-alpha: 0;
   --glass-chip-alpha: 0.35;
-  --glass-blur: 24px;
+  --glass-blur: 3px;
 }
 
 /* カード（レベルの台）。地は `bg-white` と同じ変数から作るので、
@@ -454,6 +469,20 @@ html, body {
   backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
   border-color: color-mix(in srgb, var(--color-white) 45%, transparent);
   box-shadow: none;
+}
+
+/* 透明のときは、カードの中の選択欄・ボタン・問題数の台も地をほとんど置かない。
+   これらが不透明のままだと、カードの面積の大半がふさがり、透明にした意味が無かった。
+   縁だけは残して、押せる場所の輪郭を出す */
+:root[data-glass="clear"] .glass-panel .bg-white,
+:root[data-glass="clear"] .glass-panel .bg-gray-100,
+:root[data-glass="clear"] .glass-panel select {
+  background-color: color-mix(in srgb, var(--color-white) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--color-white) 45%, transparent) !important;
+}
+/* 開いた選択肢の一覧は端末が別の窓で描くので、透かさない */
+:root[data-glass="clear"] .glass-panel select option {
+  background-color: var(--color-white);
 }
 
 /* 透明のときの文字の縁取り。

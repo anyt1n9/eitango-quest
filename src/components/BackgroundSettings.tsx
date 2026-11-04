@@ -201,8 +201,9 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
           <div className="mt-6 pt-5 border-t border-gray-100" data-testid="glass_picker">
             <h3 className="text-xs font-bold text-gray-500 mb-1">カードとボタンの透明感</h3>
             <p className="text-xs text-gray-500 mb-3 max-w-md">
-              「今日」の画面の学習の設定と、その中のボタンを半透明にして、背景を透かします。
+              「今日」の画面のカードとボタンを半透明にして、背景を透かします。
               透かすほど背景は見えますが、文字は読みにくくなります。
+              文字を隠して海だけを見たいときは、画面の上の魚のボタン（海を眺める）を押してください。
             </p>
             <div className="flex flex-wrap gap-2">
               {GLASS_CHOICES.map(c => (

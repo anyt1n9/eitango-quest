@@ -449,6 +449,8 @@ test("海の3D背景は既定で出し、「使わない」を選んだ人には
     // GPU の無い端末（CI・仮想マシン）には three.js を届けず、海の色の地のままにする
     expect(kind).toBe("ocean-fallback");
     expect(oceanFilesOf(fetched), "GPU の無い端末に3Dのファイルを届けている").toEqual([]);
+    // 海の色の地だけのときは、眺めるものが無いので「海を眺める」を出さない
+    await expect(page.locator("#btn_sea_view")).toHaveCount(0);
   }
   expect(await scene.evaluate(e => getComputedStyle(e).pointerEvents), "背景が押す操作を奪っている").toBe("none");
   // 起動しただけでは「選んだ」ことにしない
@@ -477,6 +479,73 @@ test("海の3D背景は既定で出し、「使わない」を選んだ人には
   await fresh.waitForTimeout(3000);
   expect(oceanFilesOf(fetched2), "「使わない」を選んだのに海の3D背景を読み込んでいる").toEqual([]);
   await expect(fresh.locator(".bg-ocean3d")).toHaveCount(0);
+});
+
+/**
+ * 海を眺める。画面の文字を隠して、海だけを見せる（App の seaView）。
+ *
+ * カードは読みやすさのために不透明なので、生き物がカードの裏を泳いでいるあいだは見えない。
+ * CI には GPU が無く、ふだんはこのボタン自体が出ないので、ここだけ「描ける端末」として扱う
+ * （描くのは CPU なので重いが、このテストの数秒だけ）。
+ * 隠したものが押せたり Tab で選べたりしないこと、戻ると元の場所へ帰ることは、本物のブラウザでしか分からない。
+ */
+test("海を眺める：画面の文字を隠して海だけを見せ、どこかを押すと戻る", async ({ page }) => {
+  await page.addInitScript(() => {
+    // 「CPU で肩代わりするなら作らない」の指定を外し、描き手の名前を GPU のものにする
+    type Canvas = { getContext: (this: HTMLCanvasElement, type: string, opts?: Record<string, unknown>) => unknown };
+    const canvas = HTMLCanvasElement.prototype as unknown as Canvas;
+    const getContext = canvas.getContext;
+    canvas.getContext = function (type, opts) {
+      const rest = opts && typeof opts === "object" ? { ...opts } : opts;
+      if (rest) delete rest.failIfMajorPerformanceCaveat;
+      return getContext.call(this, type, rest);
+    };
+    for (const C of [WebGLRenderingContext, WebGL2RenderingContext]) {
+      type Gl = { getParameter: (this: WebGLRenderingContext, p: number) => unknown };
+      const proto = C.prototype as unknown as Gl;
+      const getParameter = proto.getParameter;
+      proto.getParameter = function (p) {
+        return p === 0x9246 ? "ANGLE (e2e)" : getParameter.call(this, p);
+      };
+    }
+  });
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await expect(page.locator(".bg-ocean3d")).toHaveAttribute("data-kind", "ocean", { timeout: 20_000 });
+
+  await page.locator("#btn_sea_view").click();
+  for (const id of ["navigation_bar", "main_payload", "tab_bar"]) {
+    await expect.poll(() => page.locator(`#${id}`).evaluate(e => getComputedStyle(e).opacity), `${id} が見えたまま`).toBe("0");
+  }
+  // 隠すだけで外さない（「今日」の画面はそのまま残っている）
+  await expect(page.locator("#btn_junior_word")).toHaveCount(1);
+  // 隠したボタンを押してしまわない。画面のどこを押しても戻り口に当たる
+  for (const [x, y] of [[0.5, 0.5], [0.5, 0.05], [0.5, 0.97], [0.05, 0.5]]) {
+    const hit = await page.evaluate(([fx, fy]) => {
+      const el = document.elementFromPoint(innerWidth * fx, innerHeight * fy);
+      return !!el?.closest("#btn_sea_view_exit");
+    }, [x, y]);
+    expect(hit, `(${x}, ${y}) を押すと隠したものに当たる`).toBe(true);
+  }
+  // Tab で隠したボタンに入らない
+  await page.keyboard.press("Tab");
+  expect(await page.evaluate(() => !!document.activeElement?.closest("#navigation_bar, #main_payload, #tab_bar"))).toBe(false);
+
+  await page.mouse.click(120, 300);
+  await expect(page.locator("#btn_sea_view_exit")).toHaveCount(0);
+  await expect.poll(() => page.locator("#main_payload").evaluate(e => getComputedStyle(e).opacity)).toBe("1");
+  await expect(page.locator("#btn_sea_view")).toBeFocused();
+
+  // Esc でも戻る
+  await page.locator("#btn_sea_view").click();
+  await expect(page.locator("#btn_sea_view_exit")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#btn_sea_view_exit")).toHaveCount(0);
+
+  // 出題中はヘッダーごと出さない
+  await page.locator("#btn_junior_word").click();
+  await expect(page.locator("#quiz_options_container")).toBeVisible();
+  await expect(page.locator("#btn_sea_view")).toHaveCount(0);
 });
 
 test("知らないパスでも白い画面にならない", async ({ page }) => {
@@ -1000,30 +1069,41 @@ test.describe("ガラスの下に最悪の色を敷いても読める", () => {
 
   for (const theme of ["light", "dark"] as const) {
     for (const glass of ["off", "light", "strong"] as const) {
-      test(`${theme} / ${glass}`, async ({ page }) => {
-        await page.emulateMedia({ colorScheme: theme });
-        await page.addInitScript(g => localStorage.setItem("quest_glass", g), glass);
-        await page.goto("/");
-        await waitForVocabulary(page);
+      // 復習がある日は「今日の復習」のカード（これもガラス）と、その塗りつぶしボタンが出る
+      for (const due of [false, true]) {
+        test(`${theme} / ${glass}${due ? " / 復習あり" : ""}`, async ({ page }) => {
+          await page.emulateMedia({ colorScheme: theme });
+          await page.addInitScript(([g, d]) => {
+            localStorage.setItem("quest_glass", g as string);
+            if (!d) return;
+            const srs: Record<string, unknown> = {};
+            for (let i = 1; i <= 5; i++) srs["j" + i] = { box: 1, dueDate: "2020-01-01", lastReview: "2019-12-31", reps: 1, lapses: 0 };
+            localStorage.setItem("quest_srs", JSON.stringify(srs));
+            localStorage.setItem("quest_wrong_words", JSON.stringify(["j6", "j7"]));
+          }, [glass, due] as const);
+          await page.goto("/");
+          await waitForVocabulary(page);
+          if (due) await expect(page.locator("#today_review_card")).toBeVisible();
 
-        for (const [name, color] of [["黒", "#000000"], ["白", "#ffffff"]]) {
-          await page.evaluate(c => {
-            // 飾りの絵は色が1つに決まらないので外し、地を最悪の色で塗る。
-            // インラインの !important で置く（後から足したスタイルシートでは
-            // 地の色に効いている規則を越えられないことがある）
-            for (const el of [document.documentElement, document.body,
-                              document.getElementById("app_root_container")]) {
-              if (el) el.style.setProperty("background-color", c, "important");
-            }
-            const scene = document.querySelector(".bg-scene");
-            if (scene) (scene as HTMLElement).style.setProperty("display", "none", "important");
-          }, color);
-          // 地の色には200msの遷移が掛かっている。待たずに測ると、
-          // まだ元の色のままの値で「基準を満たす」と出てしまう（実測で空振りした）
-          await page.waitForTimeout(500);
-          expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${glass} / 下地=${name}`).toEqual([]);
-        }
-      });
+          for (const [name, color] of [["黒", "#000000"], ["白", "#ffffff"]]) {
+            await page.evaluate(c => {
+              // 飾りの絵は色が1つに決まらないので外し、地を最悪の色で塗る。
+              // インラインの !important で置く（後から足したスタイルシートでは
+              // 地の色に効いている規則を越えられないことがある）
+              for (const el of [document.documentElement, document.body,
+                                document.getElementById("app_root_container")]) {
+                if (el) el.style.setProperty("background-color", c, "important");
+              }
+              const scene = document.querySelector(".bg-scene");
+              if (scene) (scene as HTMLElement).style.setProperty("display", "none", "important");
+            }, color);
+            // 地の色には200msの遷移が掛かっている。待たずに測ると、
+            // まだ元の色のままの値で「基準を満たす」と出てしまう（実測で空振りした）
+            await page.waitForTimeout(500);
+            expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${glass}${due ? " / 復習あり" : ""} / 下地=${name}`).toEqual([]);
+          }
+        });
+      }
     }
   }
 });
@@ -1031,14 +1111,16 @@ test.describe("ガラスの下に最悪の色を敷いても読める", () => {
 /**
  * 「透明」は保証の外にある段階。
  *
- * 地を置かない代わりに、背後を強くぼかし、文字に縁取りを付けて輪郭を残している。
- * この2つが黙って外れると、写真によっては文字が完全に消える。
+ * 地を置かない代わりに、文字に縁取りを付けて輪郭を残し、背後を少しだけぼかしている。
+ * 縁取りが黙って外れると、写真によっては文字が完全に消える。
+ * 逆に、ぼかしを強めたり中の部品を不透明に戻したりすると、「透明」を選んでも
+ * 裏を泳ぐ海の生き物が見えなくなる（以前は24pxで、形の無いしみになっていた）。
  * コントラストの数値では捉えられないので、作りそのものを固定する。
  */
 test.describe("透明のときの作り", () => {
   test.use({ serviceWorkers: "block" });
 
-  test("地を置かず、ぼかしと縁取りで輪郭を残す", async ({ page }) => {
+  test("地を置かず、縁取りで輪郭を残し、裏の海が見えるだけの透け方にする", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("quest_glass", "clear"));
     await page.goto("/");
     await waitForVocabulary(page);
@@ -1052,6 +1134,25 @@ test.describe("透明のときの作り", () => {
     expect(panel.bg).toBe("rgba(0, 0, 0, 0)");
     expect(panel.blur).toContain("blur(");
     expect(panel.shadow).not.toBe("none");
+    // ぼかしは弱く。24px のときは、透明を選んでも裏を泳ぐ海の生き物が形の無いしみになっていた
+    expect(Number(/blur\(([\d.]+)px\)/.exec(panel.blur)?.[1]), "ぼかしが強すぎて背景の形が残らない").toBeLessThanOrEqual(6);
+
+    // カードの中の選択欄・ボタン・問題数の台も、地をほとんど置かない
+    // （不透明のままだと、カードの面積の大半がふさがって透明にした意味が無かった）
+    // color-mix() の結果は `color(srgb 1 1 1 / 0.18)` の形で返る
+    const alphaOf = (bg: string) => {
+      const slash = /\/\s*([\d.]+)\s*\)$/.exec(bg);
+      if (slash) return Number(slash[1]);
+      const rgba = /^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)$/.exec(bg);
+      return rgba ? Number(rgba[1]) : 1;
+    };
+    for (const sel of ["#select_study_level", "#btn_junior_sentence", '[data-testid="count_picker"] [role="group"]']) {
+      const bg = await page.locator(sel).evaluate(e => getComputedStyle(e).backgroundColor);
+      expect(alphaOf(bg), `${sel} の地が不透明のまま（${bg}）`).toBeLessThan(0.5);
+    }
+    // 「今日」のほかのカードも透かす（1枚だけ透けても、残りの裏で生き物が隠れる）
+    const progress = await page.locator("#today_progress").evaluate(e => getComputedStyle(e).backgroundColor);
+    expect(progress).toBe("rgba(0, 0, 0, 0)");
 
     // 塗りつぶしボタンの縁取りは、文字（白）と反対の暗い色にする。
     // カードの縁取り（明るいテーマでは白）をそのまま継ぐと、白い文字に白い縁が付いて意味がない

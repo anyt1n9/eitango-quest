@@ -14,6 +14,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
+import { MANTA_RADIUS, SCHOOL_SWAY, swimSpread } from "./swim";
 
 export interface OceanStatus {
   tier: OceanTier;
@@ -621,9 +622,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   /* ---- per-frame ---- */
   const up = new THREE.Vector3(0, 1, 0);
   const vx = new THREE.Vector3(), vy = new THREE.Vector3(), vz = new THREE.Vector3(), m4 = new THREE.Matrix4(), sv = new THREE.Vector3();
+  // 横長の画面では泳ぐ範囲を左右に広げ、カードの列の外（余白）にも出す（src/ocean/swim.ts）
   function updateFish(dt: number, t: number) {
     const n = fish.count;
-    const tx = SCHOOL_C.x + Math.sin(t * 0.13) * 6, ty = SCHOOL_C.y + Math.sin(t * 0.21) * 1.4, tz = SCHOOL_C.z + Math.cos(t * 0.11) * 5;
+    const tx = SCHOOL_C.x + Math.sin(t * 0.13) * SCHOOL_SWAY * swimSpread(camera.aspect), ty = SCHOOL_C.y + Math.sin(t * 0.21) * 1.4, tz = SCHOOL_C.z + Math.cos(t * 0.11) * 5;
     for (let i = 0; i < n; i++) {
       const ix = i * 3;
       let cx = 0, cy = 0, cz = 0, ax = 0, ay = 0, az = 0, sx = 0, sy = 0, sz = 0, cnt = 0;
@@ -673,9 +675,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   const qRoll = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1);
   function updateManta(t: number) {
     const th = t * ((2 * Math.PI) / 46) + 1.2;
-    mantaPos.set(Math.cos(th) * 7, -0.9 + Math.sin(th * 2) * 0.6, -11 + Math.sin(th) * 4);
+    const rx = MANTA_RADIUS * swimSpread(camera.aspect);
+    mantaPos.set(Math.cos(th) * rx, -0.9 + Math.sin(th * 2) * 0.6, -11 + Math.sin(th) * 4);
     manta.position.copy(mantaPos);
-    vz.set(-Math.sin(th) * 7, Math.cos(th * 2) * 1.2, Math.cos(th) * 4).normalize();
+    vz.set(-Math.sin(th) * rx, Math.cos(th * 2) * 1.2, Math.cos(th) * 4).normalize();
     vx.crossVectors(up, vz).normalize();
     vy.crossVectors(vz, vx);
     m4.makeBasis(vx, vy, vz);
