@@ -146,7 +146,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
             <button
               onClick={() => fileRef.current?.click()}
               disabled={busy}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl transition shadow hover:shadow-md inline-flex items-center gap-2 cursor-pointer text-sm disabled:opacity-60"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl transition shadow inline-flex items-center gap-2 cursor-pointer text-sm disabled:opacity-60"
               id="btn_pick_background"
             >
               <Upload className="w-4 h-4" />

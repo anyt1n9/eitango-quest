@@ -64,12 +64,12 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
 
   return (
     <div
-      className={`bg-sky-50/50 border border-sky-200/70 dark:bg-slate-800/40 dark:border-slate-700 p-3.5 rounded-xl space-y-3 ${className}`}
+      className={`bg-slate-50 border border-gray-200 p-4 rounded-xl space-y-3 ${className}`}
       data-testid="word_usage"
     >
       <div className="flex items-center gap-1.5">
-        <Blocks className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-        <p className="font-bold text-sky-700 dark:text-sky-400 text-xs">この単語の使い方</p>
+        <Blocks className="w-4 h-4 text-gray-500" aria-hidden="true" />
+        <p className="font-bold text-gray-900 text-sm">この単語の使い方</p>
       </div>
 
       {/* --- 文型 ------------------------------------------------------- */}
@@ -78,7 +78,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-bold text-gray-500 dark:text-slate-400">文の形</span>
             {summary && (
-              <span className="px-1.5 py-0.5 rounded-md bg-sky-600 text-white text-xs font-bold">
+              <span className="px-1.5 py-0.5 rounded-md bg-white border border-gray-200 text-gray-700 text-xs font-bold">
                 {summary}
               </span>
             )}
@@ -90,7 +90,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
                   {p.label}
                 </span>
                 {/* ---- がその動詞の位置。WordNet が示す型をそのまま見せる */}
-                <span className="tabular-nums text-xs font-medium text-sky-800 dark:text-sky-300">
+                <span className="tabular-nums text-xs font-medium text-gray-800">
                   {p.pattern}
                 </span>
               </li>
@@ -112,7 +112,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
                 <button
                   onClick={() => onOpenGrammar(t.id)}
                   id={`btn_usage_grammar_${t.id}`}
-                  className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold text-sky-800 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-slate-800 cursor-pointer transition"
+                  className="bg-white border border-gray-200 rounded-xl px-2.5 min-h-9 text-xs font-bold text-indigo-700 hover:bg-gray-50 cursor-pointer transition"
                 >
                   {t.title}
                 </button>
@@ -133,7 +133,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
             {collocations.map((c, i) => (
               <li
                 key={i}
-                className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1"
+                className="bg-white border border-gray-200 rounded-xl px-2.5 py-1"
               >
                 <span className="tabular-nums text-xs font-bold text-gray-900 dark:text-slate-100">{c.phrase}</span>
                 <span className="ml-1.5 text-xs font-bold text-gray-600 dark:text-slate-400">{c.meaning}</span>
@@ -154,10 +154,10 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
             {family.map((f, i) => (
               <li
                 key={i}
-                className="bg-white dark:bg-slate-900 border border-sky-200 dark:border-slate-700 rounded-lg px-2 py-1 flex items-center gap-1.5"
+                className="bg-white border border-gray-200 rounded-xl px-2.5 py-1 flex items-center gap-1.5"
               >
                 <span className="tabular-nums text-xs font-bold text-gray-900 dark:text-slate-100">{f.word}</span>
-                <span className="text-xs font-bold text-sky-700 dark:text-sky-300">
+                <span className="text-xs font-bold text-gray-700">
                   {POS_SHARE_LABELS[f.pos] || f.pos}
                 </span>
                 <span className="text-xs font-bold text-gray-600 dark:text-slate-400">{f.meaning}</span>
@@ -167,7 +167,7 @@ export default function WordUsageInfo({ wordId, className = "", onOpenGrammar }:
         </div>
       )}
 
-      <div className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-sky-200/70 dark:border-slate-700 space-y-0.5">
+      <div className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-gray-200 space-y-0.5">
         {patterns.length > 0 && (
           <p>
             文の形は英英辞典 WordNet が動詞ごとに持つ型です（<span className="tabular-nums">----</span> がこの動詞の位置）。

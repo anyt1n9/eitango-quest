@@ -345,7 +345,8 @@ export default function MapAndPuzzle({
     <div className="space-y-6" id="map_puzzle_screen_wrapper">
       {/* 画面ヘッダー */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-150 shadow-xs" id="map_puzzle_sub_header">
-        <BackButton onClick={onBackToDashboard} id="btn_back_to_dashboard_from_map" />
+        {/* 縦に並べる親（狭い画面）の中で横いっぱいに伸びないようにする */}
+        <BackButton onClick={onBackToDashboard} id="btn_back_to_dashboard_from_map" className="self-start" />
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
             <PuzzleIcon className="w-5 h-5" />
@@ -577,9 +578,9 @@ export default function MapAndPuzzle({
                         isMasked 
                           ? currentPlaced 
                             ? isCorrect
-                              ? "bg-emerald-50 border-emerald-300 text-emerald-900 shadow-emerald-100/30 shadow-md"
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-900"
                               : isWrong
-                                ? "bg-rose-50 border-rose-300 text-rose-900 shadow-rose-100/30 shadow-md"
+                                ? "bg-rose-50 border-rose-300 text-rose-900"
                                 : "bg-indigo-50/70 border-indigo-300 text-indigo-900 shadow-sm"
                             : "bg-white border-dashed border-gray-300 hover:border-indigo-400 cursor-pointer animate-pulse"
                           : "bg-gray-100 text-gray-800 border-gray-200"
@@ -705,7 +706,7 @@ export default function MapAndPuzzle({
                 {!isAnswerChecked ? (
                   <button
                     onClick={checkAnswer}
-                    className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow hover:shadow-md transition flex items-center gap-1 cursor-pointer select-none"
+                    className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs shadow transition flex items-center gap-1 cursor-pointer select-none"
                     id="btn_submit_puzzle_answers"
                   >
                     <Check className="w-4 h-4" />

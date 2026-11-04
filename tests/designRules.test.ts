@@ -51,6 +51,20 @@ describe("画面の決まり", () => {
     expect(offenders(/\bfont-mono\b/).filter(l => !allowed.some(a => l.includes(a)))).toEqual([]);
   });
 
+  it("グラデーションと強い影を使わない（どこを読めばよいのかが色と影で分からなくなる）", () => {
+    // 海の3D背景の地（index.css）はコンポーネントの外なので対象外
+    expect(offenders(/\bbg-gradient-to-/)).toEqual([]);
+    // カードとボタンに影を付けない。例外は、ほかの画面の上に重ねて出すものと、ガチャの当たりの光（レアの演出）だけ。
+    // 例外はファイルで明示する（増えたら、ここで理由を書いて足す）
+    const ALLOWED: Record<string, string> = {
+      "GachaShop.tsx": "当たりの光（レア・エピックの演出）",
+      "Reading.tsx": "重要語の意味の欄を、狭い画面では本文の上に重ねる（lg:shadow-none で外す）",
+      "AIDiary.tsx": "確認の窓（画面の上に重ねる）",
+      "WordImport.tsx": "確認の窓（画面の上に重ねる）"
+    };
+    expect(offenders(/\bshadow-(?:md|lg|xl|2xl)\b/).filter(l => !Object.keys(ALLOWED).some(f => l.includes(f)))).toEqual([]);
+  });
+
   it("下の階層の画面の「戻る」は共通の部品（BackButton）を使う", () => {
     // 以前は画面ごとに書いていて、文字の大きさ・色・枠の有無が少なくとも7通りあった
     expect(offenders(/<ArrowLeft\b/)).toEqual([]);
