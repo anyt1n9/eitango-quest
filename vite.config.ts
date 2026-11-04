@@ -18,8 +18,11 @@ export default defineConfig(() => {
           short_name: 'Eigorira',
           description: 'レベル別の英単語学習アプリ。間隔反復による復習、発音、AI機能を搭載。',
           lang: 'ja',
-          theme_color: '#4f46e5',
-          background_color: '#0f172a',
+          theme_color: '#fafaf7',
+          // ホーム画面から開いたときの起動画面の地。manifest は明暗を分けられないので、
+          // 暗い方（深い海）にする。紙にすると、暗いテーマの人は起動のたびに白い画面が
+          // 一瞬光る。明るいテーマの人に暗い起動画面が出るほうが目にやさしい
+          background_color: '#03121d',
           display: 'standalone',
           orientation: 'portrait',
           start_url: '/',

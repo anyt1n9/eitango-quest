@@ -58,14 +58,14 @@ export default function QuizFormatPicker({ words, onSelect, className = "" }: Pr
           >
             <Icon className={`w-5 h-5 shrink-0 ${disabled ? "" : "text-indigo-600 dark:text-indigo-400"}`} />
             <span className="flex-1 min-w-0">
-              <span className={`block text-sm font-black ${disabled ? "" : "text-gray-900 dark:text-slate-100"}`}>
+              <span className={`block text-sm font-bold ${disabled ? "" : "text-gray-900 dark:text-slate-100"}`}>
                 {f.label}
               </span>
-              <span className={`block text-[11px] font-semibold ${disabled ? "" : "text-gray-500 dark:text-slate-400"}`}>
+              <span className={`block text-xs font-medium ${disabled ? "" : "text-gray-500 dark:text-slate-400"}`}>
                 {noSpeech ? "この端末では音声を再生できません" : f.description}
               </span>
             </span>
-            <span className={`shrink-0 text-[11px] tabular-nums font-black ${disabled
+            <span className={`shrink-0 text-xs tabular-nums font-bold ${disabled
               ? ""
               : "text-indigo-700"}`}>
               {count}語

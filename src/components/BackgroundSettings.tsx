@@ -69,7 +69,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
 
   return (
     <div className="space-y-6" id="background_settings_screen">
-      <div className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6">
+      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-800 transition mb-4 min-h-11"
@@ -79,7 +79,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
           <span>戻る</span>
         </button>
 
-        <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 mt-2">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mt-2">
           <span className="p-1.5 bg-indigo-100 rounded-xl text-indigo-700">
             <ImageIcon className="w-4 h-4" />
           </span>
@@ -92,7 +92,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
 
         {/* 海の3D背景（試験中）。three.js と3Dモデルを読むので、選んだ人にだけ出す */}
         <div className="mt-6 border-t border-gray-100 pt-6" data-testid="ocean_picker">
-          <h3 className="text-sm font-black text-gray-900 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
             <Waves className="w-4 h-4 text-indigo-700" aria-hidden="true" />
             海の3D背景（試験中）
           </h3>
@@ -107,7 +107,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
                 onClick={() => onOceanChange(c.on)}
                 aria-pressed={ocean === c.on}
                 id={c.on ? "btn_ocean_on" : "btn_ocean_off"}
-                className={`min-h-11 px-5 rounded-xl text-xs font-black border transition cursor-pointer ${
+                className={`min-h-11 px-5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                   ocean === c.on
                     ? "bg-indigo-600 text-white border-indigo-600"
                     : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
@@ -171,7 +171,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
 
           {image && (
             <div className="mt-6 pt-5 border-t border-gray-100" data-testid="veil_picker">
-              <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">画像の上の幕</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">画像の上の幕</h3>
               <p className="text-xs text-gray-500 mb-3 max-w-md">
                 カードの外に出ている小さな文字（辞書の語数や文法のレベルなど）は、
                 画像の柄に紛れることがあります。読みにくいときは濃くしてください。
@@ -183,7 +183,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
                     onClick={() => onVeilChange(c.level)}
                     aria-pressed={veil === c.level}
                     id={`btn_veil_${c.level}`}
-                    className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
+                    className={`min-h-11 px-4 rounded-xl text-xs font-bold border transition cursor-pointer ${
                       veil === c.level
                         ? "bg-indigo-600 text-white border-indigo-600"
                         : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
@@ -203,7 +203,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
               画像を選んでいなくても、はじめからの飾り（ジャングル／海）が
               背後にあるので、常に出す */}
           <div className="mt-6 pt-5 border-t border-gray-100" data-testid="glass_picker">
-            <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">カードとボタンの透明感</h3>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">カードとボタンの透明感</h3>
             <p className="text-xs text-gray-500 mb-3 max-w-md">
               「今日」の画面の学習の設定と、その中のボタンを半透明にして、背景を透かします。
               透かすほど背景は見えますが、文字は読みにくくなります。
@@ -215,7 +215,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
                   onClick={() => onGlassChange(c.level)}
                   aria-pressed={glass === c.level}
                   id={`btn_glass_${c.level}`}
-                  className={`min-h-11 px-4 rounded-xl text-xs font-black border transition cursor-pointer ${
+                  className={`min-h-11 px-4 rounded-xl text-xs font-bold border transition cursor-pointer ${
                     glass === c.level
                       ? "bg-indigo-600 text-white border-indigo-600"
                       : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"

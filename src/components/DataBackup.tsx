@@ -208,7 +208,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
 
   return (
     <div className="max-w-xl mx-auto space-y-6" id="data_backup_root">
-      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
+      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <button
             onClick={onBackToDashboard}
@@ -217,7 +217,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
             <ArrowLeft className="w-4 h-4" />
             <span>戻る</span>
           </button>
-          <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-black">
+          <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-bold">
             <Database className="w-3.5 h-3.5" />
             データ設定
           </span>
@@ -238,7 +238,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
 
         {/* 1日の学習目標 */}
         <section className="space-y-3">
-          <h3 className="flex items-center gap-2 text-sm font-extrabold text-gray-800 dark:text-slate-200">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-slate-200">
             <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             1日の学習目標
           </h3>
@@ -270,7 +270,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
         {/* Googleドライブと同期（クライアントIDが設定されているときだけ出す） */}
         {driveAvailable && (
           <section className="space-y-3" id="drive_sync_section">
-            <h3 className="flex items-center gap-2 text-sm font-extrabold text-gray-800 dark:text-slate-200">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-slate-200">
               <Cloud className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               Googleドライブと同期
             </h3>
@@ -306,7 +306,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
                 ドライブから復元
               </button>
             </div>
-            <p className="text-[11px] text-gray-400 dark:text-slate-500 leading-relaxed">
+            <p className="text-xs text-gray-400 dark:text-slate-500 leading-relaxed">
               ※ どちらへ動かすかは選んでください。自動では合わせません
               （2台で学習していると、片方の記録が黙って消えることがあるためです）。
             </p>
@@ -317,7 +317,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
 
         {/* バックアップ（ファイル） */}
         <section className="space-y-3">
-          <h3 className="flex items-center gap-2 text-sm font-extrabold text-gray-800 dark:text-slate-200">
+          <h3 className="flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-slate-200">
             <Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             ファイルでバックアップ
           </h3>
@@ -350,7 +350,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
             onChange={handleImportFile}
             className="hidden"
           />
-          <p className="text-[11px] text-gray-400 dark:text-slate-500 leading-relaxed">
+          <p className="text-xs text-gray-400 dark:text-slate-500 leading-relaxed">
             ※ インポートすると現在のデータは上書きされ、ページが再読み込みされます。
           </p>
         </section>

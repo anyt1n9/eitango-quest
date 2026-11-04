@@ -38,11 +38,11 @@ export default class ErrorBoundary extends React.Component<Props, State> {
 
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm max-w-md w-full text-center space-y-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm max-w-md w-full text-center space-y-4">
           <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-2xl">
             !
           </div>
-          <h1 className="text-lg font-black text-gray-900">
+          <h1 className="text-lg font-bold text-gray-900">
             画面の表示中に問題が発生しました
           </h1>
           <p className="text-sm text-gray-500 leading-relaxed">
@@ -50,12 +50,12 @@ export default class ErrorBoundary extends React.Component<Props, State> {
             <br />
             学習データ（スコア・単語・学習履歴）は端末に保存されているため、失われません。
           </p>
-          <p className="text-[11px] text-gray-400 font-mono bg-gray-50 border border-gray-150 rounded-xl p-3 break-words text-left">
+          <p className="text-xs text-gray-400 font-mono bg-gray-50 border border-gray-150 rounded-xl p-3 break-words text-left">
             {this.state.error.message}
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
           >
             再読み込みする
           </button>

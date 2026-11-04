@@ -65,7 +65,7 @@ describe("英→日モード（既定）", () => {
   it("英単語を出題し、日本語訳の4択を並べる", () => {
     renderQuiz();
     expect(screen.getByRole("heading", { name: "beautiful" })).toBeInTheDocument();
-    expect(screen.getByText("英単語の意味を選択")).toBeInTheDocument();
+    expect(screen.getByText("意味を選んでください")).toBeInTheDocument();
     const labels = optionLabels();
     expect(labels).toHaveLength(4);
     expect(labels.join("")).toContain("美しい");
@@ -83,7 +83,7 @@ describe("日→英モード", () => {
   it("日本語を出題し、英単語の4択を並べる", () => {
     renderQuiz({ reverseMode: true });
     expect(screen.getByRole("heading", { name: "美しい" })).toBeInTheDocument();
-    expect(screen.getByText("日本語に合う英単語を選択")).toBeInTheDocument();
+    expect(screen.getByText("日本語に合う英単語を選んでください")).toBeInTheDocument();
     const labels = optionLabels();
     expect(labels).toHaveLength(4);
     expect(labels).toContain("beautiful");
@@ -119,7 +119,7 @@ describe("リスニングモード", () => {
     renderQuiz({ listeningMode: true });
     expect(screen.queryByRole("heading", { name: "beautiful" })).toBeNull();
     expect(document.getElementById("listening_replay_btn")).toBeInTheDocument();
-    expect(screen.getByText("🎧 音声を聞いて意味を選択")).toBeInTheDocument();
+    expect(screen.getByText("音声を聞いて、意味を選んでください")).toBeInTheDocument();
   });
 
   it("再生ボタンで読み上げ直せる", async () => {
@@ -159,8 +159,10 @@ describe("回答したとき", () => {
     await user.click(optionButtons().find(b => b.textContent?.includes("重い"))!);
     const right = optionButtons().find(b => b.textContent?.includes("美しい"))!;
     const mine = optionButtons().find(b => b.textContent?.includes("重い"))!;
-    expect(right.className).toContain("border-emerald-400");
-    expect(mine.className).toContain("border-rose-300");
+    expect(right.className).toContain("border-emerald-600");
+    expect(right).toHaveTextContent("正解");
+    expect(mine.className).toContain("border-rose-600");
+    expect(mine).toHaveTextContent("あなたの答え");
     expect(right).toBeVisible();
   });
 
@@ -173,9 +175,9 @@ describe("回答したとき", () => {
       const correct = words.find(w => w.word === q)!.translation;
       fireEvent.click(optionButtons()[optionLabels().findIndex(l => l !== correct)]);
       act(() => { vi.advanceTimersByTime(60_000); });
-      expect(screen.getByText("Q: 1 / 3")).toBeInTheDocument();
+      expect(screen.getByText("1 / 3")).toBeInTheDocument();
       fireEvent.click(document.getElementById("btn_next_question")!);
-      expect(screen.getByText("Q: 2 / 3")).toBeInTheDocument();
+      expect(screen.getByText("2 / 3")).toBeInTheDocument();
       expect(setStats).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
@@ -192,7 +194,7 @@ describe("回答したとき", () => {
       fireEvent.click(optionButtons()[optionLabels().indexOf(correct)]);
       expect(document.getElementById("btn_next_question")).toBeNull();
       act(() => { vi.advanceTimersByTime(1300); });
-      expect(screen.getByText("Q: 2 / 3")).toBeInTheDocument();
+      expect(screen.getByText("2 / 3")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -206,7 +208,7 @@ describe("回答したとき", () => {
     fireEvent.click(optionButtons()[optionLabels().findIndex(l => l !== correct)]);
     const next = document.getElementById("btn_next_question")!;
     act(() => { next.click(); next.click(); });
-    expect(screen.getByText("Q: 2 / 3")).toBeInTheDocument();
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
   });
 
   it("二重に回答できない", async () => {
@@ -225,13 +227,13 @@ describe("進行", () => {
   it("問題数を指定した分だけ出題する", () => {
     const words = makeWords(20);
     renderQuiz({ vocabulary: words, customWords: words, questionCount: 5 });
-    expect(screen.getByText("Q: 1 / 5")).toBeInTheDocument();
+    expect(screen.getByText("1 / 5")).toBeInTheDocument();
   });
 
   it("中断ボタンでダッシュボードへ戻れる", async () => {
     const user = userEvent.setup();
     const { onBackToDashboard } = renderQuiz();
-    await user.click(screen.getByText("中断して戻る"));
+    await user.click(screen.getByRole("button", { name: "中断して戻る" }));
     expect(onBackToDashboard).toHaveBeenCalled();
   });
 

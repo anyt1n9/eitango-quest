@@ -100,8 +100,8 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm rounded-3xl p-6" id="study_calendar_section">
-      <h2 className="text-lg font-black text-gray-900 dark:text-slate-100 flex items-center gap-2">
+    <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm rounded-2xl p-6" id="study_calendar_section">
+      <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
         <span className="p-1.5 bg-emerald-100 dark:bg-emerald-950/50 rounded-xl text-emerald-700 dark:text-emerald-400">
           <Flame className="w-4 h-4" />
         </span>
@@ -131,14 +131,14 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
           {/* 月ラベル行 */}
           <div className="flex gap-1 mb-1 pl-8">
             {monthLabels.map((label, i) => (
-              <div key={i} className="w-3.5 shrink-0 text-[9px] text-gray-400 dark:text-slate-500 font-bold whitespace-nowrap overflow-visible">
+              <div key={i} className="w-3.5 shrink-0 text-xs text-gray-400 dark:text-slate-500 font-bold whitespace-nowrap overflow-visible">
                 {label || ""}
               </div>
             ))}
           </div>
           <div className="flex gap-1">
             {/* 曜日ラベル列 */}
-            <div className="flex flex-col gap-1 w-7 shrink-0 text-[9px] text-gray-400 dark:text-slate-500 font-bold">
+            <div className="flex flex-col gap-1 w-7 shrink-0 text-xs text-gray-400 dark:text-slate-500 font-bold">
               {["日", "月", "火", "水", "木", "金", "土"].map((d, i) => (
                 <div key={d} className="h-3.5 flex items-center">{i % 2 === 1 ? d : ""}</div>
               ))}
@@ -168,7 +168,7 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
       </div>
 
       {/* 凡例 */}
-      <div className="mt-2 flex items-center justify-end gap-1.5 text-[10px] text-gray-400 dark:text-slate-500 font-semibold">
+      <div className="mt-2 flex items-center justify-end gap-1.5 text-xs text-gray-400 dark:text-slate-500 font-medium">
         <span>少ない</span>
         {intensityClass.map((cls, i) => (
           <div key={i} className={`w-3 h-3 rounded-[3px] ${cls}`} />

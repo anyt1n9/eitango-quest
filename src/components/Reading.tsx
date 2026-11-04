@@ -336,7 +336,7 @@ export default function Reading({
           <button
             type="button"
             key={index}
-            className={`relative inline px-1 rounded border-b-2 font-semibold cursor-pointer transition-all duration-150 group/word ${colorClass}`}
+            className={`relative inline px-1 rounded border-b-2 font-medium cursor-pointer transition-all duration-150 group/word ${colorClass}`}
             onClick={(e) => {
               e.stopPropagation();
               setSelectedWordObj(matchedWord);
@@ -344,7 +344,7 @@ export default function Reading({
           >
             {part}
             {/* マウスで読んでいるときは、重ねるだけで意味が見える */}
-            <span aria-hidden="true" className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/word:block bg-slate-900 text-white text-[11px] px-2 py-1 rounded shadow-lg max-w-xs whitespace-nowrap z-50 font-sans">
+            <span aria-hidden="true" className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/word:block bg-slate-900 text-white text-xs px-2 py-1 rounded shadow-lg max-w-xs whitespace-nowrap z-50 font-sans">
               {matchedWord.translation}
             </span>
           </button>
@@ -400,7 +400,7 @@ export default function Reading({
 
         {/* メインの読解タイトル */}
         <div className="mt-6 text-center">
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight font-sans">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight font-sans">
             {selectedPassage.title}
           </h2>
           <p className="text-xs text-gray-400 mt-2 max-w-lg mx-auto font-medium">
@@ -450,7 +450,7 @@ export default function Reading({
               </div>
             )}
           </div>
-          <span className="text-[11px] text-gray-400 font-semibold">
+          <span className="text-xs text-gray-400 font-medium">
             重要単語数: <span className="text-gray-700 font-bold tabular-nums">{selectedPassage.vocabularyHighlight.length}語</span>
           </span>
         </div>
@@ -459,7 +459,7 @@ export default function Reading({
             詰まったときにどれを復習すればよいかを示す */}
         {selectedPassage.grammarFocus && selectedPassage.grammarFocus.length > 0 && (
           <div className="mt-4 flex items-center gap-2 flex-wrap" data-testid="passage_grammar">
-            <span className="text-[11px] font-black text-gray-500">この長文に出てくる文法:</span>
+            <span className="text-xs font-bold text-gray-500">この長文に出てくる文法:</span>
             {selectedPassage.grammarFocus.map(id => (
               onOpenGrammar ? (
                 // 読んでいて詰まった文法をその場で開けるようにする。
@@ -468,20 +468,20 @@ export default function Reading({
                   key={id}
                   onClick={() => onOpenGrammar(id)}
                   id={`btn_passage_grammar_${id}`}
-                  className="text-[11px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 hover:bg-indigo-100 cursor-pointer transition"
+                  className="text-xs font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5 hover:bg-indigo-100 cursor-pointer transition"
                 >
                   {grammarTitles[id] || id}
                 </button>
               ) : (
                 <span
                   key={id}
-                  className="text-[11px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5"
+                  className="text-xs font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-0.5"
                 >
                   {grammarTitles[id] || id}
                 </span>
               )
             ))}
-            <span className="text-[11px] text-gray-400 font-semibold">
+            <span className="text-xs text-gray-400 font-medium">
               {onOpenGrammar ? "（押すと文法ガイドの解説が開きます）" : "（文法ガイドで確認できます）"}
             </span>
           </div>
@@ -514,7 +514,7 @@ export default function Reading({
                       onClick={() => (isReading ? stopReading() : speakFrom(idx, false))}
                       id={`btn_passage_read_${idx}`}
                       aria-label={isReading ? `${idx + 1}段落目の読み上げを止める` : `${idx + 1}段落目を読み上げる`}
-                      className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border cursor-pointer transition ${
+                      className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg border cursor-pointer transition ${
                         isReading
                           ? "bg-indigo-600 border-indigo-600 text-white"
                           : "bg-white border-gray-200 text-gray-500 hover:bg-gray-100"
@@ -541,7 +541,7 @@ export default function Reading({
             
             {/* 特徴辞書 */}
             <div className="bg-slate-50 border border-gray-150 rounded-2xl p-5 shadow-2xs">
-              <h3 className="text-xs font-black text-gray-500 uppercase tracking-wider flex items-center gap-2 mb-4">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 mb-4">
                 <BookOpen className="w-4 h-4 text-indigo-600" />
                 <span>収録されている重要語彙</span>
               </h3>
@@ -558,7 +558,7 @@ export default function Reading({
                     }`}
                   >
                     <span className="font-bold text-sm">{v.word}</span>
-                    <span className={selectedWordObj?.word === v.word ? "text-indigo-150 font-medium" : "text-gray-400 font-medium text-[11px]"}>
+                    <span className={selectedWordObj?.word === v.word ? "text-indigo-150 font-medium" : "text-gray-400 font-medium text-xs"}>
                       {v.translation}
                     </span>
                   </button>
@@ -577,9 +577,9 @@ export default function Reading({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="text-[11px] text-indigo-700 font-bold block">選んだ単語</span>
-                      <p className="text-base font-black text-indigo-950">{selectedWordObj.word}</p>
-                      <p className="text-sm font-semibold text-indigo-800 mt-0.5">{selectedWordObj.translation}</p>
+                      <span className="text-xs text-indigo-700 font-bold block">選んだ単語</span>
+                      <p className="text-base font-bold text-indigo-950">{selectedWordObj.word}</p>
+                      <p className="text-sm font-medium text-indigo-800 mt-0.5">{selectedWordObj.translation}</p>
                     </div>
                     <button
                       type="button"
@@ -598,14 +598,14 @@ export default function Reading({
                     const state = wrongWordState(selectedWordObj.word);
                     if (state === null) {
                       return (
-                        <p className="text-[10px] text-gray-400 font-semibold mt-2">
+                        <p className="text-xs text-gray-400 font-medium mt-2">
                           この語は単語データに収録されていないため、復習には追加できません。
                         </p>
                       );
                     }
                     if (state === "in") {
                       return (
-                        <p className="text-[11px] font-black text-emerald-700 mt-2 flex items-center gap-1">
+                        <p className="text-xs font-bold text-emerald-700 mt-2 flex items-center gap-1">
                           <Check className="w-3 h-3" />
                           苦手単語に入っています
                         </p>
@@ -615,7 +615,7 @@ export default function Reading({
                       <button
                         onClick={() => addWrongWord(selectedWordObj.word)}
                         id="btn_reading_add_wrong"
-                        className="mt-2 w-full bg-white border border-indigo-200 hover:bg-indigo-100 text-indigo-800 text-[11px] font-black rounded-lg py-1.5 cursor-pointer transition"
+                        className="mt-2 w-full bg-white border border-indigo-200 hover:bg-indigo-100 text-indigo-800 text-xs font-bold rounded-lg py-1.5 cursor-pointer transition"
                       >
                         苦手単語に追加して後で復習する
                       </button>
@@ -632,9 +632,9 @@ export default function Reading({
                 <div>
                   <div className="flex gap-1.5 items-center">
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs font-black text-amber-300">読破の報酬</span>
+                    <span className="text-xs font-bold text-amber-300">読破の報酬</span>
                   </div>
-                  <h4 className="text-lg font-black mt-2 leading-tight">このストーリーの読破を目指そう！</h4>
+                  <h4 className="text-lg font-bold mt-2 leading-tight">このストーリーの読破を目指そう！</h4>
                   <p className="text-xs text-slate-300 mt-2 leading-relaxed">
                     長文を自分の力で最後まで読み、語彙への理解が深まったら、下のボタンを押して読破を完了してください。
                   </p>
@@ -647,13 +647,13 @@ export default function Reading({
                       <span>報酬獲得済み (+{selectedPassage.pointReward}P)</span>
                     </div>
                   ) : hasQuestions && !allAnswered ? (
-                    <div className="w-full bg-slate-800 border border-slate-700 text-slate-400 font-bold py-3 px-4 rounded-xl text-center text-[11px] leading-relaxed select-none">
+                    <div className="w-full bg-slate-800 border border-slate-700 text-slate-400 font-bold py-3 px-4 rounded-xl text-center text-xs leading-relaxed select-none">
                       下の「理解度チェック」に全問回答すると<br />読破を完了できます 📝
                     </div>
                   ) : (
                     <button
                       onClick={() => handleCompletePassage(selectedPassage)}
-                      className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-black py-3 px-4 rounded-xl text-center text-xs shadow-md shadow-amber-950/20 active:translate-y-px transition block cursor-pointer select-none"
+                      className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold py-3 px-4 rounded-xl text-center text-xs shadow-md shadow-amber-950/20 active:translate-y-px transition block cursor-pointer select-none"
                     >
                       読破を完了して +{selectedPassage.pointReward}P
                     </button>
@@ -672,7 +672,7 @@ export default function Reading({
               <span className="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-150/40">
                 📝 理解度チェック
               </span>
-              <h3 className="text-xl font-black text-gray-900 mt-2">本文の内容に関する設問</h3>
+              <h3 className="text-xl font-bold text-gray-900 mt-2">本文の内容に関する設問</h3>
               <p className="text-xs text-gray-400 mt-1">
                 全 {shuffledQuestions.length} 問に回答すると読破を完了できます（{Object.keys(quizAnswers).length}/{shuffledQuestions.length} 回答済み）
               </p>
@@ -683,7 +683,7 @@ export default function Reading({
                 const answered = quizAnswers[qi] !== undefined;
                 return (
                   <div key={qi} className="bg-slate-50 border border-gray-200/60 rounded-2xl p-5">
-                    <p className="text-sm font-extrabold text-gray-900 mb-4">
+                    <p className="text-sm font-bold text-gray-900 mb-4">
                       <span className="text-indigo-700 tabular-nums mr-2">Q{qi + 1}.</span>
                       {q.question}
                     </p>
@@ -733,14 +733,14 @@ export default function Reading({
             {/* 全問回答後のスコア表示 */}
             {allAnswered && (
               <div className="max-w-2xl mx-auto mt-6 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 text-center animate-fade-in">
-                <p className="text-sm font-black text-indigo-950">
+                <p className="text-sm font-bold text-indigo-950">
                   理解度チェック結果: <span className="tabular-nums text-xl text-indigo-700">{quizCorrectCount}</span> / {shuffledQuestions.length} 問正解
                   {quizCorrectCount === shuffledQuestions.length && " 🎉 パーフェクト！"}
                 </p>
                 {!isCompleted && (
                   <button
                     onClick={() => handleCompletePassage(selectedPassage)}
-                    className="mt-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-black py-3 px-8 rounded-xl text-xs shadow-md active:translate-y-px transition cursor-pointer select-none"
+                    className="mt-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold py-3 px-8 rounded-xl text-xs shadow-md active:translate-y-px transition cursor-pointer select-none"
                   >
                     読破を完了して +{selectedPassage.pointReward}P を獲得
                   </button>
@@ -766,7 +766,7 @@ export default function Reading({
           <span>戻る</span>
         </button>
         <div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-indigo-600" />
             <span>長文ストーリー読破</span>
           </h2>
@@ -784,7 +784,7 @@ export default function Reading({
           </div>
           <div>
             <p className="text-xs text-gray-600 font-bold">読み終えた長文</p>
-            <p className="text-sm font-black text-indigo-950 tabular-nums">
+            <p className="text-sm font-bold text-indigo-950 tabular-nums">
               <span className="text-base">{readPassages.length}</span> / {allPassages.length}本
             </p>
           </div>
@@ -806,7 +806,7 @@ export default function Reading({
               <Wand2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-gray-900">AIで新しい長文を生成</h3>
+              <h3 className="text-sm font-bold text-gray-900">AIで新しい長文を生成</h3>
               <p className="text-xs text-gray-600 mt-0.5">
                 Gemini AIがレベルに合わせたオリジナル長文（理解度チェック付き）を書き下ろします。
               </p>
@@ -827,7 +827,7 @@ export default function Reading({
             <button
               onClick={handleGeneratePassage}
               disabled={isGenerating}
-              className="bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
+              className="bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
               id="btn_generate_passage"
             >
               {isGenerating ? (
@@ -868,17 +868,17 @@ export default function Reading({
               <div>
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${badge.bg}`}>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${badge.bg}`}>
                       {badge.text}
                     </span>
                     {isCustom && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-violet-50 text-violet-700 border-violet-200/60">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold border bg-violet-50 text-violet-700 border-violet-200/60">
                         ✨ AI生成
                       </span>
                     )}
                     {wrongPassages.includes(p.id) && (
                       <span
-                        className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-rose-50 text-rose-700 border-rose-200/60"
+                        className="text-xs px-2 py-0.5 rounded-full font-bold border bg-rose-50 text-rose-700 border-rose-200/60"
                         data-testid={`passage_wrong_${p.id}`}
                       >
                         設問を間違えた
@@ -887,19 +887,19 @@ export default function Reading({
                   </div>
 
                   {isCompleted ? (
-                    <span className="flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 rounded-full font-bold">
+                    <span className="flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 rounded-full font-bold">
                       <CheckCircle className="w-3 h-3 text-emerald-600" />
                       <span>読破完了</span>
                     </span>
                   ) : (
-                    <span className="text-[10.5px] text-indigo-600 font-bold flex items-center gap-1">
+                    <span className="text-xs text-indigo-600 font-bold flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-amber-400" />
                       <span>+{p.pointReward}P</span>
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-lg font-black text-gray-900 mt-3 group-hover:text-indigo-600 transition font-sans">
+                <h3 className="text-lg font-bold text-gray-900 mt-3 group-hover:text-indigo-600 transition font-sans">
                   {p.title}
                 </h3>
                 
@@ -909,7 +909,7 @@ export default function Reading({
               </div>
 
               <div className="mt-5 pt-3.5 border-t border-gray-100 flex justify-between items-center">
-                <span className="text-[11px] text-gray-600 font-bold tabular-nums">
+                <span className="text-xs text-gray-600 font-bold tabular-nums">
                   重要単語: {p.vocabularyHighlight.length}語
                 </span>
                 <div className="flex items-center gap-2.5">
@@ -928,7 +928,7 @@ export default function Reading({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setSelectedPassage(p); }}
-                    className="text-xs font-black text-indigo-600 group-hover:translate-x-1 transition-all flex items-center gap-0.5 cursor-pointer"
+                    className="text-xs font-bold text-indigo-600 group-hover:translate-x-1 transition-all flex items-center gap-0.5 cursor-pointer"
                     aria-label={`${p.title} を読む`}
                   >
                     読む ➔

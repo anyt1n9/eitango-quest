@@ -44,19 +44,23 @@ export default function AnswerFeedback({
   }, [waits]);
 
   return (
-    <div ref={boxRef} className="mt-6 space-y-4" id={id}>
+    <section
+      ref={boxRef}
+      className="mt-6 bg-white border border-gray-200 rounded-2xl p-5 space-y-3 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]"
+      id={id}
+    >
       <p
         role="status"
         aria-live="polite"
-        className={`text-sm font-black flex items-center gap-2 ${correct ? "text-emerald-800" : "text-rose-800"}`}
+        className={`text-base font-bold flex items-start gap-2 ${correct ? "text-emerald-800" : "text-rose-800"}`}
       >
         {correct
-          ? <Check className="w-5 h-5 shrink-0" aria-hidden="true" />
-          : <X className="w-5 h-5 shrink-0" aria-hidden="true" />}
+          ? <Check className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+          : <X className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />}
         <span>{message}</span>
       </p>
       {children && (
-        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-800 space-y-2">
+        <div className="bg-slate-50 rounded-xl p-4 text-sm text-gray-800 space-y-2">
           {children}
         </div>
       )}
@@ -65,13 +69,13 @@ export default function AnswerFeedback({
           ref={nextRef}
           type="button"
           onClick={onNext}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-3.5 rounded-2xl shadow transition text-sm flex items-center justify-center gap-2 min-h-12 cursor-pointer"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-base flex items-center justify-center gap-2 min-h-13 cursor-pointer"
           id="btn_next_question"
         >
           <span>{nextLabel}</span>
           <ArrowRight className="w-4 h-4" aria-hidden="true" />
         </button>
       )}
-    </div>
+    </section>
   );
 }

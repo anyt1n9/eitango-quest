@@ -316,7 +316,7 @@ export default function AIDiary({
         return (
           <span 
             key={index} 
-            className="bg-amber-100 dark:bg-amber-950/70 border-b-2 border-amber-500 text-amber-950 dark:text-amber-200 px-1 font-extrabold mx-0.5 rounded-sm shadow-3xs cursor-pointer select-none"
+            className="bg-amber-100 dark:bg-amber-950/70 border-b-2 border-amber-500 text-amber-950 dark:text-amber-200 px-1 font-bold mx-0.5 rounded-sm shadow-3xs cursor-pointer select-none"
             title={`習得済み単語: ${part}`}
             onClick={(e) => {
               e.stopPropagation();
@@ -353,14 +353,14 @@ export default function AIDiary({
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-extrabold text-indigo-700 bg-indigo-55 px-3 py-1 rounded-full uppercase tracking-wider font-mono">
+          <span className="text-xs font-bold text-indigo-700 bg-indigo-55 px-3 py-1 rounded-full uppercase tracking-wider font-mono">
             Premium Mode
           </span>
         </div>
       </div>
 
       {/* 開放ステータス看板 */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute right-0 top-0 opacity-[0.03] scale-150 rotate-45 pointer-events-none">
           <Sparkles className="w-64 h-64 text-indigo-900" />
         </div>
@@ -371,26 +371,26 @@ export default function AIDiary({
               {isUnlocked ? <Unlock className="w-6 h-6 animate-pulse" /> : <Lock className="w-6 h-6 text-gray-400" />}
             </span>
             <div>
-              <h2 className="text-xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
                 <span>AI 英語日記生成モード</span>
-                {isUnlocked && <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase animate-bounce">解放済み</span>}
+                {isUnlocked && <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full uppercase animate-bounce">解放済み</span>}
               </h2>
               <p className="text-xs text-gray-400 dark:text-slate-500 font-mono mt-0.5">English Diary Maker using learned vocabulary</p>
             </div>
           </div>
-          <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed font-semibold">
-            クイズで正解した実績（マスター）が <span className="text-indigo-600 dark:text-indigo-400 font-black text-base font-mono">200単語</span> に到達すると自動解放される学習報酬モードです。AIがあなたが覚えた単語プールをくまなく解析し、それらから関連性の高い言葉を美しく散りばめた、自然で豊かなオリジナルストーリー日記を長さ制限なしでパーソナライズ生成します。
+          <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed font-medium">
+            クイズで正解した実績（マスター）が <span className="text-indigo-600 dark:text-indigo-400 font-bold text-base font-mono">200単語</span> に到達すると自動解放される学習報酬モードです。AIがあなたが覚えた単語プールをくまなく解析し、それらから関連性の高い言葉を美しく散りばめた、自然で豊かなオリジナルストーリー日記を長さ制限なしでパーソナライズ生成します。
           </p>
 
           {/* プログレスバー */}
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between text-xs text-gray-400">
-              <span className="font-extrabold flex items-center gap-1">
+              <span className="font-bold flex items-center gap-1">
                 <Award className="w-3.5 h-3.5 text-indigo-500" />
                 <span>習得合計実績:</span>
                 <strong className="text-gray-700 dark:text-slate-200 font-mono text-sm pl-0.5">{masteredCount}</strong> / 200 単語
               </span>
-              <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-black">
+              <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 font-bold">
                 {Math.min(100, Math.round((masteredCount / 200) * 100))}% Unlocked
               </span>
             </div>
@@ -416,7 +416,7 @@ export default function AIDiary({
             <button
               onClick={handleGenerateDiary}
               disabled={loading}
-              className="px-6 py-4.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-extrabold text-sm rounded-2xl transition shadow-lg hover:shadow-xl cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2.5 select-none"
+              className="px-6 py-4.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-sm rounded-2xl transition shadow-lg hover:shadow-xl cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2.5 select-none"
               id="generator_diary_btn"
             >
               {loading ? (
@@ -448,16 +448,16 @@ export default function AIDiary({
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
-                  className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-3xl overflow-hidden shadow-md"
+                  className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl overflow-hidden shadow-md"
                   id="diary_book_content"
                 >
                   {/* ヘッダー・スタンプ風 */}
                   <div className="bg-gradient-to-r from-gray-50 to-indigo-50/20 dark:from-slate-850 dark:to-slate-900 border-b border-gray-100 dark:border-slate-800 py-4 px-6 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="p-1.5 bg-indigo-100 rounded-lg text-[13px] text-indigo-700 dark:text-indigo-400 font-black uppercase font-mono">
+                      <span className="p-1.5 bg-indigo-100 rounded-lg text-[13px] text-indigo-700 dark:text-indigo-400 font-bold uppercase font-mono">
                         Diary
                       </span>
-                      <span className="text-[11px] text-gray-400 dark:text-slate-500 font-extrabold tracking-tight flex items-center gap-1">
+                      <span className="text-xs text-gray-400 dark:text-slate-500 font-bold tracking-tight flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
                         <span>{diary.date}</span>
                       </span>
@@ -466,7 +466,7 @@ export default function AIDiary({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setShowTranslation(!showTranslation)}
-                        className={`px-3 py-1 text-[11px] font-bold rounded-lg border transition ${
+                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition ${
                           showTranslation
                             ? "bg-indigo-50 border-indigo-100 text-indigo-700"
                             : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800"
@@ -507,8 +507,8 @@ export default function AIDiary({
                             <Trash2 className="w-5 h-5" />
                           </span>
                           <div>
-                            <p className="font-extrabold text-sm text-rose-950 font-sans">この日記を完全に削除しますか？</p>
-                            <p className="text-gray-500 m-0 leading-normal font-semibold">削除された過去のAI英語日記は復元できません。</p>
+                            <p className="font-bold text-sm text-rose-950 font-sans">この日記を完全に削除しますか？</p>
+                            <p className="text-gray-500 m-0 leading-normal font-medium">削除された過去のAI英語日記は復元できません。</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
@@ -519,13 +519,13 @@ export default function AIDiary({
                                 setShowActiveDiaryDeleteConfirm(false);
                               }
                             }}
-                            className="flex-1 sm:flex-initial px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-sm transition cursor-pointer"
+                            className="flex-1 sm:flex-initial px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
                           >
                             削除する
                           </button>
                           <button
                             onClick={() => setShowActiveDiaryDeleteConfirm(false)}
-                            className="flex-1 sm:flex-initial px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-750 rounded-xl text-xs font-black transition cursor-pointer"
+                            className="flex-1 sm:flex-initial px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-750 rounded-xl text-xs font-bold transition cursor-pointer"
                           >
                             キャンセル
                           </button>
@@ -535,7 +535,7 @@ export default function AIDiary({
 
                     {/* 日記のタイトル */}
                     <div>
-                      <h3 className="text-xl md:text-2xl font-extrabold text-indigo-950 font-sans tracking-tight">
+                      <h3 className="text-xl md:text-2xl font-bold text-indigo-950 font-sans tracking-tight">
                         {diary.title}
                       </h3>
                       <div className="h-1.5 w-12 bg-amber-400 rounded-full mt-2" />
@@ -548,7 +548,7 @@ export default function AIDiary({
                       </p>
                       
                       <div className="flex justify-end mt-4">
-                        <span className="text-[10px] text-gray-450 dark:text-slate-500 font-mono">
+                        <span className="text-xs text-gray-450 dark:text-slate-500 font-mono">
                           長さ: {diary.diaryText.length} 文字
                         </span>
                       </div>
@@ -570,7 +570,7 @@ export default function AIDiary({
 
                     {/* 習得済み単語タグ表示 */}
                     <div className="border-t border-gray-100 dark:border-slate-800 pt-5 space-y-2.5">
-                      <p className="text-xs text-gray-450 dark:text-slate-500 font-extrabold flex items-center gap-1.5">
+                      <p className="text-xs text-gray-450 dark:text-slate-500 font-bold flex items-center gap-1.5">
                         <Bot className="w-3.5 h-3.5 text-indigo-500" />
                         <span>今回使われた、あなたが習得した単語 ({diary.usedWords.length}語):</span>
                       </p>
@@ -597,7 +597,7 @@ export default function AIDiary({
                               title={orig ? `和訳: ${orig.translation}` : ""}
                             >
                               <span>{word}</span>
-                              {orig && <span className="text-[10px] text-amber-600 dark:text-amber-450 font-normal">({orig.translation})</span>}
+                              {orig && <span className="text-xs text-amber-600 dark:text-amber-450 font-normal">({orig.translation})</span>}
                             </div>
                           );
                         })}
@@ -607,7 +607,7 @@ export default function AIDiary({
                   </div>
                 </motion.div>
               ) : (
-                <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-3xl p-10 text-center space-y-4 shadow-sm py-16">
+                <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl p-10 text-center space-y-4 shadow-sm py-16">
                   <Sparkles className="w-16 h-16 text-indigo-300 mx-auto animate-bounce fill-indigo-250" />
                   <h3 className="text-xl font-bold text-gray-700 dark:text-slate-200">
                     あなただけの物語（日記）を創り出そう
@@ -628,8 +628,8 @@ export default function AIDiary({
 
           {/* 右カラム: 歴史（バックナンバー履歴リスト） */}
           <div className="md:col-span-4 space-y-4">
-            <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-3xl p-4 shadow-sm">
-              <h3 className="text-xs font-black text-gray-400 dark:text-slate-500 tracking-wider uppercase font-mono mb-3.5 flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+              <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 tracking-wider uppercase font-mono mb-3.5 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-gray-450" />
                   <span>過去のAI英語日記履歴 ({history.length})</span>
@@ -637,7 +637,7 @@ export default function AIDiary({
                 {history.length > 0 && (
                   <button 
                     onClick={handleClearAllHistory}
-                    className="text-[10px] text-rose-500 hover:text-rose-700 font-bold flex items-center gap-1 transition cursor-pointer"
+                    className="text-xs text-rose-500 hover:text-rose-700 font-bold flex items-center gap-1 transition cursor-pointer"
                     title="すべての履歴を消去"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -677,14 +677,14 @@ export default function AIDiary({
                       >
                         {isDeleteConfirm && (
                           <div className="absolute inset-0 bg-rose-50/95 dark:bg-slate-900/95 flex flex-col justify-center items-center p-2 z-10 text-center">
-                            <p className="text-[10px] font-black text-rose-800 dark:text-rose-200 mb-1.5">この日記を削除しますか？</p>
+                            <p className="text-xs font-bold text-rose-800 dark:text-rose-200 mb-1.5">この日記を削除しますか？</p>
                             <div className="flex items-center gap-1.5">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   confirmDeleteEntry(hEntry.id);
                                 }}
-                                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-[10px] font-bold shadow-3xs cursor-pointer transition"
+                                className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-bold shadow-3xs cursor-pointer transition"
                               >
                                 削除
                               </button>
@@ -693,19 +693,19 @@ export default function AIDiary({
                                   e.stopPropagation();
                                   setDeleteConfirmId(null);
                                 }}
-                                className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 dark:text-slate-300 dark:bg-slate-805 dark:border-slate-800 rounded-md text-[10px] font-bold shadow-3xs cursor-pointer transition"
+                                className="px-2.5 py-1 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 dark:text-slate-300 dark:bg-slate-805 dark:border-slate-800 rounded-md text-xs font-bold shadow-3xs cursor-pointer transition"
                               >
                                 戻る
                               </button>
                             </div>
                           </div>
                         )}
-                        <div className="flex items-center justify-between text-[10px] mb-1">
-                          <span className="font-extrabold text-gray-400 dark:text-slate-500 font-mono">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-bold text-gray-400 dark:text-slate-500 font-mono">
                             {hEntry.date}
                           </span>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-indigo-600 dark:text-indigo-400 font-black text-[9px] bg-indigo-100/50 px-1.5 py-0.5 rounded">
+                            <span className="text-indigo-600 dark:text-indigo-400 font-bold text-xs bg-indigo-100/50 px-1.5 py-0.5 rounded">
                               {hEntry.usedWords.length}語使用
                             </span>
                             <button
@@ -720,7 +720,7 @@ export default function AIDiary({
                         <h4 className="text-xs font-bold text-gray-800 dark:text-slate-200 truncate pr-2">
                           {hEntry.title}
                         </h4>
-                        <p className="text-[10px] text-gray-450 dark:text-slate-500 truncate mt-1">
+                        <p className="text-xs text-gray-450 dark:text-slate-500 truncate mt-1">
                           {hEntry.diaryText}
                         </p>
                       </div>
@@ -744,29 +744,29 @@ export default function AIDiary({
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center my-auto"
+            className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center my-auto"
           >
             <div className="space-y-2">
               <div className="w-12 h-12 bg-rose-550/10 dark:bg-rose-950/40 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl">
                 ⚠️
               </div>
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 font-sans tracking-tight">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 font-sans tracking-tight">
                 すべての履歴を完全に削除しますか？
               </h3>
-              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed font-semibold">
+              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed font-medium">
                 これまでに書き溜めたすべてのAI英語日記が消去され、元に戻せなくなります。
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2.5 pt-2">
               <button
                 onClick={confirmClearAllHistory}
-                className="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer"
+                className="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition cursor-pointer"
               >
                 完全に消去する
               </button>
               <button
                 onClick={() => setShowClearAllConfirm(false)}
-                className="w-full py-2.5 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-gray-700 dark:text-slate-200 rounded-xl text-xs font-black transition cursor-pointer"
+                className="w-full py-2.5 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-gray-700 dark:text-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 キャンセル
               </button>

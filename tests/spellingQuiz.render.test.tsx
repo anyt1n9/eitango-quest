@@ -103,7 +103,7 @@ describe("出題", () => {
       makeWord({ id: "ok", word: "library", translation: "図書館" })
     ]);
     expect(screen.getByRole("heading", { name: "図書館" })).toBeInTheDocument();
-    expect(screen.getByText("Q: 1 / 1")).toBeInTheDocument();
+    expect(screen.getByText("1 / 1")).toBeInTheDocument();
   });
 
   it("出せる語が1つも無ければ、準備中のまま出題しない", () => {
@@ -198,7 +198,7 @@ describe("進行", () => {
     await answer("zzz");
     await user.click(document.getElementById("btn_spelling_next")!);
 
-    expect(screen.getByText("Q: 2 / 2")).toBeInTheDocument();
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
     expect(input().value).toBe("");
     expect(input()).not.toBeDisabled();
   });

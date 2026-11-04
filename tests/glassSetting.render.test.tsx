@@ -99,11 +99,16 @@ describe("ガラスにする面", () => {
     expect(document.getElementById("level_selection_section")!.className).toContain("glass-panel");
   });
 
-  it("塗りつぶしのボタンに印が付く（学習を始める・選んでいる問題数）", () => {
+  it("塗りつぶしのボタン（学習を始める）に印が付く", () => {
     renderDashboard();
     expect(document.getElementById("btn_junior_word")!.className).toContain("glass-chip");
-    const count = document.querySelector('[data-testid="count_picker"] button[aria-pressed="true"]');
-    expect(count!.className).toContain("glass-chip");
+  });
+
+  it("問題数の切り替えは塗りつぶさないので、選んでいるものにも印を付けない", () => {
+    // 選んでいる問題数は白く浮かせるだけにした（開始ボタンと塗りつぶしが2つ並ばないように）
+    renderDashboard();
+    const picked = document.querySelector('[data-testid="count_picker"] button[aria-pressed="true"]');
+    expect(picked!.className).not.toContain("glass-chip");
   });
 
   it("枠だけのボタンには印を付けない（地の色を塗りつぶしに変えてしまうため）", () => {

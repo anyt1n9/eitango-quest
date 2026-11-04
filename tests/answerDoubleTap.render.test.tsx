@@ -167,7 +167,7 @@ describe("次の問題では、ふつうに答えられる", () => {
     fireEvent.change(input, { target: { value: "zzz" } });
     fireEvent.submit(form);
     tapTogether(document.getElementById("btn_spelling_next")!, document.getElementById("btn_spelling_next")!);
-    expect(document.getElementById("spelling_running_card")).toHaveTextContent("Q: 2 / 3");
+    expect(document.getElementById("spelling_running_card")).toHaveTextContent("2 / 3");
   });
 
   it("綴り: 最後の問題で「結果を見る」を2回押しても、点数は1回だけ足す", () => {

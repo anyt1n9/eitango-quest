@@ -72,7 +72,7 @@ beforeEach(() => {
 describe("出題", () => {
   it("穴埋めの例文と、英単語の4択を並べる", () => {
     renderQuiz();
-    expect(screen.getByText("穴埋めに当てはまる英単語を選択")).toBeInTheDocument();
+    expect(screen.getByText("穴に入る英単語を選んでください")).toBeInTheDocument();
     expect(questionText()).toContain("The garden is very");
     expect(questionText()).toContain("in spring.");
     expect(optionLabels().sort()).toEqual(["beautiful", "careful", "peaceful", "powerful"]);
@@ -166,7 +166,8 @@ describe("解答", () => {
     await user.click(screen.getByRole("button", { name: "careful" }));
     for (const b of optionButtons()) expect(b).toBeDisabled();
     // 押しても2回目は記録されない
-    await user.click(screen.getByRole("button", { name: "beautiful" }));
+    // 答えたあとは選択肢に「正解」の印が付くので、名前の頭で探す
+    await user.click(screen.getByRole("button", { name: /^beautiful/ }));
     expect(recordAnswer).toHaveBeenCalledTimes(1);
   });
 
@@ -178,7 +179,9 @@ describe("解答", () => {
     for (const hole of screen.getAllByTestId("sentence_hole")) expect(hole).toHaveTextContent("beautiful");
     expect(screen.getByText(/その庭は春にとても美しい。/)).toBeInTheDocument();
     // 選択肢は見せたまま、自分の答えも残す
-    expect(screen.getByRole("button", { name: "careful" }).className).toContain("border-rose-300");
+    const mine = screen.getByRole("button", { name: /^careful/ });
+    expect(mine.className).toContain("border-rose-600");
+    expect(mine).toHaveTextContent("あなたの答え");
     expect(document.getElementById("answer_feedback")).toHaveTextContent("あなたの答え: careful");
   });
 
@@ -192,9 +195,9 @@ describe("解答", () => {
       renderQuiz(words);
       fireEvent.click(optionButtons().find(b => !/alpha|bravo/.test(b.textContent || ""))!);
       act(() => { vi.advanceTimersByTime(60_000); });
-      expect(screen.getByText("Q: 1 / 2")).toBeInTheDocument();
+      expect(screen.getByText("1 / 2")).toBeInTheDocument();
       fireEvent.click(document.getElementById("btn_next_question")!);
-      expect(screen.getByText("Q: 2 / 2")).toBeInTheDocument();
+      expect(screen.getByText("2 / 2")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -215,12 +218,12 @@ describe("出題のやり直し", () => {
       makeWord({ id: "b", word: "bravo", sentenceOptions: ["bravo", "y1", "y2", "y3"] })
     ];
     const { view } = renderQuiz(words);
-    expect(screen.getByText("Q: 1 / 2")).toBeInTheDocument();
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
 
     // 1問目に答えて2問目へ進める（不正解なので「次の問題へ」を押す）
     fireEvent.click(optionButtons().find(b => !/alpha|bravo/.test(b.textContent || ""))!);
     fireEvent.click(document.getElementById("btn_next_question")!);
-    expect(screen.getByText("Q: 2 / 2")).toBeInTheDocument();
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
 
     // 中身が同じ新しい配列を渡す（呼び出し側の再レンダー相当）
     view.rerender(
@@ -238,7 +241,7 @@ describe("出題のやり直し", () => {
         updateRankingScore={vi.fn()}
       />
     );
-    expect(screen.getByText("Q: 2 / 2"), "2問目のまま").toBeInTheDocument();
+    expect(screen.getByText("2 / 2"), "2問目のまま").toBeInTheDocument();
   });
 
   it("違う単語を渡したら、その単語で出し直す", () => {

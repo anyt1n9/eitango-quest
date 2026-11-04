@@ -81,7 +81,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
   }, [wordId]);
 
   if (loading) {
-    return <p className={`text-xs text-gray-400 font-semibold ${className}`}>意味を読み込んでいます…</p>;
+    return <p className={`text-xs text-gray-400 font-medium ${className}`}>意味を読み込んでいます…</p>;
   }
   // 語義が1つしか無い語は、上の「正しい日本語訳」と同じ情報になるので出さない
   if (!senses || senses.length < 2) return null;
@@ -97,7 +97,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
     <div className={`bg-amber-50/50 border border-amber-200/70 dark:bg-slate-800/40 dark:border-slate-700 p-3.5 rounded-xl space-y-2.5 ${className}`}>
       <div className="flex items-center gap-1.5">
         <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-        <p className="font-extrabold text-amber-700 dark:text-amber-400 text-xs">
+        <p className="font-bold text-amber-700 dark:text-amber-400 text-xs">
           この単語の他の意味（{senses.length}件）
           {borrowedFrom && (
             <span className="ml-1 font-bold text-amber-600/80 dark:text-amber-500">
@@ -114,15 +114,15 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
             <div key={group.pos} data-testid={`sense_group_${group.pos}`}>
               {/* 割合は品詞のまとまりに1回だけ。語義ごとに繰り返すと意味別の頻度に見える */}
               <div className="flex items-center gap-1.5 pb-1 border-b border-amber-200/70 dark:border-slate-700">
-                <span className="inline-block px-1.5 py-0.5 rounded-md bg-white border border-amber-200 dark:border-slate-600 text-[10px] font-black text-amber-700 dark:text-amber-300">
+                <span className="inline-block px-1.5 py-0.5 rounded-md bg-white border border-amber-200 dark:border-slate-600 text-xs font-bold text-amber-700 dark:text-amber-300">
                   {POS_SHARE_LABELS[group.pos] || group.pos}
                 </span>
-                <span className={`text-[10px] tabular-nums font-bold ${label.muted
+                <span className={`text-xs tabular-nums font-bold ${label.muted
                   ? "text-gray-400 dark:text-slate-500"
                   : "text-gray-600 dark:text-slate-300"}`}>
                   {label.text}
                 </span>
-                <span className="text-[10px] font-semibold text-gray-400 dark:text-slate-500">
+                <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
                   {group.senses.length}件
                 </span>
               </div>
@@ -133,18 +133,18 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
                     && isTaught(s.meaning, ownTranslation);
                   return (
                     <li key={i} className="flex items-start gap-1.5 text-sm leading-snug">
-                      <span className="text-amber-400 dark:text-amber-600 mt-0.5 text-[10px]">●</span>
+                      <span className="text-amber-400 dark:text-amber-600 mt-0.5 text-xs">●</span>
                       <span className={`flex-1 ${taught
-                        ? "font-black text-indigo-800"
-                        : "font-semibold text-gray-700 dark:text-slate-300"}`}>
+                        ? "font-bold text-indigo-800"
+                        : "font-medium text-gray-700 dark:text-slate-300"}`}>
                         {s.meaning}
                         {s.important && (
-                          <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-[10px] font-black text-rose-600 dark:text-rose-400">
+                          <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-xs font-bold text-rose-600 dark:text-rose-400">
                             <Star className="w-2.5 h-2.5 fill-current" />重要
                           </span>
                         )}
                         {taught && (
-                          <span className="ml-1.5 text-[10px] font-black text-indigo-500 dark:text-indigo-400">
+                          <span className="ml-1.5 text-xs font-bold text-indigo-500 dark:text-indigo-400">
                             ← 学習中
                           </span>
                         )}
@@ -156,7 +156,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
 
               {/* その品詞で実際に使われている例（英英辞典の用例。訳は付かない） */}
               {group.usage && (
-                <p className="mt-1.5 ml-4 tabular-nums text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900 rounded-lg px-2 py-1">
+                <p className="mt-1.5 ml-4 tabular-nums text-xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900 rounded-lg px-2 py-1">
                   {group.usage}
                 </p>
               )}
@@ -166,7 +166,7 @@ export default function WordSenses({ wordId, ownTranslation, ownPos, className =
       </div>
 
       {(hasShare || hasUsage || hasImportant) && (
-        <div className="text-[10px] text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-amber-200/70 dark:border-slate-700 space-y-0.5">
+        <div className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed pt-1.5 border-t border-amber-200/70 dark:border-slate-700 space-y-0.5">
           {hasShare && (
             <p>
               ％は、その品詞が実際の英文で使われる割合です（WordNet の SemCor 頻度による）。
@@ -217,7 +217,7 @@ export function DominantSenseHint({ wordId, ownPos }: { wordId: string; ownPos?:
 
   return (
     <div className="border-t border-gray-200 pt-2.5 mt-1" data-testid="dominant_sense_hint">
-      <span className="text-xs text-amber-800 font-black block mb-1">
+      <span className="text-xs text-amber-800 font-bold block mb-1">
         よく使われるのはこちら
       </span>
       <p className="text-xs text-gray-800 font-bold leading-snug">

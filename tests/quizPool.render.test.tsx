@@ -70,7 +70,7 @@ describe("例文穴埋め（レベル別）", () => {
   it("例文の無い語・選択肢の足りない語は出題しない", () => {
     render(<SentenceQuiz {...common} vocabulary={[BROKEN, NO_SENTENCE, GOOD]} />);
     // 3語のうち出題できるのは GOOD だけ。5問求めても1問しか作られない
-    expect(document.body.textContent).toMatch(/Q:\s*1\s*\/\s*1/);
+    expect(screen.getByTestId("quiz_progress_text")).toHaveTextContent("1 / 1");
     expect(optionCount("sentence_quiz_options_grid")).toBe(4);
     expect(document.body.textContent).not.toContain("keep up with");
   });

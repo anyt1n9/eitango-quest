@@ -7,7 +7,10 @@
     <meta name="keywords" content="Eigorira,エイゴリラ,英単語,英単語アプリ,英単語クイズ,英単語学習,英語学習,間隔反復,SRS,TOEIC,TOEFL,大学受験,英検,発音記号,無料,eitango,vocabulary" />
     <meta name="author" content="eitango-quest" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#4f46e5" />
+    <!-- ブラウザの上の帯の色。画面の地（紙／深い海）と同じにする。
+         明暗は端末の設定ではなくアプリのテーマで決まるので、media で分けずに
+         下の起動スクリプトで書き換える（値は src/themeColor.ts と対） -->
+    <meta name="theme-color" content="#fafaf7" />
 
     <!-- Open Graph (SNS・検索でのカード表示用) -->
     <meta property="og:type" content="website" />
@@ -84,6 +87,8 @@
           }
         }
         if (dark) document.documentElement.classList.add("dark");
+        var themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) themeColor.setAttribute("content", dark ? "#03121d" : "#fafaf7");
 
         // カードの透明感も、React を待たずに当てる（面の色が後から変わると
         // 背景色に掛かる200msの遷移でちらつく）。値は src/glass.ts と対

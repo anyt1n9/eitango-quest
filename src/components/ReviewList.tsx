@@ -66,7 +66,7 @@ export default function ReviewList({
     <div className="max-w-xl mx-auto space-y-6 relative" id="review_section_root">
       
       {/* 苦手単語カード一覧 */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6" id="review_list_card">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6" id="review_list_card">
           
           <div className="flex items-center justify-between">
             <button
@@ -77,7 +77,7 @@ export default function ReviewList({
               <ArrowLeft className="w-4 h-4" />
               <span>戻る</span>
             </button>
-            <span className="bg-rose-100 text-rose-800 text-xs px-3.5 py-1.5 rounded-full font-black tabular-nums">
+            <span className="bg-rose-100 text-rose-800 text-xs px-3.5 py-1.5 rounded-full font-bold tabular-nums">
               {wrongWordObjects.length} 語
             </span>
           </div>
@@ -89,7 +89,7 @@ export default function ReviewList({
               <Brain className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="font-black text-lg text-gray-900">苦手な単語</h2>
+              <h2 className="font-bold text-lg text-gray-900">苦手な単語</h2>
               <p className="text-xs text-gray-600 mt-0.5 font-medium leading-relaxed">
                 クイズで間違えた単語です。テストで正解すると、この一覧から外れます。
               </p>
@@ -102,7 +102,7 @@ export default function ReviewList({
             <div className="space-y-2.5" id="review_format_section">
               <div className="flex items-center gap-1.5">
                 <GraduationCap className="w-4 h-4 text-indigo-600" />
-                <p className="text-sm font-black text-gray-800">苦手克服テストの形式を選ぶ</p>
+                <p className="text-sm font-bold text-gray-800">苦手克服テストの形式を選ぶ</p>
               </div>
               <p className="text-xs text-gray-500 font-medium leading-relaxed">
                 正解した単語は苦手リストから卒業します。覚えたときと同じ形式で確かめると、
@@ -113,7 +113,7 @@ export default function ReviewList({
           ) : (
             <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-              <p className="text-gray-800 font-extrabold">苦手な単語はありません！</p>
+              <p className="text-gray-800 font-bold">苦手な単語はありません！</p>
               <p className="text-xs text-gray-600 mt-1 max-w-xs mx-auto leading-relaxed">
                 素晴らしい学習進捗です。「今日」の画面からクイズにどんどん挑戦して、英単語マスターを目指していきましょう！
               </p>
@@ -146,12 +146,12 @@ export default function ReviewList({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {/* 色はレベルの色に合わせる（src/levelTheme.ts） */}
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
                           LEVEL_TONE[word.level] || LEVEL_TONE.junior
                         } ${TONE_STYLE.badge}`}>
                           {LEVEL_STAGES[word.level as Level] ?? word.level}
                         </span>
-                        <span className="font-extrabold text-base text-gray-900 select-all">
+                        <span className="font-bold text-base text-gray-900 select-all">
                           {word.word}
                         </span>
                         <button
@@ -189,17 +189,17 @@ export default function ReviewList({
                           <div className="mt-4 border-t border-gray-100 pt-4 space-y-3 text-xs md:text-sm">
                             <div className="grid grid-cols-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
                               <div className="col-span-1 font-bold text-gray-500">日本語訳:</div>
-                              <div className="col-span-2 font-extrabold text-indigo-700">{word.translation}</div>
+                              <div className="col-span-2 font-bold text-indigo-700">{word.translation}</div>
                             </div>
                             
                             <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1.5">
                               <p className="font-bold text-gray-500 flex items-center gap-1">
                                 <span>英文穴埋めでの例:</span>
                               </p>
-                              <p className="font-sans font-semibold text-gray-800 italic pr-4 pl-1">
+                              <p className="font-sans font-medium text-gray-800 italic pr-4 pl-1">
                                 {showHoles(word.sentence, `【 ${word.word} 】`)}
                               </p>
-                              <p className="text-[11px] text-gray-500 font-medium pl-1">
+                              <p className="text-xs text-gray-500 font-medium pl-1">
                                 訳: {word.sentenceTranslation}
                               </p>
                             </div>

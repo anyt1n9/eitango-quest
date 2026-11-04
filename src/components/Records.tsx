@@ -216,10 +216,10 @@ export default function Records({
 
   return (
     <div className="space-y-5" id="records_page">
-      <h1 className="text-xl font-black text-gray-900 dark:text-slate-100 px-1">記録</h1>
+      <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 px-1">記録</h1>
 
         <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-5" id="bonus_section">
-          <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <span className="p-1.5 bg-emerald-100 rounded-xl text-emerald-700">
               <Calendar className="w-4 h-4" />
             </span>
@@ -261,7 +261,7 @@ export default function Records({
                   <div className="my-2 text-2xl">
                     {status === "claimed" ? "🎁" : idx === 6 ? "👑" : "💎"}
                   </div>
-                  <span className={`text-[11px] font-black tabular-nums tracking-tight ${status === "claimed" ? "text-emerald-700" : "text-gray-700"}`}>
+                  <span className={`text-xs font-bold tabular-nums tracking-tight ${status === "claimed" ? "text-emerald-700" : "text-gray-700"}`}>
                     {status === "claimed" ? "受取済" : `+${bonus.points} P`}
                   </span>
                 </>
@@ -291,14 +291,14 @@ export default function Records({
               /* 押す先はスタンプだけなので、どれを押すのかをここで言葉にする。
                  光っているだけでは「押せる」ことが伝わらない */
               <div
-                className="bg-indigo-50 rounded-2xl p-4 text-center border font-semibold border-indigo-200 text-indigo-700 inline-flex items-center gap-2 text-sm"
+                className="bg-indigo-50 rounded-2xl p-4 text-center border font-medium border-indigo-200 text-indigo-700 inline-flex items-center gap-2 text-sm"
                 id="claim_bonus_hint"
               >
                 <Sparkles className="w-5 h-5 animate-pulse" />
                 <span>光っているスタンプを押すと、本日のボーナスを受け取れます。</span>
               </div>
             ) : (
-              <div className="bg-gray-100 rounded-2xl p-4 text-center border font-semibold border-gray-200 text-gray-500 inline-flex items-center gap-2 text-sm">
+              <div className="bg-gray-100 rounded-2xl p-4 text-center border font-medium border-gray-200 text-gray-500 inline-flex items-center gap-2 text-sm">
                 <ThumbsUp className="w-5 h-5 text-emerald-500" />
                 <span>本日のログインボーナスはすべて獲得済みです。明日また来てね！</span>
               </div>
@@ -317,7 +317,7 @@ export default function Records({
         <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-5" id="ranking_section">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <span className="p-1.5 bg-amber-100 rounded-xl text-amber-700">
                 <Trophy className="w-4 h-4 fill-amber-200" />
                 </span>
@@ -340,20 +340,20 @@ export default function Records({
           {/* 自己ベスト・累計スタッツパネル */}
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3" id="self_records_panel">
             <div className="bg-amber-50/70 border border-amber-150 rounded-2xl p-4 text-center">
-              <span className="text-[10px] text-amber-700 font-black tracking-wider uppercase block">総スコア</span>
-              <p className="text-2xl font-black text-amber-800 tabular-nums mt-1">{stats.score}<span className="text-xs text-amber-700 ml-0.5">P</span></p>
+              <span className="text-xs text-amber-700 font-bold tracking-wider uppercase block">総スコア</span>
+              <p className="text-2xl font-bold text-amber-800 tabular-nums mt-1">{stats.score}<span className="text-xs text-amber-700 ml-0.5">P</span></p>
             </div>
             <div className="bg-emerald-50/70 border border-emerald-150 rounded-2xl p-4 text-center">
-              <span className="text-[10px] text-emerald-700 font-black tracking-wider uppercase block">連続ログイン</span>
-              <p className="text-2xl font-black text-emerald-800 tabular-nums mt-1">{bonusState.streak}<span className="text-xs text-emerald-700 ml-0.5">日</span></p>
+              <span className="text-xs text-emerald-700 font-bold tracking-wider uppercase block">連続ログイン</span>
+              <p className="text-2xl font-bold text-emerald-800 tabular-nums mt-1">{bonusState.streak}<span className="text-xs text-emerald-700 ml-0.5">日</span></p>
             </div>
             <div className="bg-indigo-50/70 border border-indigo-150 rounded-2xl p-4 text-center">
-              <span className="text-[10px] text-indigo-600 font-black tracking-wider uppercase block">累計回答数</span>
-              <p className="text-2xl font-black text-indigo-800 tabular-nums mt-1">{stats.completedQuestions}<span className="text-xs text-indigo-700 ml-0.5">問</span></p>
+              <span className="text-xs text-indigo-600 font-bold tracking-wider uppercase block">累計回答数</span>
+              <p className="text-2xl font-bold text-indigo-800 tabular-nums mt-1">{stats.completedQuestions}<span className="text-xs text-indigo-700 ml-0.5">問</span></p>
             </div>
             <div className="bg-rose-50/70 border border-rose-150 rounded-2xl p-4 text-center">
-              <span className="text-[10px] text-rose-700 font-black tracking-wider uppercase block">累計正答率</span>
-              <p className="text-2xl font-black text-rose-800 tabular-nums mt-1">
+              <span className="text-xs text-rose-700 font-bold tracking-wider uppercase block">累計正答率</span>
+              <p className="text-2xl font-bold text-rose-800 tabular-nums mt-1">
                 {stats.completedQuestions > 0 ? Math.round((stats.correctAnswers / stats.completedQuestions) * 100) : 0}<span className="text-xs text-rose-700 ml-0.5">%</span>
               </p>
             </div>
@@ -361,7 +361,7 @@ export default function Records({
 
           {/* 仮想ライバル（CPU）との比較 */}
           <div className="mt-8">
-            <h3 className="text-sm font-extrabold text-gray-700">仮想ライバル（CPU）とのスコア比較</h3>
+            <h3 className="text-sm font-bold text-gray-700">仮想ライバル（CPU）とのスコア比較</h3>
             <p className="text-xs text-gray-400 mt-1">
               ※ 以下は実在のユーザーではなく、練習用に用意された架空のCPUライバルです。目標スコアの目安としてご活用ください。
             </p>
@@ -377,7 +377,7 @@ export default function Records({
               if (place === 1) badge = <span className="text-lg">🥇</span>;
               else if (place === 2) badge = <span className="text-lg">🥈</span>;
               else if (place === 3) badge = <span className="text-lg">🥉</span>;
-              else badge = <span className="text-sm font-semibold tabular-nums text-gray-400">{place}</span>;
+              else badge = <span className="text-sm font-medium tabular-nums text-gray-400">{place}</span>;
 
               return (
                 <div 
@@ -394,8 +394,8 @@ export default function Records({
                       {isMe && equipped.avatar ? equipped.avatar : user.avatar}
                     </div>
                     <div>
-                      <h4 className={`text-sm tracking-tight ${isMe ? "font-black text-amber-900" : "font-bold text-gray-800"}`}>
-                        {user.name} {isMe ? <span className="bg-amber-100 text-amber-700 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">YOU</span> : <span className="bg-gray-100 text-gray-600 text-[10px] py-0.5 px-2 rounded-full font-bold ml-1 font-sans">CPU</span>}
+                      <h4 className={`text-sm tracking-tight ${isMe ? "font-bold text-amber-900" : "font-bold text-gray-800"}`}>
+                        {user.name} {isMe ? <span className="bg-amber-100 text-amber-700 text-xs py-0.5 px-2 rounded-full font-bold ml-1 font-sans">YOU</span> : <span className="bg-gray-100 text-gray-600 text-xs py-0.5 px-2 rounded-full font-bold ml-1 font-sans">CPU</span>}
                       </h4>
                       <p className="text-xs text-gray-400 font-medium">
                         {isMe && equipped.title ? (
@@ -405,8 +405,8 @@ export default function Records({
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-lg font-black tabular-nums text-gray-800 tracking-tight">{user.score}</span>
-                    <span className="text-[10px] text-gray-400 font-bold ml-0.5">P</span>
+                    <span className="text-lg font-bold tabular-nums text-gray-800 tracking-tight">{user.score}</span>
+                    <span className="text-xs text-gray-400 font-bold ml-0.5">P</span>
                   </div>
                 </div>
               );
@@ -415,7 +415,7 @@ export default function Records({
         </div>
 
         <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-5" id="ai_advisor_section">
-          <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <span className={`p-1.5 rounded-xl ${ACCENT_TONE.advice} ${TONE_STYLE.badge}`}>
             <AdviceIcon className="w-4 h-4" />
             </span>
@@ -433,7 +433,7 @@ export default function Records({
                   <SimpleMarkdown text={advice} />
                 </div>
                 {adviceSource && (
-                  <p className="text-[11px] font-bold text-gray-400" id="advice_source">
+                  <p className="text-xs font-bold text-gray-400" id="advice_source">
                     {adviceSource === "ai"
                       ? "Gemini AI が生成しました。"
                       : "AIキーが未設定のため、アプリが学習記録から組み立てました。"}
@@ -453,7 +453,7 @@ export default function Records({
             ) : (
               <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                 <AdviceIcon className={`w-12 h-12 mx-auto mb-3 ${ACCENT_TONE.advice} ${TONE_STYLE.text}`} />
-                <p className="text-gray-600 font-extrabold mb-1">あなたの回答傾向をAIが分析します</p>
+                <p className="text-gray-600 font-bold mb-1">あなたの回答傾向をAIが分析します</p>
                 <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
                   スタッツ、弱点、学習履歴をもとに最適化された効率的コーチングアドバイスを受け取りましょう。
                 </p>
@@ -487,7 +487,7 @@ export default function Records({
 
           {/* 弱点分野の自動分析セクション */}
           <div className="mt-8 border-t border-gray-100 pt-6" id="weakness_analysis_section">
-            <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <span className={`p-1.5 rounded-xl ${ACCENT_TONE.weakness} ${TONE_STYLE.badge}`}>
               <WeaknessIcon className="w-4 h-4" />
               </span>
@@ -502,13 +502,13 @@ export default function Records({
               {weaknessAnalysis ? (
                 <div className="space-y-5">
                   <div className={`${ACCENT_TONE.weakness} bg-[var(--lv-bg)] border border-[var(--lv-border)] rounded-2xl p-5`}>
-                    <p className="text-sm text-gray-800 leading-relaxed font-semibold">
+                    <p className="text-sm text-gray-800 leading-relaxed font-medium">
                       {weaknessAnalysis.summary}
                     </p>
                   </div>
                   {/* 出どころを書く。AIキーが無いときは品詞を数えただけの集計なので、
                       AIの分析として読まれると内容を過大に受け取らせてしまう */}
-                  <p className="text-[11px] font-bold text-gray-400" id="weakness_source">
+                  <p className="text-xs font-bold text-gray-400" id="weakness_source">
                     {weaknessAnalysis.isFallback
                       ? "AIキーが未設定のため、アプリが間違えた単語の品詞を数えて組み立てました。"
                       : "Gemini AI が分析しました。"}
@@ -516,7 +516,7 @@ export default function Records({
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
-                      <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">品詞別の傾向</h3>
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">品詞別の傾向</h3>
                       <div className="space-y-2.5">
                         {weaknessAnalysis.partOfSpeechStats.map((stat, i) => (
                           <div key={i}>
@@ -536,7 +536,7 @@ export default function Records({
                     </div>
 
                     <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
-                      <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">分野・テーマ別の傾向</h3>
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">分野・テーマ別の傾向</h3>
                       <div className="space-y-2.5">
                         {weaknessAnalysis.topicStats.map((stat, i) => (
                           <div key={i}>
@@ -557,7 +557,7 @@ export default function Records({
                   </div>
 
                   <div className="bg-white border border-gray-100 rounded-2xl p-4">
-                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">克服のための学習アドバイス</h3>
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">克服のための学習アドバイス</h3>
                     <ul className="space-y-1.5">
                       {weaknessAnalysis.recommendations.map((rec, i) => (
                         <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
@@ -582,7 +582,7 @@ export default function Records({
               ) : (
                 <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                   <WeaknessIcon className={`w-12 h-12 mx-auto mb-3 ${ACCENT_TONE.weakness} ${TONE_STYLE.text}`} />
-                  <p className="text-gray-600 font-extrabold mb-1">間違えた単語の傾向を分析します</p>
+                  <p className="text-gray-600 font-bold mb-1">間違えた単語の傾向を分析します</p>
                   <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">
                     現在 <span className="tabular-nums font-bold">{wrongWords.length}語</span> の間違えた単語が記録されています。品詞や分野の傾向から、あなたの弱点分野を見つけます。
                   </p>

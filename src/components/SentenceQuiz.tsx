@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { ArrowLeft, Check, X, Volume2, Eye, Loader2 } from "lucide-react";
+import { Volume2, Eye, Loader2 } from "lucide-react";
 import { Level, Word, UserStats } from "../types";
 import { LEVEL_LABELS } from "../levelLabels";
 import { getAudioContext } from "../sound";
@@ -11,6 +11,7 @@ import { canFillSentence } from "../quizFormats";
 import { showHoles, toFillInSentence } from "../fillIn";
 import AnswerFeedback from "./AnswerFeedback";
 import QuizResult from "./QuizResult";
+import { QuizTopBar, QuizPrompt, optionState, optionClass, OptionMark } from "./QuizParts";
 
 // クイズ回答時の効果音（シンセ）
 const playSentenceSound = (isCorrect: boolean) => {
@@ -286,7 +287,7 @@ export default function SentenceQuiz({
 
   if (questions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border shadow-sm">
+      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border shadow-sm">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
         <span className="text-sm text-gray-500 font-medium font-sans mt-3">例文穴埋めクイズの準備をしています...</span>
       </div>
@@ -312,14 +313,14 @@ export default function SentenceQuiz({
             isCorrect: item.isCorrect,
             content: (
               <>
-                <p className="text-[13px] font-semibold text-gray-800 leading-relaxed">
+                <p className="text-[13px] font-medium text-gray-800 leading-relaxed">
                   {showHoles(item.word.sentence, `【 ${item.word.word} 】`)}
                 </p>
-                <p className="text-xs text-gray-600 font-semibold leading-relaxed">
+                <p className="text-xs text-gray-600 font-medium leading-relaxed">
                   訳: {item.word.sentenceTranslation}
                 </p>
                 {!item.isCorrect && (
-                  <p className="text-xs text-rose-700 font-black">
+                  <p className="text-xs text-rose-700 font-bold">
                     あなたの答え: {item.userChoice}（正解: {item.word.word}）
                   </p>
                 )}
@@ -340,46 +341,24 @@ export default function SentenceQuiz({
 
   return (
     <div className="max-w-xl mx-auto" id="sentence_quiz_section_root">
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm" id="sentence_quiz_running_card">
-        <div className="flex items-center justify-between mb-5">
-          <button
-            onClick={onBackToDashboard}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-gray-800 transition min-h-11 cursor-pointer"
-            id="btn_quit_sentence_quiz"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>中断して戻る</span>
-          </button>
-          <div className="bg-gray-100 px-3.5 py-1.5 rounded-full text-xs font-black tabular-nums text-emerald-700">
-            Q: {currentIndex + 1} / {questions.length}
-          </div>
-        </div>
-
-        {/* 出題プログレス */}
-        <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden mb-6">
-          <div 
-            className="bg-emerald-600 h-full rounded-full transition-all duration-300"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-          />
-        </div>
+      <div id="sentence_quiz_running_card">
+        <QuizTopBar index={currentIndex} total={questions.length} onQuit={onBackToDashboard} quitId="btn_quit_sentence_quiz" />
 
         {/* 穴埋め例文の出題 */}
-        <div className="space-y-5 mb-6 bg-gray-50 p-5 rounded-2xl border border-gray-100 text-center">
-          <span className="text-xs font-black text-emerald-800">
-            穴埋めに当てはまる英単語を選択
-          </span>
+        <div className="space-y-5 mt-2 mb-6 bg-white p-5 rounded-2xl border border-gray-200 text-center">
+          <QuizPrompt>穴に入る英単語を選んでください</QuizPrompt>
 
           <div className="space-y-4">
             {/* 英文。穴埋め箇所を強調。答えたあとは正解の語を入れて見せる */}
             <div className="flex flex-col items-center gap-2">
-              <p className="text-xl md:text-2xl font-black text-gray-800 leading-relaxed max-w-md break-words">
+              <p className="font-headword text-xl md:text-2xl text-gray-900 leading-relaxed max-w-md break-words" lang="en">
                 {currentQuestion.sentence.split("[_____]").map((part, i, arr) => (
                   <React.Fragment key={i}>
                     {part}
                     {i < arr.length - 1 && (
                       <span
                         data-testid="sentence_hole"
-                        className={`inline-block px-3 py-0.5 mx-1.5 rounded-lg text-base font-black ${
+                        className={`inline-block px-3 py-0.5 mx-1.5 rounded-lg text-base font-sans font-bold ${
                           answered
                             ? "bg-emerald-50 border-2 border-emerald-400 text-emerald-900"
                             : "bg-yellow-100 border-2 border-dashed border-yellow-400 text-yellow-900"
@@ -393,7 +372,7 @@ export default function SentenceQuiz({
               </p>
               <button
                 onClick={(e) => handleSpeakText(answered ? showHoles(currentQuestion.sentence, currentQuestion.word) : currentQuestion.sentence, e)}
-                className="p-2 bg-white shadow-sm border border-gray-200 hover:bg-gray-100 text-gray-600 rounded-full transition-all cursor-pointer active:scale-90"
+                className="w-11 h-11 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-full flex items-center justify-center transition cursor-pointer active:scale-95"
                 title="英文の発音を聴く"
                 aria-label="英文の発音を聴く"
               >
@@ -404,13 +383,13 @@ export default function SentenceQuiz({
             {/* 日本語訳はヒントとして隠しておき、答えたあとは必ず見せる */}
             <div className="pt-2 border-t border-gray-200 max-w-sm mx-auto">
               {showTranslation || answered ? (
-                <p className="text-xs md:text-sm font-bold text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-600 leading-relaxed">
                   和訳: {currentQuestion.sentenceTranslation}
                 </p>
               ) : (
                 <button
                   onClick={() => setShowTranslation(true)}
-                  className="inline-flex items-center gap-1 min-h-11 px-2 text-xs text-gray-600 hover:text-gray-800 font-bold transition cursor-pointer"
+                  className="inline-flex items-center gap-1 min-h-11 px-2 text-sm text-indigo-700 hover:text-indigo-900 font-medium transition cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>日本語訳のヒントをみる</span>
@@ -421,30 +400,24 @@ export default function SentenceQuiz({
         </div>
 
         {/* 4択選択肢 (今回は英単語のため、英単語が並ぶ) */}
-        <div className="grid grid-cols-2 gap-3" id="sentence_quiz_options_grid">
+        <div className="grid grid-cols-2 gap-2.5" id="sentence_quiz_options_grid">
           {currentQuestion.sentenceOptions.map((option, idx) => {
-            const isSelected = selectedOption === option;
-            const isCorrectAnswer = option.toLowerCase() === currentQuestion.word.toLowerCase();
-
             // 答えたあとも選択肢は見せたままにする。自分の選んだ語と正解を見比べられるように
-            let btnClass = "bg-white border-gray-200 text-gray-800 hover:bg-gray-50 hover:border-gray-300";
-            if (answered) {
-              if (isCorrectAnswer) btnClass = "bg-emerald-50 border-emerald-400 text-emerald-900";
-              else if (isSelected) btnClass = "bg-rose-50 border-rose-300 text-rose-900";
-              else btnClass = "bg-gray-50 border-gray-100 text-gray-600";
-            }
-
+            const state = optionState(
+              answered,
+              option.toLowerCase() === currentQuestion.word.toLowerCase(),
+              selectedOption === option
+            );
             return (
               <button
                 key={idx}
                 onClick={() => handleSelectOption(option)}
                 disabled={answered}
-                className={`border rounded-2xl p-4 min-h-14 text-center text-sm font-black transition-all cursor-pointer disabled:cursor-default flex items-center justify-center gap-1.5 ${btnClass}`}
+                className={`${optionClass(state)} justify-center text-center flex-wrap gap-y-1`}
                 id={`sentence_option_btn_${idx}`}
               >
-                <span>{option}</span>
-                {answered && isCorrectAnswer && <Check className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />}
-                {answered && isSelected && !isCorrectAnswer && <X className="w-4 h-4 text-rose-700 shrink-0" aria-hidden="true" />}
+                <span className="font-headword text-lg">{option}</span>
+                <OptionMark state={state} />
               </button>
             );
           })}
@@ -461,11 +434,11 @@ export default function SentenceQuiz({
               nextLabel={currentIndex + 1 < questions.length ? "次の問題へ" : "結果を見る"}
             >
               <p>
-                <span className="font-black text-gray-900">{currentQuestion.word}</span>
+                <span className="font-bold text-gray-900">{currentQuestion.word}</span>
                 <span className="text-gray-700">　{currentQuestion.translation}</span>
               </p>
               <p className="text-gray-700">
-                あなたの答え: <span className="font-black text-rose-800">{selectedOption}</span>
+                あなたの答え: <span className="font-bold text-rose-800">{selectedOption}</span>
               </p>
             </AnswerFeedback>
           )

@@ -568,7 +568,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                   <ExpandIcon className="w-5 h-5" />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-base font-black text-gray-900">単語を増やす</h2>
+                  <h2 className="text-base font-bold text-gray-900">単語を増やす</h2>
                   <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
                     出会った単語をAIで1件ずつ、またはCSV・PDFからまとめて単語帳に加えます。
                   </p>
@@ -582,7 +582,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                 onClick={() => setShowImportPanel(v => !v)}
                 aria-expanded={showImportPanel}
                 id="btn_toggle_import_panel"
-                className="mt-4 w-full min-h-11 px-4 rounded-xl border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100 text-indigo-800 text-xs font-black transition cursor-pointer flex items-center justify-center gap-2"
+                className="mt-4 w-full min-h-11 px-4 rounded-xl border border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100 text-indigo-800 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2"
               >
                 {showImportPanel ? "追加の手順を閉じる" : "単語を自分で追加する（AI・CSV・PDF）"}
               </button>
@@ -592,7 +592,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                 {/* 左側：AIで個別追加 */}
                 <div className="flex flex-col justify-between pr-0 lg:pr-8 lg:border-r lg:border-gray-100">
                   <div>
-                    <h3 className="text-base font-extrabold text-gray-800 flex items-center gap-2 mb-2 font-sans">
+                    <h3 className="text-base font-bold text-gray-800 flex items-center gap-2 mb-2 font-sans">
                       <Sparkles className="w-4 h-4 text-indigo-500" />
                       <span>AIで単語を1件ずつ自動追加</span>
                     </h3>
@@ -607,7 +607,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                         value={newWord}
                         onChange={handleWordInputChange}
                         disabled={isAdding}
-                        className="flex-1 px-4 min-h-11 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold font-mono text-sm placeholder-gray-400"
+                        className="flex-1 px-4 min-h-11 border border-gray-200 rounded-xl bg-gray-50 text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium font-mono text-sm placeholder-gray-400"
                         id="input_new_word"
                       />
                       <button
@@ -640,7 +640,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
                   <div className="bg-slate-50 rounded-2xl p-4 mt-6 border border-slate-100">
                     <h4 className="text-xs font-bold text-slate-700 mb-1.5">使いどころ</h4>
-                    <p className="text-[11px] text-gray-600 leading-relaxed">
+                    <p className="text-xs text-gray-600 leading-relaxed">
                       AI追加機能は、読書中や仕事中に出会った新しい専門用語、フレーズ、時事用語を追加するのに最適です。瞬時に関連データがクイズに組み込まれ、あなたの学習を全方位でサポートします。
                     </p>
                   </div>
@@ -654,7 +654,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                       <button
                         type="button"
                         onClick={() => setImportMode("csv")}
-                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
                           importMode === "csv"
                             ? "bg-white text-emerald-700 dark:text-emerald-400 shadow-3xs"
                             : "text-gray-600 hover:text-gray-800 dark:hover:text-slate-200"
@@ -666,7 +666,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                       <button
                         type="button"
                         onClick={() => setImportMode("pdf")}
-                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
                           importMode === "pdf"
                             ? "bg-white text-indigo-700 dark:text-indigo-400 shadow-3xs"
                             : "text-gray-600 hover:text-gray-800 dark:hover:text-slate-200"
@@ -679,7 +679,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
                     {importMode === "csv" ? (
                       <>
-                        <h3 className="text-base font-extrabold text-gray-800 flex items-center gap-2 mb-2">
+                        <h3 className="text-base font-bold text-gray-800 flex items-center gap-2 mb-2">
                           <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                           <span>CSVファイルから一括インポート</span>
                         </h3>
@@ -728,7 +728,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                           <p className="text-xs font-bold text-gray-700 text-center">
                             CSVファイルをドラッグ＆ドロップ、またはクリックして選択
                           </p>
-                          <p className="text-[10px] text-gray-400 mt-1 font-mono">
+                          <p className="text-xs text-gray-400 mt-1 font-mono">
                             UTF-8形式の .csv のみ対応
                           </p>
                         </div>
@@ -757,25 +757,25 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                             <button
                               type="button"
                               onClick={() => setShowCsvTemplateModal(true)}
-                              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 border border-indigo-150 hover:border-indigo-300 bg-white px-2 py-1 rounded-lg transition flex items-center gap-1.5 shadow-3xs cursor-pointer"
+                              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 border border-indigo-150 hover:border-indigo-300 bg-white px-2 py-1 rounded-lg transition flex items-center gap-1.5 shadow-3xs cursor-pointer"
                             >
                               <Info className="w-3 h-3 text-indigo-500" />
                               <span>テンプレートを見る / DL</span>
                             </button>
                           </div>
-                          <p className="text-[11px] text-gray-600 leading-relaxed mb-2 font-sans">
+                          <p className="text-xs text-gray-600 leading-relaxed mb-2 font-sans">
                             以下の形式で、カンマ区切りのテキストファイルをご用意ください。
                           </p>
-                          <div className="bg-white/80 border border-emerald-100 p-2 rounded-lg font-mono text-[10px] text-slate-600 overflow-x-auto leading-relaxed shadow-inner">
-                            <div><span className="text-emerald-700 font-bold">1列目:</span> 英単語 (例: evaluate)  <span className="text-[9px] text-rose-700 font-bold">[必須]</span></div>
-                            <div><span className="text-emerald-700 font-bold">2列目:</span> 日本語訳 (例: 評価する)  <span className="text-[9px] text-rose-700 font-bold">[必須]</span></div>
-                            <div><span className="text-emerald-700 font-bold">3列目:</span> レベル (junior/senior/senior2...) <span className="text-[9px] text-gray-600 font-bold">[任意]</span></div>
+                          <div className="bg-white/80 border border-emerald-100 p-2 rounded-lg font-mono text-xs text-slate-600 overflow-x-auto leading-relaxed shadow-inner">
+                            <div><span className="text-emerald-700 font-bold">1列目:</span> 英単語 (例: evaluate)  <span className="text-xs text-rose-700 font-bold">[必須]</span></div>
+                            <div><span className="text-emerald-700 font-bold">2列目:</span> 日本語訳 (例: 評価する)  <span className="text-xs text-rose-700 font-bold">[必須]</span></div>
+                            <div><span className="text-emerald-700 font-bold">3列目:</span> レベル (junior/senior/senior2...) <span className="text-xs text-gray-600 font-bold">[任意]</span></div>
                           </div>
                         </div>
                       </>
                     ) : (
                       <>
-                        <h3 className="text-base font-extrabold text-indigo-900 dark:text-slate-200 flex items-center gap-2 mb-2">
+                        <h3 className="text-base font-bold text-indigo-900 dark:text-slate-200 flex items-center gap-2 mb-2">
                           <FileText className="w-4 h-4 text-indigo-600" />
                           <span>PDFファイルから重要英単語を自動抽出</span>
                         </h3>
@@ -809,10 +809,10 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                           {isPdfParsing ? (
                             <div className="flex flex-col items-center justify-center py-2 text-center">
                               <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-2" />
-                              <p className="text-xs font-black text-indigo-800 dark:text-indigo-400 animate-pulse">
+                              <p className="text-xs font-bold text-indigo-800 dark:text-indigo-400 animate-pulse">
                                 AIがドキュメントを読み取り中...
                               </p>
-                              <p className="text-[9px] text-gray-600 mt-1">
+                              <p className="text-xs text-gray-600 mt-1">
                                 最適な問題セット（4択クイズ、文脈例文）を自動で作成しています
                               </p>
                             </div>
@@ -822,7 +822,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                               <p className="text-xs font-bold text-gray-700 text-center">
                                 PDFファイルをドラッグ＆ドロップ、またはクリックして選択
                               </p>
-                              <p className="text-[10px] text-gray-400 mt-1 font-mono">
+                              <p className="text-xs text-gray-400 mt-1 font-mono">
                                 テキスト情報を含む PDF（.pdf）に対応
                               </p>
                             </>
@@ -830,7 +830,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                         </div>
 
                         {pdfSuccess && (
-                          <div className="text-xs text-indigo-700 font-semibold mt-3 bg-indigo-50 rounded-lg border border-indigo-100 p-2.5 flex items-center gap-2 animate-fade-in shadow-inner">
+                          <div className="text-xs text-indigo-700 font-medium mt-3 bg-indigo-50 rounded-lg border border-indigo-100 p-2.5 flex items-center gap-2 animate-fade-in shadow-inner">
                             <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-indigo-500" />
                             <span className="whitespace-pre-line leading-relaxed">{pdfSuccess}</span>
                           </div>
@@ -845,11 +845,11 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
                         {/* PDF処理のメリット紹介 */}
                         <div className="bg-indigo-50/40 border border-indigo-100/50 rounded-2xl p-4 mt-4 shadow-3xs">
-                          <h4 className="text-xs font-black text-indigo-800 flex items-center gap-1.5 mb-1">
+                          <h4 className="text-xs font-bold text-indigo-800 flex items-center gap-1.5 mb-1">
                             <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
                             <span>💡 PDF AIスマートインポート</span>
                           </h4>
-                          <p className="text-[11px] text-gray-600 leading-relaxed font-sans">
+                          <p className="text-xs text-gray-600 leading-relaxed font-sans">
                             <b>Gemini</b>がお手元のPDFから学術・日常シーンで役立つ英単語を抽出し、レベル分類から代表和訳、オリジナルの例文英作文・択一クイズのすべてをワンタップで追加！教科書の予習や試験学習に威力を発揮します。
                           </p>
                         </div>
@@ -865,7 +865,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
       {/* CSVテンプレートモーダル */}
       {showCsvTemplateModal && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-start justify-center z-50 p-4 overflow-y-auto" id="csv_template_modal">
-          <div className="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative my-auto transform scale-100 transition-all max-h-[90vh] overflow-y-auto flex flex-col justify-between">
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 md:p-8 max-w-2xl w-full shadow-2xl relative my-auto transform scale-100 transition-all max-h-[90vh] overflow-y-auto flex flex-col justify-between">
             {/* ヘッダー */}
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
@@ -874,8 +874,8 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                     <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
                   </span>
                   <div>
-                    <h3 className="text-lg font-black text-gray-900 tracking-tight">インポート用 CSV テンプレート例</h3>
-                    <p className="text-[10px] text-gray-400 font-mono">CSV Import Templates & Specs</p>
+                    <h3 className="text-lg font-bold text-gray-900 tracking-tight">インポート用 CSV テンプレート例</h3>
+                    <p className="text-xs text-gray-400 font-mono">CSV Import Templates & Specs</p>
                   </div>
                 </div>
                 <button
@@ -899,7 +899,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                   }`}
                 >
                   <span>標準テンプレート（フル機能推奨）</span>
-                  <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[9px] font-black font-mono">5列</span>
+                  <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-xs font-bold font-mono">5列</span>
                 </button>
                 <button
                   type="button"
@@ -911,7 +911,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                   }`}
                 >
                   <span>簡易テンプレート（英単語と訳のみ）</span>
-                  <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[9px] font-black font-mono">2列</span>
+                  <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-xs font-bold font-mono">2列</span>
                 </button>
               </div>
 
@@ -921,9 +921,9 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                   <span>📄 アップロード時のExcel/テーブルプレビューイメージ</span>
                 </h4>
                 <div className="border border-gray-150 rounded-xl overflow-hidden shadow-3xs overflow-x-auto">
-                  <table className="w-full text-[11px] text-left border-collapse font-sans min-w-[500px]">
+                  <table className="w-full text-xs text-left border-collapse font-sans min-w-[500px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-gray-250 text-gray-600 font-extrabold text-[10px] uppercase font-mono tracking-wider">
+                      <tr className="bg-slate-50 border-b border-gray-250 text-gray-600 font-bold text-xs uppercase font-mono tracking-wider">
                         <th className="p-2.5">1列目 (word)</th>
                         <th className="p-2.5">2列目 (translation)</th>
                         {csvTemplateType === "full" && (
@@ -942,15 +942,15 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                             <td className="p-2.5 font-bold text-indigo-600">evaluate</td>
                             <td className="p-2.5 text-gray-900">評価する</td>
                             <td className="p-2.5 text-gray-400">advanced</td>
-                            <td className="p-2.5 text-[10px]">We must carefully <span className="text-rose-500 font-bold">[_____]</span> our options...</td>
-                            <td className="p-2.5 text-[10px]">決定する前に慎重に評価...</td>
+                            <td className="p-2.5 text-xs">We must carefully <span className="text-rose-500 font-bold">[_____]</span> our options...</td>
+                            <td className="p-2.5 text-xs">決定する前に慎重に評価...</td>
                           </tr>
                           <tr className="bg-slate-50/40">
                             <td className="p-2.5 font-bold text-indigo-600">curiosity</td>
                             <td className="p-2.5 text-gray-900">好奇心</td>
                             <td className="p-2.5 text-gray-400">junior</td>
-                            <td className="p-2.5 text-[10px]">His eyes were full of <span className="text-rose-500 font-bold">[_____]</span>.</td>
-                            <td className="p-2.5 text-[10px]">彼の目は好奇心に満ちていた。</td>
+                            <td className="p-2.5 text-xs">His eyes were full of <span className="text-rose-500 font-bold">[_____]</span>.</td>
+                            <td className="p-2.5 text-xs">彼の目は好奇心に満ちていた。</td>
                           </tr>
                         </>
                       ) : (
@@ -973,7 +973,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                   </table>
                 </div>
                 {csvTemplateType === "min" && (
-                  <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed pl-1 font-medium font-sans">
+                  <p className="text-xs text-gray-400 mt-1.5 leading-relaxed pl-1 font-medium font-sans">
                     ※ 簡易型はレベル指定がないため、アップロード画面で<b>あらかじめ選択された「所属レベル」</b>に自動。例文やクイズ用4択肢等もアプリ側でインテリジェントに自動生成します。
                   </p>
                 )}
@@ -993,7 +993,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                         : "word,translation\naccomplish,成し遂げる\ncollaborate,共同で取り組む\nhypothesis,仮説\nnegotiation,交渉";
                       handleCopyTemplate(txt);
                     }}
-                    className="text-[11px] bg-slate-50 hover:bg-slate-100 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer font-bold shadow-3xs"
+                    className="text-xs bg-slate-50 hover:bg-slate-100 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer font-bold shadow-3xs"
                   >
                     {isCopied ? (
                       <>
@@ -1009,11 +1009,11 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
                   </button>
                 </div>
                 {copyFailed && (
-                  <p className="text-[11px] font-bold text-rose-700 mb-2" role="alert" id="csv_copy_failed">
+                  <p className="text-xs font-bold text-rose-700 mb-2" role="alert" id="csv_copy_failed">
                     コピーできませんでした。下の文字を長押し（または選択）してコピーしてください。
                   </p>
                 )}
-                <div className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-[11px] leading-relaxed relative overflow-x-auto select-all shadow-inner border border-slate-950">
+                <div className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs leading-relaxed relative overflow-x-auto select-all shadow-inner border border-slate-950">
                   <pre className="whitespace-pre text-left">
                     {csvTemplateType === "full" 
                       ? `word,translation,level,sentence,sentenceTranslation
@@ -1031,7 +1031,7 @@ negotiation,交渉`}
               </div>
 
               {/* Excel保存のアドバイス・エラー対策 */}
-              <div className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 text-[11px] text-amber-900 leading-relaxed">
+              <div className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 text-xs text-amber-900 leading-relaxed">
                 <h5 className="font-bold flex items-center gap-1.5 mb-1.5 text-amber-950 text-xs">
                   <HelpCircle className="w-4 h-4 text-amber-750 flex-shrink-0" />
                   <span>⚠️ ExcelやGoogleスプレッドシートで保存するときの注意点</span>
@@ -1052,7 +1052,7 @@ negotiation,交渉`}
               <button
                 type="button"
                 onClick={() => handleDownloadTemplate(csvTemplateType)}
-                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs transition shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4 text-white" />
                 <span>このテンプレートの CSV ファイルを直接ダウンロード ➔</span>

@@ -86,6 +86,7 @@ import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
+import { applyThemeColor } from "./themeColor";
 import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
@@ -291,6 +292,8 @@ export default function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+    // ブラウザの上の帯も、選んだテーマの地の色にする（端末の設定には合わせない）
+    applyThemeColor(isDark);
     writeStored("quest_theme", isDark ? "dark" : "light");
   }, [isDark]);
 
@@ -659,8 +662,8 @@ export default function App() {
     if (picked.length === 0) {
       return (
         <div className="max-w-xl mx-auto">
-          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-8 shadow-sm text-center space-y-4">
-            <h2 className="text-lg font-black text-gray-900 dark:text-slate-100">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-8 shadow-sm text-center space-y-4">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">
               {QUIZ_FORMAT_LABELS[reviewFormat]}で出せる単語がありません
             </h2>
             <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
@@ -668,7 +671,7 @@ export default function App() {
             </p>
             <button
               onClick={() => setReviewFormat(null)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
             >
               形式を選び直す
             </button>
@@ -720,7 +723,7 @@ export default function App() {
   /** 復習の形式を選ぶ画面。出題対象と説明を添える */
   const renderReviewFormatPicker = (words: Word[], title: string, note: string) => (
     <div className="max-w-xl mx-auto">
-      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
         <button
           onClick={handleLeaveQuiz}
           className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 transition cursor-pointer"
@@ -729,7 +732,7 @@ export default function App() {
           <span>戻る</span>
         </button>
         <div>
-          <h2 className="text-lg font-black text-gray-900 dark:text-slate-100">{title}</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">{title}</h2>
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mt-1">{note}</p>
         </div>
         <QuizFormatPicker words={words} onSelect={setReviewFormat} />
@@ -778,10 +781,10 @@ export default function App() {
         <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-md">
           <BrainCircuit className="w-7 h-7" />
         </div>
-        <p className="text-sm font-black text-gray-700 dark:text-slate-200">Eigorira</p>
+        <p className="text-sm font-bold text-gray-700 dark:text-slate-200">Eigorira</p>
         {vocabularyFailed ? (
           <div className="flex flex-col items-center gap-3 px-6 text-center">
-            {/* 森の地（生成り）の上では rose-600 が 4.28 でAAに届かない。
+            {/* 生成りの地の上では rose-600 が 4.28 でAAに届かない（森の地のときに実測）。
                 濃い rose-700（実測 5.73／海では 7.04）にする */}
             <p className="text-xs font-bold text-rose-700" id="vocabulary_load_error" role="alert">
               単語データを読み込めませんでした。<br />通信の状態を確かめて、もう一度お試しください。
@@ -797,7 +800,7 @@ export default function App() {
               type="button"
               id="btn_retry_vocabulary"
               onClick={() => window.location.reload()}
-              className="min-h-11 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black cursor-pointer transition"
+              className="min-h-11 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer transition"
             >
               もう一度読み込む
             </button>
@@ -830,26 +833,29 @@ export default function App() {
         高さが 150px 近くあった（本文に着くまでその分スクロールが要る）。
         いまはアプリ名・テーマ・合計スコア・連続日数だけを出す。
         行き先は画面下のタブ（TabBar）にまとめた。
+        出題中は出さない。中断は出題画面の左上の「×」1つにまとめ、
+        視界に点数や切り替えのボタンが並ばないようにする（タブと同じ扱い）。
       */}
-      <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 py-2.5 px-4 sticky top-0 z-40 shadow-xs transition-colors duration-300" id="navigation_bar">
+      {/* ホーム画面から開くと（black-translucent）、時計の帯の下まで画面が広がるので、その高さぶん下げる */}
+      {!isTransient(currentScreen) && (
+      <header className="bg-slate-50 border-b border-gray-200 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] px-4 sticky top-0 z-40 transition-colors duration-300" id="navigation_bar">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           <div
             onClick={handleGoHome}
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer hover:opacity-85 select-none min-w-0"
           >
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-150-10 shrink-0">
+            <div className="p-1.5 bg-indigo-600 rounded-xl text-white shrink-0">
               <BrainCircuit className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <span className="flex items-center gap-1.5">
                 {/* しるしを足したぶん幅が要る。折り返しを許すと
                     「エイゴ / リラ」と切れて名前として読めなくなる */}
-                <span className="hidden min-[390px]:inline font-black text-base sm:text-lg tracking-tight whitespace-nowrap bg-gradient-to-r from-gray-900 via-indigo-950 to-indigo-700 dark:from-slate-100 dark:via-indigo-200 dark:to-indigo-400 bg-clip-text text-transparent font-sans">
+                <span className="hidden min-[390px]:inline font-bold text-base sm:text-lg tracking-tight whitespace-nowrap text-gray-900">
                   Eigorira
                 </span>
-                {/* 名前の由来（エイとゴリラ）。読み上げには要らないので隠す。
-                    グラデーションの span の中には置かない（文字色を透明にしているため） */}
-                <span className="hidden sm:flex items-center gap-1 text-indigo-700 dark:text-indigo-300 shrink-0" aria-hidden="true" data-testid="brand_icons_header">
+                {/* 名前の由来（エイとゴリラ）。読み上げには要らないので隠す */}
+                <span className="hidden sm:flex items-center gap-1 text-gray-500 shrink-0" aria-hidden="true" data-testid="brand_icons_header">
                   <RayIcon className="w-4.5 h-4.5" />
                   <GorillaIcon className="w-4.5 h-4.5" />
                 </span>
@@ -857,58 +863,45 @@ export default function App() {
             </div>
           </div>
 
-          {/* 合計スコアと連続日数。ダッシュボードの帯に置いていたが、
-              ヘッダーは貼り付いているので、どの画面でも・スクロールしても見える。
-              狭い画面では名前の横のしるしを引っ込めて、こちらに幅を回す */}
           {/* テーマの切り替え。メニューの中に入れていたが、
               明るさは学習中でも切りたいので、開かずに押せる場所に出す */}
           <button
             onClick={() => setIsDark(!isDark)}
-            className="ml-auto mr-1 shrink-0 w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition cursor-pointer"
+            className="ml-auto mr-1 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer"
             title={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
             aria-label={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
             id="theme_toggle_btn"
           >
-            {isDark ? (
-              <Sun className="w-4 h-4 text-amber-400 fill-amber-350" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-700 fill-indigo-100" />
-            )}
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          <div className="flex items-center gap-1 sm:gap-1.5 mr-0.5 sm:mr-1 shrink-0" data-testid="header_stats">
-            <div
-              className="flex items-center gap-1 px-1.5 sm:px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
-              title="これまでに稼いだ合計スコア"
-            >
-              <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-200 shrink-0" />
-              <span
-                className="text-xs font-black tabular-nums text-gray-700 dark:text-slate-200"
-                aria-label={`合計スコア ${stats.score}`}
-              >
+          {/* 合計スコアと連続日数。ヘッダーは貼り付いているので、どの画面でも・スクロールしても見える。
+              飾りの色は付けない（点数のたびに金色・赤が並ぶと、どれも目を引こうとして落ち着かない） */}
+          <div className="flex items-center gap-3 sm:gap-4 mr-0.5 sm:mr-1 shrink-0 text-sm text-gray-600" data-testid="header_stats">
+            <span className="flex items-center gap-1" title="これまでに稼いだ合計スコア">
+              <Trophy className="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" />
+              <span className="font-bold tabular-nums text-gray-900" aria-label={`合計スコア ${stats.score}`}>
                 {stats.score}
               </span>
-            </div>
-            <div
-              className="flex items-center gap-1 px-1.5 sm:px-2.5 min-h-9 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
-              title="連続ログイン日数"
-            >
-              <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-              <span
-                className="text-xs font-black tabular-nums text-gray-700 dark:text-slate-200"
-                aria-label={`ログイン連続 ${loginStreak}日`}
-              >
+            </span>
+            <span className="flex items-center gap-1" title="連続ログイン日数">
+              <Calendar className="w-4 h-4 text-gray-500 shrink-0" aria-hidden="true" />
+              <span className="font-bold tabular-nums text-gray-900" aria-label={`ログイン連続 ${loginStreak}日`}>
                 {loginStreak}日
               </span>
-            </div>
+            </span>
           </div>
 
         </div>
       </header>
+      )}
 
       {/* メインステージ。画面下のタブを出している間は、その高さぶん下を空ける */}
       <main
-        className="relative z-10 flex-1 pt-6 pb-8 px-4 max-w-4xl w-full mx-auto"
+        className={`relative z-10 flex-1 pb-8 px-4 max-w-4xl w-full mx-auto ${
+          // 出題中はヘッダーを出さないので、時計の帯の高さぶんはここで空ける
+          isTransient(currentScreen) ? "pt-[calc(1rem+env(safe-area-inset-top))]" : "pt-6"
+        }`}
         id="main_payload"
       >
         {/* 遅延読み込みの画面を開いている間の待ち。
@@ -1210,17 +1203,17 @@ export default function App() {
               : renderReviewQuiz(srsReviewWords, recordAnswer)
           ) : (
             <div className="max-w-xl mx-auto">
-              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-3xl p-8 shadow-sm text-center space-y-4">
+              <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-8 shadow-sm text-center space-y-4">
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h2 className="text-xl font-black text-gray-900 dark:text-slate-100">今日の復習は完了です！</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">今日の復習は完了です！</h2>
                 <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
                   忘却曲線にもとづく今日の復習対象はありません。クイズで新しい単語に挑戦すると、最適なタイミングでここに復習が出題されます。
                 </p>
                 <button
                   onClick={handleLeaveQuiz}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-2xl shadow transition cursor-pointer text-sm"
                 >
                   戻る
                 </button>

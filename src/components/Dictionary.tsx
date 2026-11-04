@@ -341,7 +341,7 @@ export default function Dictionary({
     <div className="space-y-6" id="dictionary_section_root">
       {/* 見出し。辞書は画面下のタブ（調べる）から開く画面なので、戻るは置かない */}
       <div className="flex items-end justify-between gap-3 px-1">
-        <h1 className="text-xl font-black text-gray-900 flex items-center gap-2">
+        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-indigo-700" aria-hidden="true" />
           単語辞書
         </h1>
@@ -362,7 +362,7 @@ export default function Dictionary({
               placeholder="英単語、日本語訳、例文をキーワード検索..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-sans"
+              className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-sans"
               id="search_input_vocabulary"
             />
             {searchQuery && (
@@ -382,12 +382,12 @@ export default function Dictionary({
               aria-expanded={showFilters}
               aria-controls="dictionary_filters"
               id="btn_toggle_dictionary_filters"
-              className="min-h-11 px-4 rounded-full border border-indigo-300 bg-white text-indigo-700 text-xs font-black flex items-center gap-1.5 cursor-pointer"
+              className="min-h-11 px-4 rounded-full border border-indigo-300 bg-white text-indigo-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
             >
               <ArrowUpDown className="w-4 h-4" aria-hidden="true" />
               並び順・絞り込み
               {(filterLevel !== "all" ? 1 : 0) + (filterPos !== "all" ? 1 : 0) > 0 && (
-                <span className="min-w-5 h-5 px-1 rounded-full bg-rose-700 text-white text-[10px] flex items-center justify-center">
+                <span className="min-w-5 h-5 px-1 rounded-full bg-rose-700 text-white text-xs flex items-center justify-center">
                   {(filterLevel !== "all" ? 1 : 0) + (filterPos !== "all" ? 1 : 0)}
                 </span>
               )}
@@ -397,7 +397,7 @@ export default function Dictionary({
               <button
                 type="button"
                 onClick={() => setFilterLevel("all")}
-                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black cursor-pointer"
+                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold cursor-pointer"
                 aria-label={`${filterLevelLabel(filterLevel)}の絞り込みを外す`}
               >
                 {filterLevelLabel(filterLevel)} ×
@@ -407,7 +407,7 @@ export default function Dictionary({
               <button
                 type="button"
                 onClick={() => setFilterPos("all")}
-                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-black cursor-pointer"
+                className="min-h-9 px-3 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold cursor-pointer"
                 aria-label={`${POS_LABELS[filterPos]}の絞り込みを外す`}
               >
                 {POS_LABELS[filterPos]} ×
@@ -426,7 +426,7 @@ export default function Dictionary({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
               id="sort_select_vocabulary"
               aria-label="並び順"
             >
@@ -445,7 +445,7 @@ export default function Dictionary({
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
               id="pagesize_select_vocabulary"
               aria-label="1ページの件数"
             >
@@ -486,7 +486,7 @@ export default function Dictionary({
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${
+                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
                   isActive ? "bg-black/20 text-white" : "bg-gray-200/60 text-gray-600"
                 }`}>
                   {count}
@@ -518,7 +518,7 @@ export default function Dictionary({
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${
+                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
                   isActive ? "bg-black/20 text-white" : "bg-gray-200/60 text-gray-600"
                 }`}>
                   {count}
@@ -532,7 +532,7 @@ export default function Dictionary({
       </div>
 
       {/* 検索・絞り込み結果情報 */}
-      <div className="flex items-center justify-between px-2 text-xs font-semibold text-gray-500 tabular-nums">
+      <div className="flex items-center justify-between px-2 text-xs font-medium text-gray-500 tabular-nums">
         <div>
           該当：<span className="text-indigo-600 font-bold">{totalItems}語</span> 
           {searchQuery && ` (キーワード: "${searchQuery}")`}
@@ -559,21 +559,21 @@ export default function Dictionary({
             let statusBadge = null;
             if (isWrong) {
               statusBadge = (
-                <span className="bg-rose-50 text-rose-700 border border-rose-100 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
+                <span className="bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
                   <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
                   苦手
                 </span>
               );
             } else if (isCompleted) {
               statusBadge = (
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
+                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
                   <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                   習得済
                 </span>
               );
             } else if (attemptCount > 0) {
               statusBadge = (
-                <span className="bg-gray-100 text-gray-600 border border-gray-200 text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0">
+                <span className="bg-gray-100 text-gray-600 border border-gray-200 text-xs font-bold px-2 py-0.5 rounded-lg shrink-0">
                   未定着 ({attemptCount}回挑戦)
                 </span>
               );
@@ -605,7 +605,7 @@ export default function Dictionary({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-gray-900 font-extrabold text-lg select-all truncate">
+                      <span className="text-gray-900 font-bold text-lg select-all truncate">
                         {word.word}
                       </span>
                       {/* 発音スピーカーボタン */}
@@ -621,16 +621,16 @@ export default function Dictionary({
                       <Phonetic word={word.word} className="text-xs truncate" />
                     </div>
 
-                    <p className="text-sm font-extrabold text-indigo-950 line-clamp-2">
+                    <p className="text-sm font-bold text-indigo-950 line-clamp-2">
                       {word.translation}
                     </p>
 
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 ${badge?.className}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border shrink-0 ${badge?.className}`}>
                         {badge?.text}
                       </span>
                       {/* 品詞バッジ */}
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-600 shrink-0">
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-600 shrink-0">
                         {getWordPosLabel(word)}
                       </span>
                       {/* 習得ステータス */}
@@ -681,11 +681,11 @@ export default function Dictionary({
                           <div className="md:col-span-8 space-y-4">
                             {/* 和訳詳細 */}
                             <div className="grid grid-cols-12 bg-indigo-50/30 border border-indigo-100 p-3.5 rounded-xl gap-2 items-center">
-                              <div className="col-span-3 font-black text-indigo-700/80 flex items-center gap-1">
+                              <div className="col-span-3 font-bold text-indigo-700/80 flex items-center gap-1">
                                 <GraduationCap className="w-4 h-4" />
                                 <span>正しい日本語訳:</span>
                               </div>
-                              <div className="col-span-9 font-black text-indigo-900 text-sm md:text-base">
+                              <div className="col-span-9 font-bold text-indigo-900 text-sm md:text-base">
                                 {word.translation}
                               </div>
                             </div>
@@ -698,16 +698,16 @@ export default function Dictionary({
 
                             {/* 例文セクション */}
                             <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-2">
-                              <p className="font-extrabold text-gray-400 text-xs">例文 (穴埋めテスト用文脈):</p>
+                              <p className="font-bold text-gray-400 text-xs">例文 (穴埋めテスト用文脈):</p>
                               
                               {/* 例文を表示。穴埋めの場所もわかりやすく。 */}
                               <div className="pl-1 space-y-2">
-                                <p className="font-sans font-extrabold text-gray-800 italic text-sm md:text-base leading-relaxed tracking-wide">
+                                <p className="font-sans font-bold text-gray-800 italic text-sm md:text-base leading-relaxed tracking-wide">
                                   {/* [_____] を 補完済みの英単語に置換して太字＆アンダーライン表示 */}
                                   {word.sentence.includes("[_____]") ? (
                                     <>
                                       {word.sentence.split("[_____]")[0]}
-                                      <span className="bg-indigo-100 border-b-2 border-indigo-600 px-1 tabular-nums text-indigo-800 rounded mx-0.5 italic not-italic font-black">
+                                      <span className="bg-indigo-100 border-b-2 border-indigo-600 px-1 tabular-nums text-indigo-800 rounded mx-0.5 italic not-italic font-bold">
                                         {word.word}
                                       </span>
                                       {word.sentence.split("[_____]")[1]}
@@ -729,11 +729,11 @@ export default function Dictionary({
                         <div className="border border-indigo-100 rounded-2xl overflow-hidden bg-white shadow-3xs">
                           {/* セクションヘッダー */}
                           <div className="bg-gradient-to-r from-indigo-50 to-indigo-50/30 p-3.5 px-4 border-b border-indigo-100 flex items-center justify-between">
-                            <h4 className="text-xs font-extrabold text-indigo-950 flex items-center gap-1.5">
+                            <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                               <Sparkles className="w-3.5 h-3.5 text-indigo-600 fill-indigo-200" />
                               <span>AI 頻度・シチュエーション別使われ方分析</span>
                             </h4>
-                            <span className="text-[10px] bg-indigo-600 text-white font-bold px-2 py-0.5 rounded-lg shrink-0">
+                            <span className="text-xs bg-indigo-600 text-white font-bold px-2 py-0.5 rounded-lg shrink-0">
                               AI
                             </span>
                           </div>
@@ -743,19 +743,19 @@ export default function Dictionary({
                             {frequencyLoading[cacheKey(word.word)] ? (
                               <div className="flex flex-col items-center justify-center py-6 space-y-2">
                                 <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
-                                <p className="text-[11px] font-black text-indigo-600">AIが使われ方の統計情報を展開中...</p>
+                                <p className="text-xs font-bold text-indigo-600">AIが使われ方の統計情報を展開中...</p>
                               </div>
                             ) : frequencyError[cacheKey(word.word)] ? (
                               <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-2.5">
                                 <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                                 <div className="space-y-1">
-                                  <p className="text-[11px] font-extrabold text-rose-800">
+                                  <p className="text-xs font-bold text-rose-800">
                                     頻度データの取得に失敗しました。
                                   </p>
-                                  <p className="text-[10px] text-rose-600 font-semibold">{frequencyError[cacheKey(word.word)]}</p>
+                                  <p className="text-xs text-rose-600 font-medium">{frequencyError[cacheKey(word.word)]}</p>
                                   <button
                                     onClick={() => handleFetchWordFrequency(word.word)}
-                                    className="px-2.5 py-1 bg-white hover:bg-rose-100 border border-rose-250 text-rose-700 text-[10px] font-bold rounded-lg transition"
+                                    className="px-2.5 py-1 bg-white hover:bg-rose-100 border border-rose-250 text-rose-700 text-xs font-bold rounded-lg transition"
                                   >
                                     再接続・再試行
                                   </button>
@@ -774,11 +774,11 @@ export default function Dictionary({
                                       {/* 日常会話 (everyday) */}
                                       <div className="bg-blue-50/20 border border-blue-100 rounded-xl p-3 space-y-2">
                                         <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-1.5 text-blue-800 font-extrabold text-xs">
+                                          <div className="flex items-center gap-1.5 text-blue-800 font-bold text-xs">
                                             <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
                                             <span>日常会話での頻度</span>
                                           </div>
-                                          <span className="text-[10px] font-black text-blue-700 tabular-nums">
+                                          <span className="text-xs font-bold text-blue-700 tabular-nums">
                                             {frequencies?.everyday?.label || "普通"}
                                           </span>
                                         </div>
@@ -790,18 +790,18 @@ export default function Dictionary({
                                             style={{ width: `${frequencies?.everyday?.percentage || 50}%` }}
                                           />
                                         </div>
-                                        <p className="text-[11px] text-gray-500 leading-relaxed font-semibold pl-0.5">
+                                        <p className="text-xs text-gray-500 leading-relaxed font-medium pl-0.5">
                                           {frequencies?.everyday?.description}
                                         </p>
                                         
                                         {/* 日常の例文 */}
                                         {usageExamples?.everyday && (
                                           <div className="border-t border-blue-50 pt-2 mt-2 space-y-1">
-                                            <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">日常例文</span>
-                                            <p className="text-[11px] font-bold text-gray-800 font-sans italic">
+                                            <span className="text-xs font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">日常例文</span>
+                                            <p className="text-xs font-bold text-gray-800 font-sans italic">
                                               "{usageExamples.everyday.sentence}"
                                             </p>
-                                            <p className="text-[10px] text-gray-500 font-medium font-sans">
+                                            <p className="text-xs text-gray-500 font-medium font-sans">
                                               訳: {usageExamples.everyday.translation}
                                             </p>
                                           </div>
@@ -811,11 +811,11 @@ export default function Dictionary({
                                       {/* ビジネス (business) */}
                                       <div className="bg-amber-50/20 border border-amber-100 rounded-xl p-3 space-y-2">
                                         <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-1.5 text-amber-800 font-extrabold text-xs">
+                                          <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs">
                                             <Briefcase className="w-3.5 h-3.5 text-amber-500" />
                                             <span>ビジネスでの頻度</span>
                                           </div>
-                                          <span className="text-[10px] font-black text-amber-700 tabular-nums">
+                                          <span className="text-xs font-bold text-amber-700 tabular-nums">
                                             {frequencies?.business?.label || "普通"}
                                           </span>
                                         </div>
@@ -827,18 +827,18 @@ export default function Dictionary({
                                             style={{ width: `${frequencies?.business?.percentage || 50}%` }}
                                           />
                                         </div>
-                                        <p className="text-[11px] text-gray-500 leading-relaxed font-semibold pl-0.5">
+                                        <p className="text-xs text-gray-500 leading-relaxed font-medium pl-0.5">
                                           {frequencies?.business?.description}
                                         </p>
 
                                         {/* ビジネスの例文 */}
                                         {usageExamples?.business && (
                                           <div className="border-t border-amber-50 pt-2 mt-2 space-y-1">
-                                            <span className="text-[9px] font-black bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">ビジネス例文</span>
-                                            <p className="text-[11px] font-bold text-gray-800 font-sans italic">
+                                            <span className="text-xs font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">ビジネス例文</span>
+                                            <p className="text-xs font-bold text-gray-800 font-sans italic">
                                               "{usageExamples.business.sentence}"
                                             </p>
-                                            <p className="text-[10px] text-gray-500 font-medium font-sans">
+                                            <p className="text-xs text-gray-500 font-medium font-sans">
                                               訳: {usageExamples.business.translation}
                                             </p>
                                           </div>
@@ -848,11 +848,11 @@ export default function Dictionary({
                                       {/* 学術・講義 (academic) */}
                                       <div className="bg-purple-50/20 border border-purple-100 rounded-xl p-3 space-y-2">
                                         <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-1.5 text-purple-800 font-extrabold text-xs">
+                                          <div className="flex items-center gap-1.5 text-purple-800 font-bold text-xs">
                                             <GraduationCap className="w-3.5 h-3.5 text-purple-500" />
                                             <span>学術（論文など）での頻度</span>
                                           </div>
-                                          <span className="text-[10px] font-black text-purple-700 tabular-nums">
+                                          <span className="text-xs font-bold text-purple-700 tabular-nums">
                                             {frequencies?.academic?.label || "普通"}
                                           </span>
                                         </div>
@@ -864,18 +864,18 @@ export default function Dictionary({
                                             style={{ width: `${frequencies?.academic?.percentage || 50}%` }}
                                           />
                                         </div>
-                                        <p className="text-[11px] text-gray-500 leading-relaxed font-semibold pl-0.5">
+                                        <p className="text-xs text-gray-500 leading-relaxed font-medium pl-0.5">
                                           {frequencies?.academic?.description}
                                         </p>
 
                                         {/* アカデミックの例文 */}
                                         {usageExamples?.academic && (
                                           <div className="border-t border-purple-50 pt-2 mt-2 space-y-1">
-                                            <span className="text-[9px] font-black bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">学術例文</span>
-                                            <p className="text-[11px] font-bold text-gray-800 font-sans italic">
+                                            <span className="text-xs font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">学術例文</span>
+                                            <p className="text-xs font-bold text-gray-800 font-sans italic">
                                               "{usageExamples.academic.sentence}"
                                             </p>
-                                            <p className="text-[10px] text-gray-500 font-medium font-sans">
+                                            <p className="text-xs text-gray-500 font-medium font-sans">
                                               訳: {usageExamples.academic.translation}
                                             </p>
                                           </div>
@@ -886,12 +886,12 @@ export default function Dictionary({
 
                                     {/* AI総合ニュアンスコメント */}
                                     {overallComment && (
-                                      <div className="bg-indigo-50/30 border border-indigo-100/70 rounded-xl p-3 px-3.5 text-[11px] md:text-xs">
-                                        <div className="font-extrabold text-indigo-950 mb-1 flex items-center gap-1">
+                                      <div className="bg-indigo-50/30 border border-indigo-100/70 rounded-xl p-3 px-3.5 text-xs md:text-xs">
+                                        <div className="font-bold text-indigo-950 mb-1 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
                                           <span>AIによる総合ニュアンス・アドバイス:</span>
                                         </div>
-                                        <p className="text-gray-600 dark:text-slate-350 leading-relaxed font-semibold pr-4">
+                                        <p className="text-gray-600 dark:text-slate-350 leading-relaxed font-medium pr-4">
                                           {overallComment}
                                         </p>
                                       </div>
@@ -901,10 +901,10 @@ export default function Dictionary({
                               })()
                             ) : (
                               <div className="flex flex-col items-center justify-center py-4 space-y-2">
-                                <p className="text-[11px] text-gray-400 font-semibold">使用頻度のデータが待機中です。</p>
+                                <p className="text-xs text-gray-400 font-medium">使用頻度のデータが待機中です。</p>
                                 <button
                                   onClick={() => handleFetchWordFrequency(word.word)}
-                                  className="px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-extrabold rounded-lg hover:bg-indigo-100 transition"
+                                  className="px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-bold rounded-lg hover:bg-indigo-100 transition"
                                 >
                                   AI頻度分析を読み込む
                                 </button>
@@ -916,7 +916,7 @@ export default function Dictionary({
                         {/* —————————— 類義語・反意語・コロケーションセクション —————————— */}
                         <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden">
                           <div className="bg-teal-50/60 border-b border-teal-100/60 px-4 py-2.5 flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-teal-800 font-extrabold text-xs">
+                            <div className="flex items-center gap-1.5 text-teal-800 font-bold text-xs">
                               <Layers className="w-3.5 h-3.5 text-teal-600" />
                               <span>AI 類義語・反意語・コロケーション</span>
                             </div>
@@ -936,13 +936,13 @@ export default function Dictionary({
                               if (relationsError[relKey]) {
                                 return (
                                   <div className="flex flex-col items-center gap-2 py-4">
-                                    <p className="text-[10px] text-rose-600 font-semibold">{relationsError[relKey]}</p>
+                                    <p className="text-xs text-rose-600 font-medium">{relationsError[relKey]}</p>
                                     <button
                                       onClick={() => {
                                         setRelationsError(prev => ({ ...prev, [relKey]: "" }));
                                         handleFetchWordRelations(word.word, word.translation);
                                       }}
-                                      className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-[10px] font-extrabold rounded-lg hover:bg-teal-100 transition cursor-pointer"
+                                      className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-xs font-bold rounded-lg hover:bg-teal-100 transition cursor-pointer"
                                     >
                                       再試行
                                     </button>
@@ -955,16 +955,16 @@ export default function Dictionary({
                                     {/* 類義語 */}
                                     {relData.synonyms && relData.synonyms.length > 0 && (
                                       <div>
-                                        <span className="text-[10px] font-black text-teal-700 uppercase tracking-wide block mb-2">類義語 (Synonyms)</span>
+                                        <span className="text-xs font-bold text-teal-700 uppercase tracking-wide block mb-2">類義語 (Synonyms)</span>
                                         <div className="space-y-2">
                                           {relData.synonyms.map((s: any, i: number) => (
                                             <div key={i} className="bg-teal-50/40 border border-teal-100/60 rounded-xl p-2.5">
                                               <div className="flex items-center gap-2 flex-wrap">
-                                                <span className="tabular-nums font-extrabold text-sm text-gray-900">{s.word}</span>
-                                                <span className="text-gray-500 font-semibold">{s.translation}</span>
+                                                <span className="tabular-nums font-bold text-sm text-gray-900">{s.word}</span>
+                                                <span className="text-gray-500 font-medium">{s.translation}</span>
                                               </div>
                                               {s.nuance && (
-                                                <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{s.nuance}</p>
+                                                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{s.nuance}</p>
                                               )}
                                             </div>
                                           ))}
@@ -975,12 +975,12 @@ export default function Dictionary({
                                     {/* 反意語 */}
                                     {relData.antonyms && relData.antonyms.length > 0 && (
                                       <div>
-                                        <span className="text-[10px] font-black text-rose-700 uppercase tracking-wide block mb-2">反意語 (Antonyms)</span>
+                                        <span className="text-xs font-bold text-rose-700 uppercase tracking-wide block mb-2">反意語 (Antonyms)</span>
                                         <div className="flex flex-wrap gap-2">
                                           {relData.antonyms.map((a: any, i: number) => (
                                             <span key={i} className="bg-rose-50/60 border border-rose-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
-                                              <span className="tabular-nums font-extrabold text-gray-900">{a.word}</span>
-                                              <span className="text-gray-500 font-semibold text-[11px]">{a.translation}</span>
+                                              <span className="tabular-nums font-bold text-gray-900">{a.word}</span>
+                                              <span className="text-gray-500 font-medium text-xs">{a.translation}</span>
                                             </span>
                                           ))}
                                         </div>
@@ -990,12 +990,12 @@ export default function Dictionary({
                                     {/* コロケーション */}
                                     {relData.collocations && relData.collocations.length > 0 && (
                                       <div>
-                                        <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wide block mb-2">コロケーション (よく使われる組み合わせ)</span>
+                                        <span className="text-xs font-bold text-indigo-700 uppercase tracking-wide block mb-2">コロケーション (よく使われる組み合わせ)</span>
                                         <div className="space-y-1.5">
                                           {relData.collocations.map((c: any, i: number) => (
                                             <div key={i} className="flex items-baseline justify-between gap-3 bg-indigo-50/40 border border-indigo-100/60 rounded-lg px-3 py-2">
                                               <span className="tabular-nums font-bold text-gray-900">{c.phrase}</span>
-                                              <span className="text-gray-500 font-semibold text-[11px] text-right shrink-0">{c.translation}</span>
+                                              <span className="text-gray-500 font-medium text-xs text-right shrink-0">{c.translation}</span>
                                             </div>
                                           ))}
                                         </div>
@@ -1006,12 +1006,12 @@ export default function Dictionary({
                               }
                               return (
                                 <div className="flex flex-col items-center justify-center py-4 space-y-2">
-                                  <p className="text-[11px] text-gray-400 font-semibold">
+                                  <p className="text-xs text-gray-400 font-medium">
                                     類義語・反意語・よく使われる組み合わせをAIが解説します。
                                   </p>
                                   <button
                                     onClick={() => handleFetchWordRelations(word.word, word.translation)}
-                                    className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-[10px] font-extrabold rounded-lg hover:bg-teal-100 transition cursor-pointer"
+                                    className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-100 text-xs font-bold rounded-lg hover:bg-teal-100 transition cursor-pointer"
                                   >
                                     語彙のつながりを分析する
                                   </button>
@@ -1027,9 +1027,9 @@ export default function Dictionary({
 
                         {/* 学習履歴詳細 */}
                         {attemptCount > 0 && (
-                          <p className="text-[10px] text-gray-400 text-right italic">
-                            これまでにこの単語を合計 <span className="font-extrabold tabular-nums text-gray-600">{attemptCount} 回</span> 回答し、
-                            そのうち正答数は <span className="font-extrabold tabular-nums text-emerald-600">{history ? history.correctCount : 0} 回</span> です。
+                          <p className="text-xs text-gray-400 text-right italic">
+                            これまでにこの単語を合計 <span className="font-bold tabular-nums text-gray-600">{attemptCount} 回</span> 回答し、
+                            そのうち正答数は <span className="font-bold tabular-nums text-emerald-600">{history ? history.correctCount : 0} 回</span> です。
                           </p>
                         )}
 
@@ -1041,9 +1041,9 @@ export default function Dictionary({
             );
           })
         ) : (
-          <div className="text-center py-16 bg-white border rounded-3xl" id="dictionary_empty_state">
+          <div className="text-center py-16 bg-white border rounded-2xl" id="dictionary_empty_state">
             <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-800 font-extrabold text-base">該当する単語は見つかりませんでした</p>
+            <p className="text-gray-800 font-bold text-base">該当する単語は見つかりませんでした</p>
             <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto leading-relaxed">
               キーワードを変更するか、絞り込みフィルターを切り替えてみてください。自分で追加した単語を検索するのもおすすめです。
             </p>
@@ -1062,7 +1062,7 @@ export default function Dictionary({
             <button
               onClick={() => goToPage(1)}
               disabled={currentPage === 1}
-              className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-black cursor-pointer transition"
+              className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
             >
               &lt;&lt;
             </button>
@@ -1101,7 +1101,7 @@ export default function Dictionary({
             <button
               onClick={() => goToPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-black cursor-pointer transition"
+              className="px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-250 rounded-lg disabled:opacity-40 disabled:hover:bg-gray-50 font-bold cursor-pointer transition"
             >
               &gt;&gt;
             </button>

@@ -53,8 +53,8 @@ export default function TabBar({ active, onSelect, dueCount, bonusClaimable }: T
                   : badge ? `${label}（ログインボーナスを受け取れます）`
                     : undefined
               }
-              className={`min-h-16 flex flex-col items-center justify-center gap-1 text-[11px] cursor-pointer transition ${
-                on ? "text-indigo-700 font-black" : "text-gray-500 font-bold hover:text-gray-800 dark:hover:text-slate-200"
+              className={`min-h-16 flex flex-col items-center justify-center gap-1 text-xs cursor-pointer transition ${
+                on ? "text-indigo-700 font-bold" : "text-gray-500 font-bold hover:text-gray-800 dark:hover:text-slate-200"
               }`}
             >
               <span
@@ -63,7 +63,7 @@ export default function TabBar({ active, onSelect, dueCount, bonusClaimable }: T
                 <Icon className="w-5 h-5" aria-hidden="true" />
                 {badge && (
                   <span
-                    className="absolute -top-0.5 right-1.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center"
+                    className="absolute -top-0.5 right-1.5 min-w-4.5 h-4.5 px-1 rounded-full bg-rose-700 text-white text-xs font-bold flex items-center justify-center"
                     aria-hidden="true"
                     data-testid={`tab_badge_${tab}`}
                   >

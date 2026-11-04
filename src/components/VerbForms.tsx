@@ -95,11 +95,11 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-3xl p-5 space-y-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm">
         <div className="flex items-start gap-2">
           <Repeat className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
           <div>
-            <h2 className="text-lg font-black text-gray-900 dark:text-slate-100">動詞の活用表</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">動詞の活用表</h2>
             <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed mt-1">
               原形・過去形・過去分詞・ing形をまとめて確認できます。
               収録している動詞 {counts.all} 語のうち、{counts.irregular} 語が不規則変化です。
@@ -111,8 +111,8 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {(["AAA", "ABA", "ABB", "ABC"] as const).map(p => (
             <div key={p} className={`border rounded-xl px-2.5 py-2 ${PATTERN_COLORS[p]}`}>
-              <p className="font-black text-xs tabular-nums">{p}</p>
-              <p className="text-[10px] font-bold leading-snug">{PATTERN_NOTES[p]}</p>
+              <p className="font-bold text-xs tabular-nums">{p}</p>
+              <p className="text-xs font-bold leading-snug">{PATTERN_NOTES[p]}</p>
             </div>
           ))}
         </div>
@@ -126,7 +126,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
             onChange={e => setQuery(e.target.value)}
             placeholder="原形・過去形・過去分詞・日本語訳で検索..."
             aria-label="動詞を検索"
-            className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm font-semibold text-gray-900 dark:text-slate-100"
+            className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-sm font-medium text-gray-900 dark:text-slate-100"
             id="verb_forms_search"
           />
           {query && (
@@ -146,7 +146,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
             <button
               key={f.key}
               onClick={() => setPattern(f.key)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-black border transition cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${
                 pattern === f.key
                   ? "bg-indigo-600 text-white border-indigo-600"
                   : "bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-100"
@@ -163,7 +163,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
             <button
               key={l}
               onClick={() => setLevel(l)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${
                 level === l
                   ? "bg-slate-800 text-white border-slate-800"
                   : "bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-700"
@@ -176,8 +176,8 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
       </div>
 
       {/* 表 */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm">
-        <p className="px-4 py-2.5 text-xs font-black text-gray-500 dark:text-slate-400 border-b border-gray-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+        <p className="px-4 py-2.5 text-xs font-bold text-gray-500 dark:text-slate-400 border-b border-gray-100 dark:border-slate-800">
           {filtered.length} 語
         </p>
 
@@ -189,7 +189,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[520px]">
               <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800 text-[11px] font-black text-gray-500 dark:text-slate-400">
+                <tr className="bg-gray-50 dark:bg-slate-800 text-xs font-bold text-gray-500 dark:text-slate-400">
                   <th className="text-left px-3 py-2">原形</th>
                   <th className="text-left px-3 py-2">過去形</th>
                   <th className="text-left px-3 py-2">過去分詞</th>
@@ -205,7 +205,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
                   >
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="tabular-nums font-black text-gray-900 dark:text-slate-100">{t.base}</span>
+                        <span className="tabular-nums font-bold text-gray-900 dark:text-slate-100">{t.base}</span>
                         <button
                           onClick={() => speak(`${t.base}, ${t.past}, ${t.participle}`)}
                           aria-label={`${t.base} の活用を発音する`}
@@ -214,17 +214,17 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
                           <Volume2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <span className={`inline-block mt-1 px-1.5 py-0.5 rounded border text-[9px] font-black tabular-nums ${PATTERN_COLORS[t.pattern]}`}>
+                      <span className={`inline-block mt-1 px-1.5 py-0.5 rounded border text-xs font-bold tabular-nums ${PATTERN_COLORS[t.pattern]}`}>
                         {t.pattern}
                       </span>
                     </td>
-                    <td className={`px-3 py-2.5 tabular-nums ${t.irregular ? "font-black text-rose-700 dark:text-rose-300" : "font-semibold text-gray-600 dark:text-slate-300"}`}>
+                    <td className={`px-3 py-2.5 tabular-nums ${t.irregular ? "font-bold text-rose-700 dark:text-rose-300" : "font-medium text-gray-600 dark:text-slate-300"}`}>
                       {t.past}
                     </td>
-                    <td className={`px-3 py-2.5 tabular-nums ${t.irregular ? "font-black text-rose-700 dark:text-rose-300" : "font-semibold text-gray-600 dark:text-slate-300"}`}>
+                    <td className={`px-3 py-2.5 tabular-nums ${t.irregular ? "font-bold text-rose-700 dark:text-rose-300" : "font-medium text-gray-600 dark:text-slate-300"}`}>
                       {t.participle}
                     </td>
-                    <td className="px-3 py-2.5 tabular-nums font-semibold text-gray-500 dark:text-slate-400">{t.ing}</td>
+                    <td className="px-3 py-2.5 tabular-nums font-medium text-gray-500 dark:text-slate-400">{t.ing}</td>
                     <td className="px-3 py-2.5 font-bold text-gray-700 dark:text-slate-300 text-xs">{t.word.translation}</td>
                   </tr>
                 ))}
@@ -234,7 +234,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
         )}
       </div>
 
-      <p className="text-[11px] text-gray-400 dark:text-slate-500 leading-relaxed px-1">
+      <p className="text-xs text-gray-400 dark:text-slate-500 leading-relaxed px-1">
         規則変化の綴りは米つづりに揃えています（travel → traveled）。
         過去形・過去分詞が2通りある動詞は、より一般的な方を載せています。
       </p>

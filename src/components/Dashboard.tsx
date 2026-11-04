@@ -1,11 +1,11 @@
 import React from "react";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ArrowRightLeft, ChevronDown, ChevronRight, Equal, Split, TextQuote } from "lucide-react";
 import { Level, Word } from "../types";
 import { SrsState, nextReview, todayStr, tomorrowOf } from "../srs";
 import { SolvedHistory } from "../mastery";
 import { ListeningIcon, SpellingIcon } from "./AppIcons";
 import { LEVEL_TONE, TONE_STYLE, ACCENT_TONE } from "../levelTheme";
-import { LEVEL_LABELS, LEVEL_STAGES, LEVEL_ORDER } from "../levelLabels";
+import { LEVEL_LABELS, LEVEL_ORDER } from "../levelLabels";
 import { QUESTION_COUNTS, levelCounts } from "../studySettings";
 
 type QuizType = "word" | "sentence" | "listening" | "spelling" | "reverse" | "synonym" | "sense";
@@ -13,19 +13,27 @@ type QuizType = "word" | "sentence" | "listening" | "spelling" | "reverse" | "sy
 /**
  * 「学習を始める」（一問一答）のほかに選べる形式。
  * 押すとそのまま始まる（以前のように片方だけモーダルを挟まない）。
+ * 類義語・語義の見分けは、以前は「応用」として別の行に分けていたが、
+ * 押せば始まる点は同じなので1つの並びにまとめた。
  */
-const OTHER_FORMS: { form: Exclude<QuizType, "word">; label: string; Icon?: (p: { className?: string }) => React.ReactElement }[] = [
-  { form: "sentence", label: "例文穴埋め" },
+const OTHER_FORMS: { form: Exclude<QuizType, "word">; label: string; Icon: (p: { className?: string }) => React.ReactElement }[] = [
+  { form: "sentence", label: "例文穴埋め", Icon: p => <TextQuote {...p} aria-hidden="true" /> },
   { form: "listening", label: "リスニング", Icon: ListeningIcon },
-  { form: "reverse", label: "日本語→英語" },
-  { form: "spelling", label: "綴り", Icon: SpellingIcon }
+  { form: "reverse", label: "日本語→英語", Icon: p => <ArrowRightLeft {...p} aria-hidden="true" /> },
+  { form: "spelling", label: "綴り", Icon: SpellingIcon },
+  { form: "synonym", label: "類義語", Icon: p => <Equal {...p} aria-hidden="true" /> },
+  { form: "sense", label: "語義を見分ける", Icon: p => <Split {...p} aria-hidden="true" /> }
 ];
 
-/** 訳を介さずに英語どうしをつなぐ・文の中で意味を決める、の2つ */
-const APPLIED_FORMS: { form: "synonym" | "sense"; label: string }[] = [
-  { form: "synonym", label: "類義語" },
-  { form: "sense", label: "語義を見分ける" }
-];
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+/** 「11月4日（水）」 */
+function todayLabel(d = new Date()): string {
+  return `${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`;
+}
+
+/** 数字の桁を区切る（「1,062語」） */
+const n = (v: number) => v.toLocaleString("ja-JP");
 
 interface DashboardProps {
   vocabulary: Word[];
@@ -107,43 +115,64 @@ export default function Dashboard({
       : `${Number(next.date.slice(5, 7))}/${Number(next.date.slice(8, 10))}`
     : "";
 
+  const goalPercent = Math.min(100, Math.round((todayCount / Math.max(1, dailyGoal)) * 100));
+  const showProgressCard = !hasDue || wrongWords.length > 0 || bonusClaimable;
+
   return (
     <div className="space-y-4" id="dashboard_page">
-      {/* 見出しはカードの外に出しているので、背景の飾り（葉・波）や写真の上に重なる。
-          地の色を敷いて、小さい文字が柄に紛れないようにする。
+      {/* 見出しはカードの外に出しているので、背景の飾り（葉・波・海）や写真の上に重なる。
+          地の色（紙）を不透明で敷いて、小さい文字が柄に紛れないようにする。
           半透明にすると、ガラスの検査（下に黒を敷く）で 4.20 まで落ちた */}
-      <div className="flex items-start justify-between gap-3 px-3 py-2 rounded-2xl bg-slate-50">
-        <div className="min-w-0">
-          <p className="text-xs font-black text-indigo-700">今日の学習</p>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-900 mt-0.5 leading-snug" id="today_headline">
-            {hasDue ? `復習のあとに${questionCount}問` : `今日の${questionCount}問を始めましょう`}
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">短い学習でも、続けるほど定着します。</p>
+      <header className="px-4 pt-3 pb-3.5 rounded-2xl bg-slate-50 space-y-1.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-sm text-gray-500" id="today_date">{todayLabel()}</p>
+          <p
+            className={`shrink-0 text-sm tabular-nums ${goalReached ? "text-emerald-800 font-bold" : "text-gray-500"}`}
+            id="today_goal_count"
+          >
+            {goalReached ? "達成！ " : "目標 "}
+            <span className="text-base font-bold text-gray-900">{todayCount}</span> / {dailyGoal}問
+          </p>
         </div>
-        <div className="text-right shrink-0">
-          <p className={`text-xl font-black ${tone} ${TONE_STYLE.text}`}>{current.masterRate}%</p>
-          <p className="text-[11px] text-gray-500">{LEVEL_STAGES[selectedLevel]}・習熟度</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-snug" id="today_headline">
+          {hasDue ? `復習のあとに${questionCount}問` : `今日の${questionCount}問を始めましょう`}
+        </h1>
+        <div
+          className="h-1 rounded-full bg-gray-200 overflow-hidden"
+          role="progressbar"
+          aria-label="今日の目標"
+          aria-valuemin={0}
+          aria-valuemax={dailyGoal}
+          aria-valuenow={Math.min(todayCount, dailyGoal)}
+        >
+          <div
+            className={`h-full rounded-full ${goalReached ? "bg-emerald-600" : "bg-indigo-600"}`}
+            style={{ width: `${goalPercent}%` }}
+          />
         </div>
-      </div>
+      </header>
 
       {hasDue && (
         <section
           aria-labelledby="today_review_heading"
-          className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-3"
+          className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3"
           id="today_review_card"
         >
           <div className="flex items-baseline justify-between gap-3">
-            <h2 id="today_review_heading" className="text-sm font-black text-gray-900">今日の復習</h2>
-            <span className="text-sm font-black text-indigo-700">{dueCount}語</span>
+            <h2 id="today_review_heading" className="text-base font-bold text-gray-900">今日の復習</h2>
+            <span className="text-sm text-gray-500">約{Math.max(1, Math.round(dueCount / 3))}分</span>
           </div>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            期日が来た単語があります。忘れかけたころに解き直すのがいちばん効きます（約{Math.max(1, Math.round(dueCount / 3))}分）。
+          <p className="text-4xl font-bold text-gray-900 leading-none tabular-nums">
+            {n(dueCount)}<span className="text-base font-medium ml-1">語</span>
+          </p>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            前に解いた語を、忘れかけたころにもう一度出します。いまがいちばん効くころです。
           </p>
           <button
             type="button"
             onClick={onStartSrsReview}
             id="dashboard_open_srs_review_btn"
-            className={`w-full min-h-12 rounded-xl font-black text-sm cursor-pointer transition ${ACCENT_TONE.advice} ${TONE_STYLE.solid}`}
+            className={`w-full min-h-12 h-13 rounded-xl font-bold text-base cursor-pointer transition ${ACCENT_TONE.advice} ${TONE_STYLE.solid}`}
           >
             復習を始める
           </button>
@@ -152,56 +181,73 @@ export default function Dashboard({
 
       {/* 学習の設定と開始。ガラスの印（glass-panel / glass-chip）は src/index.css が見る */}
       <section
-        aria-label="学習の設定"
-        className="glass-panel bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-4 space-y-4"
+        aria-labelledby="new_words_heading"
+        className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-4"
         id="level_selection_section"
         data-testid="question_count_picker"
       >
-        <div className="space-y-1.5" data-testid="level_picker">
-          <label htmlFor="select_study_level" className="block text-xs font-black text-gray-600">学習レベル</label>
-          <select
-            id="select_study_level"
-            value={selectedLevel}
-            onChange={e => setSelectedLevel(e.target.value as Level)}
-            className="w-full min-h-12 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white text-gray-900 text-sm font-black cursor-pointer"
-          >
-            {LEVEL_ORDER.map(level => (
-              <option key={level} value={level}>
-                {LEVEL_LABELS[level]}　習熟度 {levelCounts(vocabulary, level, solvedHistory, srsData).masterRate}%
-              </option>
-            ))}
-          </select>
-          <p className="text-[11px] text-gray-500 px-0.5" id="level_mastery_summary">
-            覚えた {current.correct}語・覚えかけ {current.learning}語 ／ 全 {current.total}語
+        <h2 id="new_words_heading" className="text-base font-bold text-gray-900">新しく覚える</h2>
+
+        <div className="space-y-2" data-testid="level_picker">
+          <label htmlFor="select_study_level" className="block text-sm text-gray-600">学習レベル</label>
+          <div className="relative">
+            <select
+              id="select_study_level"
+              value={selectedLevel}
+              onChange={e => setSelectedLevel(e.target.value as Level)}
+              className="appearance-none w-full min-h-12 pl-4 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-base font-medium cursor-pointer"
+            >
+              {LEVEL_ORDER.map(level => {
+                const c = levelCounts(vocabulary, level, solvedHistory, srsData);
+                return (
+                  <option key={level} value={level}>
+                    {LEVEL_LABELS[level]}　覚えた {n(c.correct)} / {n(c.total)}語
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" aria-hidden="true" />
+          </div>
+          {/* 習熟度は、ここ1か所にだけ出す（以前は見出し・選択肢・説明の3か所に並んでいた） */}
+          <div className={`h-1 rounded-full bg-gray-200 overflow-hidden ${tone}`} aria-hidden="true">
+            <div className={`h-full rounded-full ${TONE_STYLE.bar}`} style={{ width: `${current.masterRate}%` }} />
+          </div>
+          <p className="text-sm text-gray-500 tabular-nums" id="level_mastery_summary">
+            覚えた {n(current.correct)}語・覚えかけ {n(current.learning)}語 ／ 全 {n(current.total)}語
           </p>
           {/* 「覚えた」は同じ語に2回正解して入る。はじめて解いた日はいくつ正解しても0語のままなので、
               理由を書かないと「保存されていない」と受け取られる */}
           {current.learning > 0 && (
-            <p className="text-[11px] text-gray-500 px-0.5" id="learning_hint">
+            <p className="text-xs text-gray-500" id="learning_hint">
               覚えかけ＝あと1回正解すると「覚えた」に入る語
             </p>
           )}
         </div>
 
-        <div className="space-y-1.5" data-testid="count_picker">
-          <span id="count_picker_label" className="block text-xs font-black text-gray-600">1回の問題数</span>
-          <div role="group" aria-labelledby="count_picker_label" className="grid grid-cols-3 gap-2">
-            {QUESTION_COUNTS.map(item => (
-              <button
-                key={item.count}
-                type="button"
-                onClick={() => setQuestionCount(item.count)}
-                id={`btn_question_count_${item.count}`}
-                aria-pressed={questionCount === item.count}
-                className={`min-h-11 rounded-xl text-sm font-black border transition cursor-pointer ${tone} ${
-                  questionCount === item.count
-                    ? `${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
-                    : TONE_STYLE.soft
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+        <div className="space-y-2" data-testid="count_picker">
+          <span id="count_picker_label" className="block text-sm text-gray-600">1回の問題数</span>
+          {/* 選んでいるものは白く浮かせるだけにする。塗りつぶすと、開始ボタンと
+              塗りつぶしが2つ並んで、どちらを押せばよいか分からなくなる */}
+          <div role="group" aria-labelledby="count_picker_label" className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-gray-100">
+            {QUESTION_COUNTS.map(item => {
+              const on = questionCount === item.count;
+              return (
+                <button
+                  key={item.count}
+                  type="button"
+                  onClick={() => setQuestionCount(item.count)}
+                  id={`btn_question_count_${item.count}`}
+                  aria-pressed={on}
+                  className={`min-h-10 rounded-lg text-sm transition cursor-pointer ${
+                    on
+                      ? "bg-white text-gray-900 font-bold shadow-sm ring-1 ring-gray-300"
+                      : "text-gray-600 font-medium hover:text-gray-900"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -209,132 +255,100 @@ export default function Dashboard({
           type="button"
           onClick={() => onStartQuiz(selectedLevel, "word", questionCount)}
           id={`btn_${selectedLevel}_word`}
-          className={`w-full min-h-16 px-5 rounded-2xl flex items-center justify-between gap-3 text-left border transition cursor-pointer ${tone} ${
+          className={`w-full min-h-15 px-5 rounded-xl flex items-center justify-between gap-3 text-left border transition cursor-pointer ${tone} ${
             hasDue ? TONE_STYLE.soft : `${TONE_STYLE.solid} glass-chip border-[var(--lv-solid)]`
           }`}
         >
           <span className="min-w-0">
-            <span className="block text-base font-black">{hasDue ? "新しい単語を学ぶ" : "学習を始める"}</span>
-            <span className="block text-xs font-bold mt-0.5">
+            <span className="block text-base font-bold">{hasDue ? "新しい単語を学ぶ" : "学習を始める"}</span>
+            <span className="block text-sm mt-0.5">
               {LEVEL_LABELS[selectedLevel]}から{questionCount}問・{minutes}
             </span>
           </span>
           <ArrowRight className="w-5 h-5 shrink-0" aria-hidden="true" />
         </button>
 
-        <div className="space-y-2" data-testid="level_quiz_buttons">
+        <div className="space-y-2.5 pt-1" data-testid="level_quiz_buttons">
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-xs font-black text-gray-600" id="other_forms_heading">ほかの出題形式</h2>
-            <span className="text-[11px] text-gray-500">選ぶとすぐ始まります</span>
+            <h3 className="text-sm font-bold text-gray-900" id="other_forms_heading">ほかの形式で</h3>
+            <span className="text-xs text-gray-500">選ぶとすぐ始まります</span>
           </div>
-          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="other_forms_heading">
+          <div className="grid grid-cols-2 gap-2" role="group" aria-labelledby="other_forms_heading">
             {OTHER_FORMS.map(f => (
               <button
                 key={f.form}
                 type="button"
                 onClick={() => onStartQuiz(selectedLevel, f.form, questionCount)}
                 id={`btn_${selectedLevel}_${f.form}`}
-                className={`min-h-11 px-4 rounded-full border text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${tone} ${TONE_STYLE.soft}`}
+                className="min-h-12 px-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm font-medium text-left transition cursor-pointer flex items-center gap-2.5 hover:border-gray-400 hover:bg-gray-50"
               >
-                {f.Icon && <f.Icon className="w-4 h-4 shrink-0" />}
-                <span>{f.label}</span>
+                <f.Icon className="w-4.5 h-4.5 shrink-0 text-gray-500" />
+                <span className="min-w-0">{f.label}</span>
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="応用クイズ">
-            <span className="text-xs font-black text-gray-600 mr-1">応用</span>
-            {APPLIED_FORMS.map(f => (
+        </div>
+      </section>
+
+      {showProgressCard && (
+        <section
+          aria-label="今日の進み具合"
+          className="bg-white border border-gray-200 rounded-2xl px-5 py-1 divide-y divide-gray-200"
+          id="today_progress"
+        >
+          {/* 「今日の復習」と「苦手な単語」は別のもの。並べて出すので、それぞれ何かを一言添える */}
+          {!hasDue && (
+            <div className="flex items-start justify-between gap-3 py-3.5" data-testid="today_review_status">
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-gray-900">今日の復習</span>
+                <span className="block text-xs text-gray-500 leading-snug mt-0.5">解いた語を、忘れかけたころにもう一度出します</span>
+              </span>
+              <span className="text-sm text-gray-600 text-right shrink-0" id="next_review_text">
+                {next ? `今日はなし・${nextLabel}に${next.count}語` : "まだありません"}
+              </span>
+            </div>
+          )}
+
+          {wrongWords.length > 0 && (
+            <div className="flex items-center justify-between gap-3 py-3" id="review_banner">
+              <span className="min-w-0">
+                <span className="block text-sm">
+                  <span className="font-bold text-gray-900">苦手な単語</span>
+                  <span className="ml-2 text-gray-600 tabular-nums">{n(wrongWords.length)}語</span>
+                </span>
+                <span className="block text-xs text-gray-500 leading-snug mt-0.5">間違えた語。ここから解き直して正解すると外れます</span>
+              </span>
               <button
-                key={f.form}
                 type="button"
-                onClick={() => onStartQuiz(selectedLevel, f.form, questionCount)}
-                id={`btn_${selectedLevel}_${f.form}`}
-                className={`min-h-11 px-4 rounded-full border text-xs font-black transition cursor-pointer ${tone} ${TONE_STYLE.soft}`}
+                onClick={onStartReview}
+                id="btn_start_review"
+                className="min-h-11 px-2 -mr-2 text-sm font-bold text-indigo-700 flex items-center gap-0.5 cursor-pointer whitespace-nowrap shrink-0"
               >
-                {f.label}
+                復習する
+                <ChevronRight className="w-4 h-4" aria-hidden="true" />
               </button>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
+          )}
 
-      <section
-        aria-label="今日の進み具合"
-        className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-4 space-y-3"
-        id="today_progress"
-      >
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between text-sm">
-            <span className="font-black text-gray-900">今日の目標</span>
-            <span className={`font-bold ${goalReached ? "text-emerald-700" : "text-gray-600"}`} id="today_goal_count">
-              {goalReached ? "達成！ " : ""}{todayCount} / {dailyGoal}問
-            </span>
-          </div>
-          <div
-            className="h-2 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden"
-            role="progressbar"
-            aria-label="今日の目標"
-            aria-valuemin={0}
-            aria-valuemax={dailyGoal}
-            aria-valuenow={Math.min(todayCount, dailyGoal)}
-          >
-            <div
-              className={`h-full rounded-full ${goalReached ? "bg-emerald-600" : "bg-indigo-600"}`}
-              style={{ width: `${Math.min(100, Math.round((todayCount / Math.max(1, dailyGoal)) * 100))}%` }}
-            />
-          </div>
-        </div>
-
-        {/* 「今日の復習」と「苦手な単語」は別のもの。並べて出すので、それぞれ何かを一言添える */}
-        {!hasDue && (
-          <div className="flex items-start justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800" data-testid="today_review_status">
-            <span className="min-w-0">
-              <span className="block text-sm font-black text-gray-900">今日の復習</span>
-              <span className="block text-[11px] text-gray-500 leading-snug">解いた語を、忘れかけたころにもう一度出します</span>
-            </span>
-            <span className="text-xs text-gray-600 text-right shrink-0" id="next_review_text">
-              {next ? `今日はなし・${nextLabel}に${next.count}語` : "まだありません"}
-            </span>
-          </div>
-        )}
-
-        {wrongWords.length > 0 && (
-          <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800" id="review_banner">
-            <span className="text-sm min-w-0">
-              <span className="font-black text-gray-900">苦手な単語</span>
-              <span className="ml-2 text-xs text-gray-600">{wrongWords.length}語</span>
-              <span className="block text-[11px] text-gray-500 leading-snug">間違えた語。ここから解き直して正解すると外れます</span>
-            </span>
-            <button
-              type="button"
-              onClick={onStartReview}
-              id="btn_start_review"
-              className="min-h-11 px-3 text-xs font-black text-indigo-700 flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
-            >
-              復習する
-              <ChevronRight className="w-4 h-4" aria-hidden="true" />
-            </button>
-          </div>
-        )}
-
-        {bonusClaimable && (
-          <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-slate-800" id="today_bonus_hint">
-            <span className="text-sm min-w-0">
-              <span className="font-black text-gray-900">ログインボーナス</span>
-              <span className="ml-2 text-xs text-gray-600">受け取れます</span>
-            </span>
-            <button
-              type="button"
-              onClick={onOpenRecords}
-              id="btn_go_bonus"
-              className="min-h-11 px-3 text-xs font-black text-indigo-700 flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
-            >
-              受け取る
-              <ChevronRight className="w-4 h-4" aria-hidden="true" />
-            </button>
-          </div>
-        )}
-      </section>
+          {bonusClaimable && (
+            <div className="flex items-center justify-between gap-3 py-3" id="today_bonus_hint">
+              <span className="text-sm min-w-0">
+                <span className="font-bold text-gray-900">ログインボーナス</span>
+                <span className="ml-2 text-gray-600">受け取れます</span>
+              </span>
+              <button
+                type="button"
+                onClick={onOpenRecords}
+                id="btn_go_bonus"
+                className="min-h-11 px-2 -mr-2 text-sm font-bold text-indigo-700 flex items-center gap-0.5 cursor-pointer whitespace-nowrap shrink-0"
+              >
+                受け取る
+                <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

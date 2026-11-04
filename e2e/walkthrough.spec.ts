@@ -297,14 +297,21 @@ test("行き先は画面下のタブにまとめ、出題中は出さない", as
   await page.getByRole("button", { name: "戻る", exact: true }).click();
   await expect(page).toHaveURL(/\/menu$/);
 
-  // 出題中はタブを出さない（視界のすみに行き先が並ぶと気が散る）
+  // 出題中はタブもヘッダーも出さない（視界のすみに行き先や点数が並ぶと気が散る）。
+  // 中断は左上の「×」1つにまとめている
   await goTab(page, "today");
   await page.locator("#btn_junior_word").click();
   await expect(page.locator("#quiz_options_container")).toBeVisible();
   await expect(page.locator("#tab_bar")).toHaveCount(0);
+  await expect(page.locator("#navigation_bar")).toHaveCount(0);
+  const quit = page.getByRole("button", { name: "中断して戻る" });
+  await expect(quit).toBeVisible();
+  const q = (await quit.boundingBox())!;
+  expect(q.width, "「×」が指で押せる大きさに無い").toBeGreaterThanOrEqual(44);
+  expect(q.y, "「×」が画面の上に無い").toBeLessThan(80);
 });
 
-test("合計スコアと連続日数は、どの画面でもヘッダーに出る", async ({ page }) => {
+test("合計スコアと連続日数は、どの画面でもヘッダーに出る（出題中を除く）", async ({ page }) => {
   // ダッシュボードの帯に置いていたので、他の画面へ移ると見えなくなり、
   // 同じ画面を下へスクロールしても見えなくなっていた
   await page.setViewportSize({ width: 390, height: 800 });
@@ -456,7 +463,7 @@ test("5つの形式がどれも同じ手順で始まる", async ({ page }) => {
   await page.locator("#btn_question_count_50").click();
   await page.locator("#btn_junior_word").click();
   await expect(page.locator("#quiz_options_container")).toBeVisible();
-  await expect(page.getByText("Q: 1 / 50")).toBeVisible();
+  await expect(page.getByText("1 / 50")).toBeVisible();
 });
 
 test("類義語クイズと語義分別クイズを、答えて解説を読んで次へ進める", async ({ page }) => {
@@ -472,7 +479,7 @@ test("類義語クイズと語義分別クイズを、答えて解説を読ん�
   await expect(page.locator('[role="status"]')).toContainText(/正解|不正解/);
   await expect(page.locator("#choice_quiz_feedback")).toContainText("＝");
   await page.locator("#btn_next_question").click();
-  await expect(page.getByText("Q: 2 / 10")).toBeVisible();
+  await expect(page.getByText("2 / 10")).toBeVisible();
 
   await page.locator("#btn_quit_quiz").click();
   await waitForVocabulary(page);
@@ -492,7 +499,7 @@ test("四択で間違えたら、選択肢を見せたまま正解を出し、�
   await page.goto("/");
   await waitForVocabulary(page);
   await page.locator("#btn_junior_word").click();
-  await expect(page.getByText("Q: 1 / 10")).toBeVisible();
+  await expect(page.getByText("1 / 10")).toBeVisible();
 
   // 正解の訳は見出しの語から引けないので、間違えるまで選び直す（正解なら自動で次へ進む）
   const status = page.locator('[role="status"]');
@@ -504,8 +511,8 @@ test("四択で間違えたら、選択肢を見せたまま正解を出し、�
   }
   await expect(status).toContainText("不正解です。正解は");
   // 選択肢は覆われずに見えていて、正解に印が付いている
-  await expect(page.locator("#quiz_options_container button.border-emerald-400")).toBeVisible();
-  const progress = page.getByText(/^Q: \d+ \/ 10$/);
+  await expect(page.locator("#quiz_options_container button.border-emerald-600")).toBeVisible();
+  const progress = page.getByText(/^\d+ \/ 10$/);
   const at = await progress.textContent();
   await page.waitForTimeout(7_000);
   await expect(progress).toHaveText(at || "");
@@ -1037,6 +1044,24 @@ test.describe("透明のときの作り", () => {
  */
 test.describe("起動直後のテーマ", () => {
   test.use({ serviceWorkers: "block" });
+
+  test("ブラウザの上の帯は、端末の設定ではなく選んだテーマの色にする", async ({ page }) => {
+    // 端末は暗い・アプリは明るい。media で分けていたときは暗い帯の下に紙の色の画面が出ていた
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem("seeded")) {
+        sessionStorage.setItem("seeded", "1");
+        localStorage.setItem("quest_theme", "light");
+      }
+    });
+    await page.goto("/");
+    await waitForVocabulary(page);
+    const color = () => page.evaluate(() =>
+      Array.from(document.querySelectorAll('meta[name="theme-color"]')).map(m => m.getAttribute("content")));
+    expect(await color()).toEqual(["#fafaf7"]);
+    await page.locator("#theme_toggle_btn").click();
+    expect(await color()).toEqual(["#03121d"]);
+  });
 
   test("アプリの JS が動く前から暗いテーマで描く", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
