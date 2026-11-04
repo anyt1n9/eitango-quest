@@ -86,6 +86,7 @@ import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
+import { applyThemeColor } from "./themeColor";
 import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
@@ -291,6 +292,8 @@ export default function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+    // ブラウザの上の帯も、選んだテーマの地の色にする（端末の設定には合わせない）
+    applyThemeColor(isDark);
     writeStored("quest_theme", isDark ? "dark" : "light");
   }, [isDark]);
 

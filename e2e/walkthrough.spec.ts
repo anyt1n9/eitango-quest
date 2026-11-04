@@ -1045,6 +1045,24 @@ test.describe("透明のときの作り", () => {
 test.describe("起動直後のテーマ", () => {
   test.use({ serviceWorkers: "block" });
 
+  test("ブラウザの上の帯は、端末の設定ではなく選んだテーマの色にする", async ({ page }) => {
+    // 端末は暗い・アプリは明るい。media で分けていたときは暗い帯の下に紙の色の画面が出ていた
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem("seeded")) {
+        sessionStorage.setItem("seeded", "1");
+        localStorage.setItem("quest_theme", "light");
+      }
+    });
+    await page.goto("/");
+    await waitForVocabulary(page);
+    const color = () => page.evaluate(() =>
+      Array.from(document.querySelectorAll('meta[name="theme-color"]')).map(m => m.getAttribute("content")));
+    expect(await color()).toEqual(["#fafaf7"]);
+    await page.locator("#theme_toggle_btn").click();
+    expect(await color()).toEqual(["#03121d"]);
+  });
+
   test("アプリの JS が動く前から暗いテーマで描く", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     // React を止めて、HTML だけで決まっている状態を見る
