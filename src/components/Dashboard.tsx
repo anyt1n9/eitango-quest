@@ -27,7 +27,6 @@ const OTHER_FORMS: { form: Exclude<QuizType, "word">; label: string; Icon: (p: {
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
-/** 「11月4日（水）」 */
 /** 「11月4日（水）」。日付は YYYY-MM-DD で受け取る（App の useToday と同じ日を出す） */
 export function todayLabel(today: string): string {
   const [y, m, d] = today.split("-").map(Number);

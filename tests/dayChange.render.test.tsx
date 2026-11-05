@@ -60,6 +60,8 @@ function expectNov6() {
   expect(screen.queryByTestId("tab_badge_today")?.textContent).toBe("1");
   // 新しい日のログインボーナスを受け取れる
   expect(screen.queryByTestId("tab_badge_records")?.textContent).toBe("!");
+  // 前の日（11月5日）に受け取っているので、連続ログインは途切れていない（日をまたいだときの巻き戻しで0にしない）
+  expect(screen.getByLabelText("ログイン連続 2日")).toBeTruthy();
 }
 
 beforeEach(() => {

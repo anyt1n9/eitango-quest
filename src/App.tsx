@@ -97,7 +97,7 @@ const LearnHub = lazy(() => import("./components/LearnHub"));
 const Records = lazy(() => import("./components/Records"));
 const MenuScreen = lazy(() => import("./components/MenuScreen"));
 import { SrsState, nextSrsState, getDueWordIds, todayStr, sanitizeSrs } from "./srs";
-import { currentLoginStreak } from "./loginBonus";
+import { currentLoginStreak, previousDay } from "./loginBonus";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Sun, Moon, CheckCircle2, Trophy, Calendar, Fish } from "lucide-react";
@@ -348,7 +348,9 @@ export default function App() {
   // ログインスタンプ起動時処理（1日のログイン連続日数の自動更新など）。日付が変わったときにも見直す
   useEffect(() => {
     const todayS = today;
-    const yesterdayStr = getYesterdayString();
+    // 昨日も today から求める（実時刻から作ると、0時をまたぐ前後で「今日」と「昨日」の基準がずれる）
+    const [y, m, d] = today.split("-").map(Number);
+    const yesterdayStr = previousDay(new Date(y, m - 1, d));
 
     // 昨日受け取っていれば連続のまま（日数は「記録」でスタンプを押したときに進む）。
     // 1日以上空いていたら連続を0に戻す
@@ -359,12 +361,6 @@ export default function App() {
       }));
     }
   }, [today]);
-
-  const getYesterdayString = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return todayStr(d);
-  };
 
   // 2. 変更時の各LocalStorageへ同期保存
   useEffect(() => {
