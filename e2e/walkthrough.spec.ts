@@ -660,6 +660,36 @@ for (const glass of ["0", "18", "100"]) {
   });
 }
 
+/**
+ * ログインボーナスを受け取ったときの知らせ。
+ *
+ * 以前はブラウザの確認窓（alert）で、「OK」を押すまで画面全体が止まり、文面には絵文字が混ざっていた。
+ * いまは画面の中（タブの上）に重ねて出し、少しすると消える（src/notice.ts・NoticeHost）。
+ */
+test("ログインボーナスを受け取ると、確認窓ではなく画面の中に知らせが出る", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const dialogs: string[] = [];
+  page.on("dialog", d => { dialogs.push(d.message()); void d.dismiss(); });
+  await page.goto("/records");
+  await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
+  await page.locator('[id^="btn_claim_bonus_day_"]').first().click();
+
+  const notice = page.getByTestId("notice");
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText("1日目：+100 P を受け取りました");
+  expect(dialogs, "ブラウザの確認窓が出ている").toEqual([]);
+  // タブの上に出て、タブを隠さない
+  const box = (await notice.boundingBox())!;
+  const tab = (await page.locator("#tab_bar").boundingBox())!;
+  expect(box.y + box.height).toBeLessThanOrEqual(tab.y);
+  // 読み上げにも伝わる（出題画面の正誤の role="status" と並ばないよう、status にはしない）
+  await expect(page.locator("#notice_host")).toHaveAttribute("aria-live", "polite");
+  expect(await page.evaluate(LOW_CONTRAST)).toEqual([]);
+
+  await page.getByRole("button", { name: "知らせを閉じる" }).click();
+  await expect(notice).toHaveCount(0);
+});
+
 test("メニューのポイントは、ガチャで使える額と一致する", async ({ page }) => {
   // stats.score は「これまでに稼いだ合計」で、ガチャを引いても減らない。
   // ヘッダーがその合計を「P」として出していたため、ガチャ画面には

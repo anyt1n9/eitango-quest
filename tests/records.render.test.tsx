@@ -6,6 +6,7 @@ import Records from "../src/components/Records";
 import { makeWord, makeStats } from "./fixtures";
 import { ACCENT_TONE } from "../src/levelTheme";
 import { todayStr } from "../src/srs";
+import { __resetNoticesForTest, getNotices } from "../src/notice";
 
 /** 今日から n 日前の YYYY-MM-DD */
 function daysAgo(n: number): string {
@@ -133,7 +134,7 @@ describe("ログインボーナス", () => {
   it("加点は関数形で行う（前の値に足す）", async () => {
     // 絶対値で書いていたため、二重に走っても偶然おかしくならなかっただけだった
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    __resetNoticesForTest();
     const setStats = vi.fn();
     renderRecords({ setStats });
 
@@ -148,7 +149,6 @@ describe("ログインボーナス", () => {
     const today = new Date();
     const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     expect(updater({ ...before, lastLoginDate: key }).score).toBe(500);
-    alertSpy.mockRestore();
   });
 
   it("その日のスタンプを押しても受け取れる", async () => {
@@ -156,7 +156,7 @@ describe("ログインボーナス", () => {
     // スマホでは今日のスタンプを押してから目と指を下に運ぶことになる。
     // 今日ぶんのスタンプ自体を押しても受け取れるようにした
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    __resetNoticesForTest();
     const setStats = vi.fn();
     renderRecords({ setStats });
 
@@ -164,8 +164,7 @@ describe("ログインボーナス", () => {
     await user.click(document.getElementById("btn_claim_bonus_day_2")!);
 
     expect(setStats).toHaveBeenCalledTimes(1);
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    alertSpy.mockRestore();
+    expect(getNotices()).toHaveLength(1);
   });
 
   it("受け取り済みの日と、まだ先の日は押せない", async () => {
@@ -185,7 +184,7 @@ describe("ログインボーナス", () => {
     // 再描画の前に2回押すとどちらも通ってしまう。
     // 3連打で受け取りの処理が3回走り、お知らせも3つ出ていた
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    __resetNoticesForTest();
     const setStats = vi.fn();
     renderRecords({ setStats });
 
@@ -195,8 +194,7 @@ describe("ログインボーナス", () => {
     stamp.click();
 
     expect(setStats).toHaveBeenCalledTimes(1);
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    alertSpy.mockRestore();
+    expect(getNotices()).toHaveLength(1);
   });
 
   /**
@@ -206,7 +204,7 @@ describe("ログインボーナス", () => {
    */
   it("途切れていれば、表示も点数も1日目から数え直す", async () => {
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    __resetNoticesForTest();
     const setStats = vi.fn();
     renderRecords({ setStats, stats: makeStats({ score: 1000, currentStreak: 3, lastLoginDate: daysAgo(2) }) });
 
@@ -219,22 +217,20 @@ describe("ログインボーナス", () => {
     const after = setStats.mock.calls[0][0](makeStats({ score: 1000, currentStreak: 3, lastLoginDate: daysAgo(2) }));
     expect(after.score).toBe(1100);
     expect(after.currentStreak).toBe(1);
-    expect(alertSpy.mock.calls[0][0]).toContain("+100 P");
-    expect(alertSpy.mock.calls[0][0]).toContain("1日目");
-    alertSpy.mockRestore();
+    expect(getNotices()[0].message).toContain("+100 P");
+    expect(getNotices()[0].message).toContain("1日目");
   });
 
   it("続いていれば、次の日のスタンプと点数になる", async () => {
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    __resetNoticesForTest();
     const setStats = vi.fn();
     renderRecords({ setStats, stats: makeStats({ currentStreak: 3, lastLoginDate: daysAgo(1) }) });
 
     await user.click(document.getElementById("btn_claim_bonus_day_4")!);
     expect(setStats.mock.calls[0][0](makeStats({ currentStreak: 3, lastLoginDate: daysAgo(1) })).currentStreak).toBe(4);
-    expect(alertSpy.mock.calls[0][0]).toContain("+400 P");
-    expect(alertSpy.mock.calls[0][0]).toContain("4日目");
-    alertSpy.mockRestore();
+    expect(getNotices()[0].message).toContain("+400 P");
+    expect(getNotices()[0].message).toContain("4日目");
   });
 
   it("受け取り済みの日には、その日ぶんのスタンプが無い", async () => {
