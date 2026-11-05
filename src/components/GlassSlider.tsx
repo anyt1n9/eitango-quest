@@ -59,7 +59,7 @@ export default function GlassSlider({
           {value <= GLASS_SAFE_MAX
             ? `${GLASS_SAFE_MAX}%までは、どんな背景の上でも文字の読みやすさを保ちます。`
             : `${GLASS_SAFE_MAX}%より透かすと、背景によっては文字が読みにくくなります。`}
-          効くのは「今日」の画面のカードです。
+          （出題中の画面は背景を出さないので、透かしません）
         </p>
       )}
     </div>

@@ -561,7 +561,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
   return (
     <>
           {/* 単語を増やす（AI・CSV・PDF） */}
-          <div className="bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-5" id="ai_word_creation_bento">
+          <div className="glass-panel bg-white border border-gray-100 dark:border-slate-800 rounded-2xl p-5" id="ai_word_creation_bento">
             <div>
               <div className="flex items-center gap-3">
                 <span className="w-10 h-10 shrink-0 bg-indigo-50 rounded-xl text-indigo-700 flex items-center justify-center">

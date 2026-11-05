@@ -67,7 +67,7 @@ export default function ReviewList({
     <div className="max-w-xl mx-auto space-y-6 relative" id="review_section_root">
       
       {/* 苦手単語カード一覧 */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6" id="review_list_card">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6" id="review_list_card">
           
           <div className="flex items-center justify-between">
             <BackButton onClick={onBackToDashboard} id="btn_back_from_review" />

@@ -107,7 +107,7 @@ export default function LearnHub({
       <h1 className="text-2xl font-bold text-gray-900 px-4 py-3 rounded-2xl bg-slate-50">教材</h1>
 
       {/* 見出しもカードの中に入れる（カードの外に置くと、背景の飾りや写真の上に小さな文字が出る） */}
-      <section aria-labelledby="learn_quiz_heading" className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
+      <section aria-labelledby="learn_quiz_heading" className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 id="learn_quiz_heading" className="text-base font-bold text-gray-900">単語クイズ</h2>
@@ -153,7 +153,7 @@ export default function LearnHub({
         </div>
       </section>
 
-      <section aria-labelledby="learn_read_heading" className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <section aria-labelledby="learn_read_heading" className="glass-panel bg-white border border-gray-200 rounded-2xl overflow-hidden">
         <h2 id="learn_read_heading" className="text-base font-bold text-gray-900 px-5 pt-4 pb-2">読む・文法</h2>
         <div className="divide-y divide-gray-200 border-t border-gray-200">
           <Row id="learn_open_reading" title="長文ストーリー" note="各レベルの単語だけで書いた長文を読む" Icon={ReadingIcon} onClick={onOpenReading} />
@@ -163,7 +163,7 @@ export default function LearnHub({
         </div>
       </section>
 
-      <section aria-labelledby="learn_write_heading" className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <section aria-labelledby="learn_write_heading" className="glass-panel bg-white border border-gray-200 rounded-2xl overflow-hidden">
         <h2 id="learn_write_heading" className="text-base font-bold text-gray-900 px-5 pt-4 pb-2">書く</h2>
         {/* まだ使えないうちは控えめに出す。以前は「学習メニュー」の中でいちばん目立つ
             オレンジのボタンが、使えない機能のものだった */}

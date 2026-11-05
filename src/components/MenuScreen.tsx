@@ -16,7 +16,7 @@ const ROW =
   "w-full min-h-14 flex items-center gap-3 px-5 py-3 text-left hover:bg-gray-50 transition cursor-pointer";
 const ICON = "w-9 h-9 shrink-0 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center";
 /** 見出しもカードの中に入れる（カードの外に置くと、背景の飾りや写真の上に小さな文字が出る） */
-const CARD = "bg-white border border-gray-200 rounded-2xl overflow-hidden";
+const CARD = "glass-panel bg-white border border-gray-200 rounded-2xl overflow-hidden";
 const GROUP = "divide-y divide-gray-200 border-t border-gray-200";
 const HEADING = "text-base font-bold text-gray-900 px-5 pt-4 pb-2";
 

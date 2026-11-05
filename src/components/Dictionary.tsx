@@ -349,7 +349,7 @@ export default function Dictionary({
       </div>
 
       {/* 検索・ソート・フィルターコントロールパネル */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
           {/* 検索フォーム */}
           <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-500">
@@ -529,7 +529,7 @@ export default function Dictionary({
 
       {/* メイン単語の一覧。1語を1枚のカードにすると1語あたり約115pxあり、スマホの1画面に
           5語ほどしか入らなかった。1枚の表を細い線で区切り、1行を約60pxにする */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl overflow-hidden">
       {/* 検索・絞り込みの結果。カードの中に置く（背景の飾りの上に小さな文字を出さない） */}
       <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-500 tabular-nums border-b border-gray-200 bg-slate-50">
         <div>
@@ -927,7 +927,7 @@ export default function Dictionary({
 
       {/* ページネーションコントロール */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 tabular-nums text-sm text-gray-600">
+        <div className="glass-panel flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 tabular-nums text-sm text-gray-600">
           <div>
             表示中：<span className="font-bold text-gray-800">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-gray-800">{Math.min(currentPage * pageSize, totalItems)}</span> 件目 / 全 <span className="font-bold text-indigo-600">{totalItems}</span> 件
           </div>

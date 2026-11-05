@@ -209,7 +209,7 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
 
   return (
     <div className="max-w-xl mx-auto space-y-6" id="data_backup_root">
-      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
+      <div className="glass-panel bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <BackButton onClick={onBackToDashboard} />
           <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs px-3.5 py-1.5 rounded-full font-bold">
