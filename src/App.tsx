@@ -105,7 +105,9 @@ import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
 import BackButton from "./components/BackButton";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
-import { GlassLevel, readGlassLevel, saveGlassLevel } from "./glass";
+import { applyGlass, getGlass } from "./glass";
+import GlassSlider from "./components/GlassSlider";
+import HeaderBackgroundMenu from "./components/HeaderBackgroundMenu";
 import { applyThemeColor } from "./themeColor";
 import { canRenderOcean, clearOceanChoice, currentOceanEnv, initialOcean, saveOceanChoice } from "./oceanSetting";
 import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
@@ -255,19 +257,11 @@ export default function App() {
     saveVeilLevel(v);
   }, []);
 
-  /** カードとボタンの透明感（ガラス）。
-      背景を見せるために面を薄くするほど文字は読みにくくなるので、
-      既定は「オフ」（不透明）にして、選んだ人にだけ効かせる */
-  const [glass, setGlass] = useState<GlassLevel>(() => readGlassLevel());
-  const changeGlass = useCallback((g: GlassLevel) => {
-    setGlass(g);
-    saveGlassLevel(g);
-  }, []);
-  useEffect(() => {
-    // 濃さは CSS 側（:root[data-glass]）が持つ。
-    // 起動直後のちらつきを避けるため、初期値は index.html の先頭でも当てている
-    document.documentElement.dataset.glass = glass;
-  }, [glass]);
+  /** カードとボタンの透明感（ガラス）。0〜100% の1つの数で、既定は 0（不透明）。
+      値は src/glass.ts が持ち、ヘッダーとメニューのつまみ（GlassSlider）が直接読み書きする。
+      App の state にすると、つまみを動かすたびに画面全体を描き直すことになる。
+      起動直後のちらつきを避けるため、初期値は index.html の先頭でも当てている（ここは念のため） */
+  useEffect(() => { applyGlass(getGlass()); }, []);
 
   /** 背景の飾りを動かすか。
       動くものが視界にあると落ち着かない人もいるので、切り替えを持たせる
@@ -459,7 +453,7 @@ export default function App() {
   /**
    * 海を眺める。画面の文字（ヘッダー・中身・タブ）を一時的に隠して、海だけを見せる。
    *
-   * カードは読みやすさのために不透明（ガラスでも地を8割以上残す）なので、
+   * カードは既定で不透明で、透かしても読みやすさを保つ範囲（18%まで）では地を8割以上残すので、
    * 生き物がカードの裏を泳いでいるあいだは見えない。スマホは画面の幅いっぱいにカードが並ぶので、
    * 泳ぐ道筋を変えても隠れる。読みやすさを削らずに海を見せるには、見る時間を分けるほかない。
    * 3D を描けているときだけ出す（OceanBackground の onDrawingChange）。部品を読み込み中のとき・
@@ -470,12 +464,20 @@ export default function App() {
   const [seaView, setSeaView] = useState(false);
   const seaViewButtonRef = useRef<HTMLButtonElement>(null);
   const seaViewExitRef = useRef<HTMLButtonElement>(null);
+  // 戻ったときに手元へ戻す先（ヘッダーの魚のボタン、スマホの「今日」では「透明度と背景」）
+  const seaReturnRef = useRef<HTMLElement | null>(null);
+  const openSeaView = (from: HTMLElement | null) => {
+    seaReturnRef.current = from;
+    setSeaView(true);
+  };
   const [oceanDrawing, setOceanDrawing] = useState(false);
   const canViewSea = bgOcean && oceanDrawing && !isTransient(currentScreen);
+  // カードの透明度のつまみ。効くのは「今日」の画面のカード（glass-panel）だけなので、そこでだけ出す
+  const glassInHeader = currentScreen === "dashboard";
   const closeSeaView = () => {
     setSeaView(false);
     // 押した場所（ヘッダーのボタン）へ戻す。隠していたあいだに見失わないように
-    requestAnimationFrame(() => seaViewButtonRef.current?.focus());
+    requestAnimationFrame(() => (seaReturnRef.current ?? seaViewButtonRef.current)?.focus());
   };
   useEffect(() => {
     if (!seaView) return;
@@ -943,13 +945,27 @@ export default function App() {
             </div>
           </div>
 
-          {/* 海を眺める（画面の文字を隠して海だけを見せる）。3D の海を描けているときだけ */}
+          {/* カードの透明度のつまみ（広い画面）。効くのは「今日」の画面のカードだけなので、そこでだけ出す。
+              スマホはヘッダーに場所が無いので、右の「透明度と背景」から開く（HeaderBackgroundMenu） */}
+          {glassInHeader && (
+            <div className="hidden sm:flex flex-1 min-w-0 justify-center px-2 lg:px-6" data-testid="header_glass">
+              <GlassSlider id="header_glass_slider" className="w-full max-w-72" />
+            </div>
+          )}
+
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {glassInHeader && (
+            <HeaderBackgroundMenu canViewSea={canViewSea} onViewSea={openSeaView} resetKey={currentScreen} />
+          )}
+
+          {/* 海を眺める（画面の文字を隠して海だけを見せる）。3D の海を描けているときだけ。
+              スマホの「今日」では「透明度と背景」の中に入れる（ヘッダーにボタンを足す余地が無い） */}
           {canViewSea && (
             <button
               type="button"
               ref={seaViewButtonRef}
-              onClick={() => setSeaView(true)}
-              className="ml-auto shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+              onClick={e => openSeaView(e.currentTarget)}
+              className={`${glassInHeader ? "hidden sm:flex" : "flex"} shrink-0 w-10 h-10 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer`}
               title="海を眺める（画面の文字を隠します）"
               aria-label="海を眺める（画面の文字を隠します）"
               id="btn_sea_view"
@@ -962,7 +978,7 @@ export default function App() {
               明るさは学習中でも切りたいので、開かずに押せる場所に出す */}
           <button
             onClick={() => setIsDark(!isDark)}
-            className={`${canViewSea ? "" : "ml-auto "}mr-1 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer`}
+            className="mr-1 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer"
             title={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
             aria-label={isDark ? "明るいテーマに切り替え" : "暗いテーマに切り替え"}
             id="theme_toggle_btn"
@@ -985,6 +1001,7 @@ export default function App() {
                 {loginStreak}日
               </span>
             </span>
+          </div>
           </div>
 
         </div>
@@ -1359,8 +1376,6 @@ export default function App() {
             }}
             veil={bgVeil}
             onVeilChange={changeBgVeil}
-            glass={glass}
-            onGlassChange={changeGlass}
             ocean={bgOcean}
             onOceanChange={changeOcean}
             onBack={goBack}

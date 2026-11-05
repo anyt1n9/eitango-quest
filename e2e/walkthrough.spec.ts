@@ -1058,20 +1058,23 @@ test.describe("単語データを取りに行けなかったとき", () => {
  * 背景は `position: fixed` の別レイヤーで、文字の祖先ではないため、
  * 半透明のカードを重ねても「地は不透明な地の色」として計算されてしまう。
  *
- * 4段目の「透明」（`clear`）は**ここでは測らない**。地をまったく置かないので、
- * 文字の地は背景の写真そのものになり、どんな色が来るかは決められない。
- * 実測でも、明るい写真の上で 1.73、暗い写真の上で 1.14 まで落ちる。
- * 保証できないことを承知で選ぶ段階なので、画面に注意書きを出したうえで
- * 「地を置いていないこと・縁取りが付いていること」だけを別に確かめる。
+ * 透明度は 0〜100% のつまみで選ぶ。読みやすさを保証するのは 18%（GLASS_SAFE_MAX）までで、
+ * ここではその上限と、途中の値（10%）を測る。地はどれも透明度に対して単調に薄くなるので、
+ * 上限で読めれば、それより地の濃い値でも読める。
+ *
+ * 18%より上（`clear`）は**ここでは測らない**。背後の色がそのまま文字の地に混ざり、
+ * どんな色が来るかは決められない。100%（地を置かない）では、実測で明るい写真の上 1.73、
+ * 暗い写真の上 1.14 まで落ちる。保証できないことを承知で選ぶ範囲なので、
+ * 画面に注意書きを出したうえで「地を置いていないこと・縁取りが付いていること」を別に確かめる。
  */
 test.describe("ガラスの下に最悪の色を敷いても読める", () => {
   test.use({ serviceWorkers: "block" });
 
   for (const theme of ["light", "dark"] as const) {
-    for (const glass of ["off", "light", "strong"] as const) {
+    for (const glass of ["0", "10", "18"] as const) {
       // 復習がある日は「今日の復習」のカード（これもガラス）と、その塗りつぶしボタンが出る
       for (const due of [false, true]) {
-        test(`${theme} / ${glass}${due ? " / 復習あり" : ""}`, async ({ page }) => {
+        test(`${theme} / ${glass}%${due ? " / 復習あり" : ""}`, async ({ page }) => {
           await page.emulateMedia({ colorScheme: theme });
           await page.addInitScript(([g, d]) => {
             localStorage.setItem("quest_glass", g as string);
@@ -1100,7 +1103,7 @@ test.describe("ガラスの下に最悪の色を敷いても読める", () => {
             // 地の色には200msの遷移が掛かっている。待たずに測ると、
             // まだ元の色のままの値で「基準を満たす」と出てしまう（実測で空振りした）
             await page.waitForTimeout(500);
-            expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${glass}${due ? " / 復習あり" : ""} / 下地=${name}`).toEqual([]);
+            expect(await page.evaluate(LOW_CONTRAST), `${theme} / ${glass}%${due ? " / 復習あり" : ""} / 下地=${name}`).toEqual([]);
           }
         });
       }
@@ -1121,24 +1124,10 @@ test.describe("透明のときの作り", () => {
   test.use({ serviceWorkers: "block" });
 
   test("地を置かず、縁取りで輪郭を残し、裏の海が見えるだけの透け方にする", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("quest_glass", "clear"));
+    await page.addInitScript(() => localStorage.setItem("quest_glass", "100"));
     await page.goto("/");
     await waitForVocabulary(page);
 
-    const panel = await page.evaluate(() => {
-      const el = document.getElementById("level_selection_section")!;
-      const s = getComputedStyle(el);
-      return { bg: s.backgroundColor, blur: s.backdropFilter, shadow: s.textShadow };
-    });
-    // 地はまったく置かない（半透明ですらない）
-    expect(panel.bg).toBe("rgba(0, 0, 0, 0)");
-    expect(panel.blur).toContain("blur(");
-    expect(panel.shadow).not.toBe("none");
-    // ぼかしは弱く。24px のときは、透明を選んでも裏を泳ぐ海の生き物が形の無いしみになっていた
-    expect(Number(/blur\(([\d.]+)px\)/.exec(panel.blur)?.[1]), "ぼかしが強すぎて背景の形が残らない").toBeLessThanOrEqual(6);
-
-    // カードの中の選択欄・ボタン・問題数の台も、地をほとんど置かない
-    // （不透明のままだと、カードの面積の大半がふさがって透明にした意味が無かった）
     // color-mix() の結果は `color(srgb 1 1 1 / 0.18)` の形で返る
     const alphaOf = (bg: string) => {
       const slash = /\/\s*([\d.]+)\s*\)$/.exec(bg);
@@ -1146,6 +1135,20 @@ test.describe("透明のときの作り", () => {
       const rgba = /^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)$/.exec(bg);
       return rgba ? Number(rgba[1]) : 1;
     };
+    const panel = await page.evaluate(() => {
+      const el = document.getElementById("level_selection_section")!;
+      const s = getComputedStyle(el);
+      return { bg: s.backgroundColor, blur: s.backdropFilter, shadow: s.textShadow };
+    });
+    // 地はまったく置かない（半透明ですらない）
+    expect(alphaOf(panel.bg), panel.bg).toBe(0);
+    expect(panel.blur).toContain("blur(");
+    expect(panel.shadow).not.toBe("none");
+    // ぼかしは弱く。24px のときは、透明を選んでも裏を泳ぐ海の生き物が形の無いしみになっていた
+    expect(Number(/blur\(([\d.]+)px\)/.exec(panel.blur)?.[1]), "ぼかしが強すぎて背景の形が残らない").toBeLessThanOrEqual(6);
+
+    // カードの中の選択欄・ボタン・問題数の台も、地をほとんど置かない
+    // （不透明のままだと、カードの面積の大半がふさがって透明にした意味が無かった）
     for (const sel of ["#select_study_level", "#btn_junior_sentence", '[data-testid="count_picker"] [role="group"]']) {
       const bg = await page.locator(sel).evaluate(e => getComputedStyle(e).backgroundColor);
       expect(alphaOf(bg), `${sel} の地が不透明のまま（${bg}）`).toBeLessThan(0.5);
@@ -1155,7 +1158,7 @@ test.describe("透明のときの作り", () => {
     expect(alphaOf(pressed), `選んでいる問題数まで透けている（${pressed}）`).toBe(1);
     // 「今日」のほかのカードも透かす（1枚だけ透けても、残りの裏で生き物が隠れる）
     const progress = await page.locator("#today_progress").evaluate(e => getComputedStyle(e).backgroundColor);
-    expect(progress).toBe("rgba(0, 0, 0, 0)");
+    expect(alphaOf(progress), progress).toBe(0);
 
     // 塗りつぶしボタンの縁取りは、文字（白）と反対の暗い色にする。
     // カードの縁取り（明るいテーマでは白）をそのまま継ぐと、白い文字に白い縁が付いて意味がない
@@ -1164,6 +1167,95 @@ test.describe("透明のときの作り", () => {
       return getComputedStyle(el).textShadow;
     });
     expect(chip).toContain("rgba(0, 0, 0");
+  });
+});
+
+/**
+ * カードの透明度のつまみ（ヘッダー）。
+ *
+ * 広い画面ではヘッダーの中、スマホでは「透明度と背景」のボタンから開く。
+ * スマホのヘッダーは iPhone 14（幅390）で点数が大きいと 44px しか余らないので、
+ * はみ出さないこと・開いても本文を押し下げないことを本物のブラウザで見る。
+ */
+test.describe("カードの透明度のつまみ", () => {
+  test.use({ serviceWorkers: "block" });
+  const panelAlpha = (page: Page) => page.evaluate(() => {
+    const bg = getComputedStyle(document.getElementById("level_selection_section")!).backgroundColor;
+    // color-mix() の結果は `color(srgb 1 1 1 / 0.6)` の形、不透明なら rgb() で返る
+    const slash = /\/\s*([\d.]+)\s*\)$/.exec(bg);
+    if (slash) return Number(slash[1]);
+    const rgba = /^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)$/.exec(bg);
+    return rgba ? Number(rgba[1]) : 1;
+  });
+
+  test("広い画面ではヘッダーに並び、動かすとすぐ効いて、開き直しても残る", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+    await waitForVocabulary(page);
+    const slider = page.locator("#header_glass_slider");
+    await expect(slider).toBeVisible();
+    await expect(page.locator("#btn_header_background")).toBeHidden();
+    expect(await panelAlpha(page)).toBe(1);
+
+    await slider.focus();
+    await page.keyboard.press("End");
+    await expect(slider).toHaveValue("100");
+    await expect.poll(() => panelAlpha(page), { timeout: 2000 }).toBe(0);
+    await page.keyboard.press("Home");
+    await expect.poll(() => panelAlpha(page), { timeout: 2000 }).toBe(1);
+    await slider.fill("40");
+    // 保存は少し待ってから（ドラッグ中に毎回は書かない）
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("quest_glass"))).toBe("40");
+
+    // 開き直すと、React を待たずに同じ濃さで描く（index.html の先頭で当てる）
+    await page.reload();
+    expect(await page.evaluate(() => [document.documentElement.dataset.glass, document.documentElement.style.getPropertyValue("--glass-t")]))
+      .toEqual(["clear", "40"]);
+    await waitForVocabulary(page);
+    await expect(page.locator("#header_glass_slider")).toHaveValue("40");
+
+    // 効くのは「今日」のカードだけなので、ほかの画面では出さない
+    await goTab(page, "search");
+    await expect(page.locator("#header_glass_slider")).toHaveCount(0);
+  });
+
+  test("スマホではボタンから開き、ヘッダーからはみ出さず、本文を押し下げない", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    // 点数と連続日数が大きいほどヘッダーは詰まる
+    await page.addInitScript(() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      const y = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      localStorage.setItem("quest_stats", JSON.stringify({ score: 123450, currentStreak: 128, lastLoginDate: y, completedQuestions: 1, correctAnswers: 1 }));
+    });
+    await page.goto("/");
+    await waitForVocabulary(page);
+    const row = page.locator("#navigation_bar > div");
+    expect(await row.evaluate(e => e.scrollWidth <= e.clientWidth), "ヘッダーの中身がはみ出している").toBe(true);
+    await expect(page.locator("#header_glass_slider")).toBeHidden();
+
+    const before = (await page.locator("#level_selection_section").boundingBox())!.y;
+    const button = page.locator("#btn_header_background");
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    const slider = page.locator("#header_glass_slider_phone");
+    await expect(slider).toBeVisible();
+    expect((await page.locator("#navigation_bar").boundingBox())!.height).toBeLessThan(80);
+    expect((await page.locator("#level_selection_section").boundingBox())!.y, "開くと本文が押し下がる").toBe(before);
+    expect(await page.evaluate(LOW_CONTRAST), "開いた欄の文字が読みにくい").toEqual([]);
+
+    await slider.fill("18");
+    await expect(page.locator("#header_glass_slider_phone_hint")).toContainText("読みやすさを保ちます");
+    await expect.poll(() => panelAlpha(page), { timeout: 2000 }).toBeCloseTo(0.82, 2);
+
+    // Esc で閉じて、押したボタンへ戻る。外を押しても閉じる
+    await page.keyboard.press("Escape");
+    await expect(slider).toHaveCount(0);
+    await expect(button).toBeFocused();
+    await button.click();
+    await expect(page.locator("#header_glass_slider_phone")).toBeVisible();
+    await page.locator("#level_mastery_summary").click();  // 押しても何も起きない文字
+    await expect(page.locator("#header_glass_slider_phone")).toHaveCount(0);
   });
 });
 

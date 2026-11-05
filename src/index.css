@@ -394,43 +394,36 @@ html, body {
 .dark .border-rose-300 { border-color: rgba(244, 63, 94, 0.55) !important; }
 
 /* ── カードとボタンの透明感（ガラス） ─────────────────────────
-   背景の飾りや写真は、その上に載る不透明なカードでほとんど隠れる。
+   背景の飾りや写真・海の3D背景は、その上に載る不透明なカードでほとんど隠れる。
    面を半透明にして背後をぼかすと、背景を見せながら文字も読める。
 
-   既定は `off`＝これまでどおり不透明。濃さは `<html data-glass="...">` で決め、
-   値は `src/glass.ts` の GlassLevel と対になる。
+   透明度は 0〜100（%）の1つの数 `--glass-t` で持つ（ヘッダーとメニューのつまみで動かす）。
+   `<html data-glass>` には段階の種類だけを書く（src/glass.ts の glassRegime）。
+     off   … 0。これまでどおり不透明（既定）
+     veil  … 読みやすさを保つ範囲（GLASS_SAFE_MAX＝18 まで）
+     clear … それより透かした範囲。読みやすさは背景しだいで、保証できない
    どこまで薄くしてよいかは見た目では決められないので、
-   e2e「ガラスの下に最悪の色を敷いても読める」で明暗とも実測している。 */
+   e2e「ガラスの下に最悪の色を敷いても読める」で、明暗とも veil の上限で実測している。
+   地・ボタンの地はどれも透明度に対して単調に薄くなるので、上限で読めればそれより下でも読める。
+   18 と式の数は src/glass.ts の GLASS_SAFE_MAX と対（tests/glass.test.ts が突き合わせる）。 */
 :root {
-  --glass-alpha: 1;        /* カードの地の残り具合 */
-  --glass-chip-alpha: 1;   /* 塗りつぶしボタンの地の残り具合 */
-  --glass-blur: 0px;
-}
-:root[data-glass="light"] {
-  --glass-alpha: 0.86;
-  --glass-chip-alpha: 0.94;
-  --glass-blur: 12px;
-}
-:root[data-glass="strong"] {
-  --glass-alpha: 0.82;
-  --glass-chip-alpha: 0.88;
-  --glass-blur: 18px;
-}
-/* 透明。地をまったく置かない（＝背後の写真がそのまま文字の地になる）。
-   ここだけは基準を保証できないので、e2e の実測でも別扱いにしている。
-   ぼかしは弱くする。以前は24pxで、裏を泳ぐ海の生き物が形の無いしみになり、
-   透明を選んでも「せっかくの海の生き物が見えない」状態だった。3px なら形は残り、
-   細かい光の粒だけがならされる */
-:root[data-glass="clear"] {
-  --glass-alpha: 0;
-  --glass-chip-alpha: 0.35;
-  --glass-blur: 3px;
+  --glass-t: 0;
+  /* カードの地の残り具合（0%で1、100%で0） */
+  --glass-alpha: calc(1 - var(--glass-t) / 100);
+  /* 塗りつぶしボタンの地。白い文字が沈まないよう、カードより多く残す。
+     18%で 0.88（以前の「しっかり」で実測した値）、100%で 0.35（以前の「透明」）の折れ線 */
+  --glass-chip-alpha: max(1 - var(--glass-t) * 0.12 / 18, 0.88 - (var(--glass-t) - 18) * 0.53 / 82);
+  /* ぼかし。18%までは透かすほど強く（18px）、そこから先は透かすほど弱くして 100% で 3px。
+     強いままだと、透かしても裏を泳ぐ海の生き物が形の無いしみになる（以前の「透明」は 24px だった） */
+  --glass-blur: calc(min(var(--glass-t), 18 - (var(--glass-t) - 18) * 15 / 82) * 1px);
+  /* カードの中の選択欄・ボタン・問題数の台（clear のときだけ使う）。18%で不透明、100%で 0.18 */
+  --glass-inner-alpha: min(1, 1 - (var(--glass-t) - 18) * 0.82 / 82);
 }
 
-/* カード（レベルの台）。地は `bg-white` と同じ変数から作るので、
+/* カード。地は `bg-white` と同じ変数から作るので、
    明るいテーマなら白、暗いテーマなら深い海の色がそのまま薄くなる */
-:root[data-glass="light"] .glass-panel,
-:root[data-glass="strong"] .glass-panel {
+:root[data-glass="veil"] .glass-panel,
+:root[data-glass="clear"] .glass-panel {
   background-color: color-mix(in srgb, var(--color-white) calc(var(--glass-alpha) * 100%), transparent);
   backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
   /* 縁を明るくして面の輪郭を出す。背景に溶けると、どこまでがカードか分からなくなる */
@@ -444,8 +437,7 @@ html, body {
    カードの色と混ぜて不透明にし、ガラスでないときと同じ読みやすさに戻す。
    明るいテーマの淡色はもともと不透明なので、触らない
    （混ぜ直すと地が濃くなり、濃い文字とのコントラストがかえって下がる。実測 4.05）。 */
-:root.dark[data-glass="light"] .glass-panel [class*="level-"],
-:root.dark[data-glass="strong"] .glass-panel [class*="level-"],
+:root.dark[data-glass="veil"] .glass-panel [class*="level-"],
 :root.dark[data-glass="clear"] .glass-panel [class*="level-"] {
   --lv-bg: color-mix(in srgb, var(--lv-solid) 16%, var(--color-white));
   --lv-bg-strong: color-mix(in srgb, var(--lv-solid) 26%, var(--color-white));
@@ -453,33 +445,30 @@ html, body {
 
 /* 補助の灰色は、透けていない地でようやく基準を満たす濃さ（実測 4.5 前後）なので、
    少しでも透かすと必ず下回る。ガラスのときだけ濃くする */
-:root[data-glass="light"] .glass-panel .text-gray-400,
-:root[data-glass="light"] .glass-panel .text-gray-500,
-:root[data-glass="strong"] .glass-panel .text-gray-400,
-:root[data-glass="strong"] .glass-panel .text-gray-500,
+:root[data-glass="veil"] .glass-panel .text-gray-400,
+:root[data-glass="veil"] .glass-panel .text-gray-500,
 :root[data-glass="clear"] .glass-panel .text-gray-400,
 :root[data-glass="clear"] .glass-panel .text-gray-500 {
   color: var(--color-gray-800) !important;
 }
 
-/* 透明のときのカード。地を置かず、背後を強くぼかすだけにする。
+/* 読みやすさを保てない範囲（clear）のカード。影は付けない（地が薄いと影だけが浮いて汚れに見える）。
    輪郭が消えると「どこまでがカードか」が分からなくなるので、縁だけは残す */
 :root[data-glass="clear"] .glass-panel {
-  background-color: transparent;
   backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
   border-color: color-mix(in srgb, var(--color-white) 45%, transparent);
   box-shadow: none;
 }
 
-/* 透明のときは、カードの中の選択欄・ボタン・問題数の台も地をほとんど置かない。
-   これらが不透明のままだと、カードの面積の大半がふさがり、透明にした意味が無かった。
+/* clear のときは、カードの中の選択欄・ボタン・問題数の台も透かす（100% で 18%）。
+   これらが不透明のままだと、カードの面積の大半がふさがり、透かした意味が無かった。
    縁だけは残して、押せる場所の輪郭を出す。
    選んでいるもの（問題数の「白く浮かせる」）は対象から外す。外さないと台と同じ地になり、
    どれを選んでいるのかが細い縁取りでしか分からなくなる */
 :root[data-glass="clear"] .glass-panel .bg-white:not([aria-pressed="true"]),
 :root[data-glass="clear"] .glass-panel .bg-gray-100,
 :root[data-glass="clear"] .glass-panel select {
-  background-color: color-mix(in srgb, var(--color-white) 18%, transparent) !important;
+  background-color: color-mix(in srgb, var(--color-white) calc(var(--glass-inner-alpha) * 100%), transparent) !important;
   border-color: color-mix(in srgb, var(--color-white) 45%, transparent) !important;
 }
 /* 開いた選択肢の一覧は端末が別の窓で描くので、透かさない */
@@ -487,8 +476,8 @@ html, body {
   background-color: var(--color-white);
 }
 
-/* 透明のときの文字の縁取り。
-   地が無いぶん、写真の柄に文字が紛れる。カードの地の色
+/* clear のときの文字の縁取り。
+   地が薄いぶん、写真の柄に文字が紛れる。カードの地の色
    （明るいテーマなら白、暗いテーマなら深い海の色）で細い縁を作ると、どんな写真の上でも輪郭が残る。
    ただしこれは**保証ではない**（コントラストの計算に縁取りは効かない）。 */
 :root[data-glass="clear"] .glass-panel {
@@ -500,8 +489,7 @@ html, body {
 
 /* 塗りつぶしのボタン（文字が白）。ここは薄くしすぎると白い文字が沈むので、
    カードよりも地を多く残す */
-:root[data-glass="light"] .glass-chip,
-:root[data-glass="strong"] .glass-chip,
+:root[data-glass="veil"] .glass-chip,
 :root[data-glass="clear"] .glass-chip {
   background-color: color-mix(in srgb, var(--lv-solid) calc(var(--glass-chip-alpha) * 100%), transparent);
   backdrop-filter: blur(calc(var(--glass-blur) * 0.5)) saturate(1.2);
@@ -514,8 +502,7 @@ html, body {
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 /* 上の規則は Tailwind の hover 指定より強いので、押せる感じを別途戻す */
-:root[data-glass="light"] .glass-chip:hover,
-:root[data-glass="strong"] .glass-chip:hover {
+:root[data-glass="veil"] .glass-chip:hover {
   background-color: var(--lv-solid-hover);
 }
 

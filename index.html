@@ -90,12 +90,17 @@
         var themeColor = document.querySelector('meta[name="theme-color"]');
         if (themeColor) themeColor.setAttribute("content", dark ? "#03121d" : "#fafaf7");
 
-        // カードの透明感も、React を待たずに当てる（面の色が後から変わると
-        // 背景色に掛かる200msの遷移でちらつく）。値は src/glass.ts と対
+        // カードの透明度（0〜100）も、React を待たずに当てる（面の色が後から変わると
+        // 背景色に掛かる200msの遷移でちらつく）。読み方は src/glass.ts の parseGlass / glassRegime と対
+        // （tests/glassBoot.render.test.tsx が同じ結果になるかを突き合わせる）
         try {
-          var glass = localStorage.getItem("quest_glass");
-          document.documentElement.dataset.glass =
-            glass === "light" || glass === "strong" || glass === "clear" ? glass : "off";
+          var raw = localStorage.getItem("quest_glass");
+          var legacy = { off: 0, light: 14, strong: 18, clear: 100 };
+          var t = 0;
+          if (raw !== null && Object.prototype.hasOwnProperty.call(legacy, raw)) t = legacy[raw];
+          else if (raw !== null && /^\d{1,3}$/.test(raw) && Number(raw) <= 100) t = Number(raw);
+          document.documentElement.dataset.glass = t <= 0 ? "off" : t <= 18 ? "veil" : "clear";
+          document.documentElement.style.setProperty("--glass-t", String(t));
         } catch (e) {}
       })();
     </script>
