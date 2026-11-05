@@ -1,38 +1,36 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BackgroundSettings from "../src/components/BackgroundSettings";
+import GlassSlider from "../src/components/GlassSlider";
 import Dashboard from "../src/components/Dashboard";
 import { todayProps } from "./todayProps";
-import { GLASS_CHOICES } from "../src/glass";
-import { makeWord, makeStats } from "./fixtures";
+import { GLASS_KEY, GLASS_SAFE_MAX, __resetGlassForTest, flushGlassSave, setGlass } from "../src/glass";
+import { makeWord } from "./fixtures";
 
 /**
  * カードとボタンの透明感（ガラス）の画面まわり。
  *
- * 濃さそのものは CSS（`:root[data-glass]`）が持ち、明暗どちらのテーマでも
+ * 濃さそのものは CSS（`--glass-t` から計算）が持ち、明暗どちらのテーマでも
  * 読めるかは e2e が実際のブラウザで測る。ここでは
- *   - 3段階から選べること
+ *   - つまみ（0〜100%）と、よく使う値のボタンで選べること
+ *   - 動かすとすぐ画面（<html> の data-glass と --glass-t）に当たり、つまみどうしで値がそろうこと
  *   - ガラスにする面へ印（クラス）が付いていること
  * を見る。印が外れると、設定を変えても何も起きないのに気づけない。
  */
 
-function renderSettings(glass: "off" | "light" | "strong" | "clear" = "off") {
-  const onGlassChange = vi.fn();
+function renderSettings() {
   render(
     <BackgroundSettings
       image={null}
       onChange={vi.fn()}
       veil="normal"
       onVeilChange={vi.fn()}
-      glass={glass}
-      onGlassChange={onGlassChange}
       ocean={false}
       onOceanChange={vi.fn()}
       onBack={vi.fn()}
     />
   );
-  return { onGlassChange };
 }
 
 const VOCAB = [
@@ -44,47 +42,117 @@ function renderDashboard() {
   render(<Dashboard {...todayProps({ vocabulary: VOCAB })} />);
 }
 
-beforeEach(() => localStorage.clear());
+const html = () => document.documentElement;
+const slide = (el: HTMLElement, value: number) => fireEvent.change(el, { target: { value: String(value) } });
+
+beforeEach(() => {
+  localStorage.clear();
+  __resetGlassForTest();
+  delete html().dataset.glass;
+  html().style.removeProperty("--glass-t");
+});
 afterEach(() => cleanup());
 
-describe("透明感を選ぶ", () => {
+describe("透明度を選ぶ", () => {
   it("画像を選んでいなくても選べる（はじめからの飾りが背後にあるため）", () => {
     renderSettings();
     expect(screen.getByTestId("glass_picker")).toBeTruthy();
-    for (const c of GLASS_CHOICES) {
-      expect(document.getElementById(`btn_glass_${c.level}`), c.level).toBeTruthy();
+    expect(screen.getByRole("slider", { name: "透明度" })).toBeTruthy();
+    for (const id of ["off", "safe", "clear"]) {
+      expect(document.getElementById(`btn_glass_${id}`), id).toBeTruthy();
     }
   });
 
-  it("いま選んでいる段階が分かる", () => {
-    renderSettings("strong");
-    expect(document.getElementById("btn_glass_strong")!.getAttribute("aria-pressed")).toBe("true");
-    expect(document.getElementById("btn_glass_off")!.getAttribute("aria-pressed")).toBe("false");
+  it("つまみを動かすと、すぐ画面に当たり、少し待ってから保存する", () => {
+    vi.useFakeTimers();
+    try {
+      renderSettings();
+      slide(screen.getByRole("slider", { name: "透明度" }), 40);
+      expect(html().dataset.glass).toBe("clear");
+      expect(html().style.getPropertyValue("--glass-t")).toBe("40");
+      // ドラッグ中は1秒に数十回動くので、そのたびには書かない
+      expect(localStorage.getItem(GLASS_KEY)).toBeNull();
+      act(() => { vi.advanceTimersByTime(300); });
+      expect(localStorage.getItem(GLASS_KEY)).toBe("40");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it("押すとその段階を伝える", async () => {
+  it("閉じる・裏に回るときは、待たずに保存する", () => {
+    renderSettings();
+    slide(screen.getByRole("slider", { name: "透明度" }), 12);
+    window.dispatchEvent(new Event("pagehide"));
+    expect(localStorage.getItem(GLASS_KEY)).toBe("12");
+  });
+
+  it("裏に回ったときも、待たずに保存する", () => {
+    renderSettings();
+    slide(screen.getByRole("slider", { name: "透明度" }), 7);
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    try {
+      document.dispatchEvent(new Event("visibilitychange"));
+    } finally {
+      delete (document as unknown as { hidden?: boolean }).hidden;
+    }
+    expect(localStorage.getItem(GLASS_KEY)).toBe("7");
+  });
+
+  it("ヘッダーのつまみとメニューのつまみは同じ値を指す", () => {
+    render(<GlassSlider id="header_glass_slider" />);
+    renderSettings();
+    const [header, settings] = screen.getAllByRole("slider", { name: "透明度" });
+    slide(header, 30);
+    expect((settings as HTMLInputElement).value).toBe("30");
+    slide(settings, 5);
+    expect((header as HTMLInputElement).value).toBe("5");
+  });
+
+  it("よく使う値のボタンで選べて、いま選んでいる値が分かる", async () => {
     const user = userEvent.setup();
-    const { onGlassChange } = renderSettings();
-    await user.click(document.getElementById("btn_glass_light")!);
-    expect(onGlassChange).toHaveBeenCalledWith("light");
+    renderSettings();
+    await user.click(document.getElementById("btn_glass_safe")!);
+    expect(html().dataset.glass).toBe("veil");
+    expect(html().style.getPropertyValue("--glass-t")).toBe(String(GLASS_SAFE_MAX));
+    expect(document.getElementById("btn_glass_safe")!.getAttribute("aria-pressed")).toBe("true");
+    expect(document.getElementById("btn_glass_off")!.getAttribute("aria-pressed")).toBe("false");
+    expect((screen.getByRole("slider", { name: "透明度" }) as HTMLInputElement).value).toBe(String(GLASS_SAFE_MAX));
+    await user.click(document.getElementById("btn_glass_off")!);
+    expect(html().dataset.glass).toBe("off");
+  });
+
+  it("前に4段階で選んでいた人は、そのときの見え方から始まる", () => {
+    localStorage.setItem(GLASS_KEY, "strong");
+    renderSettings();
+    expect((screen.getByRole("slider", { name: "透明度" }) as HTMLInputElement).value).toBe("18");
+  });
+
+  it("読み上げには、どこから読みにくくなるのかも伝える", () => {
+    renderSettings();
+    const slider = screen.getByRole("slider", { name: "透明度" });
+    slide(slider, GLASS_SAFE_MAX);
+    expect(slider.getAttribute("aria-valuetext")).toContain("読みやすさを保つ範囲");
+    slide(slider, GLASS_SAFE_MAX + 1);
+    expect(slider.getAttribute("aria-valuetext")).toContain("読みにくくなります");
   });
 
   /**
-   * 「透明」だけは、読みやすさを測って保証できない
-   * （文字の地が背景の写真そのものになるため）。
+   * 18%より上は、読みやすさを測って保証できない
+   * （背後の色がそのまま文字の地に混ざるため）。
    * 黙って選ばせると「急に読めなくなった」としか分からないので、選んだら伝える。
    */
-  it("透明を選んでいるときだけ、読みにくくなり得ることを伝える", () => {
-    renderSettings("clear");
-    expect(document.getElementById("glass_clear_note")).toBeTruthy();
-  });
-
-  it("保証のある段階では、その注意書きは出さない", () => {
-    for (const level of ["off", "light", "strong"] as const) {
-      cleanup();
-      renderSettings(level);
-      expect(document.getElementById("glass_clear_note"), level).toBeNull();
+  it("18%より透かしているときだけ、読みにくくなり得ることを伝える", () => {
+    renderSettings();
+    const slider = screen.getByRole("slider", { name: "透明度" });
+    for (const v of [0, 10, GLASS_SAFE_MAX]) {
+      slide(slider, v);
+      expect(document.getElementById("glass_clear_note"), String(v)).toBeNull();
     }
+    slide(slider, GLASS_SAFE_MAX + 1);
+    expect(document.getElementById("glass_clear_note")).toBeTruthy();
+    act(() => setGlass(100));
+    expect(document.getElementById("glass_clear_note")).toBeTruthy();
+    flushGlassSave();
   });
 });
 

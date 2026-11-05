@@ -4,7 +4,8 @@ import {
   checkFile, fileToScaledDataUrl, saveBackgroundImage, clearBackgroundImage,
   MAX_EDGE, MAX_FILE_BYTES, VEIL_CHOICES, VeilLevel
 } from "../backgroundImage";
-import { GLASS_CHOICES, GlassLevel } from "../glass";
+import { GLASS_PRESETS, GLASS_SAFE_MAX, setGlass, useGlass } from "../glass";
+import GlassSlider from "./GlassSlider";
 import BackButton from "./BackButton";
 
 /**
@@ -22,16 +23,15 @@ interface Props {
   /** 画像の上にかける幕の濃さ */
   veil: VeilLevel;
   onVeilChange: (veil: VeilLevel) => void;
-  /** カードとボタンの透明感（ガラス） */
-  glass: GlassLevel;
-  onGlassChange: (glass: GlassLevel) => void;
   /** 海の3D背景を使うか（既定は使う。src/oceanSetting.ts） */
   ocean: boolean;
   onOceanChange: (on: boolean) => void;
   onBack: () => void;
 }
 
-export default function BackgroundSettings({ image, onChange, veil, onVeilChange, glass, onGlassChange, ocean, onOceanChange, onBack }: Props) {
+export default function BackgroundSettings({ image, onChange, veil, onVeilChange, ocean, onOceanChange, onBack }: Props) {
+  // カードの透明度はヘッダーのつまみと同じ値（src/glass.ts）。どちらで動かしても両方に出る
+  const glass = useGlass();
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -203,39 +203,43 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
             <p className="text-xs text-gray-500 mb-3 max-w-md">
               「今日」の画面のカードとボタンを半透明にして、背景を透かします。
               透かすほど背景は見えますが、文字は読みにくくなります。
+              「今日」の画面の上（ヘッダー）のつまみでも変えられます。
               文字を隠して海だけを見たいときは、画面の上の魚のボタン（海を眺める）を押してください。
             </p>
-            <div className="flex flex-wrap gap-2">
-              {GLASS_CHOICES.map(c => (
+            <GlassSlider id="settings_glass_slider" className="max-w-md" />
+            {/* つまみで18ちょうどに合わせるのは難しいので、よく使う値はボタンでも選べる */}
+            <div className="flex flex-wrap gap-2 mt-3" role="group" aria-label="よく使う透明度">
+              {GLASS_PRESETS.map(c => (
                 <button
-                  key={c.level}
-                  onClick={() => onGlassChange(c.level)}
-                  aria-pressed={glass === c.level}
-                  id={`btn_glass_${c.level}`}
+                  key={c.id}
+                  type="button"
+                  onClick={() => setGlass(c.value)}
+                  aria-pressed={glass === c.value}
+                  id={`btn_glass_${c.id}`}
                   className={`min-h-11 px-4 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                    glass === c.level
+                    glass === c.value
                       ? "bg-indigo-600 text-white border-indigo-600"
                       : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
                   }`}
                 >
                   {c.label}
-                  <span className={`ml-1.5 font-bold ${glass === c.level ? "text-white" : "text-gray-400"}`}>
+                  <span className={`ml-1.5 font-bold ${glass === c.value ? "text-white" : "text-gray-400"}`}>
                     {c.note}
                   </span>
                 </button>
               ))}
             </div>
-            {/* 「透明」だけは、読みやすさを測って保証できない
-                （文字の地が背景の写真そのものになるため）。選ぶ前に伝える */}
-            {glass === "clear" && (
+            {/* 18%より透かすと、読みやすさを測って保証できない
+                （背後の色がそのまま文字の地に混ざるため）。選んだら伝える */}
+            {glass > GLASS_SAFE_MAX && (
               <p
                 className="text-xs text-gray-700 font-bold mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 max-w-md"
                 id="glass_clear_note"
                 role="status"
               >
-                「透明」はカードの地を置かないため、背景の画像によっては文字が読みにくくなります
+                {GLASS_SAFE_MAX}%より透かすとカードの地が薄くなるため、背景によっては文字が読みにくくなります
                 （明るい写真の上では明るい文字が、暗い写真の上では暗い文字が沈みます）。
-                読みにくいときは「しっかり透ける」に戻すか、背景の画像を変えてください。
+                読みにくいときは「{GLASS_SAFE_MAX}%」に戻すか、背景の画像を変えてください。
               </p>
             )}
           </div>
