@@ -637,18 +637,28 @@ test("クイズを中断したり終えたりすると、始めた画面へ戻�
   await expect(page.locator("#btn_junior_reverse")).toBeVisible();
 });
 
-test("長文の重要語を押すと、スマホでもその場で意味が出る", async ({ page }) => {
-  // 意味の欄は本文の後ろに並ぶため、押しても画面の外で開くだけだった
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/reading");
-  await page.getByText("The Secret of the Old Library").first().click();
-  await page.locator("#passage_text_container button", { hasText: "library" }).first().click();
-  const sheet = page.locator('[data-testid="reading_selected_word"]');
-  await expect(sheet).toBeInViewport();
-  await expect(sheet).toContainText("図書館");
-  await page.locator("#btn_close_reading_word").click();
-  await expect(sheet).toHaveCount(0);
-});
+// 意味の欄は本文の後ろに並ぶため、押しても画面の外で開くだけだった。
+// カードを透かすと（backdrop-filter）、position: fixed の欄の基準が画面ではなくカードになり、
+// 欄がカードの下端（画面のはるか下）に付いて、同じように見えなくなる。透明度ごとに確かめる
+for (const glass of ["0", "18", "100"]) {
+  test(`長文の重要語を押すと、スマホでもその場で意味が出る（透明度 ${glass}%）`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(g => localStorage.setItem("quest_glass", g), glass);
+    await page.goto("/reading");
+    await page.getByText("The Secret of the Old Library").first().click();
+    await page.locator("#passage_text_container button", { hasText: "library" }).first().click();
+    const sheet = page.locator('[data-testid="reading_selected_word"]');
+    await expect(sheet).toBeInViewport();
+    // 画面下（タブの上）に重なっている
+    const box = (await sheet.boundingBox())!;
+    const tab = (await page.locator("#tab_bar").boundingBox())!;
+    expect(box.y + box.height, "意味の欄が画面の下に出ていない").toBeLessThanOrEqual(tab.y + 1);
+    expect(box.y + box.height).toBeGreaterThan(tab.y - 40);
+    await expect(sheet).toContainText("図書館");
+    await page.locator("#btn_close_reading_word").click();
+    await expect(sheet).toHaveCount(0);
+  });
+}
 
 test("メニューのポイントは、ガチャで使える額と一致する", async ({ page }) => {
   // stats.score は「これまでに稼いだ合計」で、ガチャを引いても減らない。
@@ -1132,6 +1142,11 @@ test.describe("ガラスの下に最悪の色を敷いても読める", () => {
         await expect(page.locator("#main_payload .glass-panel").first(), `${path} に透かすカードが無い`).toBeVisible({ timeout: 15_000 });
         // 透けるカードの中にもう1枚透けるカードを重ねない（地が二重に薄まり、ぼかしも二重に掛かる）
         expect(await page.locator(".glass-panel .glass-panel").count(), `${path} で透けるカードが入れ子になっている`).toBe(0);
+        // ぼかし（backdrop-filter）を掛けたカードの中に position: fixed を置かない。
+        // fixed の基準が画面ではなくカードになり、画面の外へ出る（長文の「選んだ単語」の欄で起きた。glass-flat で避ける）
+        expect(await page.evaluate(() => [...document.querySelectorAll(".glass-panel *")].filter(e =>
+          getComputedStyle(e).position === "fixed" &&
+          getComputedStyle(e.closest(".glass-panel")!).backdropFilter !== "none").length), `${path}`).toBe(0);
         for (const [name, color] of [["黒", "#000000"], ["白", "#ffffff"]]) {
           await page.evaluate(c => {
             for (const el of [document.documentElement, document.body, document.getElementById("app_root_container")]) {
