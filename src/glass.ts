@@ -105,13 +105,17 @@ export function flushGlassSave(): void {
   writeStored(GLASS_KEY, String(getGlass()));
 }
 
+function flushWhenHidden(): void {
+  if (document.hidden) flushGlassSave();
+}
+
 function scheduleSave(): void {
   if (saveTimer !== null) clearTimeout(saveTimer);
   saveTimer = setTimeout(flushGlassSave, SAVE_DELAY_MS);
   if (!flushHooked && typeof window !== "undefined") {
     flushHooked = true;
     window.addEventListener("pagehide", flushGlassSave);
-    document.addEventListener("visibilitychange", () => { if (document.hidden) flushGlassSave(); });
+    document.addEventListener("visibilitychange", flushWhenHidden);
   }
 }
 
@@ -139,4 +143,9 @@ export function __resetGlassForTest(): void {
   saveTimer = null;
   current = null;
   listeners.clear();
+  if (flushHooked) {
+    window.removeEventListener("pagehide", flushGlassSave);
+    document.removeEventListener("visibilitychange", flushWhenHidden);
+    flushHooked = false;
+  }
 }

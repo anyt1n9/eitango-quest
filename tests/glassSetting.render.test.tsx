@@ -86,6 +86,18 @@ describe("透明度を選ぶ", () => {
     expect(localStorage.getItem(GLASS_KEY)).toBe("12");
   });
 
+  it("裏に回ったときも、待たずに保存する", () => {
+    renderSettings();
+    slide(screen.getByRole("slider", { name: "透明度" }), 7);
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    try {
+      document.dispatchEvent(new Event("visibilitychange"));
+    } finally {
+      delete (document as unknown as { hidden?: boolean }).hidden;
+    }
+    expect(localStorage.getItem(GLASS_KEY)).toBe("7");
+  });
+
   it("ヘッダーのつまみとメニューのつまみは同じ値を指す", () => {
     render(<GlassSlider id="header_glass_slider" />);
     renderSettings();

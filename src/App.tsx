@@ -477,7 +477,11 @@ export default function App() {
   const closeSeaView = () => {
     setSeaView(false);
     // 押した場所（ヘッダーのボタン）へ戻す。隠していたあいだに見失わないように
-    requestAnimationFrame(() => (seaReturnRef.current ?? seaViewButtonRef.current)?.focus());
+    // 押したボタンが画面から外れていれば（スマホの「今日」から離れた・3Dが止まった）、魚のボタンへ
+    requestAnimationFrame(() => {
+      const from = seaReturnRef.current;
+      (from && from.isConnected ? from : seaViewButtonRef.current)?.focus();
+    });
   };
   useEffect(() => {
     if (!seaView) return;
