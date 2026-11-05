@@ -70,6 +70,12 @@ describe("画面の決まり", () => {
     expect(offenders(/<ArrowLeft\b/)).toEqual([]);
   });
 
+  it("ブラウザの確認窓（alert）で知らせない（画面の中の知らせ notify を使う）", () => {
+    // 確認窓は「OK」を押すまで画面全体を止め、文面に絵文字（🎉 ✨）が混ざっていた。
+    // 削除・上書きの前に聞く confirm は、押して答える必要があるので対象外
+    expect(offenders(/(?<![\w.])alert\(|window\.alert\(/)).toEqual([]);
+  });
+
   it("出題中の上の帯は共通の部品を使う（「Q: 1 / 10」のような英語の札を書かない）", () => {
     expect(offenders(/Q: \{/)).toEqual([]);
     expect(offenders(/中断して戻る<\/span>/)).toEqual([]);

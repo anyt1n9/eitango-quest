@@ -20,7 +20,6 @@ const VOCAB = [makeWord({ id: "j1", word: "beautiful", level: "junior" })];
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  vi.spyOn(window, "alert").mockImplementation(() => {});
 });
 afterEach(() => {
   cleanup();

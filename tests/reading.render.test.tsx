@@ -5,6 +5,7 @@ import Reading from "../src/components/Reading";
 import { passages } from "../src/data/passages";
 import { makeWord, makeStats } from "./fixtures";
 import { Word } from "../src/types";
+import { __resetNoticesForTest, getNotices } from "../src/notice";
 
 /**
  * 長文読解の画面。
@@ -206,7 +207,6 @@ describe("読破", () => {
   it("累計の回答数・正答率には数えない（読破は設問の解答ではない）", async () => {
     // 回答数だけ +1 していたので、読破するたびに「記録」の累計正答率が下がっていた
     localStorage.clear();
-    vi.spyOn(window, "alert").mockImplementation(() => {});
     const user = userEvent.setup();
     const setStats = vi.fn();
     renderReading({ setStats });
@@ -223,7 +223,7 @@ describe("読破", () => {
 
   it("二度押ししても、報酬は1回だけ", async () => {
     localStorage.clear();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    __resetNoticesForTest();
     const user = userEvent.setup();
     const setStats = vi.fn();
     const updateRankingScore = vi.fn();
@@ -234,7 +234,7 @@ describe("読破", () => {
 
     expect(setStats).toHaveBeenCalledTimes(1);
     expect(updateRankingScore).toHaveBeenCalledTimes(1);
-    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(getNotices()).toHaveLength(1);
     vi.restoreAllMocks();
   });
 });
@@ -286,7 +286,6 @@ describe("AI長文の生成の連打", () => {
   beforeEach(() => {
     fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...GENERATED }) });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
-    vi.spyOn(window, "alert").mockImplementation(() => {});
   });
   afterEach(() => vi.restoreAllMocks());
 

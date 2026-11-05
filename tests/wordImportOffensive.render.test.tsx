@@ -37,7 +37,6 @@ async function openPanel() {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  vi.spyOn(window, "alert").mockImplementation(() => {});
 });
 
 afterEach(() => {

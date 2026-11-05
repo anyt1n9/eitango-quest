@@ -12,6 +12,7 @@ import { ACCENT_TONE, TONE_STYLE } from "../levelTheme";
 import { levelCounts } from "../studySettings";
 import { SolvedHistory } from "../mastery";
 import { readJsonResponse } from "../apiClient";
+import { notify } from "../notice";
 
 interface WeaknessStat {
   label: string;
@@ -119,7 +120,7 @@ export default function Records({
       return updated.sort((a, b) => b.score - a.score);
     });
 
-    alert(`ログインボーナス獲得！\n【+${points} P】を獲得しました！連続ログイン ${nextStreak}日目！ 🎉`);
+    notify(`ログインボーナス ${nextStreak}日目：+${points} P を受け取りました。`, "success");
   };
 
   // AIアドバイスの取得

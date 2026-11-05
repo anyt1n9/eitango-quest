@@ -25,6 +25,7 @@ import { toFillInSentence } from "../fillIn";
 import { ExpandIcon } from "./AppIcons";
 import { LEVEL_LABELS, LEVEL_ORDER } from "../levelLabels";
 import { readJsonResponse } from "../apiClient";
+import { notify } from "../notice";
 
 interface WordImportProps {
   vocabulary: Word[];
@@ -535,10 +536,11 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
 
       // AIを呼べなかったときは 503/502 で断るようになったので、
       // ここに来るのは本当にAIが分析した結果だけ
-      const msg = `AIが英単語「${data.word}」の分析を完了しました！\nレベル: ${
-        LEVEL_LABELS[newWordObject.level] ?? newWordObject.level
-      }\n自動分析された例文と選択肢がクイズに追加されました！ (獲得スコア: +50)`;
-      alert(msg);
+      notify(
+        `「${data.word}」を単語帳に足しました（${LEVEL_LABELS[newWordObject.level] ?? newWordObject.level}）。` +
+          "AIが作った例文と選択肢で出題されます。+50 P",
+        "success"
+      );
     } catch (err: any) {
       console.error(err);
       setAddingError(err.message || "ネットワークに接続できない、またはAPIの制限により取得に失敗しました。");

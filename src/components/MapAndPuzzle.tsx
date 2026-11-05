@@ -22,6 +22,7 @@ import { readStoredArray, writeStored } from "../storage";
 import { PuzzleIcon } from "./AppIcons";
 import { readJsonResponse } from "../apiClient";
 import BackButton from "./BackButton";
+import { notify } from "../notice";
 
 // TTS用の簡易発音ヘルパー
 const speakWord = (text: string) => {
@@ -291,7 +292,7 @@ export default function MapAndPuzzle({
 
     const allFilled = maskedIndices.every(idx => userSelections[idx]);
     if (!allFilled) {
-      alert("すべての空欄に単語を当てはめてください！");
+      notify("すべての空欄に単語を入れてから答え合わせしてください。", "warning");
       return;
     }
 
@@ -325,13 +326,13 @@ export default function MapAndPuzzle({
         }));
         updateRankingScore(bonusPoints);
 
-        alert(`素晴らしい！大正解です！ 🎉\n派生語変化の法則を完璧に解き明かしました！\n【+${bonusPoints} P】があなたのスコアに加算されました！`);
+        notify(`全問正解です。+${bonusPoints} P を受け取りました。`, "success");
       } else {
-        alert("大正解です！ 🎉（このパズルのボーナスはすでに獲得済みです）");
+        notify("全問正解です（この語のボーナスは受け取り済みです）。", "success");
       }
     } else {
       playSound("fail");
-      alert("残念！いくつか間違っている箇所があります。もう一度選択し直してみてください。");
+      notify("間違っている所があります。選び直してから、もう一度答え合わせしてください。", "warning");
     }
   };
 
@@ -684,7 +685,7 @@ export default function MapAndPuzzle({
                             if (firstEmptyMaskedIdx !== undefined) {
                               handleSelectWordForBlank(firstEmptyMaskedIdx, wordOption);
                             } else {
-                              alert("すべての空きスロットが埋まっています。配置をキャンセルするには、上の単語の「戻す」を押してください。");
+                              notify("空欄はすべて埋まっています。入れ替えるときは、上の単語の「戻す」を押してください。", "warning");
                             }
                           }}
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${

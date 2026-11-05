@@ -97,7 +97,7 @@ const LearnHub = lazy(() => import("./components/LearnHub"));
 const Records = lazy(() => import("./components/Records"));
 const MenuScreen = lazy(() => import("./components/MenuScreen"));
 import { SrsState, nextSrsState, getDueWordIds, todayStr, sanitizeSrs } from "./srs";
-import { currentLoginStreak } from "./loginBonus";
+import { currentLoginStreak, previousDay } from "./loginBonus";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
 import { growRivals } from "./rivalGrowth";
 import { BrainCircuit, Sun, Moon, CheckCircle2, Trophy, Calendar, Fish } from "lucide-react";
@@ -106,6 +106,8 @@ import BackgroundScene from "./components/BackgroundScene";
 import BackButton from "./components/BackButton";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
 import { applyGlass, getGlass } from "./glass";
+import { useToday } from "./useToday";
+import NoticeHost from "./components/NoticeHost";
 import GlassSlider from "./components/GlassSlider";
 import HeaderBackgroundMenu from "./components/HeaderBackgroundMenu";
 import { applyThemeColor } from "./themeColor";
@@ -220,22 +222,26 @@ export default function App() {
     return withMe.sort((a, b) => b.score - a.score);
   });
 
+  // 今日の日付。開いたまま0時を過ぎたら描き直す（src/useToday.ts）。
+  // 描くたびに todayStr() を呼ぶだけだったときは、日付が変わっても何か操作するまで
+  // 「今日」の画面に前の日の日付・目標の数・復習の数が残っていた
+  const today = useToday();
+
   // ランキングのCPUを最後に成長させた日（YYYY-MM-DD）
   const [rivalGrowthDate, setRivalGrowthDate] = useState<string>(
     () => readStoredString("quest_rival_growth_date") || todayStr()
   );
 
-  // 起動時に、前回からの経過日数ぶんCPUのスコアを伸ばす。
+  // 起動時と日付が変わったときに、前回からの経過日数ぶんCPUのスコアを伸ばす。
   // 固定値のままだと、一度追い抜いた後は順位が永久に動かなくなるため。
   useEffect(() => {
-    const today = todayStr();
     if (rivalGrowthDate === today) return;
     setRanking(prev => {
       const { ranking: grown, updated } = growRivals(prev, rivalGrowthDate, today);
       return updated ? grown : prev;
     });
     setRivalGrowthDate(today);
-  }, []);
+  }, [today]);
 
   useEffect(() => {
     writeStored("quest_rival_growth_date", rivalGrowthDate);
@@ -339,10 +345,12 @@ export default function App() {
     writeStored("quest_theme", isDark ? "dark" : "light");
   }, [isDark]);
 
-  // ログインスタンプ起動時処理（1日のログイン連続日数の自動更新など）
+  // ログインスタンプ起動時処理（1日のログイン連続日数の自動更新など）。日付が変わったときにも見直す
   useEffect(() => {
-    const todayS = todayStr();
-    const yesterdayStr = getYesterdayString();
+    const todayS = today;
+    // 昨日も today から求める（実時刻から作ると、0時をまたぐ前後で「今日」と「昨日」の基準がずれる）
+    const [y, m, d] = today.split("-").map(Number);
+    const yesterdayStr = previousDay(new Date(y, m - 1, d));
 
     // 昨日受け取っていれば連続のまま（日数は「記録」でスタンプを押したときに進む）。
     // 1日以上空いていたら連続を0に戻す
@@ -352,13 +360,7 @@ export default function App() {
         currentStreak: 0
       }));
     }
-  }, []);
-
-  const getYesterdayString = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return todayStr(d);
-  };
+  }, [today]);
 
   // 2. 変更時の各LocalStorageへ同期保存
   useEffect(() => {
@@ -819,7 +821,7 @@ export default function App() {
   // 今日復習すべき単語（SRSの期日が今日以前のもの）
   // 収録単語は約7,700語あるため、ID一覧を配列のまま includes で引くと
   // 毎レンダーで O(単語数 × 復習対象数) の走査になる。Set で定数時間の判定にする。
-  const today = todayStr();
+  // today は useToday（日付が変わると変わる）なので、0時を過ぎると数え直す
   const dueWords: Word[] = useMemo(() => {
     const dueWordIdSet = new Set(getDueWordIds(srsData, today));
     return vocabulary.filter(w => dueWordIdSet.has(w.id));
@@ -1035,6 +1037,7 @@ export default function App() {
             }}
             dailyGoal={dailyGoal}
             todayCount={todayCount}
+            today={today}
             bonusClaimable={bonusClaimable}
             onOpenRecords={() => navigate("records")}
             level={selectedLevel}
@@ -1413,6 +1416,9 @@ export default function App() {
           hidden={seaView}
         />
       )}
+
+      {/* 短い知らせ（ログインボーナス・読破など。src/notice.ts）。カードの外の最上位に置く */}
+      <NoticeHost aboveTabBar={!!activeTab} />
 
       {/* 海を眺めているあいだの戻り口。画面のどこを押しても戻る（下の札は、戻り方を知らせるため） */}
       {seaView && (

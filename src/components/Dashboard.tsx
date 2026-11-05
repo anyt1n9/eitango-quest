@@ -27,9 +27,11 @@ const OTHER_FORMS: { form: Exclude<QuizType, "word">; label: string; Icon: (p: {
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
-/** 「11月4日（水）」 */
-function todayLabel(d = new Date()): string {
-  return `${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`;
+/** 「11月4日（水）」。日付は YYYY-MM-DD で受け取る（App の useToday と同じ日を出す） */
+export function todayLabel(today: string): string {
+  const [y, m, d] = today.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return `${m}月${d}日（${WEEKDAYS[date.getDay()]}）`;
 }
 
 /** 数字の桁を区切る（「1,062語」） */
@@ -51,6 +53,11 @@ interface DashboardProps {
   dailyGoal: number;
   /** 今日解いた問題数 */
   todayCount: number;
+  /**
+   * 今日の日付（YYYY-MM-DD）。App の useToday から受け取り、開いたまま0時を過ぎたら変わる。
+   * ここで todayStr() を呼ぶと、描き直されるまで前の日の日付と「次の復習」が残る
+   */
+  today?: string;
   /** ログインボーナスをまだ受け取っていないか（App がタブの印と同じ値を渡す） */
   bonusClaimable: boolean;
   /** ログインボーナスを受け取りに「記録」へ */
@@ -88,6 +95,7 @@ export default function Dashboard({
   onStartSrsReview,
   dailyGoal,
   todayCount,
+  today = todayStr(),
   bonusClaimable,
   onOpenRecords,
   level: selectedLevel,
@@ -103,7 +111,6 @@ export default function Dashboard({
 
   // 今日の復習が0語の日は、次にいつ何語来るかを出す（解いた語が復習に回っていることが見えるように）
   const vocabularyIds = React.useMemo(() => new Set(vocabulary.map(w => w.id)), [vocabulary]);
-  const today = todayStr();
   // 復習の記録は数千件になりうるので、依存が変わったときだけ数え直す
   const next = React.useMemo(
     () => (hasDue ? null : nextReview(srsData, today, vocabularyIds)),
@@ -125,7 +132,7 @@ export default function Dashboard({
           半透明にすると、ガラスの検査（下に黒を敷く）で 4.20 まで落ちた */}
       <header className="px-4 pt-3 pb-3.5 rounded-2xl bg-slate-50 space-y-1.5">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="text-sm text-gray-500" id="today_date">{todayLabel()}</p>
+          <p className="text-sm text-gray-500" id="today_date">{todayLabel(today)}</p>
           <p
             className={`shrink-0 text-sm tabular-nums ${goalReached ? "text-emerald-800 font-bold" : "text-gray-500"}`}
             id="today_goal_count"

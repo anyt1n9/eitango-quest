@@ -11,6 +11,7 @@ import { BookOpen, Heart, Sparkles, CheckCircle, Search, Eye, EyeOff, Loader2, T
 import { LEVEL_TONE, TONE_STYLE } from "../levelTheme";
 import { readJsonResponse } from "../apiClient";
 import BackButton from "./BackButton";
+import { notify } from "../notice";
 
 interface ReadingProps {
   stats: UserStats;
@@ -226,7 +227,7 @@ export default function Reading({
       }
 
       setCustomPassages(prev => [...prev, passage]);
-      alert(`✨ AIが新しい長文『${passage.title}』を書き下ろしました！\n一覧から開いて読んでみましょう。`);
+      notify(`AIが新しい長文『${passage.title}』を書きました。一覧から開いて読めます。`, "success");
     } catch (err: any) {
       console.error(err);
       setGenError(err.message || "AI長文の生成に失敗しました。");
@@ -303,8 +304,7 @@ export default function Reading({
 
     updateRankingScore(passage.pointReward);
 
-    // お祝いメッセージ表示
-    alert(`🎉 素晴らしい！『${passage.title}』を完全読破しました！\n\n報酬として ${passage.pointReward} ポイントを獲得しました！\n（世界ランキングに反映されます）`);
+    notify(`『${passage.title}』を読破しました。+${passage.pointReward} P を受け取りました。`, "success");
   };
 
   // 英単語のハイライトレンダリング

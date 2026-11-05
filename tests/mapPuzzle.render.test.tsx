@@ -236,7 +236,6 @@ describe("初回正解ボーナス", () => {
   }
 
   it("同じ語を調べ直しても、ボーナスは1回だけ", async () => {
-    vi.spyOn(window, "alert").mockImplementation(() => {});
     mockFetch(OK_RESPONSE);
     const { updateRankingScore, setStats } = renderMap();
 
@@ -257,7 +256,6 @@ describe("初回正解ボーナス", () => {
   });
 
   it("覚えているのは語ごと（別の語なら受け取れる）", async () => {
-    vi.spyOn(window, "alert").mockImplementation(() => {});
     localStorage.setItem("quest_puzzle_rewarded_words", JSON.stringify(["press"]));
     mockFetch(OK_RESPONSE);
     const { updateRankingScore } = renderMap();

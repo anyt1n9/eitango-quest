@@ -54,7 +54,6 @@ function mockFetch(delayMs = 0) {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
-  vi.spyOn(window, "alert").mockImplementation(() => {});
 });
 
 afterEach(() => {
