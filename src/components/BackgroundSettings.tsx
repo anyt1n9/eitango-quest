@@ -70,7 +70,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
 
   return (
     <div className="space-y-6" id="background_settings_screen">
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
+      <div className="glass-panel bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
         <BackButton onClick={onBack} id="btn_back_from_background" />
 
         <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mt-2">
@@ -201,9 +201,9 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
           <div className="mt-6 pt-5 border-t border-gray-100" data-testid="glass_picker">
             <h3 className="text-xs font-bold text-gray-500 mb-1">カードとボタンの透明感</h3>
             <p className="text-xs text-gray-500 mb-3 max-w-md">
-              「今日」の画面のカードとボタンを半透明にして、背景を透かします。
+              画面のカードとボタンを半透明にして、背景を透かします（出題中の画面は背景を出さないので除きます）。
               透かすほど背景は見えますが、文字は読みにくくなります。
-              「今日」の画面の上（ヘッダー）のつまみでも変えられます。
+              画面の上（ヘッダー）のつまみでも変えられます。
               文字を隠して海だけを見たいときは、画面の上の魚のボタン（海を眺める）を押してください。
             </p>
             <GlassSlider id="settings_glass_slider" className="max-w-md" />

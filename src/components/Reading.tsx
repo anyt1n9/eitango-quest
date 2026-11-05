@@ -367,7 +367,7 @@ export default function Reading({
     );
 
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passage_detail_screen">
+      <div className="glass-panel bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passage_detail_screen">
         {/* ヘッダーエリア */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b border-gray-150">
           <BackButton
@@ -747,7 +747,7 @@ export default function Reading({
   }
 
   return (
-    <div className="bg-white border border-gray-150 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passages_list_screen">
+    <div className="glass-panel bg-white border border-gray-150 rounded-2xl shadow-sm p-6 sm:p-8 animate-fade-in" id="passages_list_screen">
       {/* 上部ヘッダー。「戻る」はほかの画面と同じく左上に置く */}
       <div className="space-y-4 pb-6 border-b border-gray-150">
         <BackButton onClick={onBackToDashboard} id="btn_reading_to_dashboard" />

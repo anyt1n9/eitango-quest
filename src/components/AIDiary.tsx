@@ -350,7 +350,7 @@ export default function AIDiary({
 
       {/* 開放の状態。以前は英語の副題（English Diary Maker…）・「% Unlocked」・跳ねる札・
           グラデーションの帯とボタンが並んでいた */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
         <div className="flex items-start gap-3">
           <span className="w-10 h-10 shrink-0 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
             {isUnlocked ? <Unlock className="w-5 h-5" aria-hidden="true" /> : <Lock className="w-5 h-5" aria-hidden="true" />}
@@ -425,7 +425,7 @@ export default function AIDiary({
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
-                  className="bg-white border border-gray-200 rounded-2xl overflow-hidden"
+                  className="glass-panel bg-white border border-gray-200 rounded-2xl overflow-hidden"
                   id="diary_book_content"
                 >
                   {/* ヘッダー・スタンプ風 */}
@@ -584,7 +584,7 @@ export default function AIDiary({
                   </div>
                 </motion.div>
               ) : (
-                <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl p-10 text-center space-y-4 shadow-sm py-16">
+                <div className="glass-panel bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl p-10 text-center space-y-4 shadow-sm py-16">
                   <Sparkles className="w-16 h-16 text-indigo-300 mx-auto animate-bounce fill-indigo-250" />
                   <h3 className="text-xl font-bold text-gray-700 dark:text-slate-200">
                     あなただけの物語（日記）を創り出そう
@@ -605,7 +605,7 @@ export default function AIDiary({
 
           {/* 右カラム: 歴史（バックナンバー履歴リスト） */}
           <div className="md:col-span-4 space-y-4">
-            <div className="bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="glass-panel bg-white dark:bg-slate-900 border border-gray-150 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
               <h3 className="text-xs font-bold text-gray-400 dark:text-slate-500 mb-3.5 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-gray-450" />

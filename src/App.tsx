@@ -464,7 +464,7 @@ export default function App() {
   const [seaView, setSeaView] = useState(false);
   const seaViewButtonRef = useRef<HTMLButtonElement>(null);
   const seaViewExitRef = useRef<HTMLButtonElement>(null);
-  // 戻ったときに手元へ戻す先（ヘッダーの魚のボタン、スマホの「今日」では「透明度と背景」）
+  // 戻ったときに手元へ戻す先（広い画面ではヘッダーの魚のボタン、スマホでは「透明度と背景」）
   const seaReturnRef = useRef<HTMLElement | null>(null);
   const openSeaView = (from: HTMLElement | null) => {
     seaReturnRef.current = from;
@@ -472,12 +472,10 @@ export default function App() {
   };
   const [oceanDrawing, setOceanDrawing] = useState(false);
   const canViewSea = bgOcean && oceanDrawing && !isTransient(currentScreen);
-  // カードの透明度のつまみ。効くのは「今日」の画面のカード（glass-panel）だけなので、そこでだけ出す
-  const glassInHeader = currentScreen === "dashboard";
   const closeSeaView = () => {
     setSeaView(false);
     // 押した場所（ヘッダーのボタン）へ戻す。隠していたあいだに見失わないように
-    // 押したボタンが画面から外れていれば（スマホの「今日」から離れた・3Dが止まった）、魚のボタンへ
+    // 押したボタンが画面から外れていれば（3Dが止まって「海を眺める」が消えた、など）、魚のボタンへ
     requestAnimationFrame(() => {
       const from = seaReturnRef.current;
       (from && from.isConnected ? from : seaViewButtonRef.current)?.focus();
@@ -949,27 +947,24 @@ export default function App() {
             </div>
           </div>
 
-          {/* カードの透明度のつまみ（広い画面）。効くのは「今日」の画面のカードだけなので、そこでだけ出す。
+          {/* カードの透明度のつまみ（広い画面）。効くのは出題中以外の画面のカード（glass-panel）で、
+              ヘッダーを出すのもその画面だけなので、いつも出す。
               スマホはヘッダーに場所が無いので、右の「透明度と背景」から開く（HeaderBackgroundMenu） */}
-          {glassInHeader && (
-            <div className="hidden sm:flex flex-1 min-w-0 justify-center px-2 lg:px-6" data-testid="header_glass">
-              <GlassSlider id="header_glass_slider" className="w-full max-w-72" />
-            </div>
-          )}
+          <div className="hidden sm:flex flex-1 min-w-0 justify-center px-2 lg:px-6" data-testid="header_glass">
+            <GlassSlider id="header_glass_slider" className="w-full max-w-72" />
+          </div>
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0">
-          {glassInHeader && (
-            <HeaderBackgroundMenu canViewSea={canViewSea} onViewSea={openSeaView} resetKey={currentScreen} />
-          )}
+          <HeaderBackgroundMenu canViewSea={canViewSea} onViewSea={openSeaView} resetKey={currentScreen} />
 
           {/* 海を眺める（画面の文字を隠して海だけを見せる）。3D の海を描けているときだけ。
-              スマホの「今日」では「透明度と背景」の中に入れる（ヘッダーにボタンを足す余地が無い） */}
+              スマホでは「透明度と背景」の中に入れる（ヘッダーにボタンを足す余地が無い） */}
           {canViewSea && (
             <button
               type="button"
               ref={seaViewButtonRef}
               onClick={e => openSeaView(e.currentTarget)}
-              className={`${glassInHeader ? "hidden sm:flex" : "flex"} shrink-0 w-10 h-10 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer`}
+              className="hidden sm:flex shrink-0 w-10 h-10 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 transition cursor-pointer"
               title="海を眺める（画面の文字を隠します）"
               aria-label="海を眺める（画面の文字を隠します）"
               id="btn_sea_view"

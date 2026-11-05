@@ -452,6 +452,67 @@ html, body {
   color: var(--color-gray-800) !important;
 }
 
+/* 正誤と注意の色の文字（赤・緑・空色・黄）も同じで、不透明な地でようやく基準を満たす濃さ。
+   「今日」以外の画面（文法のよくある間違い・正しい例文、活用表の不規則な形など）を透かしたら、
+   最悪の地（明るいテーマで黒・暗いテーマで白）の上で 3.5〜4.0 まで落ちた。
+   色合いは変えずに、明るいテーマでは1段濃く、暗いテーマでは1段明るくする
+   （正誤の色はテーマに寄せない決まりなので、色相はそのまま） */
+:root:not(.dark)[data-glass="veil"] .glass-panel .text-rose-700,
+:root:not(.dark)[data-glass="clear"] .glass-panel .text-rose-700 { color: #9f1239; }
+:root:not(.dark)[data-glass="veil"] .glass-panel .text-emerald-700,
+:root:not(.dark)[data-glass="clear"] .glass-panel .text-emerald-700 { color: #065f46; }
+:root:not(.dark)[data-glass="veil"] .glass-panel .text-sky-700,
+:root:not(.dark)[data-glass="clear"] .glass-panel .text-sky-700 { color: #075985; }
+:root:not(.dark)[data-glass="veil"] .glass-panel .text-amber-700,
+:root:not(.dark)[data-glass="clear"] .glass-panel .text-amber-700 { color: #92400e; }
+:root.dark[data-glass="veil"] .glass-panel :is(.text-rose-700, .text-rose-800),
+:root.dark[data-glass="clear"] .glass-panel :is(.text-rose-700, .text-rose-800) { color: #fda4af !important; }
+:root.dark[data-glass="veil"] .glass-panel :is(.text-emerald-700, .text-emerald-800),
+:root.dark[data-glass="clear"] .glass-panel :is(.text-emerald-700, .text-emerald-800) { color: #6ee7b7 !important; }
+:root.dark[data-glass="veil"] .glass-panel .text-sky-700,
+:root.dark[data-glass="clear"] .glass-panel .text-sky-700 { color: #7dd3fc !important; }
+:root.dark[data-glass="veil"] .glass-panel :is(.text-amber-700, .text-amber-800),
+:root.dark[data-glass="clear"] .glass-panel :is(.text-amber-700, .text-amber-800) { color: #fcd34d !important; }
+/* 暗いテーマの -600 の青（件数など）。ふだんは #38bdf8 で 4.5 をわずかに超える濃さ（透かすと 4.41） */
+:root.dark[data-glass="veil"] .glass-panel .text-indigo-600,
+:root.dark[data-glass="clear"] .glass-panel .text-indigo-600 { color: var(--color-indigo-700) !important; }
+
+/* 暗いテーマの淡い色の地（bg-rose-50 など）は半透明の色かぶせなので、その下のカードまで透けると
+   地が明るくなり、上の文字が沈む（活用表の「ABC」の札で実測 3.28）。レベルの淡色（上）と同じく、
+   カードの色と混ぜて不透明にする。明るいテーマの淡色は不透明なので触らない */
+:root.dark[data-glass="veil"] .glass-panel :is([class~="bg-rose-50"], [class*="bg-rose-50/"]),
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-rose-50"], [class*="bg-rose-50/"]) {
+  background-color: color-mix(in srgb, #f43f5e 15%, var(--color-white)) !important;
+}
+:root.dark[data-glass="veil"] .glass-panel :is([class~="bg-emerald-50"], [class*="bg-emerald-50/"]),
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-emerald-50"], [class*="bg-emerald-50/"]) {
+  background-color: color-mix(in srgb, #10b981 15%, var(--color-white)) !important;
+}
+:root.dark[data-glass="veil"] .glass-panel :is([class~="bg-sky-50"], [class*="bg-sky-50/"]),
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-sky-50"], [class*="bg-sky-50/"]) {
+  background-color: color-mix(in srgb, #0ea5e9 15%, var(--color-white)) !important;
+}
+:root.dark[data-glass="veil"] .glass-panel :is([class~="bg-amber-50"], [class*="bg-amber-50/"]),
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-amber-50"], [class*="bg-amber-50/"]) {
+  background-color: color-mix(in srgb, #f59e0b 15%, var(--color-white)) !important;
+}
+:root.dark[data-glass="veil"] .glass-panel .bg-rose-100,
+:root.dark[data-glass="clear"] .glass-panel .bg-rose-100 {
+  background-color: color-mix(in srgb, #f43f5e 22%, var(--color-white)) !important;
+}
+:root.dark[data-glass="veil"] .glass-panel .bg-emerald-100,
+:root.dark[data-glass="clear"] .glass-panel .bg-emerald-100 {
+  background-color: color-mix(in srgb, #10b981 22%, var(--color-white)) !important;
+}
+:root.dark[data-glass="veil"] .glass-panel .bg-sky-100,
+:root.dark[data-glass="clear"] .glass-panel .bg-sky-100 {
+  background-color: color-mix(in srgb, #0ea5e9 22%, var(--color-white)) !important;
+}
+:root.dark[data-glass="veil"] .glass-panel .bg-amber-100,
+:root.dark[data-glass="clear"] .glass-panel .bg-amber-100 {
+  background-color: color-mix(in srgb, #f59e0b 22%, var(--color-white)) !important;
+}
+
 /* 読みやすさを保てない範囲（clear）のカード。影は付けない（地が薄いと影だけが浮いて汚れに見える）。
    輪郭が消えると「どこまでがカードか」が分からなくなるので、縁だけは残す */
 :root[data-glass="clear"] .glass-panel {

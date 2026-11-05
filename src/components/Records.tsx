@@ -227,7 +227,7 @@ export default function Records({
       {/* 自分の記録。色の箱を4つ並べると、どれも同じ強さで目を引こうとして落ち着かないので、
           1枚のカードに細い線で区切って並べる */}
       <dl
-        className="bg-white border border-gray-200 rounded-2xl py-4 grid grid-cols-4 divide-x divide-gray-200 text-center"
+        className="glass-panel bg-white border border-gray-200 rounded-2xl py-4 grid grid-cols-4 divide-x divide-gray-200 text-center"
         id="self_records_panel"
       >
         <div className="px-1 flex flex-col-reverse">
@@ -248,7 +248,7 @@ export default function Records({
         </div>
       </dl>
 
-        <section className="bg-white border border-gray-200 rounded-2xl p-5" id="bonus_section" aria-labelledby="bonus_heading">
+        <section className="glass-panel bg-white border border-gray-200 rounded-2xl p-5" id="bonus_section" aria-labelledby="bonus_heading">
           <div className="flex items-baseline justify-between gap-3">
             <h2 id="bonus_heading" className="text-base font-bold text-gray-900">ログインボーナス</h2>
             <span className="text-sm text-gray-500 tabular-nums">7日で1周</span>
@@ -333,7 +333,7 @@ export default function Records({
           </div>
         </section>
 
-        <section className="bg-white border border-gray-200 rounded-2xl p-5" id="ranking_section" aria-labelledby="ranking_heading">
+        <section className="glass-panel bg-white border border-gray-200 rounded-2xl p-5" id="ranking_section" aria-labelledby="ranking_heading">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="min-w-0">
               <h2 id="ranking_heading" className="text-base font-bold text-gray-900">ライバルとの比較</h2>
@@ -386,7 +386,7 @@ export default function Records({
           </ol>
         </section>
 
-        <section className="bg-white border border-gray-200 rounded-2xl p-5" id="ai_advisor_section">
+        <section className="glass-panel bg-white border border-gray-200 rounded-2xl p-5" id="ai_advisor_section">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <span className={`p-1.5 rounded-xl ${ACCENT_TONE.advice} ${TONE_STYLE.badge}`}>
             <AdviceIcon className="w-4 h-4" />

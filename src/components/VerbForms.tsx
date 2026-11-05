@@ -89,7 +89,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
         <BackButton onClick={onBackToDashboard} id="btn_verb_forms_back" />
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm">
+      <div className="glass-panel bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm">
         <div className="flex items-start gap-2">
           <Repeat className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
           <div>
@@ -170,7 +170,7 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
       </div>
 
       {/* 表 */}
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+      <div className="glass-panel bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
         <p className="px-4 py-2.5 text-xs font-bold text-gray-500 dark:text-slate-400 border-b border-gray-100 dark:border-slate-800">
           {filtered.length} 語
         </p>
@@ -226,12 +226,13 @@ export default function VerbFormsScreen({ vocabulary, onBackToDashboard }: Props
             </table>
           </div>
         )}
+        {/* 注記もカードの中に置く。カードの外に置いていたときは、背景（海・写真）の上に
+            小さな灰色の文字が直に載っていた */}
+        <p className="px-4 py-3 text-xs text-gray-500 leading-relaxed border-t border-gray-100">
+          規則変化の綴りは米つづりに揃えています（travel → traveled）。
+          過去形・過去分詞が2通りある動詞は、より一般的な方を載せています。
+        </p>
       </div>
-
-      <p className="text-xs text-gray-400 dark:text-slate-500 leading-relaxed px-1">
-        規則変化の綴りは米つづりに揃えています（travel → traveled）。
-        過去形・過去分詞が2通りある動詞は、より一般的な方を載せています。
-      </p>
     </div>
   );
 }

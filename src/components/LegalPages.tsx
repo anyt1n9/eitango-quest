@@ -41,7 +41,7 @@ function Shell({
   return (
     <div className="max-w-3xl mx-auto">
       <BackButton onClick={onBack} />
-      <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
+      <div className="glass-panel bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl p-6 md:p-8 shadow-sm">
         <div className="flex items-center gap-2.5 mb-1">
           <span className="text-indigo-600 dark:text-indigo-400">{icon}</span>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-slate-100">{title}</h1>

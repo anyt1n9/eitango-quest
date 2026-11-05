@@ -344,7 +344,7 @@ export default function MapAndPuzzle({
   return (
     <div className="space-y-6" id="map_puzzle_screen_wrapper">
       {/* 画面ヘッダー */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-150 shadow-xs" id="map_puzzle_sub_header">
+      <div className="glass-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-150 shadow-xs" id="map_puzzle_sub_header">
         {/* 縦に並べる親（狭い画面）の中で横いっぱいに伸びないようにする */}
         <BackButton onClick={onBackToDashboard} id="btn_back_to_dashboard_from_map" className="self-start" />
         <div className="flex items-center gap-2">
@@ -359,7 +359,7 @@ export default function MapAndPuzzle({
       </div>
 
       {/* 検索・プリセットボックス */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-150 shadow-sm" id="search_preset_control_panel">
+      <div className="glass-panel bg-white rounded-2xl p-6 border border-gray-150 shadow-sm" id="search_preset_control_panel">
         <div>
           <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
             <Compass className="w-4.5 h-4.5 text-indigo-500" />
@@ -429,7 +429,7 @@ export default function MapAndPuzzle({
 
       {/* ロード中スケルトン */}
       {isLoading && (
-        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm space-y-4" id="map_fetch_loading_placeholder">
+        <div className="glass-panel bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm space-y-4" id="map_fetch_loading_placeholder">
           <div className="relative w-16 h-16 mx-auto">
             <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-pulse" />
             <div className="absolute inset-0 rounded-full border-4 border-t-indigo-600 animate-spin" />
@@ -447,7 +447,7 @@ export default function MapAndPuzzle({
       {data && (
         <div className="space-y-8" id="map_puzzle_results_container">
           {/* 1. つながりマップセクション */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6" id="connections_map_card">
+          <div className="glass-panel bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6" id="connections_map_card">
             <div className="flex md:items-center justify-between flex-col md:flex-row gap-2 border-b border-gray-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
@@ -531,7 +531,7 @@ export default function MapAndPuzzle({
           </div>
 
           {/* 2. 派生語パズルセクション */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6" id="derivative_puzzle_card">
+          <div className="glass-panel bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6" id="derivative_puzzle_card">
             <div className="border-b border-gray-100 pb-4">
               <h3 className="text-base font-bold text-rose-950 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-rose-500 rounded-full" />
@@ -777,7 +777,7 @@ export default function MapAndPuzzle({
           initial={{ opacity: 0, scale: 0.98, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
-          className="bg-white rounded-2xl p-10 text-center border border-gray-150 shadow-xs space-y-4" 
+          className="glass-panel bg-white rounded-2xl p-10 text-center border border-gray-150 shadow-xs space-y-4" 
           id="map_intro_splash"
         >
           <Sparkles className="w-14 h-14 text-indigo-400 mx-auto fill-indigo-50 animate-pulse" />

@@ -158,7 +158,7 @@ export default function Grammar({
     <div className="space-y-4" id="grammar_screen">
       <BackButton onClick={onBackToDashboard} id="btn_grammar_back" />
 
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm">
+      <div className="glass-panel bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 space-y-4 shadow-sm">
         <div className="flex items-start gap-2">
           <BookMarked className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0" />
           <div>
@@ -262,14 +262,14 @@ export default function Grammar({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-8 text-center">
+        <div className="glass-panel bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-8 text-center">
           <p className="text-sm font-bold text-gray-400">条件に合う項目が見つかりませんでした。</p>
         </div>
       ) : (
         <div className="space-y-4" data-testid="grammar_topic_list">
         {topicsByLevel(filtered).map(group => (
           // レベルの見出しもカードの中に入れる（カードの外に置くと、背景の海や写真の上に小さな文字が出る）
-          <section key={group.level} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <section key={group.level} className="glass-panel bg-white border border-gray-200 rounded-2xl overflow-hidden">
             <h3 className="text-sm font-bold text-gray-900 px-4 pt-3 pb-2 bg-slate-50 border-b border-gray-200">
               {LEVEL_LABELS[group.level]}
             </h3>
@@ -375,7 +375,7 @@ function TopicDetail({
     <div className="space-y-4" id="grammar_detail">
       <BackButton onClick={onBack} id="btn_grammar_detail_back" label="文法ガイドの一覧に戻る" />
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">
             {LEVEL_LABELS[topic.level]}
@@ -394,7 +394,7 @@ function TopicDetail({
       </div>
 
       {/* 説明 */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4" data-testid="grammar_sections">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-4" data-testid="grammar_sections">
         {topic.sections.map((s, i) => (
           <div key={i} className="space-y-1">
             <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 flex items-start gap-1.5">
@@ -407,7 +407,7 @@ function TopicDetail({
       </div>
 
       {/* 例文 */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3" data-testid="grammar_examples">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-3" data-testid="grammar_examples">
         <div className="flex items-center gap-1.5">
           <Lightbulb className="w-4 h-4 text-gray-500" aria-hidden="true" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">例文</h3>
@@ -427,7 +427,7 @@ function TopicDetail({
 
       {/* この文法をとる動詞（収録語から引く） */}
       {verbs.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2" data-testid="grammar_verbs">
+        <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-2" data-testid="grammar_verbs">
           <h3 className="text-sm font-bold text-gray-900">この形をとる動詞（収録語から）</h3>
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
             英英辞典 WordNet が、実際にこの形で使われると記録している動詞です。
@@ -446,7 +446,7 @@ function TopicDetail({
 
       {/* この文法が出てくる長文 */}
       {readings.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2" data-testid="grammar_readings">
+        <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-2" data-testid="grammar_readings">
           <h3 className="text-sm font-bold text-gray-900">この文法が出てくる長文</h3>
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
             解説を読んだら、実際の英文の中で見つけてみてください。
@@ -466,7 +466,7 @@ function TopicDetail({
       )}
 
       {/* よくある間違い */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3" data-testid="grammar_mistakes">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-3" data-testid="grammar_mistakes">
         <div className="flex items-center gap-1.5">
           <AlertTriangle className="w-4 h-4 text-gray-500" aria-hidden="true" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">よくある間違い</h3>
@@ -489,7 +489,7 @@ function TopicDetail({
       </div>
 
       {/* 練習問題 */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4" data-testid="grammar_questions">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-4" data-testid="grammar_questions">
         <div className="flex items-center gap-1.5">
           <PencilLine className="w-4 h-4 text-gray-500" aria-hidden="true" />
           <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">練習問題</h3>

@@ -120,7 +120,7 @@ export default function GachaShop({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" id="gacha_shop_root">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-5">
+      <div className="glass-panel bg-white border border-gray-200 rounded-2xl p-5 space-y-5">
         <div className="flex items-center justify-between gap-3">
           <BackButton onClick={onBackToDashboard} id="btn_back_from_gacha" />
           <span className="text-sm text-gray-600 tabular-nums flex items-center gap-1.5">
