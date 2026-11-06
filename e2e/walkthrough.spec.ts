@@ -482,6 +482,46 @@ test("海の3D背景は既定で出し、「使わない」を選んだ人には
 });
 
 /**
+ * 海の深さ（段階③。src/ocean/depth.ts）。覚えた語数で潜れる深さが増える。
+ * CI には GPU が無いので海は「海の色の地」になるが、地もいまの深さの色にするので、深さはそこで分かる。
+ * 潜った記録・選んだ深さが再読み込みで残ること、知らせが1度だけ出ることは、本物のブラウザで通しで見る。
+ */
+test("海の深さ：覚えた語数で潜り、記録の画面に出て、背景の設定で浅い方も選べる", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const srs: Record<string, unknown> = {};
+    for (let i = 1; i <= 30; i++) srs["j" + i] = { box: 2, dueDate: "2099-01-01", lastReview: "2026-01-01", reps: 2, lapses: 0 };
+    localStorage.setItem("quest_srs", JSON.stringify(srs));
+  });
+  await page.reload();
+  await waitForVocabulary(page);
+  // 30語でサンゴ礁（8m）。はじめて数えたときに知らせる
+  const scene = page.locator(".bg-ocean3d");
+  await expect(scene).toHaveAttribute("data-depth", "8");
+  await expect(page.locator("#notice_host")).toContainText("水深8mの「サンゴ礁」");
+  expect(await page.evaluate(() => localStorage.getItem("quest_ocean_reached"))).toBe("reef");
+
+  await goTab(page, "records");
+  const card = page.locator("#ocean_depth_section");
+  await expect(card).toContainText("水深 8m");
+  await expect(card).toContainText("あと120語");
+  await page.locator("#btn_choose_ocean_depth").click();
+
+  await expect(page.locator("#btn_depth_slope")).toBeDisabled();
+  await page.locator("#btn_depth_shallows").click();
+  await expect(scene).toHaveAttribute("data-depth", "3");
+  // 地の色もその深さの色（浅瀬の上の色 #3aa3c2）
+  expect(await scene.evaluate(el => getComputedStyle(el).backgroundImage)).toContain("rgb(58, 163, 194)");
+
+  // 選んだ深さと潜った記録は残り、同じ知らせは繰り返さない
+  await page.goto("/");
+  await waitForVocabulary(page);
+  await expect(scene).toHaveAttribute("data-depth", "3");
+  await page.waitForTimeout(500);
+  await expect(page.locator("#notice_host")).not.toContainText("水深");
+});
+
+/**
  * 海を眺める。画面の文字を隠して、海だけを見せる（App の seaView）。
  *
  * カードは読みやすさのために不透明なので、生き物がカードの裏を泳いでいるあいだは見えない。

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createOceanScene, type OceanScene } from "../ocean/oceanScene";
+import { oceanGradientCss } from "../ocean/depth";
 // 名前に中身のハッシュが付く（作り直したモデルと古いコードが組み合わさらない）
 import oceanModelUrl from "../ocean/assets/ocean.glb?url";
 
@@ -20,6 +21,11 @@ interface Props {
   active: boolean;
   /** メニューの「背景の動き」 */
   motion: boolean;
+  /**
+   * 水深（m。覚えた語数で決まる。src/ocean/depth.ts）。変わったら数秒かけて潜る（浮かぶ）。
+   * 作り直さない（3Dモデルの組み立てとシェーダーの準備がやり直しになる）
+   */
+  depth: number;
   /**
    * 3D の海を描けているか（作れた＝true、続けられなくなった・外した＝false）。
    * App の「海を眺める」はこれが true のときだけ出す。部品を読み込み中のときや、
@@ -42,14 +48,14 @@ function usePrefersReducedMotion(): boolean {
   return reduce;
 }
 
-export default function OceanBackground({ active, motion, onDrawingChange }: Props) {
+export default function OceanBackground({ active, motion, depth, onDrawingChange }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<OceanScene | null>(null);
   const [failed, setFailed] = useState(false);
   const reduceMotion = usePrefersReducedMotion();
   const moving = motion && !reduceMotion;
-  const latest = useRef({ active, moving });
-  latest.current = { active, moving };
+  const latest = useRef({ active, moving, depth });
+  latest.current = { active, moving, depth };
   const reportDrawing = useRef(onDrawingChange);
   reportDrawing.current = onDrawingChange;
 
@@ -67,6 +73,7 @@ export default function OceanBackground({ active, motion, onDrawingChange }: Pro
       scene = createOceanScene(canvas, {
         modelUrl: oceanModelUrl,
         motion: latest.current.moving,
+        depth: latest.current.depth,
         onFail: (reason) => {
           console.warn(`海の3D背景を続けられないため、海の色の地に切り替えます（${reason}）`);
           setFailed(true);
@@ -92,6 +99,7 @@ export default function OceanBackground({ active, motion, onDrawingChange }: Pro
 
   useEffect(() => { sceneRef.current?.setActive(active); }, [active]);
   useEffect(() => { sceneRef.current?.setMotion(moving); }, [moving]);
+  useEffect(() => { sceneRef.current?.setDepth(depth, true); }, [depth]);
 
   return (
     <div
@@ -100,7 +108,10 @@ export default function OceanBackground({ active, motion, onDrawingChange }: Pro
       data-testid={active ? "background_scene" : undefined}
       data-kind={failed ? "ocean-fallback" : "ocean"}
       data-active={active ? "true" : "false"}
+      data-depth={depth}
       data-veil="light"
+      // 3D を描けないとき（海の色の地）と、canvas の描きはじめの前に見える地。いまの深さの色にする
+      style={{ background: oceanGradientCss(depth) }}
       aria-hidden="true"
     >
       <div className="bg-photo-veil" />

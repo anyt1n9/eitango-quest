@@ -34,6 +34,9 @@ export const BACKUP_KEYS = [
   "quest_grammar_wrong",
   "quest_puzzle_rewarded_words",
   "quest_reading_wrong",
+  // 潜った海の深さ（src/ocean/depth.ts）。覚えた語数で届いた記録で、一度届いた深さは戻さない。
+  // 外すと、端末を移したあと覚えた語数が一時的に下がっている人は浅い海へ戻される
+  "quest_ocean_reached",
 ] as const;
 
 /**
@@ -55,6 +58,8 @@ export const NON_BACKUP_KEYS: Record<string, string> = {
   // 海の3D背景を使うか。重さは端末の性能で決まるので、端末ごとに選ぶ
   quest_bg_ocean: "試験中の設定（いまは読むだけ）。端末ごとの見た目の設定で、重さが端末の性能で変わるため",
   quest_bg_ocean_choice: "端末ごとの見た目の設定で、重さが端末の性能で変わるため",
+  // 背景に出す海の深さ（潜った深さのうちどれを出すか）。見た目の好みで、潜った記録は quest_ocean_reached にある
+  quest_bg_ocean_depth: "端末ごとの見た目の設定のため（潜った記録は quest_ocean_reached に入る）",
   // カードとボタンの透明感。画面の大きさや明るさで読みやすさが変わるので、
   // 端末ごとに選び直すもの（背景の設定と同じ扱い）
   quest_glass: "端末ごとの見た目の設定のため",
