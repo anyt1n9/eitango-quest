@@ -68,7 +68,7 @@ class OceanGuard extends React.Component<OceanGuardProps, { failed: boolean }> {
  * 海の3D背景を読み込むまでの地。OceanBackground と同じ海の色のグラデーションだけを、
  * three.js を待たずに出す（index.css の .bg-ocean3d）
  */
-function OceanPlaceholder({ active, unsupported = false }: { active: boolean; unsupported?: boolean }) {
+function OceanPlaceholder({ active, depth, unsupported = false }: { active: boolean; depth: number; unsupported?: boolean }) {
   return (
     <div
       className="bg-scene bg-ocean3d"
@@ -76,7 +76,10 @@ function OceanPlaceholder({ active, unsupported = false }: { active: boolean; un
       // 3D を描けない端末では、この地のまま（OceanBackground の「海の色の地」と同じ印）
       data-kind={unsupported ? "ocean-fallback" : "ocean-loading"}
       data-active={active ? "true" : "false"}
+      data-depth={depth}
       data-veil="light"
+      // いまの深さの色（深い海の人が、読み込むあいだ浅い海の色を見ないように）
+      style={{ background: oceanGradientCss(depth) }}
       aria-hidden="true"
     >
       <div className="bg-photo-veil" />
@@ -112,6 +115,12 @@ import GlassSlider from "./components/GlassSlider";
 import HeaderBackgroundMenu from "./components/HeaderBackgroundMenu";
 import { applyThemeColor } from "./themeColor";
 import { canRenderOcean, clearOceanChoice, currentOceanEnv, initialOcean, saveOceanChoice } from "./oceanSetting";
+import {
+  DEPTH_STAGES, DepthChoice, oceanGradientCss, readDepthChoice, readReachedStage, saveDepthChoice, saveReachedStage,
+  shownStageIndex, stageIndexFor
+} from "./ocean/depth";
+import { countMastered } from "./mastery";
+import { notify } from "./notice";
 import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
 
 /** 遅延読み込みの画面を待つあいだの表示 */
@@ -834,6 +843,49 @@ export default function App() {
     const ids = new Set(vocabulary.map(w => w.id));
     return wrongWords.filter(id => ids.has(id));
   }, [vocabulary, wrongWords]);
+
+  /**
+   * 海の深さ（段階③。src/ocean/depth.ts）。覚えた語数で潜れる段が増え、一度潜った段は戻さない。
+   * 単語データを読み込むまでは0語に見えるので、潜った段の更新はそれまで待つ
+   * （待たなくても「戻さない」ので浅くはならないが、0語で数えた結果を使う理由が無い）。
+   * それまでは保存している段で描くので、起動のたびに浅い海から潜り直すことはない。
+   */
+  const masteredTotal = useMemo(
+    () => countMastered(vocabulary.map(w => w.id), solvedHistory, srsData),
+    [vocabulary, solvedHistory, srsData]
+  );
+  const [oceanReached, setOceanReached] = useState<number>(() => readReachedStage());
+  const [depthChoice, setDepthChoice] = useState<DepthChoice>(() => readDepthChoice());
+  const changeDepthChoice = (choice: DepthChoice) => {
+    setDepthChoice(choice);
+    saveDepthChoice(choice);
+  };
+  // 新しい段に届いたことの知らせ。出題中に出すと解いている最中の画面に重なるので、出題を終えてから出す
+  const [depthNotice, setDepthNotice] = useState<number | null>(null);
+  useEffect(() => {
+    if (!vocabularyReady) return;
+    const k = stageIndexFor(masteredTotal);
+    if (k <= oceanReached) return;
+    setOceanReached(k);
+    saveReachedStage(k);
+    setDepthNotice(k);
+  }, [vocabularyReady, masteredTotal, oceanReached]);
+  useEffect(() => {
+    if (depthNotice === null || isTransient(currentScreen)) return;
+    setDepthNotice(null);
+    // 海を使っていない人には、見えない海の話をしない（潜った記録だけは残す）
+    if (!bgOcean) return;
+    const stage = DEPTH_STAGES[depthNotice];
+    const words = stage.minMastered.toLocaleString();
+    notify(
+      depthChoice === "auto"
+        ? `覚えた語が${words}語に届いたので、海が水深${stage.depth}mの「${stage.name}」まで深くなりました。`
+        : `覚えた語が${words}語に届いたので、水深${stage.depth}mの「${stage.name}」まで潜れるようになりました。背景の設定で選べます。`,
+      "success"
+    );
+  }, [depthNotice, currentScreen, bgOcean, depthChoice]);
+  const oceanStageIndex = shownStageIndex(depthChoice, oceanReached);
+  const oceanDepth = DEPTH_STAGES[oceanStageIndex].depth;
   // 今日解いた問題数（日付が変わっていたら0）
   const todayCount = dailyProgress.date === today ? dailyProgress.count : 0;
   // ログインボーナスをまだ受け取っていない（「記録」のタブに印を付ける）
@@ -898,11 +950,11 @@ export default function App() {
         // 出題中も外さずに隠すだけにする（作り直すと3Dモデルの準備がやり直しになる）
         <OceanGuard fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}>
           {oceanMounted ? (
-            <Suspense fallback={<OceanPlaceholder active={!isTransient(currentScreen)} />}>
-              <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} onDrawingChange={setOceanDrawing} />
+            <Suspense fallback={<OceanPlaceholder active={!isTransient(currentScreen)} depth={oceanDepth} />}>
+              <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} depth={oceanDepth} onDrawingChange={setOceanDrawing} />
             </Suspense>
           ) : (
-            <OceanPlaceholder active={!isTransient(currentScreen)} unsupported={oceanUnsupported} />
+            <OceanPlaceholder active={!isTransient(currentScreen)} depth={oceanDepth} unsupported={oceanUnsupported} />
           )}
         </OceanGuard>
       ) : (
@@ -1083,6 +1135,8 @@ export default function App() {
             dailyGoal={dailyGoal}
             equipped={equipped}
             onOpenGachaShop={() => navigate("gacha")}
+            ocean={bgOcean ? { mastered: masteredTotal, reached: oceanReached, shown: oceanStageIndex } : null}
+            onOpenBackground={() => navigate("background")}
           />
         )}
 
@@ -1380,6 +1434,8 @@ export default function App() {
             onVeilChange={changeBgVeil}
             ocean={bgOcean}
             onOceanChange={changeOcean}
+            depth={{ choice: depthChoice, reached: oceanReached, mastered: masteredTotal }}
+            onDepthChange={changeDepthChoice}
             onBack={goBack}
           />
         )}

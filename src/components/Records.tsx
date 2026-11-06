@@ -13,6 +13,7 @@ import { levelCounts } from "../studySettings";
 import { SolvedHistory } from "../mastery";
 import { readJsonResponse } from "../apiClient";
 import { notify } from "../notice";
+import OceanDepthCard, { type OceanDepthInfo } from "./OceanDepthCard";
 
 interface WeaknessStat {
   label: string;
@@ -41,6 +42,9 @@ interface RecordsProps {
   dailyGoal: number;
   equipped: { avatar?: string; title?: string };
   onOpenGachaShop: () => void;
+  /** 海の深さ（海の3D背景を使っていなければ null で、欄を出さない） */
+  ocean?: OceanDepthInfo | null;
+  onOpenBackground?: () => void;
 }
 
 /**
@@ -61,7 +65,9 @@ export default function Records({
   dailyLog,
   dailyGoal,
   equipped,
-  onOpenGachaShop
+  onOpenGachaShop,
+  ocean = null,
+  onOpenBackground = () => {}
 }: RecordsProps) {
   const [advice, setAdvice] = useState<string>("");
   // AIが書いたのか、アプリが学習記録から組み立てたのか。
@@ -333,6 +339,8 @@ export default function Records({
             <StudyCalendar dailyLog={dailyLog} dailyGoal={dailyGoal} />
           </div>
         </section>
+
+        {ocean && <OceanDepthCard info={ocean} onOpenBackground={onOpenBackground} />}
 
         <section className="glass-panel bg-white border border-gray-200 rounded-2xl p-5" id="ranking_section" aria-labelledby="ranking_heading">
           <div className="flex items-start justify-between gap-3 flex-wrap">

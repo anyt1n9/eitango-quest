@@ -7,6 +7,8 @@ import {
 import { GLASS_PRESETS, GLASS_SAFE_MAX, setGlass, useGlass } from "../glass";
 import GlassSlider from "./GlassSlider";
 import BackButton from "./BackButton";
+import OceanDepthPicker, { type OceanDepthState } from "./OceanDepthPicker";
+import type { DepthChoice } from "../ocean/depth";
 
 /**
  * 背景の画像を選ぶ画面。
@@ -26,10 +28,13 @@ interface Props {
   /** 海の3D背景を使うか（既定は使う。src/oceanSetting.ts） */
   ocean: boolean;
   onOceanChange: (on: boolean) => void;
+  /** 海の深さ（覚えた語数で潜る。src/ocean/depth.ts）。海を使っているときだけ選べる */
+  depth?: OceanDepthState;
+  onDepthChange?: (choice: DepthChoice) => void;
   onBack: () => void;
 }
 
-export default function BackgroundSettings({ image, onChange, veil, onVeilChange, ocean, onOceanChange, onBack }: Props) {
+export default function BackgroundSettings({ image, onChange, veil, onVeilChange, ocean, onOceanChange, depth, onDepthChange, onBack }: Props) {
   // カードの透明度はヘッダーのつまみと同じ値（src/glass.ts）。どちらで動かしても両方に出る
   const glass = useGlass();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -91,7 +96,8 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
             海の3D背景
           </h3>
           <p className="text-sm text-gray-500 mt-1 mb-3 max-w-md leading-relaxed">
-            光が差し込むサンゴ礁の海を、背景に動かして表示します。端末の性能に合わせて画質を自動で調整します。
+            光が差し込むサンゴ礁の海を、背景に動かして表示します。覚えた語数に応じて、海が深くなっていきます。
+            端末の性能に合わせて画質を自動で調整します。
             はじめて表示するときに約2MBを読み込みます（2回目からは端末に残ったものを使います）。
             使わないにすると、はじめから入っている飾り（明るいテーマ＝ジャングル／暗いテーマ＝海の絵）か、
             下で選んだ画像を出します。画像を選ぶと、海の代わりにその画像を出します。
@@ -113,6 +119,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
               </button>
             ))}
           </div>
+          {ocean && depth && onDepthChange && <OceanDepthPicker state={depth} onChange={onDepthChange} />}
         </div>
 
         <div className="mt-6 border-t border-gray-100 pt-6">

@@ -6,7 +6,9 @@
  * 生成は scripts/blender/make_ocean_assets.py）を読む。
  *
  * 水は赤い光から吸収するので、深いほど赤が消えて青だけが残る（色はすべて
- * 「日光が水を通ってどれだけ残るか」から計算する）。いまは表層（水深6m）だけを描く。
+ * 「日光が水を通ってどれだけ残るか」から計算する）。水深は覚えた語数で決まり
+ * （src/ocean/depth.ts）、そこに住む生き物の数も水深から決める（`abundance`）。
+ * 水深が変わったときは、数秒かけて潜る（浮かぶ）。
  *
  * このファイルは three.js ごと大きいので、背景を「海（3D）」にした人にだけ読み込む
  * （src/components/OceanBackground.tsx から動的に import する）。
@@ -15,6 +17,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
 import { MANTA_RADIUS, SCHOOL_SWAY, swimSpread } from "./swim";
+import { abundance, depthAlong, type Dweller } from "./depth";
 
 export interface OceanStatus {
   tier: OceanTier;
@@ -31,12 +34,19 @@ export interface OceanScene {
   setActive(active: boolean): void;
   /** false にすると止めた1枚だけを描く（「視差効果を減らす」・メニューの「背景の動き」） */
   setMotion(motion: boolean): void;
+  /**
+   * 水深（m）を変える。animate なら数秒かけて潜る（浮かぶ）。描いていないあいだ（出題中・裏に回った）は
+   * 待っておき、次に描きはじめたときに潜る。止めた1枚（motion=false）のときは、すぐその深さを描く
+   */
+  setDepth(depth: number, animate: boolean): void;
   dispose(): void;
 }
 
 export interface OceanOptions {
   modelUrl: string;
   motion: boolean;
+  /** はじめの水深（m）。省くと6m */
+  depth?: number;
   onStatus?: (s: OceanStatus) => void;
   /**
    * 描き続けられなくなった（3Dモデルを取れない・WebGL を失って戻らない）。
@@ -47,13 +57,20 @@ export interface OceanOptions {
 
 /** 日光が水を1m 通るごとに弱まる割合（赤・緑・青）。赤が最初に消える */
 const KD: [number, number, number] = [0.2, 0.06, 0.028];
-/** いまの水深（m）。表層のサンゴ礁 */
-const DEPTH = 6;
+/** 水深を渡されなかったときの水深（m）。段階③の前はこの深さだけを描いていた */
+const DEFAULT_DEPTH = 6;
 /** 水の見通し（大きいほどかすむ。試作で「モデルがかすんで見えない」と言われて半分以下にした） */
 const FOG = 0.45;
 const HALF_SPAN = 2.1;
+/** 水深を変えるときに潜る（浮かぶ）秒数 */
+const DESCENT_SEC = 5;
+/**
+ * 目の慣れ（露出）の上限。暗いほど持ち上げるが、上限が高いと薄明の海（90m）が浅い海と
+ * 同じ明るさの青になり、潜った感じがしない。35m（2.9）までは上限に当たらない
+ */
+const EXPOSURE_MAX = 3;
 
-const exposureFor = (d: number) => Math.min(Math.max(Math.pow(Math.exp(-KD[1] * d), -0.5), 1), 10);
+const exposureFor = (d: number) => Math.min(Math.max(Math.pow(Math.exp(-KD[1] * d), -0.5), 1), EXPOSURE_MAX);
 
 /* ------------------------------------------------------------------ GLSL */
 const WATER = /* glsl */ `
@@ -65,6 +82,8 @@ uniform vec3 uSun;
 uniform vec3 uSunDir;
 uniform float uCaustic;
 uniform float uFog;
+uniform float uGlow;
+uniform float uSnow;
 
 vec3 sunAt(float d) { return uSun * exp(-uKd * max(d, 0.0)); }
 vec3 waterTint(float d) { return vec3(0.07, 0.42, 0.64) * sunAt(d); }
@@ -177,6 +196,10 @@ function fbm2(x: number, z: number) {
 export function seabedY(x: number, z: number) {
   return -4.6 + 0.06 * z + (fbm2(x * 0.07 + 3.1, z * 0.07 - 1.7) - 0.5) * 3.2 + (vnoise3(x * 0.6, 2.0, z * 0.6) - 0.5) * 0.25;
 }
+function smooth(a: number, b: number, x: number) {
+  const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
+  return t * t * (3 - 2 * t);
+}
 function rng(seed: number) {
   return () => {
     seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
@@ -184,6 +207,62 @@ function rng(seed: number) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/** クラゲが漂う高さの範囲（カメラが y=0）。下の端で現れ、上の端で消える（どちらも大きさで溶かす） */
+const JELLY_BOTTOM = -4.2;
+const JELLY_TOP = 2.6;
+
+/**
+ * クラゲ1匹ぶんの形（傘・触手・口腕）。Blender のモデルにしなかったのは、ほとんど透けた
+ * 薄い形で、その場で計算するほうが軽く、動かし方（傘の脈打ち）もシェーダーで決めるため。
+ * aPart: 0=傘 1=触手 2=口腕。aT: 付け根 0 → 先 1（傘は 0）
+ */
+function jellyGeometry(): THREE.BufferGeometry {
+  const pos: number[] = [], nor: number[] = [], part: number[] = [], tt: number[] = [], idx: number[] = [];
+  // bell: a lathe of a dome profile that turns slightly inward at the rim
+  const profile = [[0.0, 0.3], [0.1, 0.29], [0.19, 0.25], [0.26, 0.18], [0.3, 0.1], [0.31, 0.03], [0.28, -0.01]];
+  const SEG = 18;
+  const lathe = new THREE.LatheGeometry(profile.map(([x, y]) => new THREE.Vector2(x, y)), SEG);
+  lathe.computeVertexNormals();
+  const lp = lathe.attributes.position, ln = lathe.attributes.normal;
+  for (let i = 0; i < lp.count; i++) {
+    pos.push(lp.getX(i), lp.getY(i), lp.getZ(i));
+    nor.push(ln.getX(i), ln.getY(i), ln.getZ(i));
+    part.push(0); tt.push(0);
+  }
+  idx.push(...Array.from(lathe.index!.array));
+  lathe.dispose();
+  // a strip hanging from (x, y, z), facing outward along angle a
+  const strip = (a: number, r: number, y0: number, len: number, width: number, kind: number) => {
+    const N = 10, base = pos.length / 3;
+    const cx = Math.cos(a), cz = Math.sin(a);
+    for (let s = 0; s <= N; s++) {
+      const t = s / N;
+      const w = width * (1 - t * 0.7);
+      const x = cx * r * (1 - t * 0.25), z = cz * r * (1 - t * 0.25), y = y0 - t * len;
+      pos.push(x - cz * w, y, z + cx * w, x + cz * w, y, z - cx * w);
+      nor.push(cx, 0, cz, cx, 0, cz);
+      part.push(kind, kind); tt.push(t, t);
+      if (s < N) {
+        const i = base + s * 2;
+        idx.push(i, i + 1, i + 2, i + 1, i + 3, i + 2);
+      }
+    }
+  };
+  const TENTACLES = 10;
+  for (let k = 0; k < TENTACLES; k++) {
+    const a = (k / TENTACLES) * Math.PI * 2;
+    strip(a, 0.27, 0.0, 0.9 + ((k * 7) % 5) * 0.12, 0.008, 1);
+  }
+  for (let k = 0; k < 4; k++) strip((k / 4) * Math.PI * 2 + 0.4, 0.05, 0.08, 0.55, 0.035, 2);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("aPart", new THREE.Float32BufferAttribute(part, 1));
+  g.setAttribute("aT", new THREE.Float32BufferAttribute(tt, 1));
+  g.setIndex(idx);
+  return g;
 }
 
 /** glTF のメッシュ（数値を詰めて保存されている）を、扱いやすい float の形に直す */
@@ -215,6 +294,8 @@ function plainGeometry(mesh: THREE.Mesh): THREE.BufferGeometry {
 
 interface ReefPlan {
   name: string;
+  /** 水深ごとの数を決める種類（src/ocean/depth.ts の abundance） */
+  kind: Dweller;
   count: number;
   size: [number, number];
   squash: [number, number];
@@ -223,15 +304,15 @@ interface ReefPlan {
   tints: [number, number, number][];
 }
 
-/** 海底に並べるもの（数は画質「高」のとき） */
+/** 海底に並べるもの（数は画質「高」で、そのものがいちばん多い水深のとき） */
 const REEF_PLAN: ReefPlan[] = [
-  { name: "rock_a", count: 16, size: [0.7, 1.7], squash: [0.6, 0.9], sink: 0.18, tints: [[1, 1, 1], [0.9, 0.92, 0.95], [1.08, 1.02, 0.95]] },
-  { name: "rock_b", count: 14, size: [0.5, 1.3], squash: [0.6, 0.9], sink: 0.15, tints: [[1, 1, 1], [0.95, 1, 0.92]] },
-  { name: "staghorn_a", count: 16, size: [0.9, 1.6], squash: [0.9, 1.1], sink: 0.03, tints: [[1, 1, 1], [0.92, 0.95, 1.12], [1.12, 0.96, 0.82]] },
-  { name: "staghorn_b", count: 14, size: [0.9, 1.5], squash: [0.9, 1.1], sink: 0.03, tints: [[1, 1, 1], [1.05, 0.85, 1.05]] },
-  { name: "brain", count: 14, size: [0.3, 0.75], squash: [0.9, 1.1], sink: 0.04, tints: [[1, 1, 1], [0.85, 1.1, 0.85], [1.1, 0.9, 0.8]] },
-  { name: "fan", count: 7, size: [0.8, 1.4], squash: [1, 1], sink: 0.02, tints: [[1, 1, 1], [0.8, 0.7, 1.3], [1.3, 0.9, 0.6]] },
-  { name: "seagrass", count: 150, size: [1.1, 1.9], squash: [0.7, 1.3], sink: 0, meadow: true, tints: [[1, 1, 1], [0.9, 1.08, 0.88], [1.12, 1.0, 0.82]] },
+  { name: "rock_a", kind: "rock", count: 16, size: [0.7, 1.7], squash: [0.6, 0.9], sink: 0.18, tints: [[1, 1, 1], [0.9, 0.92, 0.95], [1.08, 1.02, 0.95]] },
+  { name: "rock_b", kind: "rock", count: 14, size: [0.5, 1.3], squash: [0.6, 0.9], sink: 0.15, tints: [[1, 1, 1], [0.95, 1, 0.92]] },
+  { name: "staghorn_a", kind: "staghorn", count: 16, size: [0.9, 1.6], squash: [0.9, 1.1], sink: 0.03, tints: [[1, 1, 1], [0.92, 0.95, 1.12], [1.12, 0.96, 0.82]] },
+  { name: "staghorn_b", kind: "staghorn", count: 14, size: [0.9, 1.5], squash: [0.9, 1.1], sink: 0.03, tints: [[1, 1, 1], [1.05, 0.85, 1.05]] },
+  { name: "brain", kind: "brain", count: 14, size: [0.3, 0.75], squash: [0.9, 1.1], sink: 0.04, tints: [[1, 1, 1], [0.85, 1.1, 0.85], [1.1, 0.9, 0.8]] },
+  { name: "fan", kind: "fan", count: 12, size: [0.8, 1.4], squash: [1, 1], sink: 0.02, tints: [[1, 1, 1], [0.8, 0.7, 1.3], [1.3, 0.9, 0.6]] },
+  { name: "seagrass", kind: "seagrass", count: 150, size: [1.1, 1.9], squash: [0.7, 1.3], sink: 0, meadow: true, tints: [[1, 1, 1], [0.9, 1.08, 0.88], [1.12, 1.0, 0.82]] },
 ];
 
 /* ------------------------------------------------------------------ scene */
@@ -262,15 +343,20 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   let spread = 1;
   const lookBase = new THREE.Vector3(0, -2.6, -10);
 
+  const startDepth = opts.depth && opts.depth > 0 ? opts.depth : DEFAULT_DEPTH;
   const U = {
     uTime: { value: 0 },
-    uDepth: { value: DEPTH },
-    uExposure: { value: exposureFor(DEPTH) },
+    uDepth: { value: startDepth },
+    uExposure: { value: exposureFor(startDepth) },
     uKd: { value: new THREE.Vector3(...KD) },
     uSun: { value: new THREE.Vector3(1.0, 0.97, 0.9).multiplyScalar(1.8) },
     uSunDir: { value: new THREE.Vector3(0.25, 1.0, -0.35).normalize() },
     uCaustic: { value: 1 },
     uFog: { value: FOG },
+    /** 生き物の光（クラゲ・光る粒）の強さ。日の光が消える深さから */
+    uGlow: { value: abundance("glow", startDepth) },
+    /** マリンスノー（沈んでいく白い粒）の見えやすさ */
+    uSnow: { value: abundance("snow", startDepth) },
   };
   const mat = (o: THREE.ShaderMaterialParameters & { uniforms?: Record<string, THREE.IUniform> }) =>
     new THREE.ShaderMaterial({ ...o, uniforms: { ...U, ...(o.uniforms || {}) } });
@@ -388,8 +474,9 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     vertexShader: `
       uniform float uTime; uniform vec3 uBox; uniform float uPR;
       attribute float aSize; attribute float aSeed;
-      varying float vDist;
+      varying float vDist; varying float vSeed;
       void main() {
+        vSeed = aSeed;
         vec3 p = position;
         p.x += sin(uTime * 0.15 + aSeed * 30.0) * 0.6;
         p.z += cos(uTime * 0.12 + aSeed * 17.0) * 0.6;
@@ -402,10 +489,16 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: WATER + `
-      varying float vDist;
+      varying float vDist; varying float vSeed;
       void main() {
         vec2 q = gl_PointCoord * 2.0 - 1.0; float r = dot(q, q); if (r > 1.0) discard;
-        vec3 lit = (sunAt(uDepth) * 0.45 + waterTint(uDepth) * 0.35) * exp(-r * 3.0) * exp(-vDist * 0.05) * 0.3;
+        float fall = exp(-r * 3.0) * exp(-vDist * 0.05);
+        vec3 lit = (sunAt(uDepth) * 0.45 + waterTint(uDepth) * 0.35) * fall * 0.3;
+        // marine snow: pale flecks that stay faintly visible after the sunlight has gone
+        lit += vec3(0.5, 0.58, 0.68) * uSnow * fall * 0.05;
+        // bioluminescence: one fleck in seven flashes now and then
+        float blink = step(vSeed, 0.14) * pow(max(sin(uTime * 0.9 + vSeed * 400.0), 0.0), 14.0);
+        lit += vec3(0.25, 0.85, 1.0) * uGlow * blink * exp(-r * 2.0) * exp(-vDist * 0.03) * 0.9;
         gl_FragColor = vec4(1.0 - exp(-lit * uExposure), 1.0);
       }`,
   }));
@@ -516,11 +609,82 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   }));
   const mantaLods: (THREE.Mesh | undefined)[] = [];
 
+  /* ---- jellyfish (made here: a pulsing bell, tentacles and oral arms; glow in the deep) ---- */
+  const MAX_JELLY = TIERS.high.jelly;
+  const jellyGeo = track(jellyGeometry());
+  const jellyMat = track(mat({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: `
+      uniform float uTime;
+      attribute float aPart; attribute float aT; attribute vec3 aTint;
+      varying vec3 vWorld; varying vec3 vN; varying float vPart; varying float vT; varying vec3 vTint; varying float vPulse;
+      void main() {
+        vec3 p = position;
+        float ph = uTime * 1.5 + instanceMatrix[3].x * 1.7 + instanceMatrix[3].z * 0.9;
+        float relax = 0.5 + 0.5 * sin(ph);
+        float squeeze = 1.0 - 0.2 * (1.0 - relax);
+        if (aPart < 0.5) {
+          // the bell contracts most at the rim and lengthens a little while it does
+          float h = clamp(p.y / 0.3, 0.0, 1.0);
+          p.xz *= mix(squeeze, 1.0, h * 0.6);
+          p.y *= 1.0 + 0.1 * (1.0 - relax);
+        } else {
+          // roots follow the rim; a wave runs down each tentacle a little after the bell
+          p.xz *= mix(squeeze, 1.0, aT);
+          p.x += sin(ph - aT * 4.0 + position.z * 9.0) * 0.07 * aT + sin(uTime * 0.6 + aT * 3.0) * 0.1 * aT * aT;
+          p.z += cos(ph * 0.8 - aT * 3.5 + position.x * 7.0) * 0.07 * aT;
+        }
+        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz; vPart = aPart; vT = aT; vTint = aTint; vPulse = relax;
+        vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: WATER + `
+      varying vec3 vWorld; varying vec3 vN; varying float vPart; varying float vT; varying vec3 vTint; varying float vPulse;
+      void main() {
+        float d = uDepth - vWorld.y;
+        vec3 n = normalize(vN);
+        vec3 V = normalize(cameraPosition - vWorld);
+        float rim = 1.0 - abs(dot(n, V));
+        vec3 L = sunAt(d) + waterTint(d) * 0.6;
+        float dist = length(vWorld - cameraPosition);
+        // a clear bell shows mostly at its edges; tentacles thin out toward the tips
+        float shape = vPart < 0.5 ? 0.06 + 0.6 * pow(rim, 2.0) : (vPart < 1.5 ? 0.3 : 0.45) * (1.0 - vT * 0.7);
+        vec3 c = vec3(0.75, 0.85, 1.0) * L * shape * 0.5;
+        // bioluminescence: a ring along the bell and beads down the tentacles, brightest when the bell opens
+        float glow = vPart < 0.5 ? (0.12 + 0.88 * pow(rim, 1.5)) * 0.55 : (1.0 - vT) * 0.45;
+        c += vTint * uGlow * glow * (0.35 + 0.65 * vPulse);
+        c *= exp(-(uKd * 0.6 + vec3(0.045)) * uFog * dist) * (1.0 - smoothstep(30.0, 60.0, dist));
+        gl_FragColor = vec4(1.0 - exp(-c * uExposure), 1.0);
+      }`,
+  }));
+  const jelly = new THREE.InstancedMesh(jellyGeo, jellyMat, MAX_JELLY);
+  jelly.frustumCulled = false;
+  jelly.renderOrder = 2;
+  jelly.count = 0;
+  const JELLY_GLOWS: [number, number, number][] = [[0.3, 0.9, 1.0], [0.55, 0.5, 1.0], [0.35, 1.0, 0.7]];
+  const jPos = new Float32Array(MAX_JELLY * 3), jSeed = new Float32Array(MAX_JELLY), jSize = new Float32Array(MAX_JELLY);
+  {
+    const tint = new Float32Array(MAX_JELLY * 3);
+    for (let i = 0; i < MAX_JELLY; i++) {
+      jSeed[i] = R();
+      jSize[i] = 0.55 + R() * 0.6;
+      jPos[i * 3] = (R() - 0.5) * 16; jPos[i * 3 + 1] = JELLY_BOTTOM + R() * (JELLY_TOP - JELLY_BOTTOM); jPos[i * 3 + 2] = -5 - R() * 13;
+      tint.set(JELLY_GLOWS[i % JELLY_GLOWS.length], i * 3);
+    }
+    jelly.geometry.setAttribute("aTint", new THREE.InstancedBufferAttribute(tint, 3));
+  }
+  scene.add(jelly);
+
   /* ---- reef from the Blender file ---- */
   const reefMat = track(mat({ vertexShader: REEF_VERT, fragmentShader: OBJ_FRAG }));
   const fanMat = track(mat({ vertexShader: REEF_VERT, fragmentShader: OBJ_FRAG, defines: { FAN_SWAY: "" }, side: THREE.DoubleSide }));
   const grassMat = track(mat({ vertexShader: REEF_VERT, fragmentShader: OBJ_FRAG, defines: { GRASS_SWAY: "" }, side: THREE.DoubleSide }));
-  const reef: { plan: ReefPlan; lods: (THREE.InstancedMesh | null)[] }[] = [];
+  /**
+   * mats は置いた位置そのもの。水深で数を減らすときは、境目の1つ（partial）だけを小さくして、
+   * 潜っているあいだにサンゴが1本ずつ「ぱっと消える」のではなく、海底へ縮んで消えるようにする
+   */
+  const reef: { plan: ReefPlan; lods: (THREE.InstancedMesh | null)[]; mats: THREE.Matrix4[]; partial: number }[] = [];
   let modelsLoaded = false;
 
   function buildFromGltf(root: THREE.Object3D) {
@@ -563,7 +727,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         scene.add(m);
         return m;
       });
-      reef.push({ plan, lods });
+      reef.push({ plan, lods, mats, partial: -1 });
     }
     for (let lod = 0; lod < 3; lod++) {
       const src = byName[`manta_${lod}`];
@@ -592,6 +756,9 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   const sample = { start: 0, frames: 0, intervals: [] as number[], lastT: 0, probing: false, throttled: false, triedHigh: false, fps: 0 };
   const cap = () => (sample.probing ? 60 : TIERS[tier].cap);
 
+  // 水深。潜っている途中は depthNow が depthFrom から depthTo へ動く（depthT が 0→1）
+  let depthNow = startDepth, depthFrom = startDepth, depthTo = startDepth, depthT = 1;
+
   function applyTier(name: OceanTier) {
     tier = name;
     const q = TIERS[name];
@@ -599,18 +766,54 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     resize();
     pMat.uniforms.uPR.value = q.pixelRatio;
     pGeo.setDrawRange(0, q.particles);
-    fish.count = q.fish;
-    rays.forEach((r, i) => { r.visible = i < q.rays; });
-    U.uCaustic.value = q.caustic;
-    for (const { plan, lods } of reef) {
-      lods.forEach((m, lod) => {
-        if (!m) return;
-        m.visible = lod === q.lod;
-        m.count = Math.max(1, Math.round(plan.count * q.reef));
-      });
-    }
     mantaLods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
+    applyHabitat();
     sample.start = 0;
+  }
+
+  const shrunk = new THREE.Matrix4(), shrink = new THREE.Matrix4();
+  /** 画質（数の上限）と水深（そこに住む割合）から、並べる数と見せるものを決める */
+  function applyHabitat() {
+    const q = TIERS[tier];
+    const d = depthNow;
+    for (const r of reef) {
+      const exact = r.plan.count * q.reef * abundance(r.plan.kind, d);
+      const n = Math.min(r.plan.count, Math.ceil(exact - 1e-3));
+      const frac = exact - Math.floor(exact);
+      const partial = frac > 1e-3 && n > 0 ? n - 1 : -1;
+      r.lods.forEach((m, lod) => {
+        if (!m) return;
+        m.visible = lod === q.lod && n > 0;
+        m.count = n;
+        if (r.partial >= 0 && r.partial !== partial) { m.setMatrixAt(r.partial, r.mats[r.partial]); m.instanceMatrix.needsUpdate = true; }
+        if (partial >= 0) {
+          // 境目の1つは海底から縮める（位置はそのまま、大きさだけ）
+          m.setMatrixAt(partial, shrunk.copy(r.mats[partial]).multiply(shrink.makeScale(frac, frac, frac)));
+          m.instanceMatrix.needsUpdate = true;
+        }
+      });
+      r.partial = partial;
+    }
+    fish.count = Math.round(q.fish * abundance("fish", d));
+    jelly.count = Math.min(MAX_JELLY, Math.ceil(q.jelly * abundance("jelly", d) - 1e-3));
+    manta.visible = abundance("manta", d) >= 0.5;
+    // 光の筋と水底の光の網目は、届かなくなった深さでは描かない（見えないのに重さだけ残る）
+    rays.forEach((ray, i) => { ray.visible = i < q.rays && d < 150; });
+    U.uCaustic.value = d < 60 ? q.caustic : 0;
+  }
+
+  function setDepthNow(d: number) {
+    depthNow = d;
+    U.uDepth.value = d;
+    U.uExposure.value = exposureFor(d);
+    U.uGlow.value = abundance("glow", d);
+    U.uSnow.value = abundance("snow", d);
+    applyHabitat();
+  }
+  function finishDescent() {
+    if (depthT >= 1) return;
+    depthT = 1;
+    setDepthNow(depthTo);
   }
 
   function resize() {
@@ -652,10 +855,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         fz += (cz / cnt) * 0.6 + (az / cnt - fVel[ix + 2]) * 1.0 + sz * 0.04;
       }
       fx += (tx - fPos[ix]) * 0.12; fy += (ty - fPos[ix + 1]) * 0.12; fz += (tz - fPos[ix + 2]) * 0.12;
-      // scatter away from the manta
+      // scatter away from the manta (when there is one at this depth)
       const mx = fPos[ix] - mantaPos.x, my = fPos[ix + 1] - mantaPos.y, mz = fPos[ix + 2] - mantaPos.z;
       const md = mx * mx + my * my + mz * mz;
-      if (md < 9) { const k = ((9 - md) * 0.9) / (Math.sqrt(md) + 0.1); fx += mx * k; fy += my * k * 0.5; fz += mz * k; }
+      if (md < 9 && manta.visible) { const k = ((9 - md) * 0.9) / (Math.sqrt(md) + 0.1); fx += mx * k; fy += my * k * 0.5; fz += mz * k; }
       const floorY = seabedY(fPos[ix], fPos[ix + 2]) + 1.0;
       if (fPos[ix + 1] < floorY) fy += (floorY - fPos[ix + 1]) * 3;
       let vxv = fVel[ix] + fx * dt, vyv = fVel[ix + 1] + fy * dt, vzv = fVel[ix + 2] + fz * dt;
@@ -690,6 +893,36 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     manta.quaternion.setFromRotationMatrix(m4);
     qRoll.setFromAxisAngle(zAxis, -0.28 + Math.sin(t * 0.4) * 0.05);
     manta.quaternion.multiply(qRoll);
+  }
+
+  const jQ = new THREE.Quaternion(), jE = new THREE.Euler();
+  /** クラゲはゆっくり浮かんでいき、上の端で消えて、また下の端から現れる（どちらも大きさで溶かす） */
+  function updateJelly(dt: number, t: number) {
+    const n = jelly.count;
+    if (!n) return;
+    // 数を減らしている途中（潜る・浮かぶ途中）は、境目の1匹を小さくして溶かす
+    const exact = TIERS[tier].jelly * abundance("jelly", depthNow);
+    const lastScale = exact - Math.floor(exact) > 1e-3 ? exact - Math.floor(exact) : 1;
+    for (let i = 0; i < n; i++) {
+      const ix = i * 3, seed = jSeed[i];
+      // rise in little pushes, in time with the bell
+      const push = 0.5 + 0.5 * Math.sin(t * 1.5 + jPos[ix] * 1.7 + jPos[ix + 2] * 0.9);
+      jPos[ix + 1] += dt * (0.05 + 0.1 * push) * (0.7 + seed * 0.6);
+      jPos[ix] += dt * Math.sin(t * 0.1 + seed * 20) * 0.06;
+      if (jPos[ix + 1] > JELLY_TOP) {
+        jPos[ix + 1] = JELLY_BOTTOM;
+        jPos[ix] = (R() - 0.5) * 16 * spread;
+        jPos[ix + 2] = -5 - R() * 13;
+      }
+      const y = jPos[ix + 1];
+      const fade = smooth(JELLY_BOTTOM, JELLY_BOTTOM + 1, y) * (1 - smooth(JELLY_TOP - 1, JELLY_TOP, y));
+      const sc = jSize[i] * fade * (i === n - 1 ? lastScale : 1);
+      jE.set(Math.cos(t * 0.27 + seed * 7) * 0.2, seed * 6, Math.sin(t * 0.3 + seed * 10) * 0.25);
+      jQ.setFromEuler(jE);
+      m4.compose(sv.set(jPos[ix], y, jPos[ix + 2]), jQ, vx.setScalar(Math.max(sc, 1e-4)));
+      jelly.setMatrixAt(i, m4);
+    }
+    jelly.instanceMatrix.needsUpdate = true;
   }
 
   const invVP = new THREE.Matrix4();
@@ -739,8 +972,13 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     last = now; lastDraw = now;
     time += dt;
     U.uTime.value = time;
+    if (depthT < 1) {
+      depthT = Math.min(1, depthT + dt / DESCENT_SEC);
+      setDepthNow(depthAlong(depthFrom, depthTo, depthT));
+    }
     updateManta(time);
     updateFish(dt, time);
+    updateJelly(dt, time);
     draw();
     autoTune(now);
   }
@@ -759,7 +997,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     if (running()) start();
     else {
       stop();
-      if (active && !disposed && !lost) draw();   // 止めるときも、いまの1枚は描いておく
+      // 止めた1枚では潜る途中を見せられないので、着いた深さを描く。
+      // 出題中・裏に回っただけなら待っておき、戻ってきたときに潜る
+      if (!motion || frozen) finishDescent();
+      if (active && !disposed && !lost) { updateJelly(0, time); draw(); }   // 止めるときも、いまの1枚は描いておく
     }
   }
 
@@ -804,6 +1045,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   applyTier("mid");
   for (let i = 0; i < 40; i++) updateFish(0.05, i * 0.05);
   updateManta(0);
+  updateJelly(0, 0);
   refresh();
 
   fetch(opts.modelUrl)
@@ -825,6 +1067,15 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   return {
     setActive(v: boolean) { active = v; refresh(); },
     setMotion(v: boolean) { motion = v; refresh(); },
+    setDepth(d: number, animate: boolean) {
+      if (!(d > 0) || disposed) return;
+      if (Math.abs(d - depthTo) < 1e-3) return;
+      depthFrom = depthNow;
+      depthTo = d;
+      depthT = 0;
+      if (!animate) finishDescent();
+      refresh();
+    },
     dispose() {
       disposed = true;
       stop();
