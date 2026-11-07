@@ -18,6 +18,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
 import { ANGLER_RADIUS, MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
 import { abundance, depthAlong, type Dweller } from "./depth";
+import { TURTLE_FLIPPERS } from "./turtle";
 
 export interface OceanStatus {
   tier: OceanTier;
@@ -633,8 +634,11 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   const mantaLods: (THREE.Mesh | undefined)[] = [];
 
   /* ---- sea turtle (model from Blender; the flippers fly here) ---- */
-  // 前あしは甲羅の幅（|x| 0.4）より外。肩（x=±0.38）を軸に、羽ばたくように上下させる（先ほど少し遅れる）。
-  // 後ろあしは小さく、かじを取るように動かす
+  // 前あしは甲羅の縁（|x| 0.42）より外を、縁を軸に羽ばたくように上下させる（先ほど少し遅れる）。
+  // 後ろあしは甲羅の後ろ（z < -0.25）で甲羅の縁（|x| 0.3）より外を、小さく動かす。
+  // 前あしは後ろへ反っていて、先は z = -0.2 あたりまで来る。前後を z = -0.12 で切っていたときは
+  // 前あしの先（約40頂点）だけが動かず、動く所との間の面が引き伸ばされて、長方形の板が付いて見えた。
+  // 甲羅の縁を動かさないよう、軸は甲羅の外形のすぐ外に置く（tests/oceanTurtle.test.ts）
   const turtle = new THREE.Group();
   scene.add(turtle);
   const turtleMat = track(mat({
@@ -646,11 +650,13 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       void main() {
         vec3 p = position; vec3 n = normal;
         float ax = abs(p.x), sx = p.x < 0.0 ? -1.0 : 1.0;
-        float front = smoothstep(0.36, 0.48, ax) * step(-0.12, p.z);
-        float rear = smoothstep(0.17, 0.28, ax) * smoothstep(-0.3, -0.42, p.z) * (1.0 - front);
+        float rearZone = smoothstep(${TURTLE_FLIPPERS.rearFrom.toFixed(2)}, ${TURTLE_FLIPPERS.rearTo.toFixed(2)}, p.z)
+          * (1.0 - smoothstep(0.55, 0.65, ax));
+        float front = smoothstep(${TURTLE_FLIPPERS.frontPivot.toFixed(2)}, ${(TURTLE_FLIPPERS.frontPivot + 0.1).toFixed(2)}, ax) * (1.0 - rearZone);
+        float rear = smoothstep(${TURTLE_FLIPPERS.rearPivot.toFixed(2)}, ${(TURTLE_FLIPPERS.rearPivot + 0.08).toFixed(2)}, ax) * rearZone;
         float ph = uTime * 1.25;
-        float a = front * 0.6 * sin(ph - max(ax - 0.38, 0.0) * 1.4) + rear * 0.3 * sin(ph + 1.7);
-        float pivot = front > 0.0 ? 0.38 : 0.18;
+        float a = front * 0.6 * sin(ph - max(ax - ${TURTLE_FLIPPERS.frontPivot.toFixed(2)}, 0.0) * 1.4) + rear * 0.3 * sin(ph + 1.7);
+        float pivot = rearZone > 0.5 ? ${TURTLE_FLIPPERS.rearPivot.toFixed(2)} : ${TURTLE_FLIPPERS.frontPivot.toFixed(2)};
         vec2 q = rot(vec2(ax - pivot, p.y), a);
         p.x = sx * (pivot + q.x); p.y = q.y;
         vec2 nq = rot(vec2(n.x * sx, n.y), a);
