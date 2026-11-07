@@ -167,6 +167,38 @@ describe("取り込んだ単語を整える", () => {
       { word: "test", translation: "試験", options: ["ア", "イ", "ウ", "エ"] }, "csv", 0, POOL
     );
     expect(w!.options).toContain("試験");
+    // 正解を足して五択にしない
+    expect(w!.options).toHaveLength(4);
+  });
+
+  /**
+   * AI の応答は同じ訳を並べたり、5件以上返したりする。以前は「正解を含む4件以上」しか見ておらず、
+   * 同じ選択肢が並ぶ（どれを押しても正解になる）四択や、五択・六択がそのまま保存された（#123）
+   */
+  it("同じ選択肢が並ばず、ちょうど4つになる（重複は除き、足りない誤答は収録語から補う）", () => {
+    const w = normalizeImportedWord(
+      { word: "achieve", translation: "達成する", options: ["達成する", "達成する", " 達成する ", "別の訳"] }, "ai", 0, POOL
+    );
+    expect(w!.options).toHaveLength(4);
+    expect(new Set(w!.options).size).toBe(4);
+    expect(w!.options.filter(o => o === "達成する")).toHaveLength(1);
+    expect(w!.options).toContain("別の訳");
+  });
+
+  it("選択肢が多すぎれば、正解と誤答3つにする", () => {
+    const w = normalizeImportedWord(
+      { word: "test", translation: "試験", options: ["ア", "イ", "ウ", "エ", "オ", "カ"] }, "ai", 0, POOL
+    );
+    expect(w!.options).toHaveLength(4);
+    expect(w!.options).toContain("試験");
+  });
+
+  it("英語の選択肢は、大文字小文字や空白だけ違う正解を誤答として残さない", () => {
+    const w = normalizeImportedWord(
+      { word: "achieve", translation: "達成する", sentenceOptions: ["Achieve", "achieve ", "reach", "get", "obtain", "gain"] }, "ai", 0, POOL
+    );
+    expect(w!.sentenceOptions).toHaveLength(4);
+    expect(w!.sentenceOptions.filter(o => o.trim().toLowerCase() === "achieve")).toEqual(["achieve"]);
   });
 
   it("英語の選択肢にも見出し語が必ず入る", () => {

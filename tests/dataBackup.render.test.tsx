@@ -153,6 +153,26 @@ describe("読み込み", () => {
     expect(await screen.findByText(/ファイルの形式が正しくありません/)).toBeInTheDocument();
   });
 
+  /**
+   * ファイルそのものを読めなかったとき（移された・消された、クラウドのファイルを取れなかった、権限が無くなった）。
+   * 以前は読み込みの成功しか扱っておらず、何も表示されなかった（#121）
+   */
+  it("ファイルを読めなかったら、そう伝えて選び直せるようにする", async () => {
+    vi.spyOn(FileReader.prototype, "readAsText").mockImplementation(function (this: FileReader) {
+      setTimeout(() => this.onerror?.(new ProgressEvent("error") as ProgressEvent<FileReader>));
+    });
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    localStorage.setItem("quest_srs", '{"j1":{"box":3}}');
+    renderBackup();
+    await importJson(backupFile({ quest_srs: "{}" }));
+
+    expect(await screen.findByText(/ファイルを読み込めませんでした/)).toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(localStorage.getItem("quest_srs")).toBe('{"j1":{"box":3}}');
+    // 同じファイルを選び直したときに change が起きるよう、選んだファイルを空にしている
+    expect((document.querySelector('input[type="file"]') as HTMLInputElement).value).toBe("");
+  });
+
   it("data の無いJSONも断る", async () => {
     renderBackup();
     await importJson(JSON.stringify({ app: "eitango-quest" }));

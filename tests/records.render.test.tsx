@@ -1,6 +1,6 @@
-import type { ComponentProps } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { useState, type ComponentProps } from "react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, within, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Records from "../src/components/Records";
 import { makeWord, makeStats } from "./fixtures";
@@ -50,6 +50,9 @@ function renderRecords(props: Partial<ComponentProps<typeof Records>> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("並び", () => {
@@ -231,6 +234,39 @@ describe("ログインボーナス", () => {
     expect(setStats.mock.calls[0][0](makeStats({ currentStreak: 3, lastLoginDate: daysAgo(1) })).currentStreak).toBe(4);
     expect(getNotices()[0].message).toContain("+400 P");
     expect(getNotices()[0].message).toContain("4日目");
+  });
+
+  /**
+   * 二重実行よけの印を true のまま残していたため、画面を開いたまま日をまたぐと
+   * 翌日のスタンプを押しても何も起きなかった（#131）。ホーム画面から開くとアプリは何日も閉じない
+   */
+  it("開いたまま日をまたいでも、次の日のボーナスを受け取れる", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 5, 23, 50));
+    __resetNoticesForTest();
+    let latest = makeStats();
+    function Harness() {
+      const [stats, setStats] = useState(makeStats({ score: 0, currentStreak: 1, lastLoginDate: "2026-11-04" }));
+      latest = stats;
+      return (
+        <Records
+          stats={stats} setStats={setStats} vocabulary={VOCAB} solvedHistory={{}} srsData={{}} wrongWords={[]}
+          ranking={[{ id: "me_id", name: "You", score: 0, avatar: "🏆", isMe: true }]} setRanking={vi.fn()}
+          dailyLog={{}} dailyGoal={20} equipped={{}} onOpenGachaShop={vi.fn()}
+        />
+      );
+    }
+    const { rerender } = render(<Harness />);
+    act(() => { document.getElementById("btn_claim_bonus_day_2")!.click(); });
+    expect(latest.lastLoginDate).toBe("2026-11-05");
+
+    // 0時を過ぎて描き直された（App の useToday が日付の変化で描き直す）
+    vi.setSystemTime(new Date(2026, 10, 6, 0, 10));
+    rerender(<Harness />);
+    act(() => { document.getElementById("btn_claim_bonus_day_3")!.click(); });
+    expect(latest.lastLoginDate).toBe("2026-11-06");
+    expect(latest.currentStreak).toBe(3);
+    expect(getNotices().map(n => n.message).join("\n")).toContain("3日目");
   });
 
   it("受け取り済みの日には、その日ぶんのスタンプが無い", async () => {

@@ -481,7 +481,7 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
    * （vocabulary.some(...)）は両方とも素通りし、同じ単語が別々のIDで
    * 2件登録される。クイズにも2件出て、+50のボーナスも二重に入り、
    * AIの呼び出しも1回ぶん無駄になる。
-   * ガチャの pullingRef・ログインボーナスの claimingRef と同じ作りで塞ぐ。
+   * ガチャの pullingRef・ログインボーナスの claimedDayRef と同じ作りで塞ぐ。
    */
   const addingRef = useRef(false);
 

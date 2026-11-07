@@ -155,6 +155,32 @@ export function buildDistractors(
 }
 
 /**
+ * 四択の選択肢を「正解1つ＋誤答3つ」にそろえる。
+ *
+ * AI の応答（generate-word / parse-pdf）は、同じ訳を何度も並べる・正解の言い換え（前後の空白や
+ * 大文字小文字だけが違うもの）を混ぜる・5件以上返す、ことがある。以前は「正解を含む4件以上」しか
+ * 見ていなかったので、そのまま保存され、同じ選択肢が並んで（どれを押しても正解になる）、
+ * あるいは四択でなくなっていた（#123）。重複を除いてから数え、誤答は3つまでにする。
+ * 3つに足りなければ収録語から補い、それでも足りなければ取れた分だけにする（正解で埋めない）。
+ */
+function fourChoices(answer: string, given: string[], more: () => string[], foldCase: boolean): string[] {
+  const key = (s: string) => (foldCase ? s.trim().toLowerCase() : s.trim());
+  const seen = new Set([key(answer)]);
+  const wrong: string[] = [];
+  const take = (xs: string[]) => {
+    for (const x of xs) {
+      const t = x.trim();
+      if (!t || seen.has(key(t))) continue;
+      seen.add(key(t));
+      wrong.push(t);
+    }
+  };
+  take(given);
+  if (wrong.length < 3) take(more());
+  return shuffle([answer, ...shuffle(wrong).slice(0, 3)]);
+}
+
+/**
  * 取り込んだ1語を整える。単語か訳が欠けていれば取り込まない（null）。
  *
  * 応答は必ずしもスキーマ通りではなく、そのまま保存すると次の不具合になる:
@@ -186,20 +212,10 @@ export function normalizeImportedWord(
     ? raw.pos
     : inferPartOfSpeech(word, translation);
 
-  // 四択は「正解を必ず含む4件以上」を保証する
-  let options = strList(raw?.options);
-  if (!options.includes(translation)) options = [translation, ...options];
-  if (options.length < 4) {
-    const d = buildDistractors({ word, translation, level, pos }, pool, "translation", 3);
-    options = shuffle([translation, ...d]);
-  }
-
-  let sentenceOptions = strList(raw?.sentenceOptions);
-  if (!sentenceOptions.includes(word)) sentenceOptions = [word, ...sentenceOptions];
-  if (sentenceOptions.length < 4) {
-    const d = buildDistractors({ word, translation, level, pos }, pool, "word", 3);
-    sentenceOptions = shuffle([word, ...d]);
-  }
+  const target = { word, translation, level, pos };
+  const options = fourChoices(translation, strList(raw?.options), () => buildDistractors(target, pool, "translation", 3), false);
+  // 英語の選択肢は大文字小文字の違いだけでも同じ語（"Achieve" と "achieve" が並ぶと正解が2つになる）
+  const sentenceOptions = fourChoices(word, strList(raw?.sentenceOptions), () => buildDistractors(target, pool, "word", 3), true);
 
   let sentence = typeof raw?.sentence === "string" ? raw.sentence.trim() : "";
   let sentenceTranslation =

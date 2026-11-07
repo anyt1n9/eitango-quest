@@ -102,15 +102,20 @@ export default function Records({
    * 実際、3連打すると受け取りの処理が3回走ってお知らせも3つ出ていた。
    * 加算が二重にならなかったのは newScore を絶対値で書いていたためで、
    * 関数形（prev.score + points）に直した瞬間に二重加算になる書き方だった。
+   *
+   * 印は「受け取りの処理中か」ではなく「どの日のぶんを受け取ったか」で持つ。
+   * true / false の印を立てたままにしていたときは、画面を開いたまま日をまたぐと
+   * 翌日のスタンプを押しても何も起きなかった（別の画面へ移るまで受け取れない。#131）。
+   * 日付で持てば、日が変わったときに自然に外れる。
    */
-  const claimingRef = useRef(false);
+  const claimedDayRef = useRef<string | null>(null);
 
   const handleClaimLoginBonus = () => {
-    if (claimingRef.current || !checkCanClaimToday()) return;
-    claimingRef.current = true;
+    const { today, points, nextStreak } = bonusState;
+    if (claimedDayRef.current === today || !checkCanClaimToday()) return;
+    claimedDayRef.current = today;
 
     playChime("bonus");
-    const { today, points, nextStreak } = bonusState;
 
     // 加算は関数形で行い、すでに今日受け取っていれば何もしない。
     // 別の経路（別タブなど）から更新されていても二重に足さない
