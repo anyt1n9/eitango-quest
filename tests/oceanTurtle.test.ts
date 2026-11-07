@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { TURTLE_FLIPPERS, poseTurtleVertex } from "../src/ocean/turtle";
+import { TURTLE_FLIPPERS, glslNumber, poseTurtleVertex, turtleFlipperGlsl } from "../src/ocean/turtle";
 
 /**
  * ウミガメのあしの動かし方（src/ocean/turtle.ts）を、出荷する3Dモデル（src/ocean/assets/ocean.glb）で確かめる。
@@ -71,24 +71,74 @@ describe("ウミガメのあし", () => {
     }
   });
 
-  it("前あしは先まで動き、甲羅は動かない", () => {
+  it("前あしは先まで動く", () => {
     const mesh = meshes.turtle_0;
-    let tipMoved = 0, tips = 0, shellMoved = 0;
+    let tipMoved = 0, tips = 0;
     for (let i = 0; i < mesh.pos.length / 3; i++) {
       const [x, y, z] = [mesh.pos[i * 3], mesh.pos[i * 3 + 1], mesh.pos[i * 3 + 2]];
+      if (Math.abs(x) <= 0.8) continue;
+      tips++;
       // 羽ばたきのいちばん上（前あしの付け根で sin が 1 になるころ）
-      const [px, py] = poseTurtleVertex(x, y, z, (Math.PI / 2) / 1.25);
-      const moved = Math.hypot(px - x, py - y) > 0.02;
-      if (Math.abs(x) > 0.8) { tips++; if (moved) tipMoved++; }
-      // 甲羅の上側（あしと頭は y が 0.06 より下にある）
-      if (y > 0.06 && moved) shellMoved++;
+      const [px, py] = poseTurtleVertex(x, y, z, (Math.PI / 2) / TURTLE_FLIPPERS.speed);
+      if (Math.hypot(px - x, py - y) > 0.02) tipMoved++;
     }
     expect(tips).toBeGreaterThan(0);
     expect(tipMoved, "前あしの先が動いていない").toBe(tips);
-    expect(shellMoved, "甲羅が動いている").toBe(0);
   });
 
-  it("前あしを回す軸は、甲羅の縁より外にある（内側にすると甲羅の縁まで羽ばたく）", () => {
-    expect(TURTLE_FLIPPERS.frontPivot).toBeGreaterThanOrEqual(0.42);
+  it("どの時刻でも、甲羅（あしと頭より上の y > 0.03）は動かない", () => {
+    // 後ろあしは前あしと位相がずれる（rearPhase）ので、1点の時刻だけでは見逃す
+    for (const [name, mesh] of Object.entries(meshes)) {
+      for (let t = 0; t < 5.1; t += 0.25) {
+        let worst = 0;
+        for (let i = 0; i < mesh.pos.length / 3; i++) {
+          const [x, y, z] = [mesh.pos[i * 3], mesh.pos[i * 3 + 1], mesh.pos[i * 3 + 2]];
+          if (y <= 0.03) continue;
+          const [px, py] = poseTurtleVertex(x, y, z, t);
+          worst = Math.max(worst, Math.hypot(px - x, py - y));
+        }
+        expect(worst, `${name} @${t.toFixed(2)}s`).toBeLessThan(0.005);
+      }
+    }
+  });
+
+  it("あしを回す軸は、3Dモデルの甲羅の外形より外にある（内側にすると甲羅の縁まで羽ばたく）", () => {
+    for (const [name, mesh] of Object.entries(meshes)) {
+      let dome = 0, domeBack = 0;
+      for (let i = 0; i < mesh.pos.length / 3; i++) {
+        const [x, y, z] = [mesh.pos[i * 3], mesh.pos[i * 3 + 1], mesh.pos[i * 3 + 2]];
+        if (y <= 0.03) continue;
+        dome = Math.max(dome, Math.abs(x));
+        if (z < TURTLE_FLIPPERS.rearZoneZ[1]) domeBack = Math.max(domeBack, Math.abs(x));
+      }
+      expect(TURTLE_FLIPPERS.frontEdges[0], `${name} 前あし`).toBeGreaterThan(dome);
+      expect(TURTLE_FLIPPERS.rearEdges[0], `${name} 後ろあし`).toBeGreaterThan(domeBack);
+    }
+  });
+});
+
+describe("シェーダーに書く数", () => {
+  it("丸めずにそのまま書く（丸めると、テストとGPUで違う数で動く）", () => {
+    expect(glslNumber(0.425)).toBe("0.425");
+    expect(glslNumber(3)).toBe("3.0");
+    expect(glslNumber(-0.31)).toBe("-0.31");
+    expect(() => glslNumber(NaN)).toThrow();
+    const glsl = turtleFlipperGlsl();
+    for (const v of Object.values(TURTLE_FLIPPERS).flat()) expect(glsl, String(v)).toContain(glslNumber(v));
+  });
+
+  /**
+   * GLSL の smoothstep は、小さい端を先に渡さないと結果が決まっていない（仕様上は未定義で、GPU によって
+   * 0 や NaN になる）。逆順でも JavaScript の計算やソフトウェアの描画では動いてしまうので、書き方で止める
+   */
+  it("smoothstep の端は、小さい方から渡す", () => {
+    const sources = [readFileSync(new URL("../src/ocean/oceanScene.ts", import.meta.url), "utf8"), turtleFlipperGlsl()];
+    const reversed: string[] = [];
+    for (const src of sources) {
+      for (const m of src.matchAll(/smoothstep\(\s*(-?[0-9.]+)\s*,\s*(-?[0-9.]+)\s*,/g)) {
+        if (Number(m[1]) >= Number(m[2])) reversed.push(m[0]);
+      }
+    }
+    expect(reversed).toEqual([]);
   });
 });

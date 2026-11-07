@@ -176,8 +176,11 @@ function fourChoices(answer: string, given: string[], more: () => string[], fold
     }
   };
   take(given);
-  if (wrong.length < 3) take(more());
-  return shuffle([answer, ...shuffle(wrong).slice(0, 3)]);
+  // AI の誤答が3つより多ければ、その中から3つ選ぶ
+  if (wrong.length >= 3) return shuffle([answer, ...shuffle(wrong).slice(0, 3)]);
+  // 足りなければ、AI の誤答はすべて残し、残りだけを収録語から補う（混ぜてから選ぶと AI の誤答が落ちることがある）
+  take(more());
+  return shuffle([answer, ...wrong.slice(0, 3)]);
 }
 
 /**

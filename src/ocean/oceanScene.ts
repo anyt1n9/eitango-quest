@@ -18,7 +18,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
 import { ANGLER_RADIUS, MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
 import { abundance, depthAlong, type Dweller } from "./depth";
-import { TURTLE_FLIPPERS } from "./turtle";
+import { turtleFlipperGlsl } from "./turtle";
 
 export interface OceanStatus {
   tier: OceanTier;
@@ -450,7 +450,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         uniform float uSeed; varying vec2 vUv; varying float vDist;
         void main() {
           float x = vUv.x, y = vUv.y;
-          float edge = smoothstep(0.0, 0.5, x) * smoothstep(1.0, 0.5, x);
+          float edge = smoothstep(0.0, 0.5, x) * (1.0 - smoothstep(0.5, 1.0, x));
           float shimmer = 0.5 + 0.5 * sin(uTime * 0.55 + uSeed * 17.0) * sin(uTime * 0.31 + uSeed * 29.0 + x * 2.0);
           float streak = 0.65 + 0.35 * sin(x * 14.0 + uSeed * 40.0 + uTime * 0.25);
           float fall = pow(y, 1.8);
@@ -546,7 +546,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
       void main() {
         vec3 p = position;
-        float tail = smoothstep(0.05, -0.3, p.z);
+        float tail = (1.0 - smoothstep(-0.3, 0.05, p.z));
         p.x += sin(uTime * 9.0 + aPhase * 6.2831 - p.z * 9.0) * 0.05 * tail;
         vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
         vWorld = wp.xyz; vSide = normal.y; vLocal = position;
@@ -571,7 +571,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         vec3 col = finalize(throughWater(lit, dist));
         // ...with rows of photophores along the belly that glow blue
         float row = 1.0 - smoothstep(0.012, 0.024, abs(vLocal.y + 0.045));
-        float dots = smoothstep(0.32, 0.12, abs(fract(vLocal.z * 26.0) - 0.5));
+        float dots = (1.0 - smoothstep(0.12, 0.32, abs(fract(vLocal.z * 26.0) - 0.5)));
         col += vec3(0.25, 0.7, 1.0) * row * dots * uLantern * exp(-dist * 0.04) * 1.3;
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -611,7 +611,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         float f = A * pow(s, 1.7) * sin(ph);
         float dfds = A * (1.7 * pow(max(s, 0.001), 0.7) * sin(ph) - 1.9 * pow(s, 1.7) * cos(ph));
         p.y += f;
-        float tail = smoothstep(-0.7, -1.7, p.z);
+        float tail = (1.0 - smoothstep(-1.7, -0.7, p.z));
         p.x += sin(uTime * 2.2 + p.z * 2.5) * 0.06 * tail;
         vec3 n = normal;
         n.x -= sign(p.x) * dfds / uHalfSpan * n.y;
@@ -650,13 +650,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       void main() {
         vec3 p = position; vec3 n = normal;
         float ax = abs(p.x), sx = p.x < 0.0 ? -1.0 : 1.0;
-        float rearZone = smoothstep(${TURTLE_FLIPPERS.rearFrom.toFixed(2)}, ${TURTLE_FLIPPERS.rearTo.toFixed(2)}, p.z)
-          * (1.0 - smoothstep(0.55, 0.65, ax));
-        float front = smoothstep(${TURTLE_FLIPPERS.frontPivot.toFixed(2)}, ${(TURTLE_FLIPPERS.frontPivot + 0.1).toFixed(2)}, ax) * (1.0 - rearZone);
-        float rear = smoothstep(${TURTLE_FLIPPERS.rearPivot.toFixed(2)}, ${(TURTLE_FLIPPERS.rearPivot + 0.08).toFixed(2)}, ax) * rearZone;
-        float ph = uTime * 1.25;
-        float a = front * 0.6 * sin(ph - max(ax - ${TURTLE_FLIPPERS.frontPivot.toFixed(2)}, 0.0) * 1.4) + rear * 0.3 * sin(ph + 1.7);
-        float pivot = rearZone > 0.5 ? ${TURTLE_FLIPPERS.rearPivot.toFixed(2)} : ${TURTLE_FLIPPERS.frontPivot.toFixed(2)};
+${turtleFlipperGlsl()}
         vec2 q = rot(vec2(ax - pivot, p.y), a);
         p.x = sx * (pivot + q.x); p.y = q.y;
         vec2 nq = rot(vec2(n.x * sx, n.y), a);
@@ -684,9 +678,9 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
       void main() {
         vec3 p = position;
-        float k = smoothstep(0.25, -0.98, p.z);
+        float k = (1.0 - smoothstep(-0.98, 0.25, p.z));
         p.x += sin(uTime * 1.9 - p.z * 3.2) * 0.075 * k * k + sin(uTime * 1.9 + 1.4) * 0.01;
-        float pect = smoothstep(0.13, 0.2, abs(p.x)) * smoothstep(0.02, 0.12, p.z) * smoothstep(0.42, 0.3, p.z);
+        float pect = smoothstep(0.13, 0.2, abs(p.x)) * smoothstep(0.02, 0.12, p.z) * (1.0 - smoothstep(0.3, 0.42, p.z));
         p.z -= pect * (0.5 + 0.5 * sin(uTime * 3.0)) * 0.05;
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vWorld = wp.xyz; vColor = aCol;
@@ -708,7 +702,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
       void main() {
         vec3 p = position;
-        float k = smoothstep(0.6, -2.7, p.z);
+        float k = (1.0 - smoothstep(-2.7, 0.6, p.z));
         p.x += sin(uTime * 0.9 - p.z * 1.1) * 0.24 * k * k + sin(uTime * 0.9 + 1.0) * 0.03;
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vWorld = wp.xyz; vColor = aCol;
@@ -733,7 +727,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       varying vec3 vWorld; varying vec3 vN; varying vec3 vColor; varying vec3 vToLure; varying float vLureD;
       void main() {
         vec3 p = position;
-        p.x += sin(uTime * 1.1 - p.z * 4.0) * 0.03 * smoothstep(0.0, -0.5, p.z);
+        p.x += sin(uTime * 1.1 - p.z * 4.0) * 0.03 * (1.0 - smoothstep(-0.5, 0.0, p.z));
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vec3 lure = (modelMatrix * vec4(uLure, 1.0)).xyz;
         vWorld = wp.xyz; vColor = aCol;
@@ -816,7 +810,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       varying vec3 vWorld; varying vec3 vN; varying vec3 vLocal; varying float vKind;
       void main() {
         vec3 p = position;
-        p.x += sin(uTime * 11.0 + aPhase * 6.2831 - p.z * 30.0) * 0.012 * smoothstep(0.0, -0.1, p.z);
+        p.x += sin(uTime * 11.0 + aPhase * 6.2831 - p.z * 30.0) * 0.012 * (1.0 - smoothstep(-0.1, 0.0, p.z));
         vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
         vWorld = wp.xyz; vLocal = position; vKind = aKind;
         vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
