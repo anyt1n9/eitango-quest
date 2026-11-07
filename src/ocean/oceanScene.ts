@@ -16,7 +16,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
-import { MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
+import { ANGLER_RADIUS, MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
 import { abundance, depthAlong, type Dweller } from "./depth";
 
 export interface OceanStatus {
@@ -84,6 +84,7 @@ uniform float uCaustic;
 uniform float uFog;
 uniform float uGlow;
 uniform float uSnow;
+uniform float uLantern;
 
 vec3 sunAt(float d) { return uSun * exp(-uKd * max(d, 0.0)); }
 vec3 waterTint(float d) { return vec3(0.07, 0.42, 0.64) * sunAt(d); }
@@ -369,6 +370,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     uGlow: { value: abundance("glow", startDepth) },
     /** マリンスノー（沈んでいく白い粒）の見えやすさ */
     uSnow: { value: abundance("snow", startDepth) },
+    /** 魚の群れのうちハダカイワシの割合（深いほど 1。黒い体に、腹の発光器を光らせる） */
+    uLantern: { value: abundance("lantern", startDepth) },
   };
   const mat = (o: THREE.ShaderMaterialParameters & { uniforms?: Record<string, THREE.IUniform> }) =>
     new THREE.ShaderMaterial({ ...o, uniforms: { ...U, ...(o.uniforms || {}) } });
@@ -539,29 +542,37 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     vertexShader: `
       uniform float uTime;
       attribute float aPhase;
-      varying vec3 vWorld; varying vec3 vN; varying float vSide;
+      varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
       void main() {
         vec3 p = position;
         float tail = smoothstep(0.05, -0.3, p.z);
         p.x += sin(uTime * 9.0 + aPhase * 6.2831 - p.z * 9.0) * 0.05 * tail;
         vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
-        vWorld = wp.xyz; vSide = normal.y;
+        vWorld = wp.xyz; vSide = normal.y; vLocal = position;
         vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: WATER + `
-      varying vec3 vWorld; varying vec3 vN; varying float vSide;
+      varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
       void main() {
         float d = uDepth - vWorld.y;
         vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
         // dark back, silver belly: how open-water fish hide from above and below
         vec3 alb = mix(vec3(0.85, 0.88, 0.9), vec3(0.1, 0.2, 0.3), smoothstep(-0.15, 0.55, vSide));
+        // lanternfish in the deep: a dark body
+        alb = mix(alb, vec3(0.03, 0.04, 0.06), uLantern);
         vec3 L = sunAt(d);
         vec3 V = normalize(cameraPosition - vWorld);
         vec3 H = normalize(V + vec3(0.0, 1.0, 0.0));
-        float spec = pow(max(dot(n, H), 0.0), 36.0) * 1.8;
+        float spec = pow(max(dot(n, H), 0.0), 36.0) * 1.8 * (1.0 - uLantern);
         vec3 lit = alb * (L * max(n.y * 0.7 + 0.3, 0.0) * 0.9 + waterTint(d) * 0.4) + L * spec;
-        gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
+        float dist = length(vWorld - cameraPosition);
+        vec3 col = finalize(throughWater(lit, dist));
+        // ...with rows of photophores along the belly that glow blue
+        float row = 1.0 - smoothstep(0.012, 0.024, abs(vLocal.y + 0.045));
+        float dots = smoothstep(0.32, 0.12, abs(fract(vLocal.z * 26.0) - 0.5));
+        col += vec3(0.25, 0.7, 1.0) * row * dots * uLantern * exp(-dist * 0.04) * 1.3;
+        gl_FragColor = vec4(col, 1.0);
       }`,
   }));
   const MAX_FISH = TIERS.high.fish;
@@ -679,6 +690,99 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     fragmentShader: CREATURE_FRAG,
   }));
   const wrasseLods: (THREE.Mesh | undefined)[] = [];
+
+  /* ---- whale shark (model from Blender; the tail sweeps slowly here) ---- */
+  const whaleshark = new THREE.Group();
+  scene.add(whaleshark);
+  const whalesharkMat = track(mat({
+    side: THREE.DoubleSide,
+    vertexShader: `
+      uniform float uTime;
+      attribute vec3 aCol;
+      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+      void main() {
+        vec3 p = position;
+        float k = smoothstep(0.6, -2.7, p.z);
+        p.x += sin(uTime * 0.9 - p.z * 1.1) * 0.24 * k * k + sin(uTime * 0.9 + 1.0) * 0.03;
+        vec4 wp = modelMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz; vColor = aCol;
+        vN = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: CREATURE_FRAG,
+  }));
+  const whalesharkLods: (THREE.Mesh | undefined)[] = [];
+
+  /* ---- deep-sea anglerfish (model from Blender; the lure glows and lights its own face) ---- */
+  // 提灯の位置は scripts/blender/make_ocean_assets.py の ANGLER_LURE_AT（Blender の (x, y, z) → glTF の (x, z, -y)）
+  const ANGLER_LURE = new THREE.Vector3(0, 0.58, 0.62);
+  const LURE_COLOR = new THREE.Vector3(0.45, 0.9, 1.0);
+  const angler = new THREE.Group();
+  scene.add(angler);
+  const anglerMat = track(mat({
+    uniforms: { uLure: { value: ANGLER_LURE }, uLureColor: { value: LURE_COLOR } },
+    vertexShader: `
+      uniform float uTime; uniform vec3 uLure;
+      attribute vec3 aCol;
+      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor; varying vec3 vToLure; varying float vLureD;
+      void main() {
+        vec3 p = position;
+        p.x += sin(uTime * 1.1 - p.z * 4.0) * 0.03 * smoothstep(0.0, -0.5, p.z);
+        vec4 wp = modelMatrix * vec4(p, 1.0);
+        vec3 lure = (modelMatrix * vec4(uLure, 1.0)).xyz;
+        vWorld = wp.xyz; vColor = aCol;
+        vToLure = lure - wp.xyz; vLureD = length(position - uLure);
+        vN = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: WATER + `
+      uniform vec3 uLureColor;
+      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor; varying vec3 vToLure; varying float vLureD;
+      void main() {
+        float d = uDepth - vWorld.y;
+        vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+        float pulse = 0.75 + 0.25 * sin(uTime * 1.3);
+        float r = length(vToLure);
+        // the lure is the only light down here: it lights the face and the teeth in front of it
+        vec3 byLure = uLureColor * pulse * 3.5 * max(dot(n, vToLure / max(r, 1e-3)), 0.0) / (1.0 + r * r * 6.0);
+        vec3 lit = vColor * (sunAt(d) * (0.25 + 0.75 * max(n.y, 0.0)) + waterTint(d) * 0.4 + byLure);
+        float dist = length(vWorld - cameraPosition);
+        vec3 col = finalize(throughWater(lit, dist));
+        // the lure itself (a sphere of radius 0.05 around uLure) shines
+        col += uLureColor * pulse * (1.0 - smoothstep(0.06, 0.09, vLureD)) * 1.4;
+        gl_FragColor = vec4(col, 1.0);
+      }`,
+  }));
+  const anglerLods: (THREE.Mesh | undefined)[] = [];
+  // 提灯のまわりの光のにじみ（1点を大きく描く。加算なので暗い海でだけ目立つ）
+  const haloGeo = track(new THREE.BufferGeometry());
+  haloGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array([ANGLER_LURE.x, ANGLER_LURE.y, ANGLER_LURE.z]), 3));
+  const haloMat = track(mat({
+    uniforms: { uPR: { value: 1 }, uLureColor: { value: LURE_COLOR } },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `
+      uniform float uPR;
+      varying float vDist;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vDist = -mv.z;
+        gl_PointSize = uPR * 520.0 / max(vDist, 1.0);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: WATER + `
+      uniform vec3 uLureColor;
+      varying float vDist;
+      void main() {
+        vec2 q = gl_PointCoord * 2.0 - 1.0; float r2 = dot(q, q); if (r2 > 1.0) discard;
+        float pulse = 0.75 + 0.25 * sin(uTime * 1.3);
+        vec3 c = uLureColor * pulse * (exp(-r2 * 5.0) * 0.6 + exp(-r2 * 40.0) * 1.2) * exp(-vDist * 0.02);
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  }));
+  const halo = new THREE.Points(haloGeo, haloMat);
+  halo.frustumCulled = false;
+  halo.renderOrder = 3;
+  angler.add(halo);
 
   /* ---- reef fish (made here: small, flat, bright fish that stay around a coral head) ---- */
   // チョウチョウウオ（黄色・目を通る黒い帯）とデバスズメダイ（淡い青緑）。群れで泳ぎ回らず、
@@ -894,6 +998,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     creature("manta", mantaMat, manta, mantaLods);
     creature("turtle", turtleMat, turtle, turtleLods);
     creature("wrasse", wrasseMat, wrasse, wrasseLods);
+    creature("whaleshark", whalesharkMat, whaleshark, whalesharkLods);
+    creature("angler", anglerMat, angler, anglerLods);
     // 熱帯魚が住むサンゴ：枝サンゴとノウサンゴの、どの画質でもサンゴ礁で見えている先頭の数本のうち、手前のもの
     const homes: THREE.Vector3[] = [];
     for (const r of reef) {
@@ -931,7 +1037,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     resize();
     pMat.uniforms.uPR.value = q.pixelRatio;
     pGeo.setDrawRange(0, q.particles);
-    for (const lods of [mantaLods, turtleLods, wrasseLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
+    for (const lods of [mantaLods, turtleLods, wrasseLods, whalesharkLods, anglerLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
+    haloMat.uniforms.uPR.value = q.pixelRatio;
     applyHabitat();
     sample.start = 0;
   }
@@ -965,6 +1072,9 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     manta.visible = abundance("manta", d) >= 0.5;
     turtle.visible = abundance("turtle", d) >= 0.5;
     wrasse.visible = abundance("wrasse", d) >= 0.5;
+    whaleshark.visible = abundance("whaleshark", d) >= 0.5;
+    // 提灯は3Dモデルを読んでから（体が無いのに光だけ浮かないように）
+    angler.visible = abundance("angler", d) >= 0.5 && anglerLods.length > 0;
     reefFish.count = Math.min(MAX_REEF_FISH, Math.round(q.reefFish * abundance("reeffish", d)));
     // 光の筋と水底の光の網目は、届かなくなった深さでは描かない（見えないのに重さだけ残る）
     rays.forEach((ray, i) => { ray.visible = i < q.rays && d < 150; });
@@ -977,6 +1087,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     U.uExposure.value = exposureFor(d);
     U.uGlow.value = abundance("glow", d);
     U.uSnow.value = abundance("snow", d);
+    U.uLantern.value = abundance("lantern", d);
     applyHabitat();
   }
   function finishDescent() {
@@ -1041,7 +1152,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       vx.crossVectors(up, vz).normalize();
       vy.crossVectors(vz, vx);
       m4.makeBasis(vx, vy, vz);
-      sv.setScalar(fScale[i]);
+      sv.setScalar(fScale[i] * (1 - 0.3 * U.uLantern.value));   // ハダカイワシはイワシより小さい
       m4.scale(sv);
       m4.setPosition(fPos[ix], fPos[ix + 1], fPos[ix + 2]);
       fish.setMatrixAt(i, m4);
@@ -1091,6 +1202,24 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     wrasse.position.set(Math.cos(th) * rx, -2.3 + Math.sin(th * 3) * 0.15, -9 + Math.sin(th) * 2);
     wrasse.scale.setScalar(1.3);
     face(wrasse, -Math.sin(th) * rx, Math.cos(th * 3) * 0.45, Math.cos(th) * 2, 0);
+  }
+
+  // ジンベエザメは体が大きいので遠くを、とてもゆっくり回る（1周110秒）
+  function updateWhaleshark(t: number) {
+    const th = t * ((2 * Math.PI) / 110) + 2.2;
+    const rx = WHALESHARK_RADIUS * spread;
+    whaleshark.position.set(Math.cos(th) * rx, -1.4 + Math.sin(th * 2) * 0.4, -14 + Math.sin(th) * 3);
+    whaleshark.scale.setScalar(1.25);
+    face(whaleshark, -Math.sin(th) * rx, Math.cos(th * 2) * 0.8, Math.cos(th) * 3, 0);
+  }
+
+  // チョウチンアンコウはほとんど泳がず、手前をゆっくり漂う（1周150秒）。見えるのは提灯と、その光が当たる顔
+  function updateAngler(t: number) {
+    const th = t * ((2 * Math.PI) / 150) + 1.0;
+    const rx = ANGLER_RADIUS * spread;
+    angler.position.set(Math.cos(th) * rx, -2.0 + Math.sin(th * 2) * 0.3 + Math.sin(t * 0.6) * 0.05, -7 + Math.sin(th) * 1.5);
+    angler.scale.setScalar(1.1);
+    face(angler, -Math.sin(th) * rx, Math.cos(th * 2) * 0.6, Math.cos(th) * 1.5, 0);
   }
 
   // 熱帯魚は群れで泳ぎ回らず、それぞれ住むサンゴのまわりを、高さと速さを少しずつ変えて回る
@@ -1199,6 +1328,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     updateManta(time);
     updateTurtle(time);
     updateWrasse(time);
+    updateWhaleshark(time);
+    updateAngler(time);
     updateFish(dt, time);
     updateReefFish(time);
     updateJelly(dt, time);
@@ -1270,6 +1401,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   updateManta(0);
   updateTurtle(0);
   updateWrasse(0);
+  updateWhaleshark(0);
+  updateAngler(0);
   updateReefFish(0);
   updateJelly(0, 0);
   refresh();

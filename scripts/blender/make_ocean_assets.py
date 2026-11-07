@@ -16,6 +16,8 @@
   seagrass   … 海草の株（リュウキュウスガモのような細い葉）
   turtle     … アオウミガメ。前あしの羽ばたきは three.js 側で付ける（|x| > 0.4 が前あし）
   wrasse     … メガネモチノウオ（ナポレオンフィッシュ）。体をくねらせる動きは three.js 側
+  whaleshark … ジンベエザメ。尾を振る動きは three.js 側
+  angler     … チョウチンアンコウ。提灯（ANGLER_LURE_AT）を光らせるのは three.js 側
 色は頂点ごとに持つ（材質や画像は使わない）。--preview を付けると Cycles で確認用の画像も描き出す。
 """
 import bpy, bmesh, math, random, sys, os
@@ -648,6 +650,169 @@ def build_wrasse():
     return make_lods(ob, 'wrasse')
 
 
+def body_of_rings(bm, L, NT, NA, tops, bots, wids, square=0.8, nose_ahead=0.0):
+    """前後に並べた断面（上・下・幅）をつないだ体。前が -Y。断面は少し角ばらせる（square < 1）"""
+    rings = []
+    for i in range(NT):
+        y = -L + 2 * L * i / (NT - 1)
+        mid, half, w = (tops[i] + bots[i]) / 2, (tops[i] - bots[i]) / 2, wids[i]
+        row = []
+        for k in range(NA):
+            a = 2 * math.pi * k / NA
+            c, s = math.cos(a), math.sin(a)
+            row.append(bm.verts.new((w * math.copysign(abs(c) ** square, c), y, mid + half * math.copysign(abs(s) ** square, s))))
+        rings.append(row)
+    for i in range(NT - 1):
+        for k in range(NA):
+            bm.faces.new((rings[i][k], rings[i + 1][k], rings[i + 1][(k + 1) % NA], rings[i][(k + 1) % NA]))
+    nose = bm.verts.new((0, -L - nose_ahead, (tops[0] + bots[0]) / 2))
+    for k in range(NA):
+        bm.faces.new((nose, rings[0][k], rings[0][(k + 1) % NA]))
+    bm.faces.new(rings[-1])
+    return [v for r in rings for v in r] + [nose]
+
+
+# ---------------------------------------------------------------- whale shark
+SHARK_BODY, SHARK_FIN = 0, 1
+
+
+def build_whaleshark():
+    """ジンベエザメ。前が -Y（glTF で +Z）、上が +Z。体は y -1.6〜+1.6、尾びれはその後ろ。
+    平たく幅の広い頭と、横一文字の大きな口。背は濃い灰青に白い点と淡い格子、腹は白い"""
+    L, NT, NA = 1.6, 64, 32
+    tops = taper(NT, [(0, 0.13), (0.08, 0.25), (0.22, 0.42), (0.38, 0.5), (0.55, 0.42), (0.75, 0.26), (0.92, 0.12), (1, 0.1)])
+    bots = taper(NT, [(0, -0.1), (0.08, -0.22), (0.25, -0.38), (0.42, -0.42), (0.6, -0.32), (0.8, -0.18), (0.93, -0.08), (1, -0.07)])
+    wids = taper(NT, [(0, 0.38), (0.06, 0.5), (0.2, 0.58), (0.38, 0.6), (0.6, 0.42), (0.8, 0.22), (0.93, 0.09), (1, 0.08)])
+    bm = bmesh.new()
+    part = bm.verts.layers.int.new('part')
+    tagged(bm, body_of_rings(bm, L, NT, NA, tops, bots, wids, square=0.7, nose_ahead=0.03), part, SHARK_BODY)
+
+    def y_at(t):
+        return -L + 2 * L * t
+
+    def top_at(t):
+        return tops[min(int(round(t * (NT - 1))), NT - 1)]
+
+    vert, flat = Vector((1, 0, 0)), Vector((0, 0, 1))
+    mid_tail = (tops[-1] + bots[-1]) / 2
+    fins = []
+    # 第1背びれ（大きな三角）と第2背びれ（小さい）。付け根は体に埋める
+    # ふつうのサメに見えないよう、背びれは低めにする（体の大きさと平たい頭・白い点で見分けさせる）
+    for t0, h, base in ((0.5, 0.44, 0.44), (0.8, 0.18, 0.16)):
+        y0 = y_at(t0)
+        path = [Vector((0, y0 + base * 0.5 * s, top_at(t0) - 0.04 + h * s)) for s in (i / 9 for i in range(10))]
+        fins += loft(bm, path, taper(10, [(0, base / 2), (0.7, base * 0.22), (1, 0.02)]), [0.03] * 10, vert)
+    # 尾びれ：上の葉が長い三日月形（縦の板）
+    root = Vector((0, L - 0.05, mid_tail))
+    for tip, ctrl, chord in ((Vector((0, L + 0.95, mid_tail + 0.85)), Vector((0, L + 0.3, mid_tail + 0.3)), 0.2),
+                             (Vector((0, L + 0.6, mid_tail - 0.62)), Vector((0, L + 0.2, mid_tail - 0.2)), 0.15)):
+        path = bezier(root, ctrl, tip, 10)
+        fins += loft(bm, path, taper(10, [(0, chord), (0.5, chord * 0.7), (1, 0.015)]), [0.035] * 10, vert)
+    # 胸びれ：大きく、横へ張り出して後ろへ流れる（水平な板）
+    for sx in (1, -1):
+        path = bezier(Vector((0.5 * sx, y_at(0.3), -0.25)), Vector((1.05 * sx, y_at(0.36), -0.42)), Vector((1.35 * sx, y_at(0.52), -0.55)), 10)
+        fins += loft(bm, path, taper(10, [(0, 0.26), (0.4, 0.2), (1, 0.03)]), taper(10, [(0, 0.05), (1, 0.012)]), flat)
+        path = bezier(Vector((0.18 * sx, y_at(0.72), -0.2)), Vector((0.3 * sx, y_at(0.76), -0.27)), Vector((0.36 * sx, y_at(0.82), -0.3)), 6)
+        fins += loft(bm, path, taper(6, [(0, 0.08), (1, 0.02)]), [0.02] * 6, flat)
+    tagged(bm, fins, part, SHARK_FIN)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = from_bmesh('whaleshark', bm)
+    smooth(ob)
+    ao = ambient_occlusion(ob, 0.5)
+    back, belly, spot = (0.006, 0.014, 0.025), (0.5, 0.51, 0.49), (0.6, 0.64, 0.64)
+
+    def color(p, co, n):
+        t = (co.y + L) / (2 * L)
+        # 背中側か腹側か（法線の向きと、高さ）
+        upper = smoothstep(-0.65, -0.15, n.z) * smoothstep(-0.36, -0.16, co.z)
+        if p == SHARK_FIN:
+            return mix(belly, back, max(upper, smoothstep(-0.2, 0.2, n.z)))
+        # 頭は細かい白い点だけ、体は淡い縦横の線で区切った格子の中に白い点。境目はなだらかに移す
+        body_w = smoothstep(0.17, 0.27, t)
+        cell = noise.voronoi(Vector((co.x * 9, co.y * 9, co.z * 9)))[0]
+        head_spots = (1 - smoothstep(0.14, 0.22, cell[0])) * 0.9
+        gy, gz = co.y / 0.2, co.z / 0.14
+        line = max(smoothstep(0.43, 0.48, abs((gy % 1.0) - 0.5)), smoothstep(0.41, 0.47, abs((gz % 1.0) - 0.5)))
+        d = math.hypot((gy % 1.0) - 0.5, (gz % 1.0) - 0.5)
+        body_spots = max(line * 0.4, (1 - smoothstep(0.19, 0.25, d)) * 0.95)
+        c = mix(back, spot, head_spots * (1 - body_w) + body_spots * body_w)
+        c = mix(belly, c, upper)
+        # 横一文字の口と、えらの5本の切れ込み
+        if t < 0.04 and -0.02 < co.z < 0.02:
+            c = mix(c, (0.01, 0.01, 0.01), 0.9)
+        if 0.16 < t < 0.27 and abs(co.x) > 0.3 and -0.2 < co.z < 0.25 and ((t - 0.16) / 0.022) % 1.0 < 0.18:
+            c = mix(c, (0.005, 0.01, 0.015), 0.85)
+        return c
+
+    paint_parts(ob, color, ao)
+    return make_lods(ob, 'whaleshark')
+
+
+# ---------------------------------------------------------------- deep-sea anglerfish
+ANGLER_BODY, ANGLER_LURE, ANGLER_TOOTH = 0, 1, 2
+# 提灯（エスカ）の位置。Blender の座標（glTF では (x, z, -y) になる）。three.js 側の光の位置と合わせる
+ANGLER_LURE_AT = Vector((0, -0.62, 0.58))
+
+
+def build_angler():
+    """チョウチンアンコウ。前が -Y、上が +Z。丸い体と大きな口、頭から伸びる竿の先に提灯。
+    体は暗い色で、深海では提灯の光が当たる顔のまわりだけが見える（光らせるのは three.js 側）"""
+    bm = bmesh.new()
+    part = bm.verts.layers.int.new('part')
+    body = bmesh.ops.create_uvsphere(bm, u_segments=40, v_segments=24, radius=1.0)['verts']
+    for v in body:
+        x, y, z = v.co
+        r = 0.36
+        q = Vector((x * r * 0.82, y * r, z * r * 0.92))
+        # 下あごが前へ突き出し、口が上を向いて開く
+        if y < 0 and z < 0.15:
+            q.y -= 0.12 * (-y) * smoothstep(0.15, -0.6, z)
+        q.y += 0.25 * max(0.0, y) ** 2                      # 後ろへ細くなる
+        q.z -= 0.08 * max(0.0, y) ** 2
+        v.co = q
+    tagged(bm, body, part, ANGLER_BODY)
+    # 尾びれ
+    tail = loft(bm, [Vector((0, 0.35 + 0.05 * i, -0.04)) for i in range(6)], taper(6, [(0, 0.06), (1, 0.16)]), [0.012] * 6, Vector((1, 0, 0)))
+    tagged(bm, tail, part, ANGLER_BODY)
+    # 竿（イリシウム）と提灯（エスカ）
+    rod = bezier(Vector((0, -0.2, 0.3)), Vector((0, -0.32, 0.72)), ANGLER_LURE_AT + Vector((0, 0.02, 0.0)), 10)
+    tagged(bm, loft(bm, rod, [0.012] * 10, [0.012] * 10, Vector((1, 0, 0)), ring=6), part, ANGLER_BODY)
+    lure = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.05, matrix=Matrix.Translation(ANGLER_LURE_AT))['verts']
+    tagged(bm, lure, part, ANGLER_LURE)
+    # 歯：口の縁に並ぶ細い円錐
+    for k in range(14):
+        a = math.pi * (0.15 + 0.7 * k / 13)
+        x, z0 = math.cos(a) * 0.24, -0.02
+        # 円錐は +Z 向きに尖る。上あごの歯は下へ、下あごの歯は上へ向ける
+        for down, zz in ((True, z0 + 0.03), (False, z0 - 0.05)):
+            turn = Matrix.Rotation(math.pi, 4, 'X') if down else Matrix.Identity(4)
+            tooth = bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=True, segments=5, radius1=0.012, radius2=0.0, depth=0.07,
+                                          matrix=Matrix.Translation((x, -0.4 + abs(x) * 0.25, zz)) @ turn)['verts']
+            tagged(bm, tooth, part, ANGLER_TOOTH)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = from_bmesh('angler', bm)
+    smooth(ob)
+    ao = ambient_occlusion(ob, 0.25)
+
+    def color(p, co, n):
+        if p == ANGLER_LURE:
+            return (0.9, 0.95, 0.85)
+        if p == ANGLER_TOOTH:
+            return (0.75, 0.72, 0.62)
+        c = mix((0.03, 0.022, 0.018), (0.06, 0.04, 0.03), smoothstep(-0.3, 0.6, noise.noise(co * 14) * 0.5 + 0.5))
+        # 口の中は赤黒い
+        if co.y < -0.28 and -0.09 < co.z < 0.06:
+            c = mix(c, (0.06, 0.005, 0.01), 0.8)
+        # 小さな目
+        for ex in (0.17, -0.17):
+            if (co - Vector((ex, -0.22, 0.15))).length < 0.035:
+                c = (0.25, 0.25, 0.2)
+        return c
+
+    paint_parts(ob, color, ao)
+    return make_lods(ob, 'angler')
+
+
 # ---------------------------------------------------------------- build all
 groups = {
     'manta': build_manta(),
@@ -660,6 +825,8 @@ groups = {
     'seagrass': build_seagrass('seagrass', 13),
     'turtle': build_turtle(),
     'wrasse': build_wrasse(),
+    'whaleshark': build_whaleshark(),
+    'angler': build_angler(),
 }
 for base, obs in groups.items():
     print(base, [tri_count(o) for o in obs])

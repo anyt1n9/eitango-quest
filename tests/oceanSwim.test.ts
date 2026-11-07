@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { MANTA_RADIUS, SWIM_SPREAD_MAX, TURTLE_RADIUS, WRASSE_RADIUS, swimSpread } from "../src/ocean/swim";
+import {
+  ANGLER_RADIUS, MANTA_RADIUS, SWIM_SPREAD_MAX, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread
+} from "../src/ocean/swim";
 
 /**
  * 生き物が泳ぐ範囲の横の広がり（src/ocean/swim.ts）。
@@ -25,8 +27,11 @@ function pathEdge(width: number, height: number, radius: number, distance: numbe
   };
 }
 const mantaEdge = (w: number, h: number) => pathEdge(w, h, MANTA_RADIUS, CAMERA_TO_MANTA);
-/** ウミガメの輪の中心は z=-7、ナポレオンフィッシュは z=-9（oceanScene.ts の updateTurtle / updateWrasse） */
-const CREATURES = [["ウミガメ", TURTLE_RADIUS, 3 - -7], ["ナポレオンフィッシュ", WRASSE_RADIUS, 3 - -9]] as const;
+/** 輪の中心の深さ（oceanScene.ts の updateTurtle / updateWrasse / updateWhaleshark / updateAngler） */
+const CREATURES = [
+  ["ウミガメ", TURTLE_RADIUS, 3 - -7], ["ナポレオンフィッシュ", WRASSE_RADIUS, 3 - -9],
+  ["ジンベエザメ", WHALESHARK_RADIUS, 3 - -14], ["チョウチンアンコウ", ANGLER_RADIUS, 3 - -7]
+] as const;
 
 describe("泳ぐ範囲の広がり", () => {
   it("スマホ・タブレットの縦では広げない（カードが幅いっぱいで、余白が無い）", () => {
