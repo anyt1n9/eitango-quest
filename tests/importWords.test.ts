@@ -176,6 +176,14 @@ describe("取り込んだ単語を整える", () => {
    * 同じ選択肢が並ぶ（どれを押しても正解になる）四択や、五択・六択がそのまま保存された（#123）
    */
   it("同じ選択肢が並ばず、ちょうど4つになる（重複は除き、足りない誤答は収録語から補う）", () => {
+    // AI の誤答（別の訳）は残す。収録語の誤答と混ぜてから選んでいたときは、並べ替えしだいで AI の誤答が落ちていた
+    // （3回に1回ほど）。1回では見逃すので30回試す（落ちる作りなら、30回とも残る見込みは100万分の1ほど）
+    for (let k = 0; k < 30; k++) {
+      const again = normalizeImportedWord(
+        { word: "achieve", translation: "達成する", options: ["達成する", "別の訳", "達成する"] }, "ai", k, POOL
+      );
+      expect(again!.options, `${k}回目`).toContain("別の訳");
+    }
     const w = normalizeImportedWord(
       { word: "achieve", translation: "達成する", options: ["達成する", "達成する", " 達成する ", "別の訳"] }, "ai", 0, POOL
     );
