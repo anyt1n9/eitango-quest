@@ -12,7 +12,8 @@ import {
  */
 
 const DWELLERS: Dweller[] = [
-  "seagrass", "staghorn", "brain", "fan", "rock", "manta", "fish", "turtle", "reeffish", "wrasse", "jelly", "glow", "snow"
+  "seagrass", "staghorn", "brain", "fan", "rock", "manta", "fish", "turtle", "reeffish", "wrasse", "whaleshark", "lantern",
+  "angler", "jelly", "glow", "snow"
 ];
 /** 1匹で泳ぐもの（oceanScene.ts と同じく、量が半分を超える深さで出す） */
 const shown = (k: Dweller, d: number) => abundance(k, d) >= 0.5;
@@ -94,10 +95,13 @@ describe("深さごとに住む生き物", () => {
     expect(abundance("brain", 90)).toBe(0);
   });
 
-  it("マンタと魚の群れは沖まで、クラゲと生き物の光は深い所から", () => {
+  it("マンタは沖まで、クラゲと生き物の光は深い所から。魚の群れは深い所ではハダカイワシになる", () => {
     expect(abundance("manta", 35)).toBeGreaterThanOrEqual(0.5);
     expect(abundance("manta", 90)).toBeLessThan(0.5);
-    expect(abundance("fish", 250)).toBe(0);
+    // 銀色の群れは日の光が消える深さでハダカイワシ（体を光らせる）に入れ替わり、深海にも残る
+    expect(abundance("lantern", depthOf("offshore"))).toBe(0);
+    expect(abundance("lantern", depthOf("twilight"))).toBe(1);
+    expect(abundance("fish", depthOf("deep"))).toBeGreaterThan(0);
     expect(abundance("jelly", 8)).toBe(0);
     expect(abundance("jelly", 90)).toBe(1);
     expect(abundance("glow", 35)).toBe(0);
@@ -115,6 +119,22 @@ describe("深さごとに住む生き物", () => {
     expect(shown("wrasse", depthOf("slope"))).toBe(true);
     expect(shown("wrasse", depthOf("offshore"))).toBe(true);
     expect(shown("wrasse", depthOf("twilight"))).toBe(false);
+  });
+
+  it("深い側の段ごとの主役：沖はジンベエザメ、深海はチョウチンアンコウ", () => {
+    expect(shown("whaleshark", depthOf("slope"))).toBe(false);
+    expect(shown("whaleshark", depthOf("offshore"))).toBe(true);
+    expect(shown("whaleshark", depthOf("twilight"))).toBe(false);
+    expect(shown("angler", depthOf("twilight"))).toBe(false);
+    expect(shown("angler", depthOf("deep"))).toBe(true);
+  });
+
+  it("どの段にも、1匹で泳ぐ主役か、その段から増えるものがいる", () => {
+    const solo: Dweller[] = ["turtle", "wrasse", "whaleshark", "angler"];
+    for (const stage of DEPTH_STAGES) {
+      const lead = solo.some(k => shown(k, stage.depth)) || abundance("reeffish", stage.depth) === 1 || abundance("lantern", stage.depth) === 1;
+      expect(lead, stage.name).toBe(true);
+    }
   });
 
   it("どの段にも、前の段とはっきり違うものがある（潜っても見た目が変わらない段を作らない）", () => {

@@ -58,17 +58,17 @@ export const DEPTH_STAGES: readonly DepthStage[] = [
   },
   {
     id: "offshore", name: "沖", depth: 35, minMastered: 500,
-    scene: "青だけが残る海。岩とウミウチワ、クラゲが漂いはじめる",
+    scene: "青だけが残る海。ジンベエザメがゆっくり横切り、クラゲが漂いはじめる",
     gradient: ["#0e74a3", "#05468a", "#021a3a"],
   },
   {
     id: "twilight", name: "薄明の海", depth: 90, minMastered: 1500,
-    scene: "日の光がわずかに届く暗い青。マリンスノーと光るクラゲ",
+    scene: "日の光がわずかに届く暗い青。体を光らせるハダカイワシの群れと光るクラゲ",
     gradient: ["#061679", "#030c52", "#01041f"],
   },
   {
     id: "deep", name: "深海", depth: 250, minMastered: 3500,
-    scene: "日の光の届かない海。生き物の光だけが灯る",
+    scene: "日の光の届かない海。チョウチンアンコウの提灯と、生き物の光だけが灯る",
     gradient: ["#03040f", "#010108", "#000003"],
   },
 ];
@@ -160,7 +160,7 @@ export function oceanGradientCss(depth: number): string {
  */
 export type Dweller =
   | "seagrass" | "staghorn" | "brain" | "fan" | "rock"
-  | "manta" | "fish" | "turtle" | "reeffish" | "wrasse" | "jelly" | "glow" | "snow";
+  | "manta" | "fish" | "turtle" | "reeffish" | "wrasse" | "whaleshark" | "lantern" | "angler" | "jelly" | "glow" | "snow";
 
 /** [水深, 量] の点を、水深の対数で直線につなぐ */
 const HABITAT: Record<Dweller, readonly (readonly [number, number])[]> = {
@@ -176,7 +176,14 @@ const HABITAT: Record<Dweller, readonly (readonly [number, number])[]> = {
   reeffish: [[3, 0.45], [8, 1], [18, 0.5], [30, 0]],
   // ナポレオンフィッシュ（メガネモチノウオ）は礁の斜面から沖。浅いサンゴ礁には出さない（段ごとの主役を分ける）
   wrasse: [[8, 0], [14, 0.7], [18, 1], [35, 0.75], [60, 0]],
-  fish: [[3, 1], [35, 1], [90, 0.3], [180, 0]],
+  // ジンベエザメは沖の主役。礁の斜面には来ない
+  whaleshark: [[18, 0], [26, 0.6], [35, 1], [55, 0.6], [80, 0]],
+  // チョウチンアンコウは深海だけ
+  angler: [[90, 0], [150, 0.6], [250, 1]],
+  // 魚の群れ。浅い所ではイワシのような銀色の群れ、深い所ではハダカイワシの群れ（lantern で光らせる）
+  fish: [[3, 1], [35, 1], [90, 0.75], [250, 0.4]],
+  // 群れのうちハダカイワシの割合（0＝銀色の群れ、1＝体を光らせる黒い群れ）。日の光が消える深さで入れ替わる
+  lantern: [[35, 0], [70, 1]],
   jelly: [[12, 0], [18, 0.25], [35, 0.6], [90, 1], [250, 1]],
   glow: [[35, 0], [90, 0.55], [250, 1]],
   snow: [[8, 0], [35, 0.4], [90, 1], [250, 1]],

@@ -27,3 +27,7 @@ export const SCHOOL_SWAY = 6;
 export const TURTLE_RADIUS = 5;
 /** ナポレオンフィッシュが行き来する横の幅（広がりが 1 のとき）。輪の中心は z=-9。横から見える向きで泳ぐ */
 export const WRASSE_RADIUS = 6;
+/** ジンベエザメが回る輪の横の半径（広がりが 1 のとき）。体が大きいので遠く（輪の中心は z=-14）を回る */
+export const WHALESHARK_RADIUS = 8;
+/** チョウチンアンコウが漂う横の幅（広がりが 1 のとき）。輪の中心は z=-7。暗い海で提灯だけが動いて見える */
+export const ANGLER_RADIUS = 4.5;
