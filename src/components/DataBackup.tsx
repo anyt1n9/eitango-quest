@@ -83,6 +83,13 @@ export default function DataBackup({ dailyGoal, setDailyGoal, onBackToDashboard 
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
+    // 読み込みそのものの失敗（ファイルが移された・消された、クラウドのファイルを取れなかった、権限が無くなった）。
+    // onload しか置いていなかったときは何も表示されず、復元できたのか押せていないのか分からなかった。
+    // 選んだファイルも空にする（残っていると、同じファイルを選び直しても change が起きず、やり直せない）（#121）
+    reader.onerror = reader.onabort = () => {
+      setMessage({ type: "error", text: "ファイルを読み込めませんでした。もう一度選び直してください。" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
     reader.onload = () => {
       try {
         const parsed = JSON.parse(String(reader.result));

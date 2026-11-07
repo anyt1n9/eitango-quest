@@ -65,7 +65,7 @@ export default function GachaShop({
    * 先に当たった新アイテムを**消した状態**で上書きしていた。
    * ポイントは関数形の更新で両方きちんと引かれるので、
    * 「払ったのに片方の排出物が残らない」という取り返しのつかない形になる。
-   * ログインボーナス（Dashboard の claimingRef）と同じ作りで塞ぐ。
+   * ログインボーナス（Records の claimedDayRef）と同じ作りで塞ぐ。
    */
   const pullingRef = useRef(false);
 
