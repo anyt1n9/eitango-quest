@@ -11,7 +11,12 @@ import {
  * 見え方そのもの（色・明るさ）は、描いた画面で確かめた（CLAUDE.md の「海の深さ」）。
  */
 
-const DWELLERS: Dweller[] = ["seagrass", "staghorn", "brain", "fan", "rock", "manta", "fish", "jelly", "glow", "snow"];
+const DWELLERS: Dweller[] = [
+  "seagrass", "staghorn", "brain", "fan", "rock", "manta", "fish", "turtle", "reeffish", "wrasse", "jelly", "glow", "snow"
+];
+/** 1匹で泳ぐもの（oceanScene.ts と同じく、量が半分を超える深さで出す） */
+const shown = (k: Dweller, d: number) => abundance(k, d) >= 0.5;
+const depthOf = (id: string) => DEPTH_STAGES.find(s => s.id === id)!.depth;
 
 describe("深さの段", () => {
   it("深くなるほど、要る語数も増える（最初の段は0語から）", () => {
@@ -97,6 +102,19 @@ describe("深さごとに住む生き物", () => {
     expect(abundance("jelly", 90)).toBe(1);
     expect(abundance("glow", 35)).toBe(0);
     expect(abundance("glow", 250)).toBe(1);
+  });
+
+  it("浅い側の段ごとの主役：浅瀬とサンゴ礁はウミガメ、サンゴ礁は熱帯魚、礁の斜面と沖はナポレオンフィッシュ", () => {
+    expect(shown("turtle", depthOf("shallows"))).toBe(true);
+    expect(shown("turtle", depthOf("reef"))).toBe(true);
+    expect(shown("turtle", depthOf("slope"))).toBe(false);
+    expect(abundance("reeffish", depthOf("reef"))).toBe(1);
+    expect(abundance("reeffish", depthOf("offshore"))).toBe(0);
+    // 段ごとに主役を分ける：ナポレオンフィッシュは浅いサンゴ礁には出さない
+    expect(shown("wrasse", depthOf("reef"))).toBe(false);
+    expect(shown("wrasse", depthOf("slope"))).toBe(true);
+    expect(shown("wrasse", depthOf("offshore"))).toBe(true);
+    expect(shown("wrasse", depthOf("twilight"))).toBe(false);
   });
 
   it("どの段にも、前の段とはっきり違うものがある（潜っても見た目が変わらない段を作らない）", () => {

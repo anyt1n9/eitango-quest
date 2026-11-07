@@ -20,3 +20,10 @@ export function swimSpread(aspect: number): number {
 export const MANTA_RADIUS = 7;
 /** 魚の群れが左右に行き来する幅（広がりが 1 のとき 6） */
 export const SCHOOL_SWAY = 6;
+/**
+ * ウミガメが回る輪の横の半径（広がりが 1 のとき）。マンタより手前（輪の中心は z=-7）の低い所を、ゆっくり回る。
+ * 甲羅は長さ1mほどで、手前を通るので小さすぎず、カードの列の外の余白にも出る
+ */
+export const TURTLE_RADIUS = 5;
+/** ナポレオンフィッシュが行き来する横の幅（広がりが 1 のとき）。輪の中心は z=-9。横から見える向きで泳ぐ */
+export const WRASSE_RADIUS = 6;

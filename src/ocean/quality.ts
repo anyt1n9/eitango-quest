@@ -22,6 +22,8 @@ export interface TierSpec {
   rays: number;
   /** クラゲの数（沖より深い所。src/ocean/depth.ts の jelly を掛ける） */
   jelly: number;
+  /** サンゴのまわりの熱帯魚の数（src/ocean/depth.ts の reeffish を掛ける） */
+  reefFish: number;
   /** サンゴ・岩・海草を置く割合（高を 1 として） */
   reef: number;
   /** 3Dモデルの細かさ（0=高 1=中 2=低。ファイル内の名前 _0/_1/_2 に対応） */
@@ -36,9 +38,9 @@ export const TIER_ORDER: OceanTier[] = ["high", "mid", "low"];
 
 export function tierSpecs(dpr: number): Record<OceanTier, TierSpec> {
   return {
-    high: { label: "高", pixelRatio: Math.min(dpr, 2), particles: 2600, fish: 160, rays: 14, jelly: 10, reef: 1, lod: 0, caustic: 1, cap: 60 },
-    mid: { label: "中", pixelRatio: Math.min(dpr, 1.25), particles: 1300, fish: 90, rays: 9, jelly: 7, reef: 0.65, lod: 1, caustic: 1, cap: 60 },
-    low: { label: "低", pixelRatio: Math.min(dpr, 0.85), particles: 450, fish: 36, rays: 4, jelly: 4, reef: 0.35, lod: 2, caustic: 0.6, cap: 30 },
+    high: { label: "高", pixelRatio: Math.min(dpr, 2), particles: 2600, fish: 160, rays: 14, jelly: 10, reefFish: 42, reef: 1, lod: 0, caustic: 1, cap: 60 },
+    mid: { label: "中", pixelRatio: Math.min(dpr, 1.25), particles: 1300, fish: 90, rays: 9, jelly: 7, reefFish: 28, reef: 0.65, lod: 1, caustic: 1, cap: 60 },
+    low: { label: "低", pixelRatio: Math.min(dpr, 0.85), particles: 450, fish: 36, rays: 4, jelly: 4, reefFish: 12, reef: 0.35, lod: 2, caustic: 0.6, cap: 30 },
   };
 }
 
