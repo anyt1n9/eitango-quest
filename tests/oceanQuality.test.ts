@@ -76,7 +76,7 @@ describe("「低」でも重い端末", () => {
 describe("画質ごとの量", () => {
   it("高 → 中 → 低 の順に軽くなる", () => {
     const t = tierSpecs(3);
-    for (const k of ["pixelRatio", "particles", "fish", "rays", "reef"] as const) {
+    for (const k of ["pixelRatio", "particles", "fish", "rays", "reef", "jelly", "reefFish"] as const) {
       expect(t.high[k]).toBeGreaterThan(t.mid[k]);
       expect(t.mid[k]).toBeGreaterThan(t.low[k]);
     }

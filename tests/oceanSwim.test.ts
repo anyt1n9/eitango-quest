@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MANTA_RADIUS, SWIM_SPREAD_MAX, swimSpread } from "../src/ocean/swim";
+import { MANTA_RADIUS, SWIM_SPREAD_MAX, TURTLE_RADIUS, WRASSE_RADIUS, swimSpread } from "../src/ocean/swim";
 
 /**
  * 生き物が泳ぐ範囲の横の広がり（src/ocean/swim.ts）。
@@ -15,15 +15,18 @@ const FOV_WIDE = 55;
 /** 画面の中身の列（main の max-w-4xl = 896px、左右の余白 16px を除く）の半分 */
 const COLUMN_HALF_PX = (896 - 32) / 2;
 
-/** 横長の画面で、マンタの輪の端が画面のどこに来るか（中央 0、左右の端 1） */
-function mantaEdge(width: number, height: number): { edge: number; column: number } {
+/** 横長の画面で、輪の端が画面のどこに来るか（中央 0、左右の端 1） */
+function pathEdge(width: number, height: number, radius: number, distance: number): { edge: number; column: number } {
   const aspect = width / height;
-  const halfWidth = CAMERA_TO_MANTA * Math.tan((FOV_WIDE / 2) * (Math.PI / 180)) * aspect;
+  const halfWidth = distance * Math.tan((FOV_WIDE / 2) * (Math.PI / 180)) * aspect;
   return {
-    edge: (MANTA_RADIUS * swimSpread(aspect)) / halfWidth,
+    edge: (radius * swimSpread(aspect)) / halfWidth,
     column: Math.min(COLUMN_HALF_PX, width / 2) / (width / 2),
   };
 }
+const mantaEdge = (w: number, h: number) => pathEdge(w, h, MANTA_RADIUS, CAMERA_TO_MANTA);
+/** ウミガメの輪の中心は z=-7、ナポレオンフィッシュは z=-9（oceanScene.ts の updateTurtle / updateWrasse） */
+const CREATURES = [["ウミガメ", TURTLE_RADIUS, 3 - -7], ["ナポレオンフィッシュ", WRASSE_RADIUS, 3 - -9]] as const;
 
 describe("泳ぐ範囲の広がり", () => {
   it("スマホ・タブレットの縦では広げない（カードが幅いっぱいで、余白が無い）", () => {
@@ -50,5 +53,12 @@ describe("泳ぐ範囲の広がり", () => {
       expect(edge).toBeGreaterThan(column);
       expect(edge).toBeLessThan(0.95);
     });
+    for (const [name, radius, distance] of CREATURES) {
+      it(`${w}×${h} では、${name}の道筋の端もカードの列の外に出て、画面の中に収まる`, () => {
+        const { edge, column } = pathEdge(w, h, radius, distance);
+        expect(edge).toBeGreaterThan(column);
+        expect(edge).toBeLessThan(0.95);
+      });
+    }
   }
 });

@@ -14,6 +14,8 @@
   fan        … ウミウチワ（扇形のヤギ類）
   rock_a / rock_b … 岩
   seagrass   … 海草の株（リュウキュウスガモのような細い葉）
+  turtle     … アオウミガメ。前あしの羽ばたきは three.js 側で付ける（|x| > 0.4 が前あし）
+  wrasse     … メガネモチノウオ（ナポレオンフィッシュ）。体をくねらせる動きは three.js 側
 色は頂点ごとに持つ（材質や画像は使わない）。--preview を付けると Cycles で確認用の画像も描き出す。
 """
 import bpy, bmesh, math, random, sys, os
@@ -419,6 +421,233 @@ def build_seagrass(name, seed):
     return out
 
 
+# ---------------------------------------------------------------- shared: lofted fins and flippers
+def bezier(p0, p1, p2, n):
+    return [p0 * (1 - t) ** 2 + p1 * 2 * (1 - t) * t + p2 * t * t for t in (i / (n - 1) for i in range(n))]
+
+
+def loft(bm, path, chord, thick, up, ring=12):
+    """path に沿って、平たい楕円の断面をつないだ筒（ひれ・足）。chord は断面の長い方の半径、
+    thick は薄い方の半径。長い方は up × 進む向き（up=Z なら水平な板、up=X なら縦の板）"""
+    rings, made = [], []
+    n = len(path)
+    for i in range(n):
+        tan = (path[min(i + 1, n - 1)] - path[max(i - 1, 0)]).normalized()
+        cd = up.cross(tan).normalized()
+        nd = tan.cross(cd).normalized()
+        row = [bm.verts.new(path[i] + cd * (math.cos(2 * math.pi * k / ring) * chord[i]) + nd * (math.sin(2 * math.pi * k / ring) * thick[i]))
+               for k in range(ring)]
+        rings.append(row)
+        made.extend(row)
+    for i in range(n - 1):
+        for k in range(ring):
+            bm.faces.new((rings[i][k], rings[i][(k + 1) % ring], rings[i + 1][(k + 1) % ring], rings[i + 1][k]))
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    return made
+
+
+def taper(n, pts):
+    """[(t, 値)] を n 点に滑らかにつなぐ（コサインでつなぐので折れ目が出ない）"""
+    out = []
+    for i in range(n):
+        t = i / (n - 1)
+        for (t0, v0), (t1, v1) in zip(pts, pts[1:]):
+            if t0 <= t <= t1:
+                k = (1 - math.cos(math.pi * (t - t0) / (t1 - t0))) / 2
+                out.append(v0 + (v1 - v0) * k)
+                break
+    return out
+
+
+def tagged(bm, verts, layer, part):
+    for v in verts:
+        v[layer] = part
+
+
+def paint_parts(ob, fn, ao):
+    """部位ごとの色（fn(部位, co, normal)）を頂点色にして、物陰の暗さを掛ける"""
+    me = ob.data
+    part = me.attributes['part'].data
+    attr = me.color_attributes.new('Color', 'FLOAT_COLOR', 'POINT')
+    for i, v in enumerate(me.vertices):
+        c = fn(part[i].value, v.co, v.normal)
+        k = ao[i]
+        attr.data[i].color = (c[0] * k, c[1] * k, c[2] * k, 1.0)
+    me.color_attributes.active_color = attr
+    me.color_attributes.render_color_index = 0
+    me.attributes.remove(me.attributes['part'])
+
+
+# ---------------------------------------------------------------- sea turtle
+TURTLE_SHELL, TURTLE_HEAD, TURTLE_FLIPPER, TURTLE_TAIL = 0, 1, 2, 3
+
+
+def build_turtle():
+    """アオウミガメ。前が -Y（glTF で +Z）、上が +Z。甲羅は長さ 1.0・幅 0.8。
+    前あしは甲羅の幅（|x| 0.4）より外へ出して、three.js 側で |x| > 0.4 を羽ばたかせる"""
+    L, W, H, HB = 0.5, 0.4, 0.2, 0.07
+    bm = bmesh.new()
+    part = bm.verts.layers.int.new('part')
+
+    shell = bmesh.ops.create_uvsphere(bm, u_segments=48, v_segments=24, radius=1.0)['verts']
+    for v in shell:
+        x, y, z = v.co
+        w = W * (1 - 0.32 * smoothstep(-0.2, 1.0, y)) * (1 - 0.1 * smoothstep(-0.6, -1.0, y))
+        flare = 1 + 0.05 * math.exp(-(z / 0.15) ** 2)               # 縁の甲板が少し張り出す
+        zz = z * HB if z < 0 else z * H * (1 - 0.18 * smoothstep(0.0, 1.0, y))
+        v.co = Vector((x * w * flare, y * L, zz))
+    tagged(bm, shell, part, TURTLE_SHELL)
+
+    head = bmesh.ops.create_uvsphere(bm, u_segments=24, v_segments=12, radius=1.0,
+                                     matrix=Matrix.Translation((0, -0.6, -0.01)) @ Matrix.Rotation(math.radians(8), 4, 'X')
+                                     @ Matrix.Diagonal((0.105, 0.17, 0.085, 1)))['verts']
+    tagged(bm, head, part, TURTLE_HEAD)
+
+    up = Vector((0, 0, 1))
+    for sx in (1, -1):
+        fp = bezier(Vector((0.3 * sx, -0.25, -0.01)), Vector((0.78 * sx, -0.3, -0.02)), Vector((1.02 * sx, 0.2, -0.05)), 13)
+        tagged(bm, loft(bm, fp, taper(13, [(0, 0.1), (0.3, 0.13), (0.8, 0.07), (1, 0.012)]),
+                        taper(13, [(0, 0.035), (0.5, 0.022), (1, 0.008)]), up), part, TURTLE_FLIPPER)
+        rp = bezier(Vector((0.2 * sx, 0.36, -0.03)), Vector((0.36 * sx, 0.5, -0.04)), Vector((0.42 * sx, 0.68, -0.05)), 8)
+        tagged(bm, loft(bm, rp, taper(8, [(0, 0.07), (0.5, 0.09), (1, 0.015)]),
+                        taper(8, [(0, 0.025), (1, 0.008)]), up), part, TURTLE_FLIPPER)
+    tail = bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=True, segments=8, radius1=0.04, radius2=0.004, depth=0.16,
+                                 matrix=Matrix.Translation((0, 0.56, -0.02)) @ Matrix.Rotation(math.radians(-90), 4, 'X'))['verts']
+    tagged(bm, tail, part, TURTLE_TAIL)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = from_bmesh('turtle', bm)
+    smooth(ob)
+    ao = ambient_occlusion(ob, 0.3)
+    # 頂点色は linear の値（画面では明るく見える）。茶色く見せるには暗めに持つ
+    dark, olive, streak, pale = (0.025, 0.018, 0.006), (0.11, 0.075, 0.025), (0.32, 0.2, 0.05), (0.55, 0.47, 0.24)
+
+    def color(p, co, n):
+        if p == TURTLE_SHELL:
+            if n.z < -0.2:
+                return pale                                          # 腹甲
+            cell = noise.voronoi(Vector((co.x * 3.4, co.y * 3.0, 0.5)))[0]
+            border = 1 - smoothstep(0.0, 0.07, cell[1] - cell[0])     # 甲板の境目
+            c = mix(olive, streak, smoothstep(0.1, 0.6, noise.noise(Vector((co.x * 9, co.y * 3, 2.0)))) * 0.75)
+            c = mix(c, dark, border * 0.85)
+            return mix(c, dark, smoothstep(0.35, 0.05, n.z) * 0.4)   # 縁は暗め
+        if p == TURTLE_TAIL:
+            return olive
+        # 頭とあし：暗い地に明るい縁取りのうろこ、裏は淡い
+        if n.z < -0.3:
+            return pale
+        cell = noise.voronoi(Vector((co.x * 14, co.y * 14, co.z * 14)))[0]
+        edge = 1 - smoothstep(0.0, 0.12, cell[1] - cell[0])
+        c = mix((0.06, 0.045, 0.015), (0.42, 0.33, 0.14), edge * 0.8)
+        if p == TURTLE_HEAD:
+            for ex in (0.085, -0.085):
+                d = (co - Vector((ex, -0.66, 0.025))).length
+                c = mix(c, (0.03, 0.03, 0.03), 1 - smoothstep(0.018, 0.028, d))
+        return c
+
+    paint_parts(ob, color, ao)
+    return make_lods(ob, 'turtle')
+
+
+# ---------------------------------------------------------------- humphead wrasse
+WRASSE_BODY, WRASSE_FIN = 0, 1
+
+
+def build_wrasse():
+    """メガネモチノウオ（ナポレオンフィッシュ）。前が -Y（glTF で +Z）、上が +Z。
+    体（口から尾の付け根まで）は y -0.65〜+0.65、尾びれはその後ろ 0.33。額のこぶと厚い唇が特徴"""
+    L, NT, NA = 0.65, 56, 28
+    # 上の線は、口から急に立ち上がって額でいったん盛り上がり（こぶ）、少しへこんでから背中へ続く
+    tops = taper(NT, [(0, 0.06), (0.05, 0.14), (0.1, 0.27), (0.15, 0.34), (0.21, 0.33), (0.29, 0.33), (0.42, 0.36), (0.6, 0.31),
+                      (0.78, 0.19), (0.92, 0.1), (1, 0.09)])
+    bots = taper(NT, [(0, -0.06), (0.06, -0.11), (0.2, -0.22), (0.42, -0.29), (0.62, -0.25), (0.82, -0.14), (0.93, -0.09), (1, -0.085)])
+    wids = taper(NT, [(0, 0.05), (0.08, 0.095), (0.18, 0.13), (0.3, 0.145), (0.46, 0.15), (0.72, 0.1), (0.9, 0.045), (1, 0.04)])
+    bm = bmesh.new()
+    part = bm.verts.layers.int.new('part')
+    rings = []
+    for i in range(NT):
+        y = -L + 2 * L * i / (NT - 1)
+        mid, half, w = (tops[i] + bots[i]) / 2, (tops[i] - bots[i]) / 2, wids[i]
+        row = []
+        for k in range(NA):
+            a = 2 * math.pi * k / NA
+            c, s = math.cos(a), math.sin(a)
+            # 少し角ばった断面（楕円よりふっくら）
+            x = w * math.copysign(abs(c) ** 0.8, c)
+            row.append(bm.verts.new((x, y, mid + half * s)))
+        rings.append(row)
+    for i in range(NT - 1):
+        for k in range(NA):
+            bm.faces.new((rings[i][k], rings[i + 1][k], rings[i + 1][(k + 1) % NA], rings[i][(k + 1) % NA]))
+    nose = bm.verts.new((0, -L - 0.012, 0.0))
+    for k in range(NA):
+        bm.faces.new((nose, rings[0][k], rings[0][(k + 1) % NA]))
+    bm.faces.new(rings[-1])
+    tagged(bm, [v for r in rings for v in r] + [nose], part, WRASSE_BODY)
+
+    def y_at(t):
+        return -L + 2 * L * t
+
+    def top_at(t):
+        return tops[min(int(t * (NT - 1)), NT - 1)]
+
+    def bot_at(t):
+        return bots[min(int(t * (NT - 1)), NT - 1)]
+
+    vert, side = Vector((1, 0, 0)), Vector((0, 0, 1))
+    mid_tail = (tops[-1] + bots[-1]) / 2
+    # 尾びれ：丸い団扇形（縦の板）
+    tp = [Vector((0, L - 0.04 + 0.37 * t, mid_tail)) for t in (i / 9 for i in range(10))]
+    fins = loft(bm, tp, taper(10, [(0, 0.07), (0.35, 0.2), (0.75, 0.29), (0.92, 0.24), (1, 0.06)]), [0.012] * 10, vert)
+    # 背びれ・しりびれ：体の上下に沿った縦の板。下の縁がいつも体に埋まるよう、幅の 0.6 だけ外へ出す
+    dc = taper(12, [(0, 0.02), (0.15, 0.05), (0.85, 0.06), (1, 0.03)])
+    dp = [Vector((0, y_at(t), top_at(t) + dc[i] * 0.6)) for i, t in enumerate(0.3 + 0.55 * i / 11 for i in range(12))]
+    fins += loft(bm, dp, dc, [0.008] * 12, vert)
+    ac = taper(8, [(0, 0.02), (0.3, 0.05), (1, 0.035)])
+    ap = [Vector((0, y_at(t), bot_at(t) - ac[i] * 0.6)) for i, t in enumerate(0.55 + 0.32 * i / 7 for i in range(8))]
+    fins += loft(bm, ap, ac, [0.008] * 8, vert)
+    # 胸びれ：体の横から後ろへ伸びる小さな団扇
+    for sx in (1, -1):
+        pp = bezier(Vector((0.12 * sx, -0.3, -0.06)), Vector((0.2 * sx, -0.22, -0.08)), Vector((0.24 * sx, -0.1, -0.1)), 7)
+        fins += loft(bm, pp, taper(7, [(0, 0.03), (0.6, 0.075), (1, 0.03)]), [0.008] * 7, side)
+    tagged(bm, fins, part, WRASSE_FIN)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = from_bmesh('wrasse', bm)
+    smooth(ob)
+    ao = ambient_occlusion(ob, 0.25)
+    eye_y, eye_z = y_at(0.12), 0.1
+
+    def color(p, co, n):
+        t = (co.y + L) / (2 * L)
+        if p == WRASSE_FIN:
+            c = mix((0.015, 0.07, 0.07), (0.03, 0.12, 0.09), smoothstep(0.2, 0.8, noise.noise(co * 12) * 0.5 + 0.5))
+            # 尾びれの先・背びれとしりびれの外側は明るい縁取り
+            margin = max(smoothstep(L + 0.24, L + 0.34, co.y), smoothstep(0.36, 0.44, co.z), smoothstep(-0.31, -0.37, co.z))
+            return mix(c, (0.3, 0.35, 0.08), margin * 0.55)
+        body = mix((0.03, 0.17, 0.2), (0.05, 0.2, 0.1), smoothstep(-0.1, 0.25, co.z))
+        # うろこごとの暗い縁（縦の短い線の並び）
+        sc = abs(math.sin(co.y * 46 + math.sin(co.z * 30) * 0.8)) * abs(math.sin(co.z * 38 + co.y * 7))
+        body = mix(body, (0.01, 0.05, 0.06), smoothstep(0.75, 0.98, sc) * 0.7 * smoothstep(0.22, 0.35, t))
+        if t < 0.33:
+            # 頭：細かく波打つ黄色の筋と、目の後ろの2本の黒い線（「メガネ」）
+            wav = abs(math.sin(co.z * 60 + math.sin(co.y * 25) * 2.2 + co.y * 18))
+            body = mix(body, (0.45, 0.35, 0.05), smoothstep(0.95, 1.0, wav) * 0.8 * (1 - smoothstep(0.25, 0.33, t)))
+            for dz in (0.03, -0.035):
+                line_z = eye_z + dz + (co.y - eye_y) * (0.6 if dz > 0 else -0.25)
+                on = (1 - smoothstep(0.008, 0.016, abs(co.z - line_z))) * smoothstep(eye_y, eye_y + 0.02, co.y) * (1 - smoothstep(eye_y + 0.1, eye_y + 0.13, co.y))
+                body = mix(body, (0.005, 0.01, 0.012), on * 0.95)
+            body = mix(body, (0.01, 0.08, 0.09), smoothstep(0.24, 0.36, co.z) * 0.6)      # 額のこぶは濃い
+            body = mix(body, (0.3, 0.27, 0.1), (1 - smoothstep(0.02, 0.05, t)) * 0.7)      # 厚い唇
+            d = math.hypot(co.y - eye_y, co.z - eye_z)
+            if abs(co.x) > 0.04:
+                body = mix(body, (0.5, 0.35, 0.03), 1 - smoothstep(0.036, 0.044, d))
+                body = mix(body, (0.01, 0.01, 0.01), 1 - smoothstep(0.024, 0.03, d))
+        return body
+
+    paint_parts(ob, color, ao)
+    return make_lods(ob, 'wrasse')
+
+
 # ---------------------------------------------------------------- build all
 groups = {
     'manta': build_manta(),
@@ -429,6 +658,8 @@ groups = {
     'rock_a': build_rock('rock_a', 2),
     'rock_b': build_rock('rock_b', 5),
     'seagrass': build_seagrass('seagrass', 13),
+    'turtle': build_turtle(),
+    'wrasse': build_wrasse(),
 }
 for base, obs in groups.items():
     print(base, [tri_count(o) for o in obs])
@@ -451,7 +682,8 @@ if PREVIEW:
         for o in obs[1:]:
             o.hide_render = True
     layout = [('manta', (0, 0, 1.4), 0.75), ('staghorn_a', (-2.6, 0.4, 0), 1.3), ('staghorn_b', (-1.4, 1.2, 0), 1.3),
-              ('brain', (1.4, 0.6, 0.2), 0.5), ('fan', (2.6, 1.4, 0), 1.6), ('rock_a', (-0.2, 1.8, 0.1), 0.7), ('rock_b', (3.6, 0.2, 0.1), 0.5), ('seagrass', (0.9, -1.2, 0), 1.8)]
+              ('brain', (1.4, 0.6, 0.2), 0.5), ('fan', (2.6, 1.4, 0), 1.6), ('rock_a', (-0.2, 1.8, 0.1), 0.7), ('rock_b', (3.6, 0.2, 0.1), 0.5), ('seagrass', (0.9, -1.2, 0), 1.8),
+              ('turtle', (-2.2, -2.0, 0.9), 1.0), ('wrasse', (2.6, -2.2, 0.7), 1.1)]
     mat = bpy.data.materials.new('vc')
     mat.use_nodes = True
     nt = mat.node_tree
@@ -466,6 +698,10 @@ if PREVIEW:
         o.scale = (sc, sc, sc)
         if base == 'manta':
             o.rotation_euler = (math.radians(35), 0, math.radians(20))
+        if base == 'turtle':
+            o.rotation_euler = (math.radians(25), 0, math.radians(-30))
+        if base == 'wrasse':
+            o.rotation_euler = (0, 0, math.radians(-75))
         o.data.materials.append(mat)
     gbm = bmesh.new()
     bmesh.ops.create_grid(gbm, x_segments=1, y_segments=1, size=15)

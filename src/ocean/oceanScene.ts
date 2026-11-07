@@ -16,7 +16,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
-import { MANTA_RADIUS, SCHOOL_SWAY, swimSpread } from "./swim";
+import { MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
 import { abundance, depthAlong, type Dweller } from "./depth";
 
 export interface OceanStatus {
@@ -144,6 +144,18 @@ const OBJ_FRAG = WATER + /* glsl */ `
     float det = 0.8 + 0.35 * vnoise(vWorld.xz * 7.0 + vWorld.y * 5.0);
     vec3 alb = vColor * det;
     vec3 lit = alb * (L * (0.2 + 0.8 * max(n.y * 0.85 + 0.15, 0.0)) * (0.6 + 1.5 * c) + waterTint(d) * 0.32);
+    gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
+  }`;
+
+/** 泳ぐ生き物（マンタ・ウミガメ・ナポレオンフィッシュ）の色：頂点色に、深さの光と水底の光の網目を当てる */
+const CREATURE_FRAG = WATER + /* glsl */ `
+  varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+  void main() {
+    float d = uDepth - vWorld.y;
+    vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+    vec3 L = sunAt(d);
+    float c = causticAt(vWorld, d) * smoothstep(0.2, 0.8, n.y);
+    vec3 lit = vColor * (L * (0.25 + 0.75 * max(n.y, 0.0)) * (0.7 + 1.2 * c) + waterTint(d) * 0.4);
     gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
   }`;
 
@@ -609,6 +621,145 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   }));
   const mantaLods: (THREE.Mesh | undefined)[] = [];
 
+  /* ---- sea turtle (model from Blender; the flippers fly here) ---- */
+  // 前あしは甲羅の幅（|x| 0.4）より外。肩（x=±0.38）を軸に、羽ばたくように上下させる（先ほど少し遅れる）。
+  // 後ろあしは小さく、かじを取るように動かす
+  const turtle = new THREE.Group();
+  scene.add(turtle);
+  const turtleMat = track(mat({
+    vertexShader: `
+      uniform float uTime;
+      attribute vec3 aCol;
+      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+      vec2 rot(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(v.x * c - v.y * s, v.x * s + v.y * c); }
+      void main() {
+        vec3 p = position; vec3 n = normal;
+        float ax = abs(p.x), sx = p.x < 0.0 ? -1.0 : 1.0;
+        float front = smoothstep(0.36, 0.48, ax) * step(-0.12, p.z);
+        float rear = smoothstep(0.17, 0.28, ax) * smoothstep(-0.3, -0.42, p.z) * (1.0 - front);
+        float ph = uTime * 1.25;
+        float a = front * 0.6 * sin(ph - max(ax - 0.38, 0.0) * 1.4) + rear * 0.3 * sin(ph + 1.7);
+        float pivot = front > 0.0 ? 0.38 : 0.18;
+        vec2 q = rot(vec2(ax - pivot, p.y), a);
+        p.x = sx * (pivot + q.x); p.y = q.y;
+        vec2 nq = rot(vec2(n.x * sx, n.y), a);
+        n.x = nq.x * sx; n.y = nq.y;
+        // the head nods a little with each stroke
+        p.y += smoothstep(0.42, 0.6, p.z) * sin(ph + 0.6) * 0.012;
+        vec4 wp = modelMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz; vColor = aCol;
+        vN = normalize(mat3(modelMatrix) * n);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: CREATURE_FRAG,
+  }));
+  const turtleLods: (THREE.Mesh | undefined)[] = [];
+
+  /* ---- humphead wrasse (model from Blender; the body sways here) ---- */
+  // 体の後ろほど大きく左右にくねらせ、胸びれ（体の横・前寄り）で漕ぐ
+  const wrasse = new THREE.Group();
+  scene.add(wrasse);
+  const wrasseMat = track(mat({
+    side: THREE.DoubleSide,
+    vertexShader: `
+      uniform float uTime;
+      attribute vec3 aCol;
+      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+      void main() {
+        vec3 p = position;
+        float k = smoothstep(0.25, -0.98, p.z);
+        p.x += sin(uTime * 1.9 - p.z * 3.2) * 0.075 * k * k + sin(uTime * 1.9 + 1.4) * 0.01;
+        float pect = smoothstep(0.13, 0.2, abs(p.x)) * smoothstep(0.02, 0.12, p.z) * smoothstep(0.42, 0.3, p.z);
+        p.z -= pect * (0.5 + 0.5 * sin(uTime * 3.0)) * 0.05;
+        vec4 wp = modelMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz; vColor = aCol;
+        vN = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: CREATURE_FRAG,
+  }));
+  const wrasseLods: (THREE.Mesh | undefined)[] = [];
+
+  /* ---- reef fish (made here: small, flat, bright fish that stay around a coral head) ---- */
+  // チョウチョウウオ（黄色・目を通る黒い帯）とデバスズメダイ（淡い青緑）。群れで泳ぎ回らず、
+  // それぞれ自分のサンゴのまわりをゆっくり回る（住むサンゴは3Dモデルを読んでから決め直す）
+  const reefFishBody = track(new THREE.SphereGeometry(1, 12, 8));
+  reefFishBody.scale(0.018, 0.06, 0.07);
+  const reefFishGeo = track(new THREE.BufferGeometry());
+  {
+    const bp = reefFishBody.attributes.position.array, bn = reefFishBody.attributes.normal.array;
+    const tailP = [0, 0, -0.06, 0, 0.04, -0.11, 0, -0.04, -0.11], tailN = [1, 0, 0, 1, 0, 0, 1, 0, 0];
+    const pos = new Float32Array(bp.length + 9), nor = new Float32Array(bn.length + 9);
+    pos.set(bp); pos.set(tailP, bp.length); nor.set(bn); nor.set(tailN, bn.length);
+    const base = bp.length / 3;
+    const idx = Array.from(reefFishBody.index!.array);
+    idx.push(base, base + 1, base + 2);
+    reefFishGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    reefFishGeo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+    reefFishGeo.setIndex(idx);
+  }
+  const reefFishMat = track(mat({
+    side: THREE.DoubleSide,
+    vertexShader: `
+      uniform float uTime;
+      attribute float aPhase; attribute float aKind;
+      varying vec3 vWorld; varying vec3 vN; varying vec3 vLocal; varying float vKind;
+      void main() {
+        vec3 p = position;
+        p.x += sin(uTime * 11.0 + aPhase * 6.2831 - p.z * 30.0) * 0.012 * smoothstep(0.0, -0.1, p.z);
+        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz; vLocal = position; vKind = aKind;
+        vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: WATER + `
+      varying vec3 vWorld; varying vec3 vN; varying vec3 vLocal; varying float vKind;
+      void main() {
+        float d = uDepth - vWorld.y;
+        vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+        vec3 alb;
+        if (vKind < 0.5) {
+          // butterflyfish: yellow, a black band through the eye, a pale face, a dark spot near the tail
+          alb = vec3(0.85, 0.62, 0.03);
+          alb = mix(alb, vec3(0.85, 0.85, 0.8), smoothstep(0.045, 0.055, vLocal.z));
+          alb = mix(alb, vec3(0.02), (1.0 - smoothstep(0.006, 0.012, abs(vLocal.z - 0.04))) * step(-0.045, vLocal.y));
+          alb = mix(alb, vec3(0.03), (1.0 - smoothstep(0.012, 0.018, length(vLocal.zy - vec2(-0.035, 0.02)))));
+        } else {
+          // blue-green chromis: pale aqua, a little darker along the back
+          alb = mix(vec3(0.2, 0.62, 0.7), vec3(0.08, 0.35, 0.45), smoothstep(0.0, 0.05, vLocal.y));
+        }
+        vec3 L = sunAt(d);
+        vec3 V = normalize(cameraPosition - vWorld);
+        float spec = pow(max(dot(n, normalize(V + vec3(0.0, 1.0, 0.0))), 0.0), 30.0) * 0.6;
+        float c = causticAt(vWorld, d) * smoothstep(0.1, 0.8, n.y);
+        vec3 lit = alb * (L * (0.35 + 0.65 * max(n.y * 0.6 + 0.4, 0.0)) * (0.7 + c) + waterTint(d) * 0.35) + L * spec;
+        gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
+      }`,
+  }));
+  const MAX_REEF_FISH = TIERS.high.reefFish;
+  const reefFish = new THREE.InstancedMesh(reefFishGeo, reefFishMat, MAX_REEF_FISH);
+  reefFish.frustumCulled = false;
+  reefFish.count = 0;
+  // 住むサンゴの位置（3Dモデルを読むまでは、手前の海底のあちこち）
+  const reefHomes: THREE.Vector3[] = Array.from({ length: 6 }, (_, i) => {
+    const x = (i - 2.5) * 2.6, z = -5 - (i % 3) * 2.5;
+    return new THREE.Vector3(x, seabedY(x, z), z);
+  });
+  const rfSeed = new Float32Array(MAX_REEF_FISH * 4), rfScale = new Float32Array(MAX_REEF_FISH);
+  {
+    const ph = new Float32Array(MAX_REEF_FISH), kind = new Float32Array(MAX_REEF_FISH);
+    for (let i = 0; i < MAX_REEF_FISH; i++) {
+      ph[i] = R();
+      kind[i] = i % 3 === 0 ? 0 : 1;               // チョウチョウウオ1：デバスズメダイ2
+      // 実物（10〜15cm）より大きめにする。礁は数m先なので、実物の大きさでは点にしか見えない
+      rfScale[i] = kind[i] === 0 ? 1.6 + R() * 0.4 : 1.1 + R() * 0.3;
+      for (let k = 0; k < 4; k++) rfSeed[i * 4 + k] = R();
+    }
+    reefFish.geometry.setAttribute("aPhase", new THREE.InstancedBufferAttribute(ph, 1));
+    reefFish.geometry.setAttribute("aKind", new THREE.InstancedBufferAttribute(kind, 1));
+  }
+  scene.add(reefFish);
+
   /* ---- jellyfish (made here: a pulsing bell, tentacles and oral arms; glow in the deep) ---- */
   const MAX_JELLY = TIERS.high.jelly;
   const jellyGeo = track(jellyGeometry());
@@ -729,15 +880,29 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       });
       reef.push({ plan, lods, mats, partial: -1 });
     }
-    for (let lod = 0; lod < 3; lod++) {
-      const src = byName[`manta_${lod}`];
-      if (!src) continue;
-      const m = new THREE.Mesh(track(plainGeometry(src)), mantaMat);
-      m.frustumCulled = false;
-      m.visible = false;
-      manta.add(m);
-      mantaLods[lod] = m;
+    const creature = (name: string, material: THREE.Material, group: THREE.Group, lods: (THREE.Mesh | undefined)[]) => {
+      for (let lod = 0; lod < 3; lod++) {
+        const src = byName[`${name}_${lod}`];
+        if (!src) continue;
+        const m = new THREE.Mesh(track(plainGeometry(src)), material);
+        m.frustumCulled = false;
+        m.visible = false;
+        group.add(m);
+        lods[lod] = m;
+      }
+    };
+    creature("manta", mantaMat, manta, mantaLods);
+    creature("turtle", turtleMat, turtle, turtleLods);
+    creature("wrasse", wrasseMat, wrasse, wrasseLods);
+    // 熱帯魚が住むサンゴ：枝サンゴとノウサンゴの、どの画質でもサンゴ礁で見えている先頭の数本のうち、手前のもの
+    const homes: THREE.Vector3[] = [];
+    for (const r of reef) {
+      if (r.plan.kind !== "staghorn" && r.plan.kind !== "brain") continue;
+      const near = r.mats.slice(0, 4).map(m => new THREE.Vector3().setFromMatrixPosition(m))
+        .sort((a, b) => b.z - a.z).filter(v => v.z > -12 && Math.abs(v.x) < 9);
+      homes.push(...near.slice(0, 3));
     }
+    if (homes.length) reefHomes.splice(0, reefHomes.length, ...homes);
     modelsLoaded = true;
   }
 
@@ -766,7 +931,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     resize();
     pMat.uniforms.uPR.value = q.pixelRatio;
     pGeo.setDrawRange(0, q.particles);
-    mantaLods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
+    for (const lods of [mantaLods, turtleLods, wrasseLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
     applyHabitat();
     sample.start = 0;
   }
@@ -796,7 +961,11 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     }
     fish.count = Math.round(q.fish * abundance("fish", d));
     jelly.count = Math.min(MAX_JELLY, Math.ceil(q.jelly * abundance("jelly", d) - 1e-3));
+    // 1匹で泳ぐものは、そこに住む量が半分を超える深さでだけ出す
     manta.visible = abundance("manta", d) >= 0.5;
+    turtle.visible = abundance("turtle", d) >= 0.5;
+    wrasse.visible = abundance("wrasse", d) >= 0.5;
+    reefFish.count = Math.min(MAX_REEF_FISH, Math.round(q.reefFish * abundance("reeffish", d)));
     // 光の筋と水底の光の網目は、届かなくなった深さでは描かない（見えないのに重さだけ残る）
     rays.forEach((ray, i) => { ray.visible = i < q.rays && d < 150; });
     U.uCaustic.value = d < 60 ? q.caustic : 0;
@@ -895,6 +1064,57 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     manta.quaternion.multiply(qRoll);
   }
 
+  /** 向きを進む向き（前が +Z）に合わせる */
+  function face(obj: THREE.Object3D, dx: number, dy: number, dz: number, roll: number) {
+    vz.set(dx, dy, dz).normalize();
+    vx.crossVectors(up, vz).normalize();
+    vy.crossVectors(vz, vx);
+    m4.makeBasis(vx, vy, vz);
+    obj.quaternion.setFromRotationMatrix(m4);
+    qRoll.setFromAxisAngle(zAxis, roll);
+    obj.quaternion.multiply(qRoll);
+  }
+
+  // ウミガメはマンタより手前の低い所を、マンタと重ならない位置からゆっくり回る（1周64秒）
+  function updateTurtle(t: number) {
+    const th = t * ((2 * Math.PI) / 64) + 3.6;
+    const rx = TURTLE_RADIUS * spread;
+    turtle.position.set(Math.cos(th) * rx, -2.8 + Math.sin(th * 2) * 0.35, -7 + Math.sin(th) * 2.5);
+    turtle.scale.setScalar(1.25);
+    face(turtle, -Math.sin(th) * rx, Math.cos(th * 2) * 0.7, Math.cos(th) * 2.5, -0.12);
+  }
+
+  // ナポレオンフィッシュは横から見える向き（左右）に、礁の上をゆっくり行き来する（1周80秒）
+  function updateWrasse(t: number) {
+    const th = t * ((2 * Math.PI) / 80) + 0.4;
+    const rx = WRASSE_RADIUS * spread;
+    wrasse.position.set(Math.cos(th) * rx, -2.3 + Math.sin(th * 3) * 0.15, -9 + Math.sin(th) * 2);
+    wrasse.scale.setScalar(1.3);
+    face(wrasse, -Math.sin(th) * rx, Math.cos(th * 3) * 0.45, Math.cos(th) * 2, 0);
+  }
+
+  // 熱帯魚は群れで泳ぎ回らず、それぞれ住むサンゴのまわりを、高さと速さを少しずつ変えて回る
+  function updateReefFish(t: number) {
+    const n = reefFish.count;
+    if (!n) return;
+    for (let i = 0; i < n; i++) {
+      const home = reefHomes[i % reefHomes.length];
+      const s0 = rfSeed[i * 4], s1 = rfSeed[i * 4 + 1], s2 = rfSeed[i * 4 + 2], s3 = rfSeed[i * 4 + 3];
+      const r = 0.4 + s1 * 0.7, w = (0.22 + s2 * 0.3) * (s3 > 0.5 ? 1 : -1);
+      const a = t * w + s3 * 6.2831;
+      const x = home.x + Math.cos(a) * r, z = home.z + Math.sin(a) * r * 0.8;
+      const y = home.y + 0.35 + s0 * 0.85 + Math.sin(t * 0.7 + s0 * 9) * 0.08;
+      vz.set(-Math.sin(a) * w, Math.cos(t * 0.7 + s0 * 9) * 0.05, Math.cos(a) * 0.8 * w).normalize();
+      vx.crossVectors(up, vz).normalize();
+      vy.crossVectors(vz, vx);
+      m4.makeBasis(vx, vy, vz);
+      m4.scale(sv.setScalar(rfScale[i]));
+      m4.setPosition(x, y, z);
+      reefFish.setMatrixAt(i, m4);
+    }
+    reefFish.instanceMatrix.needsUpdate = true;
+  }
+
   const jQ = new THREE.Quaternion(), jE = new THREE.Euler();
   /** クラゲはゆっくり浮かんでいき、上の端で消えて、また下の端から現れる（どちらも大きさで溶かす） */
   function updateJelly(dt: number, t: number) {
@@ -977,7 +1197,10 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       setDepthNow(depthAlong(depthFrom, depthTo, depthT));
     }
     updateManta(time);
+    updateTurtle(time);
+    updateWrasse(time);
     updateFish(dt, time);
+    updateReefFish(time);
     updateJelly(dt, time);
     draw();
     autoTune(now);
@@ -1000,7 +1223,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       // 止めた1枚では潜る途中を見せられないので、着いた深さを描く。
       // 出題中・裏に回っただけなら待っておき、戻ってきたときに潜る
       if (!motion || frozen) finishDescent();
-      if (active && !disposed && !lost) { updateJelly(0, time); draw(); }   // 止めるときも、いまの1枚は描いておく
+      if (active && !disposed && !lost) { updateJelly(0, time); updateReefFish(time); draw(); }   // 止めるときも、いまの1枚は描いておく
     }
   }
 
@@ -1045,6 +1268,9 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   applyTier("mid");
   for (let i = 0; i < 40; i++) updateFish(0.05, i * 0.05);
   updateManta(0);
+  updateTurtle(0);
+  updateWrasse(0);
+  updateReefFish(0);
   updateJelly(0, 0);
   refresh();
 
@@ -1055,6 +1281,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       if (disposed) return;
       buildFromGltf(root);
       applyTier(tier);
+      updateReefFish(time);   // 住むサンゴが決まったので、熱帯魚をそのまわりへ移す
       if (!running() && active) draw();
       opts.onStatus?.({ tier, fps: sample.fps, throttled: sample.throttled, frozen, modelsLoaded });
     })

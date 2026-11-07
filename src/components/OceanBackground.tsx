@@ -7,7 +7,7 @@ import oceanModelUrl from "../ocean/assets/ocean.glb?url";
 /**
  * 海の3D背景（既定で使う。メニューの「背景の画像・透明感」で止められる。決め方は src/oceanSetting.ts）。
  *
- * three.js と3Dモデル（約1.3MB）を読むので、App から lazy() で読み込む。
+ * three.js と3Dモデル（約1.5MB）を読むので、App から lazy() で読み込む。
  * 「使わない」を選んだ人の端末には何も届かない。使う人も、最初の画面が出てから読み込む（App の oceanMounted）。
  *
  * 出題中は見せない（BackgroundScene と同じ決まり）。ただし作り直すと

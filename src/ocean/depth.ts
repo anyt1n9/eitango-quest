@@ -43,17 +43,17 @@ export interface DepthStage {
 export const DEPTH_STAGES: readonly DepthStage[] = [
   {
     id: "shallows", name: "浅瀬", depth: 3, minMastered: 0,
-    scene: "日の光が砂地に網目を描く、海草の原",
+    scene: "日の光が砂地に網目を描く海草の原。ウミガメが草を食みに来る",
     gradient: ["#3aa3c2", "#11587a", "#052433"],
   },
   {
     id: "reef", name: "サンゴ礁", depth: 8, minMastered: 30,
-    scene: "枝サンゴとノウサンゴの礁。マンタと魚の群れが通る",
+    scene: "枝サンゴとノウサンゴの礁。色とりどりの小魚とウミガメ、マンタ",
     gradient: ["#2a88ae", "#0c4766", "#041927"],
   },
   {
     id: "slope", name: "礁の斜面", depth: 18, minMastered: 150,
-    scene: "海草が消え、ウミウチワが増える。光の筋が細くなる",
+    scene: "海草が消え、ウミウチワが増える。ナポレオンフィッシュがゆっくり通る",
     gradient: ["#1d6a96", "#0a3757", "#03131f"],
   },
   {
@@ -158,7 +158,9 @@ export function oceanGradientCss(depth: number): string {
  * ウミウチワ（ヤギ類）は斜面から沖で多く、深海にも種類がいる。クラゲは沖から深いほど目立ち、
  * 生物発光（`glow`）は日の光が消える深さから。
  */
-export type Dweller = "seagrass" | "staghorn" | "brain" | "fan" | "rock" | "manta" | "fish" | "jelly" | "glow" | "snow";
+export type Dweller =
+  | "seagrass" | "staghorn" | "brain" | "fan" | "rock"
+  | "manta" | "fish" | "turtle" | "reeffish" | "wrasse" | "jelly" | "glow" | "snow";
 
 /** [水深, 量] の点を、水深の対数で直線につなぐ */
 const HABITAT: Record<Dweller, readonly (readonly [number, number])[]> = {
@@ -168,6 +170,12 @@ const HABITAT: Record<Dweller, readonly (readonly [number, number])[]> = {
   fan: [[3, 0.3], [8, 0.55], [18, 1], [35, 1], [90, 0.5], [250, 0.3]],
   rock: [[3, 0.7], [8, 0.8], [18, 1], [250, 1]],
   manta: [[3, 1], [35, 1], [60, 0]],
+  // ウミガメは海草を食べに浅い所へ来る。サンゴ礁までで、斜面には来ない（1匹なので 0.5 以上で出す）
+  turtle: [[3, 1], [8, 1], [14, 0.4], [22, 0]],
+  // 熱帯魚（チョウチョウウオ・デバスズメダイ）はサンゴのまわりに住む
+  reeffish: [[3, 0.45], [8, 1], [18, 0.5], [30, 0]],
+  // ナポレオンフィッシュ（メガネモチノウオ）は礁の斜面から沖。浅いサンゴ礁には出さない（段ごとの主役を分ける）
+  wrasse: [[8, 0], [14, 0.7], [18, 1], [35, 0.75], [60, 0]],
   fish: [[3, 1], [35, 1], [90, 0.3], [180, 0]],
   jelly: [[12, 0], [18, 0.25], [35, 0.6], [90, 1], [250, 1]],
   glow: [[35, 0], [90, 0.55], [250, 1]],
