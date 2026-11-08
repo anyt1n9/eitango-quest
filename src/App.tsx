@@ -49,7 +49,7 @@ const OceanBackground = lazy(() => import("./components/OceanBackground"));
  * アプリ全体を止めてはいけない。設定は保存されているので、読み直しても同じ所で落ち、
  * 設定の画面にも行けなくなる。読み直しはしない（失敗した import は同じ画面では取り直されない）
  */
-type OceanGuardProps = { children: React.ReactNode; fallback: React.ReactNode };
+type OceanGuardProps = { children: React.ReactNode; fallback: React.ReactNode; onFail?: () => void };
 class OceanGuard extends React.Component<OceanGuardProps, { failed: boolean }> {
   // props の型を明示する（ErrorBoundary と同じ。declare なので実行時のコードは生成されない）
   declare props: OceanGuardProps;
@@ -59,6 +59,7 @@ class OceanGuard extends React.Component<OceanGuardProps, { failed: boolean }> {
   }
   componentDidCatch(error: unknown) {
     console.warn("海の3D背景を読み込めなかったため、いつもの背景に戻します", error);
+    this.props.onFail?.();
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
@@ -110,7 +111,7 @@ import { RayIcon, GorillaIcon } from "./components/BrandIcons";
 import BackgroundScene from "./components/BackgroundScene";
 import BackButton from "./components/BackButton";
 import { readBackgroundImage, readVeilLevel, saveVeilLevel, VeilLevel } from "./backgroundImage";
-import { applyGlass, getGlass } from "./glass";
+import { applyGlass, getGlass, useGlassRegime } from "./glass";
 import { useToday } from "./useToday";
 import NoticeHost from "./components/NoticeHost";
 import GlassSlider from "./components/GlassSlider";
@@ -898,6 +899,19 @@ export default function App() {
       "success"
     );
   }, [depthNotice, currentScreen, bgOcean, depthChoice]);
+  /**
+   * 明るいテーマで海の上のカードを透かしたとき（18%より上）は、中身を暗いテーマ（海）の色で描く（`#main_payload` に `.dark`）。
+   * 明るいテーマの文字は墨色に白い縁取りなので、カードの地が薄くなると、濃い青の海の上に暗い文字が乗って読めなかった
+   * （とくに3Dの海を描く前・描けない端末の海の色の地は暗い）。暗いテーマと同じ白い文字・紺の縁取りなら海の上でも読める。
+   * 海は明るさの分かっている背景なので、こうして決められる（写真やジャングルの飾りの上では、これまでどおり）。
+   * 出題中は背景を出さず、カードも透かさないので、明るいテーマのまま。ヘッダーとタブは不透明なので明るいまま
+   */
+  //
+  // 海の部品を取れずにいつもの背景（明るいテーマではジャングル）へ戻ったとき（OceanGuard）は、海の設定のままでも
+  // 背景は明るいので付けない。付けると、明るい飾りの上に白い文字が乗って読めない
+  const glassMode = useGlassRegime();
+  const [oceanFailed, setOceanFailed] = useState(false);
+  const seaGlass = !isDark && bgOcean && !oceanFailed && glassMode === "clear" && !isTransient(currentScreen);
   const oceanStageIndex = shownStageIndex(depthChoice, oceanReached);
   const oceanDepth = DEPTH_STAGES[oceanStageIndex].depth;
   // 今日解いた問題数（日付が変わっていたら0）
@@ -962,7 +976,10 @@ export default function App() {
           出題中は出さない。視界のすみで何かが動くと、単語より先にそちらへ目が行く */}
       {bgOcean ? (
         // 出題中も外さずに隠すだけにする（作り直すと3Dモデルの準備がやり直しになる）
-        <OceanGuard fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}>
+        <OceanGuard
+          fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}
+          onFail={() => setOceanFailed(true)}
+        >
           {oceanMounted ? (
             <Suspense fallback={<OceanPlaceholder active={!isTransient(currentScreen)} depth={oceanDepth} />}>
               <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} depth={oceanDepth} onDrawingChange={setOceanDrawing} />
@@ -1081,10 +1098,14 @@ export default function App() {
       {/* メインステージ。画面下のタブを出している間は、その高さぶん下を空ける */}
       <main
         inert={seaView}
-        className={`sea-fade ${seaView ? "sea-hidden " : ""}relative z-10 flex-1 pb-8 px-4 max-w-4xl w-full mx-auto ${
+        className={`sea-fade ${seaView ? "sea-hidden " : ""}${
+          // 色の変数は .dark の要素の中で置き換わる。文字の色は根の要素で決まって継がれるので、ここでも指定する
+          seaGlass ? "dark text-gray-900 dark:text-slate-100 " : ""
+        }relative z-10 flex-1 pb-8 px-4 max-w-4xl w-full mx-auto ${
           // 出題中はヘッダーを出さないので、時計の帯の高さぶんはここで空ける
           isTransient(currentScreen) ? "pt-[calc(1rem+env(safe-area-inset-top))]" : "pt-6"
         }`}
+        data-sea-glass={seaGlass ? "true" : undefined}
         id="main_payload"
       >
         {/* 遅延読み込みの画面を開いている間の待ち。

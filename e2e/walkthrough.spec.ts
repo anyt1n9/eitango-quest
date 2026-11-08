@@ -1325,6 +1325,40 @@ test.describe("透明のときの作り", () => {
     });
     expect(chip).toContain("rgba(0, 0, 0");
   });
+
+  /**
+   * 明るいテーマで海の上のカードを透かすと、墨色の文字が濃い青の海の上に乗って読めなかった
+   * （白い縁取りがにじんで見えるだけ。3Dの海を描く前・描けない端末の、海の色の地の上で）。
+   * 海は暗い背景なので、中身を暗いテーマ（海）の色にして、白い文字・紺の縁取りで描く。
+   * 海でない背景（ジャングルの飾り・写真）の上では、これまでどおり墨色に白い縁取り。
+   */
+  test("明るいテーマでも、海の上なら白い文字と紺の縁取りで描く", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.addInitScript(() => localStorage.setItem("quest_glass", "100"));
+    await page.goto("/");
+    await waitForVocabulary(page);
+    const look = () => page.evaluate(() => {
+      const s = getComputedStyle(document.getElementById("new_words_heading")!);
+      const lum = (c: string) => {
+        const [r, g, b] = c.match(/[\d.]+/g)!.map(Number);
+        return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      };
+      return { text: lum(s.color), halo: lum(/rgba?\([^)]*\)/.exec(s.textShadow)![0]) };
+    });
+    let v = await look();
+    expect(v.text, "海の上で文字が白くない").toBeGreaterThan(0.8);
+    expect(v.halo, "海の上で縁取りが暗くない").toBeLessThan(0.3);
+    // ヘッダーは不透明なので、明るいテーマのまま
+    expect(await page.locator("#navigation_bar").evaluate(e => e.closest(".dark"))).toBeNull();
+
+    // 海の3D背景を使わない人（ジャングルの飾り）は、これまでどおり
+    await page.evaluate(() => localStorage.setItem("quest_bg_ocean_choice", "off"));
+    await page.reload();
+    await waitForVocabulary(page);
+    v = await look();
+    expect(v.text).toBeLessThan(0.3);
+    expect(v.halo).toBeGreaterThan(0.8);
+  });
 });
 
 /**

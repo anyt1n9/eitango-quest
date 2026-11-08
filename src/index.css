@@ -438,7 +438,8 @@ html, body {
    明るいテーマの淡色はもともと不透明なので、触らない
    （混ぜ直すと地が濃くなり、濃い文字とのコントラストがかえって下がる。実測 4.05）。 */
 :root.dark[data-glass="veil"] .glass-panel [class*="level-"],
-:root.dark[data-glass="clear"] .glass-panel [class*="level-"] {
+:root.dark[data-glass="clear"] .glass-panel [class*="level-"],
+:root[data-glass="clear"] .dark .glass-panel [class*="level-"] {
   --lv-bg: color-mix(in srgb, var(--lv-solid) 16%, var(--color-white));
   --lv-bg-strong: color-mix(in srgb, var(--lv-solid) 26%, var(--color-white));
 }
@@ -466,50 +467,63 @@ html, body {
 :root:not(.dark)[data-glass="veil"] .glass-panel .text-amber-700,
 :root:not(.dark)[data-glass="clear"] .glass-panel .text-amber-700 { color: #92400e; }
 :root.dark[data-glass="veil"] .glass-panel :is(.text-rose-700, .text-rose-800),
-:root.dark[data-glass="clear"] .glass-panel :is(.text-rose-700, .text-rose-800) { color: #fda4af !important; }
+:root.dark[data-glass="clear"] .glass-panel :is(.text-rose-700, .text-rose-800),
+:root[data-glass="clear"] .dark .glass-panel :is(.text-rose-700, .text-rose-800) { color: #fda4af !important; }
 :root.dark[data-glass="veil"] .glass-panel :is(.text-emerald-700, .text-emerald-800),
-:root.dark[data-glass="clear"] .glass-panel :is(.text-emerald-700, .text-emerald-800) { color: #6ee7b7 !important; }
+:root.dark[data-glass="clear"] .glass-panel :is(.text-emerald-700, .text-emerald-800),
+:root[data-glass="clear"] .dark .glass-panel :is(.text-emerald-700, .text-emerald-800) { color: #6ee7b7 !important; }
 :root.dark[data-glass="veil"] .glass-panel .text-sky-700,
-:root.dark[data-glass="clear"] .glass-panel .text-sky-700 { color: #7dd3fc !important; }
+:root.dark[data-glass="clear"] .glass-panel .text-sky-700,
+:root[data-glass="clear"] .dark .glass-panel .text-sky-700 { color: #7dd3fc !important; }
 :root.dark[data-glass="veil"] .glass-panel :is(.text-amber-700, .text-amber-800),
-:root.dark[data-glass="clear"] .glass-panel :is(.text-amber-700, .text-amber-800) { color: #fcd34d !important; }
+:root.dark[data-glass="clear"] .glass-panel :is(.text-amber-700, .text-amber-800),
+:root[data-glass="clear"] .dark .glass-panel :is(.text-amber-700, .text-amber-800) { color: #fcd34d !important; }
 /* 暗いテーマの -600 の青（件数など）。ふだんは #38bdf8 で 4.5 をわずかに超える濃さ（透かすと 4.41） */
 :root.dark[data-glass="veil"] .glass-panel .text-indigo-600,
-:root.dark[data-glass="clear"] .glass-panel .text-indigo-600 { color: var(--color-indigo-700) !important; }
+:root.dark[data-glass="clear"] .glass-panel .text-indigo-600,
+:root[data-glass="clear"] .dark .glass-panel .text-indigo-600 { color: var(--color-indigo-700) !important; }
 
 /* 暗いテーマの淡い色の地（bg-rose-50 など）は半透明の色かぶせなので、その下のカードまで透けると
    地が明るくなり、上の文字が沈む（活用表の「ABC」の札で実測 3.28）。レベルの淡色（上）と同じく、
    カードの色と混ぜて不透明にする。明るいテーマの淡色は不透明なので触らない */
 :root.dark[data-glass="veil"] .glass-panel :is([class~="bg-rose-50"], [class*="bg-rose-50/"]),
-:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-rose-50"], [class*="bg-rose-50/"]) {
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-rose-50"], [class*="bg-rose-50/"]),
+:root[data-glass="clear"] .dark .glass-panel :is([class~="bg-rose-50"], [class*="bg-rose-50/"]) {
   background-color: color-mix(in srgb, #f43f5e 15%, var(--color-white)) !important;
 }
 :root.dark[data-glass="veil"] .glass-panel :is([class~="bg-emerald-50"], [class*="bg-emerald-50/"]),
-:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-emerald-50"], [class*="bg-emerald-50/"]) {
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-emerald-50"], [class*="bg-emerald-50/"]),
+:root[data-glass="clear"] .dark .glass-panel :is([class~="bg-emerald-50"], [class*="bg-emerald-50/"]) {
   background-color: color-mix(in srgb, #10b981 15%, var(--color-white)) !important;
 }
 :root.dark[data-glass="veil"] .glass-panel :is([class~="bg-sky-50"], [class*="bg-sky-50/"]),
-:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-sky-50"], [class*="bg-sky-50/"]) {
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-sky-50"], [class*="bg-sky-50/"]),
+:root[data-glass="clear"] .dark .glass-panel :is([class~="bg-sky-50"], [class*="bg-sky-50/"]) {
   background-color: color-mix(in srgb, #0ea5e9 15%, var(--color-white)) !important;
 }
 :root.dark[data-glass="veil"] .glass-panel :is([class~="bg-amber-50"], [class*="bg-amber-50/"]),
-:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-amber-50"], [class*="bg-amber-50/"]) {
+:root.dark[data-glass="clear"] .glass-panel :is([class~="bg-amber-50"], [class*="bg-amber-50/"]),
+:root[data-glass="clear"] .dark .glass-panel :is([class~="bg-amber-50"], [class*="bg-amber-50/"]) {
   background-color: color-mix(in srgb, #f59e0b 15%, var(--color-white)) !important;
 }
 :root.dark[data-glass="veil"] .glass-panel .bg-rose-100,
-:root.dark[data-glass="clear"] .glass-panel .bg-rose-100 {
+:root.dark[data-glass="clear"] .glass-panel .bg-rose-100,
+:root[data-glass="clear"] .dark .glass-panel .bg-rose-100 {
   background-color: color-mix(in srgb, #f43f5e 22%, var(--color-white)) !important;
 }
 :root.dark[data-glass="veil"] .glass-panel .bg-emerald-100,
-:root.dark[data-glass="clear"] .glass-panel .bg-emerald-100 {
+:root.dark[data-glass="clear"] .glass-panel .bg-emerald-100,
+:root[data-glass="clear"] .dark .glass-panel .bg-emerald-100 {
   background-color: color-mix(in srgb, #10b981 22%, var(--color-white)) !important;
 }
 :root.dark[data-glass="veil"] .glass-panel .bg-sky-100,
-:root.dark[data-glass="clear"] .glass-panel .bg-sky-100 {
+:root.dark[data-glass="clear"] .glass-panel .bg-sky-100,
+:root[data-glass="clear"] .dark .glass-panel .bg-sky-100 {
   background-color: color-mix(in srgb, #0ea5e9 22%, var(--color-white)) !important;
 }
 :root.dark[data-glass="veil"] .glass-panel .bg-amber-100,
-:root.dark[data-glass="clear"] .glass-panel .bg-amber-100 {
+:root.dark[data-glass="clear"] .glass-panel .bg-amber-100,
+:root[data-glass="clear"] .dark .glass-panel .bg-amber-100 {
   background-color: color-mix(in srgb, #f59e0b 22%, var(--color-white)) !important;
 }
 
@@ -549,7 +563,10 @@ html, body {
 /* clear のときの文字の縁取り。
    地が薄いぶん、写真の柄に文字が紛れる。カードの地の色
    （明るいテーマなら白、暗いテーマなら深い海の色）で細い縁を作ると、どんな写真の上でも輪郭が残る。
-   ただしこれは**保証ではない**（コントラストの計算に縁取りは効かない）。 */
+   ただしこれは**保証ではない**（コントラストの計算に縁取りは効かない）。
+   明るいテーマで海の3D背景を使っているときは、App が中身（#main_payload）に .dark を付けて海の色で描く。
+   海は暗いので、墨色の文字に白い縁取りでは読めなかった。縁取りもカードの地の色（深い海の紺）になる。
+   そのため `:root.dark[data-glass="clear"]` の規則には `:root[data-glass="clear"] .dark` の組を並べる */
 :root[data-glass="clear"] .glass-panel {
   text-shadow:
     0 0 2px var(--color-white),
