@@ -15,6 +15,7 @@
  */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { orientSchoolFish } from "./schoolFish";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
 import { ANGLER_RADIUS, MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
 import { abundance, depthAlong, type Dweller } from "./depth";
@@ -45,6 +46,11 @@ export interface OceanScene {
 
 export interface OceanOptions {
   modelUrl: string;
+  /**
+   * 魚の群れの形（Fish Kit のカタクチイワシ。src/ocean/assets/ocean-anchovy.glb）。
+   * 読み込むまで・取れなかったときは、その場で作る簡単な形で泳がせる（群れだけのことで海は止めない）
+   */
+  schoolFishUrl?: string;
   motion: boolean;
   /** はじめの水深（m）。省くと6m */
   depth?: number;
@@ -538,13 +544,17 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     fishGeo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
     fishGeo.setIndex(idx);
   }
-  const fishMat = track(mat({
+  // 形がキットの写真の魚（textured）なら模様は写真から取り、ひれの透けた所は捨てる（キットの説明どおり、
+  // 半透明の重ね描きではなく切り抜きにする）。読み込むまでの簡単な形では、背は暗く腹は銀色にする
+  const fishShader = (textured: boolean): THREE.ShaderMaterialParameters => ({
     side: THREE.DoubleSide,
     vertexShader: `
       uniform float uTime;
       attribute float aPhase;
       varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
+      ${textured ? "varying vec2 vUv;" : ""}
       void main() {
+        ${textured ? "vUv = uv;" : ""}
         vec3 p = position;
         float tail = (1.0 - smoothstep(-0.3, 0.05, p.z));
         p.x += sin(uTime * 9.0 + aPhase * 6.2831 - p.z * 9.0) * 0.05 * tail;
@@ -555,11 +565,16 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       }`,
     fragmentShader: WATER + `
       varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
+      ${textured ? "uniform sampler2D uMap; varying vec2 vUv;" : ""}
       void main() {
         float d = uDepth - vWorld.y;
         vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
-        // dark back, silver belly: how open-water fish hide from above and below
-        vec3 alb = mix(vec3(0.85, 0.88, 0.9), vec3(0.1, 0.2, 0.3), smoothstep(-0.15, 0.55, vSide));
+        ${textured
+          ? `vec4 tex = texture2D(uMap, vUv);
+        if (tex.a < 0.5) discard;
+        vec3 alb = tex.rgb;`
+          // dark back, silver belly: how open-water fish hide from above and below
+          : "vec3 alb = mix(vec3(0.85, 0.88, 0.9), vec3(0.1, 0.2, 0.3), smoothstep(-0.15, 0.55, vSide));"}
         // lanternfish in the deep: a dark body
         alb = mix(alb, vec3(0.03, 0.04, 0.06), uLantern);
         vec3 L = sunAt(d);
@@ -575,7 +590,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         col += vec3(0.25, 0.7, 1.0) * row * dots * uLantern * exp(-dist * 0.04) * 1.3;
         gl_FragColor = vec4(col, 1.0);
       }`,
-  }));
+  });
+  const fishMat = track(mat(fishShader(false)));
   const MAX_FISH = TIERS.high.fish;
   const fish = new THREE.InstancedMesh(fishGeo, fishMat, MAX_FISH);
   fish.frustumCulled = false;
@@ -1423,6 +1439,35 @@ ${turtleFlipperGlsl()}
       console.warn("海の3Dモデルを読み込めませんでした", e);
       if (!disposed) opts.onFail?.("model");
     });
+
+  // 魚の群れの形（カタクチイワシ）。取れなくても、その場で作った形のまま泳がせる
+  if (opts.schoolFishUrl) {
+    fetch(opts.schoolFishUrl)
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
+      .then((buf) => new Promise<THREE.Object3D>((res, rej) => new GLTFLoader().parse(buf, "", (g) => res(g.scene), rej)))
+      .then((root) => {
+        if (disposed) return;
+        let src: THREE.Mesh | null = null;
+        root.traverse((o) => { if (!src && (o as THREE.Mesh).isMesh) src = o as THREE.Mesh; });
+        const mesh = src as THREE.Mesh | null;
+        const map = mesh && (mesh.material as THREE.MeshStandardMaterial).map;
+        if (!mesh || !map) throw new Error("魚の形か模様がありません");
+        const g = new THREE.BufferGeometry();
+        const pos = new Float32Array(mesh.geometry.getAttribute("position").array);
+        const nor = new Float32Array(mesh.geometry.getAttribute("normal").array);
+        orientSchoolFish(pos, nor);
+        g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+        g.setAttribute("uv", mesh.geometry.getAttribute("uv"));
+        g.setIndex(mesh.geometry.getIndex());
+        g.setAttribute("aPhase", fish.geometry.getAttribute("aPhase"));
+        map.colorSpace = THREE.SRGBColorSpace;
+        fish.geometry = track(g);
+        fish.material = track(mat({ ...fishShader(true), uniforms: { uMap: { value: track(map) } } }));
+        if (!running() && active) draw();
+      })
+      .catch((e) => console.warn("魚の群れの形を読み込めなかったため、簡単な形で泳がせます", e));
+  }
 
   return {
     setActive(v: boolean) { active = v; refresh(); },

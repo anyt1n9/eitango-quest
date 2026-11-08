@@ -39,11 +39,11 @@ export const OCEAN_GUIDE_TEXT: Record<GuideId, GuideText> = {
     example: ["A manta ray glided over the reef like a bird.", "マンタが鳥のように礁の上をすべっていった。"],
     words: ["b1_glide", "b1_wing", "s253"],
   },
-  sardine: {
-    about: "大きな群れを作って泳ぐ小さな魚。群れでいると、敵の大きな魚にねらわれにくい。",
-    memo: "魚の群れは a school of fish と言う（学校の school とは由来の違う語）。鳥や羊の群れなら flock。be packed like sardines は「缶詰のイワシのように詰めこまれる」で、すし詰めのこと。",
-    example: ["We were packed like sardines on the morning train.", "朝の電車はすし詰めだった。"],
-    words: ["a2_pack", "b1_flock", "b1_enemy"],
+  anchovy: {
+    about: "大きな群れを作って泳ぐ小さな魚。群れでいると、敵の大きな魚にねらわれにくい。しらすや煮干しの多くは、この魚から作られる。下あごが短く、口が片方しかないように見えることから「片口」の名が付いたといわれる。",
+    memo: "イワシのなかまでも、マイワシは sardine、カタクチイワシは anchovy と呼び分ける。魚の群れは a school of fish と言う（学校の school とは由来の違う語）。鳥や羊の群れなら flock。",
+    example: ["A huge school of anchovies swirled around the rock.", "カタクチイワシの大きな群れが、岩のまわりを渦を巻くように泳いだ。"],
+    words: ["s2_384", "b1_flock", "b1_enemy"],
   },
   coral: {
     about: "イソギンチャクのなかまの小さな動物が、たくさん集まって暮らしている。体の中にすむ藻が光合成をするので、光の届く浅い海で育つ。",
