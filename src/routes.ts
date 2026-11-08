@@ -23,7 +23,7 @@ export type Screen =
   | "reverse_quiz" | "synonym_quiz" | "sense_quiz" | "review" | "review_quiz" | "dictionary" | "grammar"
   | "reading" | "map_puzzle" | "diary" | "verb_forms" | "srs_review"
   | "settings" | "gacha" | "privacy" | "terms" | "about" | "background"
-  | "learn" | "records" | "menu";
+  | "learn" | "records" | "menu" | "ocean_guide";
 
 export interface Route {
   screen: Screen;
@@ -58,7 +58,8 @@ const PATHS: Record<Screen, string> = {
   background: "/background",
   learn: "/learn",
   records: "/records",
-  menu: "/menu"
+  menu: "/menu",
+  ocean_guide: "/ocean-guide"
 };
 
 /**
@@ -76,7 +77,7 @@ export function isTransient(screen: Screen): boolean {
 }
 
 /** 画面の中で開いているものをURLに持てる画面 */
-const WITH_PARAM: Screen[] = ["grammar", "reading"];
+const WITH_PARAM: Screen[] = ["grammar", "reading", "ocean_guide"];
 
 export function routeToPath(route: Route): string {
   const base = PATHS[route.screen] ?? "/";
@@ -172,6 +173,7 @@ export function tabForScreen(screen: Screen): Tab | null {
       return "learn";
     case "records":
     case "gacha":
+    case "ocean_guide":
       return "records";
     default:
       return "menu";

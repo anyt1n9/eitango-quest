@@ -80,6 +80,8 @@ describe("海の深さ", () => {
     await user.click(back);
     await waitFor(() => expect(depthNotices()).toHaveLength(1));
     expect(depthNotices()[0].message).toContain(`水深${REEF.depth}mの「${REEF.name}」`);
+    // その段で新しく出会った生き物を、海の図鑑に加わったと知らせる
+    expect(depthNotices()[0].message).toContain("海の図鑑に「サンゴ」「ノウサンゴ」「チョウチョウウオ」「スズメダイ」が加わりました。");
     expect(oceanDepth()).toBe(String(REEF.depth));
   });
 
@@ -157,7 +159,7 @@ describe("海の深さ", () => {
   });
 
   it("いちばん深い段まで潜ったら、次の深さの代わりにそう書く", () => {
-    render(<OceanDepthCard info={{ mastered: 4000, reached: DEPTH_STAGES.length - 1, shown: DEPTH_STAGES.length - 1 }} onOpenBackground={() => {}} />);
+    render(<OceanDepthCard info={{ mastered: 4000, reached: DEPTH_STAGES.length - 1, shown: DEPTH_STAGES.length - 1 }} onOpenBackground={() => {}} onOpenGuide={() => {}} />);
     const card = screen.getByRole("region", { name: "海の深さ" });
     expect(card).toHaveTextContent("いちばん深い海まで潜りました。");
     expect(within(card).queryByRole("progressbar")).toBeNull();

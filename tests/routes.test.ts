@@ -18,7 +18,7 @@ const ALL: Screen[] = [
   "reverse_quiz", "review", "review_quiz", "dictionary", "grammar",
   "reading", "map_puzzle", "diary", "verb_forms", "srs_review",
   "settings", "gacha", "privacy", "terms", "about", "background",
-  "synonym_quiz", "sense_quiz", "learn", "records", "menu"
+  "synonym_quiz", "sense_quiz", "learn", "records", "menu", "ocean_guide"
 ];
 
 describe("画面とパスの往復", () => {
@@ -49,6 +49,13 @@ describe("画面の中で開いているもの", () => {
   it("長文をパスに持てる", () => {
     const path = routeToPath({ screen: "reading", param: "p1" });
     expect(pathToRoute(path)).toEqual({ screen: "reading", param: "p1" });
+  });
+
+  it("海の図鑑の生き物をパスに持てる", () => {
+    const path = routeToPath({ screen: "ocean_guide", param: "whale-shark" });
+    expect(path).toBe("/ocean-guide/whale-shark");
+    expect(pathToRoute(path)).toEqual({ screen: "ocean_guide", param: "whale-shark" });
+    expect(pathToRoute("/ocean-guide")).toEqual({ screen: "ocean_guide" });
   });
 
   it("持てない画面では無視する", () => {
@@ -145,6 +152,7 @@ describe("画面下のタブ", () => {
       expect(isTabRoot(s), s).toBe(false);
     }
     expect(tabForScreen("gacha")).toBe("records");
+    expect(tabForScreen("ocean_guide")).toBe("records");
     for (const s of ["settings", "background", "about", "privacy", "terms"] as Screen[]) {
       expect(tabForScreen(s), s).toBe("menu");
     }

@@ -99,6 +99,8 @@ const AboutApp = lazy(() =>
 const LearnHub = lazy(() => import("./components/LearnHub"));
 const Records = lazy(() => import("./components/Records"));
 const MenuScreen = lazy(() => import("./components/MenuScreen"));
+// 海の図鑑（記録の「海の深さ」と教材から開く）
+const OceanGuide = lazy(() => import("./components/OceanGuide"));
 import { SrsState, nextSrsState, getDueWordIds, todayStr, sanitizeSrs } from "./srs";
 import { currentLoginStreak, previousDay } from "./loginBonus";
 import { readStoredArray, readStoredObject, readStoredString, writeStored, prefersDarkTheme } from "./storage";
@@ -119,6 +121,7 @@ import {
   DEPTH_STAGES, DepthChoice, oceanGradientCss, readDepthChoice, readReachedStage, saveDepthChoice, saveReachedStage,
   shownStageIndex, stageIndexFor
 } from "./ocean/depth";
+import { newlyMet } from "./ocean/guide";
 import { countMastered } from "./mastery";
 import { notify } from "./notice";
 import { readStudyLevel, saveStudyLevel, readQuestionCount, saveQuestionCount } from "./studySettings";
@@ -536,6 +539,10 @@ export default function App() {
   const [openPassageId, setOpenPassageId] = useState<string | null>(
     initialRoute.screen === "reading" ? initialRoute.param ?? null : null
   );
+  // 海の図鑑で開いている生き物（/ocean-guide/<id>）
+  const [guideCreatureId, setGuideCreatureId] = useState<string | null>(
+    initialRoute.screen === "ocean_guide" ? initialRoute.param ?? null : null
+  );
   /** 苦手単語の復習を「一覧」ではなくクイズとして解いているときの出題対象 */
   const [wrongSessionWords, setWrongSessionWords] = useState<Word[]>([]);
 
@@ -587,6 +594,7 @@ export default function App() {
     setCurrentScreen(screen);
     setGrammarTopicId(screen === "grammar" ? param ?? null : null);
     setOpenPassageId(screen === "reading" ? param ?? null : null);
+    setGuideCreatureId(screen === "ocean_guide" ? param ?? null : null);
   }, []);
 
   /**
@@ -615,6 +623,7 @@ export default function App() {
       setCurrentScreen(next.screen);
       setGrammarTopicId(next.screen === "grammar" ? next.param ?? null : null);
       setOpenPassageId(next.screen === "reading" ? next.param ?? null : null);
+      setGuideCreatureId(next.screen === "ocean_guide" ? next.param ?? null : null);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -860,27 +869,32 @@ export default function App() {
     setDepthChoice(choice);
     saveDepthChoice(choice);
   };
-  // 新しい段に届いたことの知らせ。出題中に出すと解いている最中の画面に重なるので、出題を終えてから出す
-  const [depthNotice, setDepthNotice] = useState<number | null>(null);
+  // 新しい段に届いたことの知らせ。出題中に出すと解いている最中の画面に重なるので、出題を終えてから出す。
+  // どの段からどの段へ潜ったかを持つ（その間で新しく出会った生き物を、海の図鑑に加わったと知らせる）
+  const [depthNotice, setDepthNotice] = useState<{ from: number; to: number } | null>(null);
   useEffect(() => {
     if (!vocabularyReady) return;
     const k = stageIndexFor(masteredTotal);
     if (k <= oceanReached) return;
     setOceanReached(k);
     saveReachedStage(k);
-    setDepthNotice(k);
+    setDepthNotice(prev => ({ from: prev ? prev.from : oceanReached, to: k }));
   }, [vocabularyReady, masteredTotal, oceanReached]);
   useEffect(() => {
     if (depthNotice === null || isTransient(currentScreen)) return;
     setDepthNotice(null);
     // 海を使っていない人には、見えない海の話をしない（潜った記録だけは残す）
     if (!bgOcean) return;
-    const stage = DEPTH_STAGES[depthNotice];
+    const stage = DEPTH_STAGES[depthNotice.to];
     const words = stage.minMastered.toLocaleString();
+    const met = newlyMet(depthNotice.from, depthNotice.to);
+    const guide = met.length === 0 ? ""
+      : met.length <= 4 ? `海の図鑑に${met.map(c => `「${c.ja}」`).join("")}が加わりました。`
+        : `海の図鑑に${met.length}種が加わりました。`;
     notify(
-      depthChoice === "auto"
+      (depthChoice === "auto"
         ? `覚えた語が${words}語に届いたので、海が水深${stage.depth}mの「${stage.name}」まで深くなりました。`
-        : `覚えた語が${words}語に届いたので、水深${stage.depth}mの「${stage.name}」まで潜れるようになりました。背景の設定で選べます。`,
+        : `覚えた語が${words}語に届いたので、水深${stage.depth}mの「${stage.name}」まで潜れるようになりました（背景の設定で選べます）。`) + guide,
       "success"
     );
   }, [depthNotice, currentScreen, bgOcean, depthChoice]);
@@ -1117,6 +1131,8 @@ export default function App() {
             onOpenVerbForms={() => navigate("verb_forms")}
             onOpenMapPuzzle={() => navigate("map_puzzle")}
             onOpenDiary={() => navigate("diary")}
+            oceanReached={oceanReached}
+            onOpenOceanGuide={() => navigate("ocean_guide")}
             onChangeLevel={() => navigate("dashboard")}
           />
         )}
@@ -1136,6 +1152,22 @@ export default function App() {
             equipped={equipped}
             onOpenGachaShop={() => navigate("gacha")}
             ocean={bgOcean ? { mastered: masteredTotal, reached: oceanReached, shown: oceanStageIndex } : null}
+            onOpenBackground={() => navigate("background")}
+            onOpenOceanGuide={() => navigate("ocean_guide")}
+          />
+        )}
+
+        {currentScreen === "ocean_guide" && (
+          <OceanGuide
+            vocabulary={vocabulary}
+            solvedHistory={solvedHistory}
+            srsData={srsData}
+            mastered={masteredTotal}
+            reached={oceanReached}
+            oceanOn={bgOcean}
+            initialCreatureId={guideCreatureId}
+            onOpenCreatureChange={id => replaceParam("ocean_guide", id)}
+            onBack={goBack}
             onOpenBackground={() => navigate("background")}
           />
         )}

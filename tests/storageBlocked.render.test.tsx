@@ -93,6 +93,8 @@ describe("localStorage が使えない環境", () => {
             onOpenVerbForms={vi.fn()}
             onOpenMapPuzzle={vi.fn()}
             onOpenDiary={vi.fn()}
+            oceanReached={0}
+            onOpenOceanGuide={vi.fn()}
             onChangeLevel={vi.fn()}
           />
         )

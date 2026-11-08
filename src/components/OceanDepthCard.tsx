@@ -1,5 +1,6 @@
 import { Waves } from "lucide-react";
 import { DEPTH_STAGES, nextStageInfo } from "../ocean/depth";
+import { OCEAN_GUIDE, metCount } from "../ocean/guide";
 
 export interface OceanDepthInfo {
   /** いま覚えている語数（習得済み。src/mastery.ts） */
@@ -16,8 +17,13 @@ export interface OceanDepthInfo {
  * 覚えた語数で海が深くなることは、背景を見ているだけでは分からない。ここで、いまの深さと
  * 次の深さまでの語数を見せる。海の3D背景を使っていない人には出さない（App が null を渡す）。
  * 深さの選び直しは背景の設定にまとめ、ここからはそこへ案内するだけにする（入口を2つに分けない）。
+ * 潜った深さで出会った生き物は海の図鑑（OceanGuide）にまとめ、ここから開く。
  */
-export default function OceanDepthCard({ info, onOpenBackground }: { info: OceanDepthInfo; onOpenBackground: () => void }) {
+export default function OceanDepthCard({ info, onOpenBackground, onOpenGuide }: {
+  info: OceanDepthInfo;
+  onOpenBackground: () => void;
+  onOpenGuide: () => void;
+}) {
   const reached = DEPTH_STAGES[Math.min(Math.max(info.reached, 0), DEPTH_STAGES.length - 1)];
   const shown = DEPTH_STAGES[Math.min(Math.max(info.shown, 0), DEPTH_STAGES.length - 1)];
   const next = nextStageInfo(info.mastered, info.reached);
@@ -66,14 +72,24 @@ export default function OceanDepthCard({ info, onOpenBackground }: { info: Ocean
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={onOpenBackground}
-        className="mt-4 min-h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
-        id="btn_choose_ocean_depth"
-      >
-        背景に出す深さを選ぶ
-      </button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onOpenGuide}
+          className="min-h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+          id="btn_open_ocean_guide"
+        >
+          海の図鑑<span className="ml-1.5 font-normal text-gray-500 tabular-nums">{metCount(info.reached)} / {OCEAN_GUIDE.length}種</span>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenBackground}
+          className="min-h-11 px-4 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+          id="btn_choose_ocean_depth"
+        >
+          背景に出す深さを選ぶ
+        </button>
+      </div>
     </section>
   );
 }

@@ -1,11 +1,12 @@
 import React from "react";
-import { ListChecks, Languages, TextCursorInput, Equal, GitFork, Target, ChevronRight, Lock, Repeat, BookMarked } from "lucide-react";
+import { ListChecks, Languages, TextCursorInput, Equal, GitFork, Target, ChevronRight, Lock, Repeat, BookMarked, Fish } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
 import { SrsState } from "../srs";
 import { countMastered, SolvedHistory } from "../mastery";
 import { LEVEL_LABELS } from "../levelLabels";
 import { ListeningIcon, SpellingIcon, ReadingIcon, DiaryIcon, PuzzleIcon } from "./AppIcons";
 import WordImport from "./WordImport";
+import { OCEAN_GUIDE, metCount } from "../ocean/guide";
 
 type QuizType = "word" | "sentence" | "listening" | "spelling" | "reverse" | "synonym" | "sense";
 
@@ -42,6 +43,9 @@ interface LearnHubProps {
   onOpenVerbForms: () => void;
   onOpenMapPuzzle: () => void;
   onOpenDiary: () => void;
+  /** 海の図鑑。潜った段（0 が浅瀬）で、出会った生き物の数を出す */
+  oceanReached: number;
+  onOpenOceanGuide: () => void;
   /** レベルを選び直す（「今日」の画面へ） */
   onChangeLevel: () => void;
 }
@@ -96,6 +100,8 @@ export default function LearnHub({
   onOpenVerbForms,
   onOpenMapPuzzle,
   onOpenDiary,
+  oceanReached,
+  onOpenOceanGuide,
   onChangeLevel
 }: LearnHubProps) {
   const mastered = countMastered(vocabulary.map(w => w.id), solvedHistory, srsData);
@@ -160,6 +166,13 @@ export default function LearnHub({
           <Row id="learn_open_grammar" title="文法ガイド" note="中学〜大学の34項目。説明と練習問題" Icon={BookMarked} onClick={onOpenGrammar} />
           <Row id="learn_open_verb_forms" title="動詞の活用" note="過去形・過去分詞・ing形の一覧" Icon={Repeat} onClick={onOpenVerbForms} />
           <Row id="learn_open_map" title="つながりマップ" note="単語どうしの関係をパズルで" Icon={PuzzleIcon} onClick={onOpenMapPuzzle} />
+          <Row
+            id="learn_open_ocean_guide"
+            title="海の図鑑"
+            note={`覚えた語数で潜った海の生き物を英語で（${metCount(oceanReached)} / ${OCEAN_GUIDE.length}種）`}
+            Icon={Fish}
+            onClick={onOpenOceanGuide}
+          />
         </div>
       </section>
 

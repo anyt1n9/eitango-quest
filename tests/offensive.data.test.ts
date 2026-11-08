@@ -6,6 +6,8 @@ import { wordSynonyms } from "../src/data/synonyms";
 import { senseQuiz } from "../src/data/senseQuiz";
 import { passages } from "../src/data/passages";
 import { grammarTopics } from "../src/data/grammar";
+import { OCEAN_GUIDE_TEXT } from "../src/data/oceanGuide";
+import { OCEAN_GUIDE } from "../src/ocean/guide";
 import {
   REMOVED_HEADWORDS,
   OFFENSIVE_EN,
@@ -94,11 +96,13 @@ describe("辞書から作ったデータ", () => {
 });
 
 describe("書き下ろしのデータ", () => {
-  it("長文・文法・語義分別クイズに出さない", () => {
+  it("長文・文法・語義分別クイズ・海の図鑑に出さない", () => {
     const bad = offending([
       ...allStrings(passages),
       ...allStrings(grammarTopics),
-      ...allStrings(senseQuiz)
+      ...allStrings(senseQuiz),
+      ...allStrings(OCEAN_GUIDE_TEXT),
+      ...allStrings(OCEAN_GUIDE)
     ]);
     expect(bad).toEqual([]);
   });

@@ -1001,7 +1001,10 @@ test("どの画面も、明暗どちらのテーマでも文字が読める", as
       ["英語日記", "/diary", "#ai_diary_view"],
       ["ガチャ", "/gacha", "#gacha_shop_root"],
       ["背景の画像", "/background", "#background_settings_screen"],
-      ["データ", "/settings", "#data_backup_root"]
+      ["データ", "/settings", "#data_backup_root"],
+      // 海の図鑑。まだ出会っていない生き物（薄い絵と伏せた名前）と、1種ずつの説明
+      ["海の図鑑", "/ocean-guide", "#ocean_guide_screen"],
+      ["海の図鑑の説明", "/ocean-guide/sea-turtle", "#ocean_guide_detail"]
     ]) {
       await page.goto(path);
       await expect(page.locator("#vocabulary_loading_screen")).toHaveCount(0, { timeout: 30_000 });
@@ -1151,7 +1154,7 @@ test.describe("単語データを取りに行けなかったとき", () => {
 const GLASS_SCREENS = [
   "/dictionary", "/learn", "/records", "/menu", "/review", "/grammar", "/grammar/g_be_verb",
   "/reading", "/reading/p1", "/map", "/diary", "/verb-forms", "/settings", "/gacha",
-  "/background", "/about", "/privacy", "/terms"
+  "/background", "/about", "/privacy", "/terms", "/ocean-guide", "/ocean-guide/sea-turtle"
 ];
 
 test.describe("ガラスの下に最悪の色を敷いても読める", () => {
