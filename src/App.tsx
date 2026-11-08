@@ -49,7 +49,7 @@ const OceanBackground = lazy(() => import("./components/OceanBackground"));
  * アプリ全体を止めてはいけない。設定は保存されているので、読み直しても同じ所で落ち、
  * 設定の画面にも行けなくなる。読み直しはしない（失敗した import は同じ画面では取り直されない）
  */
-type OceanGuardProps = { children: React.ReactNode; fallback: React.ReactNode };
+type OceanGuardProps = { children: React.ReactNode; fallback: React.ReactNode; onFail?: () => void };
 class OceanGuard extends React.Component<OceanGuardProps, { failed: boolean }> {
   // props の型を明示する（ErrorBoundary と同じ。declare なので実行時のコードは生成されない）
   declare props: OceanGuardProps;
@@ -59,6 +59,7 @@ class OceanGuard extends React.Component<OceanGuardProps, { failed: boolean }> {
   }
   componentDidCatch(error: unknown) {
     console.warn("海の3D背景を読み込めなかったため、いつもの背景に戻します", error);
+    this.props.onFail?.();
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
@@ -905,8 +906,12 @@ export default function App() {
    * 海は明るさの分かっている背景なので、こうして決められる（写真やジャングルの飾りの上では、これまでどおり）。
    * 出題中は背景を出さず、カードも透かさないので、明るいテーマのまま。ヘッダーとタブは不透明なので明るいまま
    */
+  //
+  // 海の部品を取れずにいつもの背景（明るいテーマではジャングル）へ戻ったとき（OceanGuard）は、海の設定のままでも
+  // 背景は明るいので付けない。付けると、明るい飾りの上に白い文字が乗って読めない
   const glassMode = useGlassRegime();
-  const seaGlass = !isDark && bgOcean && glassMode === "clear" && !isTransient(currentScreen);
+  const [oceanFailed, setOceanFailed] = useState(false);
+  const seaGlass = !isDark && bgOcean && !oceanFailed && glassMode === "clear" && !isTransient(currentScreen);
   const oceanStageIndex = shownStageIndex(depthChoice, oceanReached);
   const oceanDepth = DEPTH_STAGES[oceanStageIndex].depth;
   // 今日解いた問題数（日付が変わっていたら0）
@@ -971,7 +976,10 @@ export default function App() {
           出題中は出さない。視界のすみで何かが動くと、単語より先にそちらへ目が行く */}
       {bgOcean ? (
         // 出題中も外さずに隠すだけにする（作り直すと3Dモデルの準備がやり直しになる）
-        <OceanGuard fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}>
+        <OceanGuard
+          fallback={!isTransient(currentScreen) && <BackgroundScene motion={bgMotion} image={bgImage} veil={bgVeil} />}
+          onFail={() => setOceanFailed(true)}
+        >
           {oceanMounted ? (
             <Suspense fallback={<OceanPlaceholder active={!isTransient(currentScreen)} depth={oceanDepth} />}>
               <OceanBackground active={!isTransient(currentScreen)} motion={bgMotion} depth={oceanDepth} onDrawingChange={setOceanDrawing} />

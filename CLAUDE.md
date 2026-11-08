@@ -747,7 +747,9 @@ CI でも走る。`vite preview` ではなくビルド済みの `dist/server.cjs
 これまでどおり）。`.dark` の変数と `dark:` の書き方はどれも `.dark` の要素の中で効くので、中身はそのまま暗いテーマの
 作りになる。根の要素ではないので、`:root.dark[data-glass="clear"]` で書いた規則には
 `:root[data-glass="clear"] .dark` の組を並べること。文字の色は根の要素で決まって継がれるので、中身でも指定している。
-ヘッダー・タブ・出題中は明るいまま。テストは `tests/seaGlass.render.test.tsx` と e2e の「明るいテーマでも、海の上なら…」。
+ヘッダー・タブ・出題中は明るいまま。**海の部品を取れずにいつもの背景へ戻ったとき（`OceanGuard` の `onFail`）も付けない**
+（海の設定のままでも背景は明るいジャングルなので、白い文字が乗って読めなくなる）。
+テストは `tests/seaGlass.render.test.tsx`、`tests/oceanLoadFailure.render.test.tsx`、e2e の「明るいテーマでも、海の上なら…」。
 
 **ふだんのコントラスト実測（`LOW_CONTRAST`）はガラスを検査できない。**
 背景は `position: fixed` の別レイヤーで文字の祖先ではないため、半透明のカードを

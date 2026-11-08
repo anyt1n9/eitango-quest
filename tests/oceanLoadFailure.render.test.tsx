@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { __resetGlassForTest } from "../src/glass";
 
 /**
  * 海の3D背景の部品そのものを取りに行けなかったとき（通信が切れている・デプロイ直後で
@@ -36,6 +37,7 @@ const WORDS = [
 
 beforeEach(() => {
   localStorage.clear();
+  __resetGlassForTest();
   localStorage.setItem("quest_bg_ocean", "on");
   window.history.pushState({}, "", "/");
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -57,5 +59,20 @@ describe("海の3D背景を読み込めなかったとき", () => {
     expect(document.getElementById("btn_junior_word")).not.toBeNull();
     // 設定は消さない（通信が戻れば、次に開いたとき海が出る）
     expect(localStorage.getItem("quest_bg_ocean")).toBe("on");
+  });
+
+  it("明るいテーマでカードを透かしていても、戻った背景（ジャングル）の上では中身を海の色にしない", async () => {
+    // 海の上だけ白い文字・紺の縁取りにする（App の seaGlass）。海の設定のままでも、背景が明るい飾りに戻ったら
+    // 白い文字が明るい背景に乗って読めなくなる
+    localStorage.setItem("quest_theme", "light");
+    localStorage.setItem("quest_glass", "100");
+    const { default: App } = await import("../src/App");
+    render(<App />);
+    await waitFor(() => expect(document.getElementById("vocabulary_loading_screen")).toBeNull());
+    // 読み込む前（海の色の地）は海の色で描く
+    expect(document.getElementById("main_payload")).toHaveAttribute("data-sea-glass", "true");
+    await waitFor(() => expect(screen.getByTestId("background_scene").dataset.kind).toBe("scene"), { timeout: 5000 });
+    expect(document.getElementById("main_payload")).not.toHaveAttribute("data-sea-glass");
+    expect(document.getElementById("main_payload")!.classList.contains("dark")).toBe(false);
   });
 });
