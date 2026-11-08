@@ -262,6 +262,37 @@ test("アプリの名前とエイ・ゴリラのしるしはヘッダーに出�
   await expect(page.locator("body")).not.toContainText("英単語 Quest");
 });
 
+/**
+ * PC（lg 以上）では、ヘッダーと画面下のタブの地を中身の列（カードと同じ幅）にだけ敷き、左右は透かして背景の海を見せる。
+ * 画面の幅いっぱいに地を敷いていたときは、左右の何も無い所まで帯がふさいで、海が上下で切られていた。
+ * スマホは幅いっぱいのまま（列と画面の幅がほぼ同じで、透かす所が無い）。
+ */
+test("PC ではヘッダーとタブの地を中身の列にだけ敷き、左右に背景を見せる", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await waitForVocabulary(page);
+  const card = (await page.locator("#main_payload .glass-panel").first().boundingBox())!;
+  const bg = (sel: string) => page.locator(sel).evaluate(e => getComputedStyle(e).backgroundColor);
+  for (const [outer, inner] of [["#navigation_bar", "#navigation_bar > div"], ["#tab_bar", "#tab_bar_row"]]) {
+    expect(await bg(outer), `${outer} の左右が透けていない`).toBe("rgba(0, 0, 0, 0)");
+    expect(await bg(inner), `${inner} に地が無い`).not.toBe("rgba(0, 0, 0, 0)");
+    const box = (await page.locator(inner).boundingBox())!;
+    expect(Math.abs(box.x - card.x), `${inner} の左端がカードとそろっていない`).toBeLessThan(1);
+    expect(Math.abs(box.width - card.width), `${inner} の幅がカードとそろっていない`).toBeLessThan(1);
+  }
+  // 透かした左右は押す操作を奪わず、タブは押せる
+  expect(await page.locator("#tab_bar").evaluate(e => getComputedStyle(e).pointerEvents)).toBe("none");
+  await goTab(page, "learn");
+  await expect(page).toHaveURL(/\/learn$/);
+  expect(await page.evaluate(LOW_CONTRAST)).toEqual([]);
+
+  // スマホは幅いっぱいに地を敷く（地の色には200msの遷移が掛かっているので、変わり終わるのを待つ）
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect((await page.locator("#tab_bar").boundingBox())!.width).toBe(390);
+  await expect.poll(() => bg("#tab_bar")).not.toBe("rgba(0, 0, 0, 0)");
+  await expect.poll(() => bg("#navigation_bar")).not.toBe("rgba(0, 0, 0, 0)");
+});
+
 test("行き先は画面下のタブにまとめ、出題中は出さない", async ({ page }) => {
   // 以前は入口が5か所（ヘッダーのアイコン・ハンバーガー・ダッシュボードのタブ・
   // 学習メニューの折りたたみ・レベルのカード）に散らばっていた

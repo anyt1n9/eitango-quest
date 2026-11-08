@@ -983,15 +983,18 @@ export default function App() {
         行き先は画面下のタブ（TabBar）にまとめた。
         出題中は出さない。中断は出題画面の左上の「×」1つにまとめ、
         視界に点数や切り替えのボタンが並ばないようにする（タブと同じ扱い）。
+
+        広い画面（lg 以上）では、地を中身の列（カードと同じ幅）にだけ敷き、左右は透かして背景の海を見せる。
+        画面の幅いっぱいに地を敷いていたときは、PC では左右の何も無い所まで帯がふさいでいた（画面下のタブも同じ）。
       */}
       {/* ホーム画面から開くと（black-translucent）、時計の帯の下まで画面が広がるので、その高さぶん下げる */}
       {!isTransient(currentScreen) && (
       <header
-        className={`sea-fade ${seaView ? "sea-hidden " : ""}bg-slate-50 border-b border-gray-200 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] px-4 sticky top-0 z-40`}
+        className={`sea-fade ${seaView ? "sea-hidden " : ""}bg-slate-50 border-b border-gray-200 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] px-4 sticky top-0 z-40 lg:bg-transparent lg:border-b-0 lg:pt-[env(safe-area-inset-top)] lg:pb-0 lg:pointer-events-none`}
         id="navigation_bar"
         inert={seaView}
       >
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3 lg:max-w-[54rem] lg:px-4 lg:py-2 lg:bg-slate-50 lg:border lg:border-t-0 lg:border-gray-200 lg:rounded-b-2xl lg:pointer-events-auto">
           <div
             onClick={handleGoHome}
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer hover:opacity-85 select-none min-w-0"

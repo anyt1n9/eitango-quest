@@ -28,6 +28,10 @@ interface TabBarProps {
  * 親指の届く位置に、行き先を5つだけ並べる。出題中は出さない（App が判断する）。
  * 印は「開かなくても気づける」ためのもの。しまい込んだせいで復習やボーナスに
  * 気づかれないのでは、まとめた意味がない。
+ *
+ * 広い画面（lg 以上）では、地を中身の列（カードと同じ幅）にだけ敷き、左右は透かして背景の海を見せる。
+ * 画面の幅いっぱいに地を敷いていたときは、PC では左右の何も無い所まで帯がふさいでいた。
+ * 透かした左右は押せないようにする（その下には何も無いが、帯が押す操作を奪わないように）。
  */
 export default function TabBar({ active, onSelect, dueCount, bonusClaimable, hidden = false }: TabBarProps) {
   return (
@@ -35,9 +39,9 @@ export default function TabBar({ active, onSelect, dueCount, bonusClaimable, hid
       aria-label="メイン"
       id="tab_bar"
       inert={hidden}
-      className={`sea-fade ${hidden ? "sea-hidden " : ""}fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 pb-[env(safe-area-inset-bottom)]`}
+      className={`sea-fade ${hidden ? "sea-hidden " : ""}fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 pb-[env(safe-area-inset-bottom)] lg:px-4 lg:bg-transparent lg:dark:bg-transparent lg:border-t-0 lg:pointer-events-none`}
     >
-      <div className="max-w-4xl mx-auto grid grid-cols-5">
+      <div className="max-w-4xl mx-auto grid grid-cols-5 lg:max-w-[54rem] lg:bg-white lg:dark:bg-slate-900 lg:border lg:border-b-0 lg:border-gray-200 lg:dark:border-slate-800 lg:rounded-t-2xl lg:pointer-events-auto" id="tab_bar_row">
         {TABS.map(({ tab, label, Icon }) => {
           const on = tab === active;
           const badge =
