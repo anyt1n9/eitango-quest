@@ -45,6 +45,8 @@ interface RecordsProps {
   /** 海の深さ（海の3D背景を使っていなければ null で、欄を出さない） */
   ocean?: OceanDepthInfo | null;
   onOpenBackground?: () => void;
+  /** 海の図鑑を開く（海の深さの欄から） */
+  onOpenOceanGuide?: () => void;
 }
 
 /**
@@ -67,7 +69,8 @@ export default function Records({
   equipped,
   onOpenGachaShop,
   ocean = null,
-  onOpenBackground = () => {}
+  onOpenBackground = () => {},
+  onOpenOceanGuide = () => {}
 }: RecordsProps) {
   const [advice, setAdvice] = useState<string>("");
   // AIが書いたのか、アプリが学習記録から組み立てたのか。
@@ -345,7 +348,7 @@ export default function Records({
           </div>
         </section>
 
-        {ocean && <OceanDepthCard info={ocean} onOpenBackground={onOpenBackground} />}
+        {ocean && <OceanDepthCard info={ocean} onOpenBackground={onOpenBackground} onOpenGuide={onOpenOceanGuide} />}
 
         <section className="glass-panel bg-white border border-gray-200 rounded-2xl p-5" id="ranking_section" aria-labelledby="ranking_heading">
           <div className="flex items-start justify-between gap-3 flex-wrap">

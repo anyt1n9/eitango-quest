@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LearnHub from "../src/components/LearnHub";
 import { makeWord } from "./fixtures";
@@ -36,6 +36,8 @@ function renderLearn(props: Partial<ComponentProps<typeof LearnHub>> = {}) {
     onOpenVerbForms: vi.fn(),
     onOpenMapPuzzle: vi.fn(),
     onOpenDiary: vi.fn(),
+    oceanReached: 0,
+    onOpenOceanGuide: vi.fn(),
     onChangeLevel: vi.fn(),
     ...props
   };
@@ -89,7 +91,8 @@ describe("読む・文法", () => {
       ["learn_open_grammar", "onOpenGrammar"],
       ["learn_open_verb_forms", "onOpenVerbForms"],
       ["learn_open_map", "onOpenMapPuzzle"],
-      ["learn_open_diary", "onOpenDiary"]
+      ["learn_open_diary", "onOpenDiary"],
+      ["learn_open_ocean_guide", "onOpenOceanGuide"]
     ];
     for (const [id, handler] of pairs) {
       await user.click(document.getElementById(id)!);
@@ -99,9 +102,20 @@ describe("読む・文法", () => {
 
   it("項目ごとに違う絵を使う", () => {
     renderLearn();
-    const marks = ["learn_open_reading", "learn_open_grammar", "learn_open_verb_forms", "learn_open_map"]
+    const marks = ["learn_open_reading", "learn_open_grammar", "learn_open_verb_forms", "learn_open_map", "learn_open_ocean_guide"]
       .map(id => document.getElementById(id)!.querySelector("svg")!.innerHTML);
     expect(new Set(marks).size, "同じ絵が2か所に出ている").toBe(marks.length);
+  });
+});
+
+describe("海の図鑑", () => {
+  it("潜った深さで出会った生き物の数を出す（海の3D背景を使っていなくても出す）", () => {
+    // 浅瀬だけ：4種。礁の斜面まで潜っていれば、浅瀬4・サンゴ礁4・礁の斜面2で10種
+    renderLearn({ oceanReached: 0 });
+    expect(document.getElementById("learn_open_ocean_guide")).toHaveTextContent("4 / 15種");
+    cleanup();
+    renderLearn({ oceanReached: 2 });
+    expect(document.getElementById("learn_open_ocean_guide")).toHaveTextContent("10 / 15種");
   });
 });
 
