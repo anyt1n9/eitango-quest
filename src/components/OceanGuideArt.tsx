@@ -41,7 +41,7 @@ const ART: Record<GuideId, React.ReactNode> = {
       <path d="M32 39v19" />
     </>
   ),
-  sardine: (
+  anchovy: (
     <>
       <g>
         <path d="M6 20c4-4 10-5.5 16-4.5 3 .5 5.5 2 7 4.5-1.5 2.5-4 4-7 4.5-6 1-12-.5-16-4.5Z" />

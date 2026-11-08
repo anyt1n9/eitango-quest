@@ -1,0 +1,12 @@
+Fish Kit — CC0 1.0 Universal
+(https://cda-social.github.io/fish/gallery.html, kit/fish-kit.zip, LICENSE.txt)
+
+The models, photos, code and scripts in this kit are dedicated to the public domain.
+You may copy, modify, redistribute and use them, including for commercial purposes,
+without permission and without credit.
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+このキットのモデル・写真・プログラム・スクリプトは CC0 1.0（パブリックドメイン）です。
+改変・再配布・商用利用を含め、許可もクレジット表記もなく自由に使えます。
+
+Used here: ocean-anchovy.glb (= fish/katakuchi_lo.glb, unchanged)

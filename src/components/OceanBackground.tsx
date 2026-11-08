@@ -3,6 +3,8 @@ import { createOceanScene, type OceanScene } from "../ocean/oceanScene";
 import { oceanGradientCss } from "../ocean/depth";
 // 名前に中身のハッシュが付く（作り直したモデルと古いコードが組み合わさらない）
 import oceanModelUrl from "../ocean/assets/ocean.glb?url";
+// 魚の群れ（Fish Kit のカタクチイワシ。CC0。src/ocean/assets/README.md）
+import schoolFishUrl from "../ocean/assets/ocean-anchovy.glb?url";
 
 /**
  * 海の3D背景（既定で使う。メニューの「背景の画像・透明感」で止められる。決め方は src/oceanSetting.ts）。
@@ -72,6 +74,7 @@ export default function OceanBackground({ active, motion, depth, onDrawingChange
     try {
       scene = createOceanScene(canvas, {
         modelUrl: oceanModelUrl,
+        schoolFishUrl,
         motion: latest.current.moving,
         depth: latest.current.depth,
         onFail: (reason) => {

@@ -68,10 +68,12 @@ describe("海の図鑑の説明", () => {
     }
   });
 
-  it("例文は、その生き物の英語の名前を使っている", () => {
+  it("例文は、その生き物の英語の名前を使っている（複数形でもよい）", () => {
     for (const c of OCEAN_GUIDE) {
       const sentence = OCEAN_GUIDE_TEXT[c.id].example[0].toLowerCase();
-      expect(sentence, c.id).toContain(c.name.toLowerCase());
+      const name = c.name.toLowerCase();
+      const plural = name.replace(/y$/, "ies");
+      expect(sentence.includes(name) || sentence.includes(plural), c.id).toBe(true);
     }
   });
 

@@ -17,7 +17,7 @@ import { DepthStageId, Dweller, stageIndexOf } from "./depth";
  */
 
 export type GuideId =
-  | "seagrass" | "sea-turtle" | "manta-ray" | "sardine"
+  | "seagrass" | "sea-turtle" | "manta-ray" | "anchovy"
   | "coral" | "brain-coral" | "butterflyfish" | "damselfish"
   | "sea-fan" | "humphead-wrasse"
   | "whale-shark" | "jellyfish"
@@ -41,7 +41,8 @@ export const OCEAN_GUIDE: readonly GuideCreature[] = [
   { id: "seagrass", name: "seagrass", ja: "海草", stage: "shallows", dweller: "seagrass" },
   { id: "sea-turtle", name: "sea turtle", ja: "ウミガメ", stage: "shallows", dweller: "turtle" },
   { id: "manta-ray", name: "manta ray", ja: "マンタ", stage: "shallows", dweller: "manta" },
-  { id: "sardine", name: "sardine", ja: "イワシ", stage: "shallows", dweller: "fish" },
+  // 群れの形は Fish Kit（CC0）のカタクチイワシ（src/ocean/assets/README.md）
+  { id: "anchovy", name: "anchovy", ja: "カタクチイワシ", stage: "shallows", dweller: "fish" },
   { id: "coral", name: "coral", ja: "サンゴ", stage: "reef", dweller: "staghorn" },
   { id: "brain-coral", name: "brain coral", ja: "ノウサンゴ", stage: "reef", dweller: "brain" },
   { id: "butterflyfish", name: "butterflyfish", ja: "チョウチョウウオ", stage: "reef", dweller: "reeffish" },
