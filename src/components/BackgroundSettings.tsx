@@ -247,6 +247,7 @@ export default function BackgroundSettings({ image, onChange, veil, onVeilChange
                 {GLASS_SAFE_MAX}%より透かすとカードの地が薄くなるため、背景によっては文字が読みにくくなります
                 （明るい写真の上では明るい文字が、暗い写真の上では暗い文字が沈みます）。
                 読みにくいときは「{GLASS_SAFE_MAX}%」に戻すか、背景の画像を変えてください。
+                海の3D背景の上では、明るいテーマでもカードの中を海の色（白い文字）で描きます。
               </p>
             )}
           </div>

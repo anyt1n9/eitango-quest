@@ -137,6 +137,13 @@ export function useGlass(): number {
   return useSyncExternalStore(subscribe, getGlass, getGlass);
 }
 
+const readRegime = () => glassRegime(getGlass());
+
+/** いまの範囲の種類（off / veil / clear）だけを読む。値が動いても範囲が変わらなければ描き直さない（App が使う） */
+export function useGlassRegime(): GlassRegime {
+  return useSyncExternalStore(subscribe, readRegime, readRegime);
+}
+
 /** テスト用。読み込み済みの値を捨てて、次に読むときに保存値から読み直す */
 export function __resetGlassForTest(): void {
   if (saveTimer !== null) clearTimeout(saveTimer);
