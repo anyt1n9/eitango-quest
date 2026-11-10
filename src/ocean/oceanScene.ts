@@ -571,15 +571,16 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   const fishShader = (kind: "plain" | "anchovy" | "lantern"): THREE.ShaderMaterialParameters => {
     const textured = kind !== "plain";
     const len = (kind === "lantern" ? PHOTO_FISH_LENGTH.lanternfish : PHOTO_FISH_LENGTH.anchovy).toFixed(4);
-    // 描かない魚は、頂点を画面の外（クリップの外）へ出す
-    const hidden = kind === "anchovy" ? "uSplit > 0.5 && aPhase < uLantern" : kind === "lantern" ? "aPhase >= uLantern" : "false";
-    // 写真の形を読み込む前は、深いほど暗くして腹に点を描く（ハダカイワシの代わり）
-    const fallbackLantern = kind === "plain" ? "uLantern" : kind === "anchovy" ? "uLantern * (1.0 - uSplit)" : "0.0";
+    // 描かない魚は、頂点を画面の外（クリップの外）へ出す。ハダカイワシの形を読み込んだら、イワシの側（写真の形も、
+    // まだ読み込めていない簡単な形も）はハダカイワシになった魚を描かない（深い所から始めるとイワシの形は取りに行かないので、
+    // 簡単な形のまま浮かんでくることがある。そのとき同じ所に2匹重ねない）
+    const hidden = kind === "lantern" ? "aPhase >= uLantern" : "uSplit > 0.5 && aPhase < uLantern";
+    // ハダカイワシの形を読み込む前は、深いほど暗くして腹に点を描く（ハダカイワシの代わり）
+    const fallbackLantern = kind === "lantern" ? "0.0" : "uLantern * (1.0 - uSplit)";
     return {
       side: THREE.DoubleSide,
       vertexShader: `
-      uniform float uTime; uniform float uLantern;
-      ${textured ? "uniform float uSplit;" : ""}
+      uniform float uTime; uniform float uLantern; uniform float uSplit;
       attribute float aPhase;
       varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
       ${textured ? "varying vec2 vUv;" : ""}
@@ -597,7 +598,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       }`,
       fragmentShader: WATER + `
       varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
-      ${textured ? "uniform sampler2D uMap; uniform float uSplit; varying vec2 vUv;" : ""}
+      uniform float uSplit;
+      ${textured ? "uniform sampler2D uMap; varying vec2 vUv;" : ""}
       ${kind === "lantern" ? "uniform sampler2D uOrgans;" : ""}
       void main() {
         float d = uDepth - vWorld.y;
@@ -630,7 +632,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
       }`,
     };
   };
-  const fishMat = track(mat(fishShader("plain")));
+  const fishMat = track(mat({ ...fishShader("plain"), uniforms: { uSplit: lanternSplit } }));
   const MAX_FISH = TIERS.high.fish;
   const fish = new THREE.InstancedMesh(fishGeo, fishMat, MAX_FISH);
   fish.frustumCulled = false;
@@ -1552,6 +1554,10 @@ ${turtleFlipperGlsl()}
 
   /* ---- photo fish: fetched only for the depth being shown or dived to ---- */
   const photoState: Partial<Record<PhotoFishId, "loading" | "ready" | "failed">> = {};
+  // 取れなかった魚は、次に潜る（浮かぶ）とき・出題から戻ったときに取り直す。通信が一瞬切れただけで、その回ずっと
+  // 魚が欠けたままにしない。ただし壊れたファイルを何度も取りに行かないよう、回数に上限を置く
+  const photoTries: Partial<Record<PhotoFishId, number>> = {};
+  const PHOTO_TRIES = 3;
   /** 写真の魚の glb から、場面の向きと長さにそろえた形と模様を取り出す */
   function photoFishGeometry(root: THREE.Object3D, id: PhotoFishId) {
     let src: THREE.Mesh | null = null;
@@ -1595,7 +1601,9 @@ ${turtleFlipperGlsl()}
     } else if (id === "lanternfish") {
       geometry.setAttribute("aPhase", fish.geometry.getAttribute("aPhase"));
       const organs = track(photophoreTexture(map));
-      const m = new THREE.InstancedMesh(geometry, track(mat({ ...fishShader("lantern"), uniforms: { uMap: { value: map }, uOrgans: { value: organs } } })), MAX_FISH);
+      const m = new THREE.InstancedMesh(geometry, track(mat({
+        ...fishShader("lantern"), uniforms: { uMap: { value: map }, uOrgans: { value: organs }, uSplit: lanternSplit },
+      })), MAX_FISH);
       m.instanceMatrix = fish.instanceMatrix;
       m.frustumCulled = false;
       scene.add(m);
@@ -1627,11 +1635,13 @@ ${turtleFlipperGlsl()}
       angler.add(anglerMesh);
     }
   }
-  /** その水深で泳ぐ写真の魚を取りに行く（一度取りに行ったものは、取れなくても取り直さない） */
+  /** その水深で泳ぐ写真の魚を取りに行く（読み込み中・読み込み済みと、取り直しの上限に達したものは除く） */
   function fetchPhotoFish(d: number) {
     for (const id of photoFishAt(d)) {
       const url = opts.fishUrls?.[id];
-      if (!url || photoState[id]) continue;
+      const tries = photoTries[id] ?? 0;
+      if (!url || photoState[id] === "loading" || photoState[id] === "ready" || tries >= PHOTO_TRIES) continue;
+      photoTries[id] = tries + 1;
       photoState[id] = "loading";
       fetch(url)
         .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
@@ -1647,14 +1657,18 @@ ${turtleFlipperGlsl()}
         .catch((e) => {
           photoState[id] = "failed";
           // 群れと熱帯魚は簡単な形のまま泳がせ、ナポレオンフィッシュとチョウチンアンコウは出さない（海は止めない）
-          console.warn(`写真の魚（${id}）を読み込めませんでした`, e);
+          console.warn(`写真の魚（${id}）を読み込めませんでした（${tries + 1}/${PHOTO_TRIES}回目）`, e);
         });
     }
   }
   fetchPhotoFish(startDepth);
 
   return {
-    setActive(v: boolean) { active = v; refresh(); },
+    setActive(v: boolean) {
+      active = v;
+      if (v && !disposed) fetchPhotoFish(depthTo);   // 取れなかった魚を取り直す（上限まで）
+      refresh();
+    },
     setMotion(v: boolean) { motion = v; refresh(); },
     setDepth(d: number, animate: boolean) {
       if (!(d > 0) || disposed) return;
