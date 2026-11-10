@@ -3,13 +3,23 @@ import { createOceanScene, type OceanScene } from "../ocean/oceanScene";
 import { oceanGradientCss } from "../ocean/depth";
 // 名前に中身のハッシュが付く（作り直したモデルと古いコードが組み合わさらない）
 import oceanModelUrl from "../ocean/assets/ocean.glb?url";
-// 魚の群れ（Fish Kit のカタクチイワシ。CC0。src/ocean/assets/README.md）
-import schoolFishUrl from "../ocean/assets/ocean-anchovy.glb?url";
+// 写真から作った魚（Fish Kit の作り方。CC0。src/ocean/assets/README.md）。その深さで泳ぐものだけを取りに行く
+import anchovyUrl from "../ocean/assets/ocean-anchovy.glb?url";
+import lanternfishUrl from "../ocean/assets/ocean-lanternfish.glb?url";
+import butterflyfishUrl from "../ocean/assets/ocean-butterflyfish.glb?url";
+import damselfishUrl from "../ocean/assets/ocean-damselfish.glb?url";
+import wrasseUrl from "../ocean/assets/ocean-wrasse.glb?url";
+import anglerfishUrl from "../ocean/assets/ocean-anglerfish.glb?url";
+
+const FISH_URLS = {
+  anchovy: anchovyUrl, lanternfish: lanternfishUrl, butterflyfish: butterflyfishUrl,
+  damselfish: damselfishUrl, wrasse: wrasseUrl, anglerfish: anglerfishUrl,
+};
 
 /**
  * 海の3D背景（既定で使う。メニューの「背景の画像・透明感」で止められる。決め方は src/oceanSetting.ts）。
  *
- * three.js と3Dモデル（約1.7MB）を読むので、App から lazy() で読み込む。
+ * three.js と3Dモデル（海が約1.5MB、魚はその深さで泳ぐものだけ1種130〜170KB）を読むので、App から lazy() で読み込む。
  * 「使わない」を選んだ人の端末には何も届かない。使う人も、最初の画面が出てから読み込む（App の oceanMounted）。
  *
  * 出題中は見せない（BackgroundScene と同じ決まり）。ただし作り直すと
@@ -74,7 +84,7 @@ export default function OceanBackground({ active, motion, depth, onDrawingChange
     try {
       scene = createOceanScene(canvas, {
         modelUrl: oceanModelUrl,
-        schoolFishUrl,
+        fishUrls: FISH_URLS,
         motion: latest.current.moving,
         depth: latest.current.depth,
         onFail: (reason) => {

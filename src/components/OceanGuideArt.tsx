@@ -92,7 +92,6 @@ const ART: Record<GuideId, React.ReactNode> = {
       <path d="M47 33l9-7v14Z" />
       <path d="M21.5 22c-1 7-1 15 0 23" />
       <circle cx="19" cy="31" r="1.4" fill="currentColor" stroke="none" />
-      <circle cx="40" cy="39" r="2.4" />
       <path d="M26 18.5c3-3 8-4.5 13-3.5" />
     </>
   ),

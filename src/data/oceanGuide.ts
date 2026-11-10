@@ -58,7 +58,7 @@ export const OCEAN_GUIDE_TEXT: Record<GuideId, GuideText> = {
     words: ["s123", "a2_hundred", "s579"],
   },
   butterflyfish: {
-    about: "平たい体の、あざやかな色の魚。目を通る黒いしまと尾の近くの黒い点で、どちらが頭なのかを分かりにくくし、敵を混乱させるといわれる。2匹でいることが多い。",
+    about: "平たい体の、あざやかな黄色の魚。目を通る黒いしまで目の位置を分かりにくくし、敵を混乱させるといわれる。2匹でいることが多い。",
     memo: "butterfly（チョウ）＋ fish。fish と同じく、複数でもふつう形を変えない（two butterflyfish）。",
     example: ["Two butterflyfish swam side by side around the coral.", "2匹のチョウチョウウオが、サンゴのまわりを並んで泳いでいた。"],
     words: ["a1_butterfly", "b1_stripe", "s237"],

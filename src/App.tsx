@@ -40,7 +40,7 @@ const Grammar = lazy(() => import("./components/Grammar"));
 const DataBackup = lazy(() => import("./components/DataBackup"));
 const GachaShop = lazy(() => import("./components/GachaShop"));
 const BackgroundSettings = lazy(() => import("./components/BackgroundSettings"));
-// 海の3D背景は three.js と3Dモデル（約1.7MB）を読むので、選んだ人にだけ読み込む
+// 海の3D背景は three.js と3Dモデル（約2MB）を読むので、選んだ人にだけ読み込む
 const OceanBackground = lazy(() => import("./components/OceanBackground"));
 
 /**
