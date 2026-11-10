@@ -1,9 +1,10 @@
 /**
  * 海の3D背景（three.js）。
  *
- * 画像ファイルは使わない。光の筋・水底の光の網目・漂う粒・魚の群れはその場で計算して描き、
- * マンタ・サンゴ・岩・海草は Blender でプログラム生成した3Dモデル（src/ocean/assets/ocean.glb、
- * 生成は scripts/blender/make_ocean_assets.py）を読む。
+ * 光の筋・水底の光の網目・漂う粒・クラゲはその場で計算して描き、マンタ・ウミガメ・ジンベエザメ・サンゴ・岩・海草は
+ * Blender でプログラム生成した3Dモデル（src/ocean/assets/ocean.glb、生成は scripts/blender/make_ocean_assets.py）を読む。
+ * 魚（群れ・熱帯魚・ナポレオンフィッシュ・チョウチンアンコウ）は、写真から作った形（src/ocean/photoFish.ts）を
+ * その深さで泳ぐものだけ読む。模様は写真から取るが、それ以外の画像ファイルは使わない。
  *
  * 水は赤い光から吸収するので、深いほど赤が消えて青だけが残る（色はすべて
  * 「日光が水を通ってどれだけ残るか」から計算する）。水深は覚えた語数で決まり
@@ -15,7 +16,9 @@
  */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { orientSchoolFish } from "./schoolFish";
+import {
+  ANGLERFISH_LURE_KIT, PHOTO_FISH_LENGTH, kitPointToScene, orientPhotoFish, photoFishAt, photophoreMask, type PhotoFishFit, type PhotoFishId,
+} from "./photoFish";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
 import { ANGLER_RADIUS, MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
 import { abundance, depthAlong, type Dweller } from "./depth";
@@ -47,10 +50,11 @@ export interface OceanScene {
 export interface OceanOptions {
   modelUrl: string;
   /**
-   * 魚の群れの形（Fish Kit のカタクチイワシ。src/ocean/assets/ocean-anchovy.glb）。
-   * 読み込むまで・取れなかったときは、その場で作る簡単な形で泳がせる（群れだけのことで海は止めない）
+   * 写真から作った魚の形（src/ocean/assets/ocean-<id>.glb。src/ocean/photoFish.ts）。いまの水深と潜る先で泳ぐ魚だけを取りに行く。
+   * 読み込むまで・取れなかったときは、魚の群れと熱帯魚はその場で作る簡単な形で泳がせ、ナポレオンフィッシュと
+   * チョウチンアンコウは出さない（どれも海は止めない）
    */
-  schoolFishUrl?: string;
+  fishUrls?: Partial<Record<PhotoFishId, string>>;
   motion: boolean;
   /** はじめの水深（m）。省くと6m */
   depth?: number;
@@ -155,7 +159,7 @@ const OBJ_FRAG = WATER + /* glsl */ `
     gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
   }`;
 
-/** 泳ぐ生き物（マンタ・ウミガメ・ナポレオンフィッシュ）の色：頂点色に、深さの光と水底の光の網目を当てる */
+/** 泳ぐ生き物（マンタ・ウミガメ・ジンベエザメ）の色：頂点色に、深さの光と水底の光の網目を当てる */
 const CREATURE_FRAG = WATER + /* glsl */ `
   varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
   void main() {
@@ -164,6 +168,21 @@ const CREATURE_FRAG = WATER + /* glsl */ `
     vec3 L = sunAt(d);
     float c = causticAt(vWorld, d) * smoothstep(0.2, 0.8, n.y);
     vec3 lit = vColor * (L * (0.25 + 0.75 * max(n.y, 0.0)) * (0.7 + 1.2 * c) + waterTint(d) * 0.4);
+    gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
+  }`;
+
+/** 写真から作った生き物（ナポレオンフィッシュ）の色：写真の模様に、深さの光と水底の光の網目を当てる。ひれの透けた所は捨てる */
+const PHOTO_CREATURE_FRAG = WATER + /* glsl */ `
+  uniform sampler2D uMap;
+  varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
+  void main() {
+    vec4 tex = texture2D(uMap, vUv);
+    if (tex.a < 0.5) discard;
+    float d = uDepth - vWorld.y;
+    vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+    vec3 L = sunAt(d);
+    float c = causticAt(vWorld, d) * smoothstep(0.2, 0.8, n.y);
+    vec3 lit = tex.rgb * (L * (0.35 + 0.65 * max(n.y * 0.8 + 0.2, 0.0)) * (0.7 + 1.2 * c) + waterTint(d) * 0.4);
     gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
   }`;
 
@@ -544,28 +563,42 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     fishGeo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
     fishGeo.setIndex(idx);
   }
-  // 形がキットの写真の魚（textured）なら模様は写真から取り、ひれの透けた所は捨てる（キットの説明どおり、
-  // 半透明の重ね描きではなく切り抜きにする）。読み込むまでの簡単な形では、背は暗く腹は銀色にする
-  const fishShader = (textured: boolean): THREE.ShaderMaterialParameters => ({
-    side: THREE.DoubleSide,
-    vertexShader: `
-      uniform float uTime;
+  // 魚の群れは、浅い所はカタクチイワシ、深い所はハダカイワシ（どちらも写真から作った形）。潜る途中は1匹ずつ入れ替わる
+  // （aPhase が uLantern より小さい魚がハダカイワシ。群れの計算は1つのまま、形の違う2つの InstancedMesh で描く）。
+  // 写真の形は、模様を写真から取り、ひれの透けた所は捨てる（キットの説明どおり、半透明の重ね描きではなく切り抜きにする）。
+  // ハダカイワシの形を読むまで・取れなかったときは、イワシ（読む前はその場で作る簡単な形）を深さで暗くし、腹に光る点を描く
+  const lanternSplit = { value: 0 };   // ハダカイワシの形を読み込んだら 1
+  const fishShader = (kind: "plain" | "anchovy" | "lantern"): THREE.ShaderMaterialParameters => {
+    const textured = kind !== "plain";
+    const len = (kind === "lantern" ? PHOTO_FISH_LENGTH.lanternfish : PHOTO_FISH_LENGTH.anchovy).toFixed(4);
+    // 描かない魚は、頂点を画面の外（クリップの外）へ出す
+    const hidden = kind === "anchovy" ? "uSplit > 0.5 && aPhase < uLantern" : kind === "lantern" ? "aPhase >= uLantern" : "false";
+    // 写真の形を読み込む前は、深いほど暗くして腹に点を描く（ハダカイワシの代わり）
+    const fallbackLantern = kind === "plain" ? "uLantern" : kind === "anchovy" ? "uLantern * (1.0 - uSplit)" : "0.0";
+    return {
+      side: THREE.DoubleSide,
+      vertexShader: `
+      uniform float uTime; uniform float uLantern;
+      ${textured ? "uniform float uSplit;" : ""}
       attribute float aPhase;
       varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
       ${textured ? "varying vec2 vUv;" : ""}
       void main() {
         ${textured ? "vUv = uv;" : ""}
+        if (${hidden}) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
         vec3 p = position;
-        float tail = (1.0 - smoothstep(-0.3, 0.05, p.z));
-        p.x += sin(uTime * 9.0 + aPhase * 6.2831 - p.z * 9.0) * 0.05 * tail;
+        // 尾の振り（長さ ${len} の魚で、体の後ろ半分ほどを振る）
+        float tail = (1.0 - smoothstep(-0.48 * ${len}, 0.08 * ${len}, p.z));
+        p.x += sin(uTime * 9.0 + aPhase * 6.2831 - p.z * 9.0 * 0.62 / ${len}) * 0.05 * ${len} / 0.62 * tail;
         vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
         vWorld = wp.xyz; vSide = normal.y; vLocal = position;
         vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
-    fragmentShader: WATER + `
+      fragmentShader: WATER + `
       varying vec3 vWorld; varying vec3 vN; varying float vSide; varying vec3 vLocal;
-      ${textured ? "uniform sampler2D uMap; varying vec2 vUv;" : ""}
+      ${textured ? "uniform sampler2D uMap; uniform float uSplit; varying vec2 vUv;" : ""}
+      ${kind === "lantern" ? "uniform sampler2D uOrgans;" : ""}
       void main() {
         float d = uDepth - vWorld.y;
         vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
@@ -575,23 +608,29 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         vec3 alb = tex.rgb;`
           // dark back, silver belly: how open-water fish hide from above and below
           : "vec3 alb = mix(vec3(0.85, 0.88, 0.9), vec3(0.1, 0.2, 0.3), smoothstep(-0.15, 0.55, vSide));"}
-        // lanternfish in the deep: a dark body
-        alb = mix(alb, vec3(0.03, 0.04, 0.06), uLantern);
+        float lantern = ${fallbackLantern};
+        alb = mix(alb, vec3(0.03, 0.04, 0.06), lantern);
         vec3 L = sunAt(d);
         vec3 V = normalize(cameraPosition - vWorld);
         vec3 H = normalize(V + vec3(0.0, 1.0, 0.0));
-        float spec = pow(max(dot(n, H), 0.0), 36.0) * 1.8 * (1.0 - uLantern);
+        float spec = pow(max(dot(n, H), 0.0), 36.0) * 1.8 * (1.0 - lantern) * ${kind === "lantern" ? "0.3" : "1.0"};
         vec3 lit = alb * (L * max(n.y * 0.7 + 0.3, 0.0) * 0.9 + waterTint(d) * 0.4) + L * spec;
         float dist = length(vWorld - cameraPosition);
         vec3 col = finalize(throughWater(lit, dist));
-        // ...with rows of photophores along the belly that glow blue
-        float row = 1.0 - smoothstep(0.012, 0.024, abs(vLocal.y + 0.045));
+        ${kind === "lantern"
+          // 写真の発光器（photoFish.ts の photophoreMask で拾った点）を光らせる。遠いほど点は小さく、縮めた模様では
+          // まばらな光の平均になるので、遠いほど強める（小さな光がにじんで見える分の代わり）
+          ? `float organ = texture2D(uOrgans, vUv).r;
+        col += vec3(0.25, 0.7, 1.0) * organ * exp(-dist * 0.04) * 1.6 * (1.0 + dist * 0.35);`
+          // ...with rows of photophores along the belly that glow blue
+          : `float row = 1.0 - smoothstep(0.012, 0.024, abs(vLocal.y + 0.045));
         float dots = (1.0 - smoothstep(0.12, 0.32, abs(fract(vLocal.z * 26.0) - 0.5)));
-        col += vec3(0.25, 0.7, 1.0) * row * dots * uLantern * exp(-dist * 0.04) * 1.3;
+        col += vec3(0.25, 0.7, 1.0) * row * dots * lantern * exp(-dist * 0.04) * 1.3;`}
         gl_FragColor = vec4(col, 1.0);
       }`,
-  });
-  const fishMat = track(mat(fishShader(false)));
+    };
+  };
+  const fishMat = track(mat(fishShader("plain")));
   const MAX_FISH = TIERS.high.fish;
   const fish = new THREE.InstancedMesh(fishGeo, fishMat, MAX_FISH);
   fish.frustumCulled = false;
@@ -601,6 +640,8 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     fish.geometry.setAttribute("aPhase", new THREE.InstancedBufferAttribute(ph, 1));
   }
   scene.add(fish);
+  // ハダカイワシの群れ（形を読み込んだら作る）。位置と向きは fish と同じもの（instanceMatrix を分け合う）
+  let lanternSchool: THREE.InstancedMesh | null = null;
   const SCHOOL_C = new THREE.Vector3(-1, -0.8, -10);
   const fPos = new Float32Array(MAX_FISH * 3), fVel = new Float32Array(MAX_FISH * 3), fScale = new Float32Array(MAX_FISH);
   for (let i = 0; i < MAX_FISH; i++) {
@@ -682,30 +723,31 @@ ${turtleFlipperGlsl()}
   }));
   const turtleLods: (THREE.Mesh | undefined)[] = [];
 
-  /* ---- humphead wrasse (model from Blender; the body sways here) ---- */
-  // 体の後ろほど大きく左右にくねらせ、胸びれ（体の横・前寄り）で漕ぐ
+  /* ---- humphead wrasse (photo fish; the body sways here) ---- */
+  // 写真から作った形（ocean-wrasse.glb）を読み込んでから出す。体の後ろほど大きく左右にくねらせる
+  // （胸びれは写真の体の模様に描かれていて、板になっていないので動かさない）
   const wrasse = new THREE.Group();
   scene.add(wrasse);
+  const WRASSE_LEN = PHOTO_FISH_LENGTH.wrasse.toFixed(4);
   const wrasseMat = track(mat({
     side: THREE.DoubleSide,
+    uniforms: { uMap: { value: null } },
     vertexShader: `
       uniform float uTime;
-      attribute vec3 aCol;
-      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
       void main() {
+        vUv = uv;
         vec3 p = position;
-        float k = (1.0 - smoothstep(-0.98, 0.25, p.z));
+        float k = (1.0 - smoothstep(-0.5 * ${WRASSE_LEN}, 0.18 * ${WRASSE_LEN}, p.z));
         p.x += sin(uTime * 1.9 - p.z * 3.2) * 0.075 * k * k + sin(uTime * 1.9 + 1.4) * 0.01;
-        float pect = smoothstep(0.13, 0.2, abs(p.x)) * smoothstep(0.02, 0.12, p.z) * (1.0 - smoothstep(0.3, 0.42, p.z));
-        p.z -= pect * (0.5 + 0.5 * sin(uTime * 3.0)) * 0.05;
         vec4 wp = modelMatrix * vec4(p, 1.0);
-        vWorld = wp.xyz; vColor = aCol;
+        vWorld = wp.xyz;
         vN = normalize(mat3(modelMatrix) * normal);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
-    fragmentShader: CREATURE_FRAG,
+    fragmentShader: PHOTO_CREATURE_FRAG,
   }));
-  const wrasseLods: (THREE.Mesh | undefined)[] = [];
+  let wrasseMesh: THREE.Mesh | null = null;
 
   /* ---- whale shark (model from Blender; the tail sweeps slowly here) ---- */
   const whaleshark = new THREE.Group();
@@ -729,47 +771,58 @@ ${turtleFlipperGlsl()}
   }));
   const whalesharkLods: (THREE.Mesh | undefined)[] = [];
 
-  /* ---- deep-sea anglerfish (model from Blender; the lure glows and lights its own face) ---- */
-  // 提灯の位置は scripts/blender/make_ocean_assets.py の ANGLER_LURE_AT（Blender の (x, y, z) → glTF の (x, z, -y)）
-  const ANGLER_LURE = new THREE.Vector3(0, 0.58, 0.62);
+  /* ---- deep-sea anglerfish (photo fish; the lure glows and lights its own face) ---- */
+  // 写真から作った形（ocean-anglerfish.glb）を読み込んでから出す（体が無いのに光だけ浮かないように）。
+  // 提灯は写真ごと背びれと同じ「体の真ん中の板」に貼られている。その中心（photoFish.ts の ANGLERFISH_LURE_KIT）の
+  // まわりを光らせ、そこからの光で顔と歯を照らす。位置は読み込んだ形のそろえ方で決まるので、読み込んだときに入れ直す
+  const ANGLER_FIT_GUESS: PhotoFishFit = { length: 0.4, mid: 0, scale: PHOTO_FISH_LENGTH.anglerfish / 0.4 };
+  const ANGLER_LURE = new THREE.Vector3(...kitPointToScene(ANGLERFISH_LURE_KIT.x, ANGLERFISH_LURE_KIT.y, ANGLER_FIT_GUESS));
+  const ANGLER_LEN = PHOTO_FISH_LENGTH.anglerfish.toFixed(4);
   const LURE_COLOR = new THREE.Vector3(0.45, 0.9, 1.0);
   const angler = new THREE.Group();
   scene.add(angler);
   const anglerMat = track(mat({
-    uniforms: { uLure: { value: ANGLER_LURE }, uLureColor: { value: LURE_COLOR } },
+    side: THREE.DoubleSide,
+    uniforms: {
+      uMap: { value: null }, uLure: { value: ANGLER_LURE }, uLureColor: { value: LURE_COLOR },
+      uLureR: { value: ANGLERFISH_LURE_KIT.radius * ANGLER_FIT_GUESS.scale },
+    },
     vertexShader: `
       uniform float uTime; uniform vec3 uLure;
-      attribute vec3 aCol;
-      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor; varying vec3 vToLure; varying float vLureD;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv; varying vec3 vToLure; varying float vLureD;
       void main() {
+        vUv = uv;
         vec3 p = position;
-        p.x += sin(uTime * 1.1 - p.z * 4.0) * 0.03 * (1.0 - smoothstep(-0.5, 0.0, p.z));
+        p.x += sin(uTime * 1.1 - p.z * 4.0) * 0.03 * (1.0 - smoothstep(-0.45 * ${ANGLER_LEN}, -0.05 * ${ANGLER_LEN}, p.z));
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vec3 lure = (modelMatrix * vec4(uLure, 1.0)).xyz;
-        vWorld = wp.xyz; vColor = aCol;
+        vWorld = wp.xyz;
         vToLure = lure - wp.xyz; vLureD = length(position - uLure);
         vN = normalize(mat3(modelMatrix) * normal);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: WATER + `
-      uniform vec3 uLureColor;
-      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor; varying vec3 vToLure; varying float vLureD;
+      uniform sampler2D uMap; uniform vec3 uLureColor; uniform float uLureR;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv; varying vec3 vToLure; varying float vLureD;
       void main() {
+        vec4 tex = texture2D(uMap, vUv);
+        if (tex.a < 0.5) discard;
         float d = uDepth - vWorld.y;
         vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
         float pulse = 0.75 + 0.25 * sin(uTime * 1.3);
         float r = length(vToLure);
         // the lure is the only light down here: it lights the face and the teeth in front of it
-        vec3 byLure = uLureColor * pulse * 3.5 * max(dot(n, vToLure / max(r, 1e-3)), 0.0) / (1.0 + r * r * 6.0);
-        vec3 lit = vColor * (sunAt(d) * (0.25 + 0.75 * max(n.y, 0.0)) + waterTint(d) * 0.4 + byLure);
+        // （光は板の両側へ届くので、向きは表裏を問わない）
+        vec3 byLure = uLureColor * pulse * 3.5 * (0.3 + 0.7 * abs(dot(n, vToLure / max(r, 1e-3)))) / (1.0 + r * r * 6.0);
+        vec3 lit = tex.rgb * (sunAt(d) * (0.25 + 0.75 * max(n.y, 0.0)) + waterTint(d) * 0.4 + byLure);
         float dist = length(vWorld - cameraPosition);
         vec3 col = finalize(throughWater(lit, dist));
-        // the lure itself (a sphere of radius 0.05 around uLure) shines
-        col += uLureColor * pulse * (1.0 - smoothstep(0.06, 0.09, vLureD)) * 1.4;
+        // the lure itself shines（写真の白い玉。半径の外へ少しにじませる）
+        col += uLureColor * pulse * (1.0 - smoothstep(uLureR * 1.1, uLureR * 1.8, vLureD)) * 1.4;
         gl_FragColor = vec4(col, 1.0);
       }`,
   }));
-  const anglerLods: (THREE.Mesh | undefined)[] = [];
+  let anglerMesh: THREE.Mesh | null = null;
   // 提灯のまわりの光のにじみ（1点を大きく描く。加算なので暗い海でだけ目立つ）
   const haloGeo = track(new THREE.BufferGeometry());
   haloGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array([ANGLER_LURE.x, ANGLER_LURE.y, ANGLER_LURE.z]), 3));
@@ -800,9 +853,11 @@ ${turtleFlipperGlsl()}
   halo.renderOrder = 3;
   angler.add(halo);
 
-  /* ---- reef fish (made here: small, flat, bright fish that stay around a coral head) ---- */
+  /* ---- reef fish (photo fish; small, flat, bright fish that stay around a coral head) ---- */
   // チョウチョウウオ（黄色・目を通る黒い帯）とデバスズメダイ（淡い青緑）。群れで泳ぎ回らず、
-  // それぞれ自分のサンゴのまわりをゆっくり回る（住むサンゴは3Dモデルを読んでから決め直す）
+  // それぞれ自分のサンゴのまわりをゆっくり回る（住むサンゴは3Dモデルを読んでから決め直す）。
+  // 形は写真から作ったもの（ocean-butterflyfish.glb・ocean-damselfish.glb）。種類ごとに別の InstancedMesh で描く。
+  // 読み込むまで・取れなかったときは、その場で作る簡単な形（下の reefFish。種類は aKind）で泳がせる
   const reefFishBody = track(new THREE.SphereGeometry(1, 12, 8));
   reefFishBody.scale(0.018, 0.06, 0.07);
   const reefFishGeo = track(new THREE.BufferGeometry());
@@ -818,13 +873,17 @@ ${turtleFlipperGlsl()}
     reefFishGeo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
     reefFishGeo.setIndex(idx);
   }
+  const reefPhotoReady = { value: new THREE.Vector2(0, 0) };   // x：チョウチョウウオ、y：デバスズメダイ
   const reefFishMat = track(mat({
     side: THREE.DoubleSide,
+    uniforms: { uPhotoReady: reefPhotoReady },
     vertexShader: `
-      uniform float uTime;
+      uniform float uTime; uniform vec2 uPhotoReady;
       attribute float aPhase; attribute float aKind;
       varying vec3 vWorld; varying vec3 vN; varying vec3 vLocal; varying float vKind;
       void main() {
+        // 写真の形を読み込んだ種類は、そちらで描く（簡単な形は画面の外へ出して描かない）
+        if ((aKind < 0.5 ? uPhotoReady.x : uPhotoReady.y) > 0.5) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
         vec3 p = position;
         p.x += sin(uTime * 11.0 + aPhase * 6.2831 - p.z * 30.0) * 0.012 * (1.0 - smoothstep(-0.1, 0.0, p.z));
         vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
@@ -879,6 +938,42 @@ ${turtleFlipperGlsl()}
     reefFish.geometry.setAttribute("aKind", new THREE.InstancedBufferAttribute(kind, 1));
   }
   scene.add(reefFish);
+  const rfKind = reefFish.geometry.getAttribute("aKind").array as Float32Array;
+  // 写真の形の熱帯魚（[チョウチョウウオ, デバスズメダイ]。読み込んだら作る）。並べ方は簡単な形と同じ計算で、種類ごとに前から詰める
+  const reefPhoto: (THREE.InstancedMesh | null)[] = [null, null];
+  const REEF_LEN = PHOTO_FISH_LENGTH.butterflyfish.toFixed(4);
+  const reefPhotoShader = (map: THREE.Texture): THREE.ShaderMaterialParameters & { uniforms: Record<string, THREE.IUniform> } => ({
+    side: THREE.DoubleSide,
+    uniforms: { uMap: { value: map } },
+    vertexShader: `
+      uniform float uTime;
+      attribute float aPhase;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        vec3 p = position;
+        p.x += sin(uTime * 11.0 + aPhase * 6.2831 - p.z * 30.0) * 0.012 * (1.0 - smoothstep(-0.4 * ${REEF_LEN}, 0.1 * ${REEF_LEN}, p.z));
+        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
+        vWorld = wp.xyz;
+        vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: WATER + `
+      uniform sampler2D uMap;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
+      void main() {
+        vec4 tex = texture2D(uMap, vUv);
+        if (tex.a < 0.5) discard;
+        float d = uDepth - vWorld.y;
+        vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+        vec3 L = sunAt(d);
+        vec3 V = normalize(cameraPosition - vWorld);
+        float spec = pow(max(dot(n, normalize(V + vec3(0.0, 1.0, 0.0))), 0.0), 30.0) * 0.4;
+        float c = causticAt(vWorld, d) * smoothstep(0.1, 0.8, n.y);
+        vec3 lit = tex.rgb * (L * (0.35 + 0.65 * max(n.y * 0.6 + 0.4, 0.0)) * (0.7 + c) + waterTint(d) * 0.35) + L * spec;
+        gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
+      }`,
+  });
 
   /* ---- jellyfish (made here: a pulsing bell, tentacles and oral arms; glow in the deep) ---- */
   const MAX_JELLY = TIERS.high.jelly;
@@ -1013,9 +1108,7 @@ ${turtleFlipperGlsl()}
     };
     creature("manta", mantaMat, manta, mantaLods);
     creature("turtle", turtleMat, turtle, turtleLods);
-    creature("wrasse", wrasseMat, wrasse, wrasseLods);
     creature("whaleshark", whalesharkMat, whaleshark, whalesharkLods);
-    creature("angler", anglerMat, angler, anglerLods);
     // 熱帯魚が住むサンゴ：枝サンゴとノウサンゴの、どの画質でもサンゴ礁で見えている先頭の数本のうち、手前のもの
     const homes: THREE.Vector3[] = [];
     for (const r of reef) {
@@ -1053,7 +1146,7 @@ ${turtleFlipperGlsl()}
     resize();
     pMat.uniforms.uPR.value = q.pixelRatio;
     pGeo.setDrawRange(0, q.particles);
-    for (const lods of [mantaLods, turtleLods, wrasseLods, whalesharkLods, anglerLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
+    for (const lods of [mantaLods, turtleLods, whalesharkLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
     haloMat.uniforms.uPR.value = q.pixelRatio;
     applyHabitat();
     sample.start = 0;
@@ -1083,15 +1176,26 @@ ${turtleFlipperGlsl()}
       r.partial = partial;
     }
     fish.count = Math.round(q.fish * abundance("fish", d));
+    if (lanternSchool) {
+      // ハダカイワシの形を読み込んだあとは、群れを2つの形で描く（どちらか一方しかいない深さでは、もう一方を描かない）
+      lanternSchool.count = fish.count;
+      lanternSchool.visible = U.uLantern.value > 0;
+      fish.visible = U.uLantern.value < 1;
+    }
     jelly.count = Math.min(MAX_JELLY, Math.ceil(q.jelly * abundance("jelly", d) - 1e-3));
     // 1匹で泳ぐものは、そこに住む量が半分を超える深さでだけ出す
     manta.visible = abundance("manta", d) >= 0.5;
     turtle.visible = abundance("turtle", d) >= 0.5;
-    wrasse.visible = abundance("wrasse", d) >= 0.5;
+    // 写真から作った形を読み込んでから出す（読み込めなければ出さない）
+    wrasse.visible = abundance("wrasse", d) >= 0.5 && wrasseMesh !== null;
     whaleshark.visible = abundance("whaleshark", d) >= 0.5;
     // 提灯は3Dモデルを読んでから（体が無いのに光だけ浮かないように）
-    angler.visible = abundance("angler", d) >= 0.5 && anglerLods.length > 0;
+    angler.visible = abundance("angler", d) >= 0.5 && anglerMesh !== null;
     reefFish.count = Math.min(MAX_REEF_FISH, Math.round(q.reefFish * abundance("reeffish", d)));
+    let butterflies = 0;
+    for (let i = 0; i < reefFish.count; i++) if (rfKind[i] < 0.5) butterflies++;
+    if (reefPhoto[0]) reefPhoto[0].count = butterflies;
+    if (reefPhoto[1]) reefPhoto[1].count = reefFish.count - butterflies;
     // 光の筋と水底の光の網目は、届かなくなった深さでは描かない（見えないのに重さだけ残る）
     rays.forEach((ray, i) => { ray.visible = i < q.rays && d < 150; });
     U.uCaustic.value = d < 60 ? q.caustic : 0;
@@ -1168,7 +1272,8 @@ ${turtleFlipperGlsl()}
       vx.crossVectors(up, vz).normalize();
       vy.crossVectors(vz, vx);
       m4.makeBasis(vx, vy, vz);
-      sv.setScalar(fScale[i] * (1 - 0.3 * U.uLantern.value));   // ハダカイワシはイワシより小さい
+      // ハダカイワシはイワシより小さい（写真の形を読み込んだら、形そのものが小さい）
+      sv.setScalar(fScale[i] * (lanternSplit.value > 0 ? 1 : 1 - 0.3 * U.uLantern.value));
       m4.scale(sv);
       m4.setPosition(fPos[ix], fPos[ix + 1], fPos[ix + 2]);
       fish.setMatrixAt(i, m4);
@@ -1242,6 +1347,7 @@ ${turtleFlipperGlsl()}
   function updateReefFish(t: number) {
     const n = reefFish.count;
     if (!n) return;
+    const placed = [0, 0];
     for (let i = 0; i < n; i++) {
       const home = reefHomes[i % reefHomes.length];
       const s0 = rfSeed[i * 4], s1 = rfSeed[i * 4 + 1], s2 = rfSeed[i * 4 + 2], s3 = rfSeed[i * 4 + 3];
@@ -1256,8 +1362,12 @@ ${turtleFlipperGlsl()}
       m4.scale(sv.setScalar(rfScale[i]));
       m4.setPosition(x, y, z);
       reefFish.setMatrixAt(i, m4);
+      // 写真の形の熱帯魚は、種類ごとに前から詰めて置く
+      const k = rfKind[i] < 0.5 ? 0 : 1;
+      reefPhoto[k]?.setMatrixAt(placed[k]++, m4);
     }
     reefFish.instanceMatrix.needsUpdate = true;
+    for (const m of reefPhoto) if (m) m.instanceMatrix.needsUpdate = true;
   }
 
   const jQ = new THREE.Quaternion(), jE = new THREE.Euler();
@@ -1440,34 +1550,108 @@ ${turtleFlipperGlsl()}
       if (!disposed) opts.onFail?.("model");
     });
 
-  // 魚の群れの形（カタクチイワシ）。取れなくても、その場で作った形のまま泳がせる
-  if (opts.schoolFishUrl) {
-    fetch(opts.schoolFishUrl)
-      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
-      .then((buf) => new Promise<THREE.Object3D>((res, rej) => new GLTFLoader().parse(buf, "", (g) => res(g.scene), rej)))
-      .then((root) => {
-        if (disposed) return;
-        let src: THREE.Mesh | null = null;
-        root.traverse((o) => { if (!src && (o as THREE.Mesh).isMesh) src = o as THREE.Mesh; });
-        const mesh = src as THREE.Mesh | null;
-        const map = mesh && (mesh.material as THREE.MeshStandardMaterial).map;
-        if (!mesh || !map) throw new Error("魚の形か模様がありません");
-        const g = new THREE.BufferGeometry();
-        const pos = new Float32Array(mesh.geometry.getAttribute("position").array);
-        const nor = new Float32Array(mesh.geometry.getAttribute("normal").array);
-        orientSchoolFish(pos, nor);
-        g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-        g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
-        g.setAttribute("uv", mesh.geometry.getAttribute("uv"));
-        g.setIndex(mesh.geometry.getIndex());
-        g.setAttribute("aPhase", fish.geometry.getAttribute("aPhase"));
-        map.colorSpace = THREE.SRGBColorSpace;
-        fish.geometry = track(g);
-        fish.material = track(mat({ ...fishShader(true), uniforms: { uMap: { value: track(map) } } }));
-        if (!running() && active) draw();
-      })
-      .catch((e) => console.warn("魚の群れの形を読み込めなかったため、簡単な形で泳がせます", e));
+  /* ---- photo fish: fetched only for the depth being shown or dived to ---- */
+  const photoState: Partial<Record<PhotoFishId, "loading" | "ready" | "failed">> = {};
+  /** 写真の魚の glb から、場面の向きと長さにそろえた形と模様を取り出す */
+  function photoFishGeometry(root: THREE.Object3D, id: PhotoFishId) {
+    let src: THREE.Mesh | null = null;
+    root.traverse((o) => { if (!src && (o as THREE.Mesh).isMesh) src = o as THREE.Mesh; });
+    const mesh = src as THREE.Mesh | null;
+    const map = mesh && (mesh.material as THREE.MeshStandardMaterial).map;
+    if (!mesh || !map) throw new Error("魚の形か模様がありません");
+    const g = new THREE.BufferGeometry();
+    const pos = new Float32Array(mesh.geometry.getAttribute("position").array);
+    const nor = new Float32Array(mesh.geometry.getAttribute("normal").array);
+    const fit = orientPhotoFish(pos, nor, PHOTO_FISH_LENGTH[id]);
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+    g.setAttribute("uv", mesh.geometry.getAttribute("uv"));
+    g.setIndex(mesh.geometry.getIndex());
+    map.colorSpace = THREE.SRGBColorSpace;
+    return { geometry: track(g), map: track(map), fit };
   }
+  /** ハダカイワシの模様から、発光器だけを拾った光の模様を作る（photoFish.ts の photophoreMask） */
+  function photophoreTexture(map: THREE.Texture): THREE.Texture {
+    const img = map.image as CanvasImageSource & { width: number; height: number };
+    const c = document.createElement("canvas");
+    c.width = img.width; c.height = img.height;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) throw new Error("発光器の模様を作れません");
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, c.width, c.height);
+    data.data.set(photophoreMask(data.data, c.width, c.height));
+    ctx.putImageData(data, 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.flipY = map.flipY;   // glTF の模様と同じ向き（上の行が v = 0）
+    t.colorSpace = THREE.NoColorSpace;
+    return t;
+  }
+  function installPhotoFish(id: PhotoFishId, root: THREE.Object3D) {
+    const { geometry, map, fit } = photoFishGeometry(root, id);
+    if (id === "anchovy") {
+      geometry.setAttribute("aPhase", fish.geometry.getAttribute("aPhase"));
+      fish.geometry = geometry;
+      fish.material = track(mat({ ...fishShader("anchovy"), uniforms: { uMap: { value: map }, uSplit: lanternSplit } }));
+    } else if (id === "lanternfish") {
+      geometry.setAttribute("aPhase", fish.geometry.getAttribute("aPhase"));
+      const organs = track(photophoreTexture(map));
+      const m = new THREE.InstancedMesh(geometry, track(mat({ ...fishShader("lantern"), uniforms: { uMap: { value: map }, uOrgans: { value: organs } } })), MAX_FISH);
+      m.instanceMatrix = fish.instanceMatrix;
+      m.frustumCulled = false;
+      scene.add(m);
+      lanternSchool = m;
+      lanternSplit.value = 1;
+    } else if (id === "butterflyfish" || id === "damselfish") {
+      const k = id === "butterflyfish" ? 0 : 1;
+      geometry.setAttribute("aPhase", reefFish.geometry.getAttribute("aPhase"));
+      const m = new THREE.InstancedMesh(geometry, track(mat(reefPhotoShader(map))), MAX_REEF_FISH);
+      m.frustumCulled = false;
+      m.count = 0;
+      scene.add(m);
+      reefPhoto[k] = m;
+      if (k === 0) reefPhotoReady.value.x = 1; else reefPhotoReady.value.y = 1;
+    } else if (id === "wrasse") {
+      wrasseMat.uniforms.uMap.value = map;
+      wrasseMesh = new THREE.Mesh(geometry, wrasseMat);
+      wrasseMesh.frustumCulled = false;
+      wrasse.add(wrasseMesh);
+    } else {
+      anglerMat.uniforms.uMap.value = map;
+      ANGLER_LURE.set(...kitPointToScene(ANGLERFISH_LURE_KIT.x, ANGLERFISH_LURE_KIT.y, fit));
+      anglerMat.uniforms.uLureR.value = ANGLERFISH_LURE_KIT.radius * fit.scale;
+      const hp = haloGeo.getAttribute("position") as THREE.BufferAttribute;
+      hp.setXYZ(0, ANGLER_LURE.x, ANGLER_LURE.y, ANGLER_LURE.z);
+      hp.needsUpdate = true;
+      anglerMesh = new THREE.Mesh(geometry, anglerMat);
+      anglerMesh.frustumCulled = false;
+      angler.add(anglerMesh);
+    }
+  }
+  /** その水深で泳ぐ写真の魚を取りに行く（一度取りに行ったものは、取れなくても取り直さない） */
+  function fetchPhotoFish(d: number) {
+    for (const id of photoFishAt(d)) {
+      const url = opts.fishUrls?.[id];
+      if (!url || photoState[id]) continue;
+      photoState[id] = "loading";
+      fetch(url)
+        .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
+        .then((buf) => new Promise<THREE.Object3D>((res, rej) => new GLTFLoader().parse(buf, "", (g) => res(g.scene), rej)))
+        .then((root) => {
+          if (disposed) return;
+          installPhotoFish(id, root);
+          photoState[id] = "ready";
+          applyHabitat();
+          updateReefFish(time);
+          if (!running() && active) draw();
+        })
+        .catch((e) => {
+          photoState[id] = "failed";
+          // 群れと熱帯魚は簡単な形のまま泳がせ、ナポレオンフィッシュとチョウチンアンコウは出さない（海は止めない）
+          console.warn(`写真の魚（${id}）を読み込めませんでした`, e);
+        });
+    }
+  }
+  fetchPhotoFish(startDepth);
 
   return {
     setActive(v: boolean) { active = v; refresh(); },
@@ -1478,6 +1662,7 @@ ${turtleFlipperGlsl()}
       depthFrom = depthNow;
       depthTo = d;
       depthT = 0;
+      fetchPhotoFish(d);   // 潜る先の魚を、着く前に取りに行く
       if (!animate) finishDescent();
       refresh();
     },

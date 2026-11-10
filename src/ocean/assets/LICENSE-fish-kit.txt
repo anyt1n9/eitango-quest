@@ -9,4 +9,8 @@ https://creativecommons.org/publicdomain/zero/1.0/legalcode
 このキットのモデル・写真・プログラム・スクリプトは CC0 1.0（パブリックドメイン）です。
 改変・再配布・商用利用を含め、許可もクレジット表記もなく自由に使えます。
 
-Used here: ocean-anchovy.glb (= fish/katakuchi_lo.glb, unchanged)
+Used here:
+  ocean-anchovy.glb (= fish/katakuchi_lo.glb, unchanged)
+  ocean-butterflyfish.glb, ocean-damselfish.glb, ocean-wrasse.glb, ocean-lanternfish.glb, ocean-anglerfish.glb
+    (made in this repository with the kit's making/scripts/fishgen/fishgen.py and build.py,
+     copied to scripts/fishgen/ with only the working folder and the species list changed)

@@ -17,16 +17,16 @@ type Fake = {
   setActive: ReturnType<typeof vi.fn>; setMotion: ReturnType<typeof vi.fn>; setDepth: ReturnType<typeof vi.fn>;
   dispose: ReturnType<typeof vi.fn>;
   motion: boolean; depth?: number; canvas: HTMLCanvasElement; fail: (reason: string) => void;
-  modelUrl: string; schoolFishUrl?: string;
+  modelUrl: string; fishUrls?: Record<string, string>;
 };
 const created: Fake[] = [];
 let failCreate = false;
 vi.mock("../src/ocean/oceanScene", () => ({
-  createOceanScene: (canvas: HTMLCanvasElement, opts: { modelUrl: string; schoolFishUrl?: string; motion: boolean; depth?: number; onFail?: (r: string) => void }) => {
+  createOceanScene: (canvas: HTMLCanvasElement, opts: { modelUrl: string; fishUrls?: Record<string, string>; motion: boolean; depth?: number; onFail?: (r: string) => void }) => {
     if (failCreate) throw new Error("Error creating WebGL context.");
     const s = {
       setActive: vi.fn(), setMotion: vi.fn(), setDepth: vi.fn(), dispose: vi.fn(), motion: opts.motion, depth: opts.depth, canvas,
-      modelUrl: opts.modelUrl, schoolFishUrl: opts.schoolFishUrl,
+      modelUrl: opts.modelUrl, fishUrls: opts.fishUrls,
       fail: (reason: string) => opts.onFail?.(reason),
     };
     created.push(s);
@@ -60,10 +60,11 @@ describe("海の3D背景", () => {
     expect(el.getAttribute("aria-hidden")).toBe("true");
     expect(el.className).toContain("bg-scene");
     expect(el.dataset.kind).toBe("ocean");
-    // 3Dモデルと、魚の群れの形（Fish Kit のカタクチイワシ）の両方を渡す。群れの形を渡し忘れると、
-    // 何も言わずに簡単な形の群れに戻る
+    // 3Dモデルと、写真から作った魚の形（6種）を渡す。魚の形を渡し忘れると、何も言わずに
+    // 群れと熱帯魚は簡単な形に戻り、ナポレオンフィッシュとチョウチンアンコウは出なくなる
     expect(created[0].modelUrl).toMatch(/ocean\.glb/);
-    expect(created[0].schoolFishUrl).toMatch(/ocean-anchovy\.glb/);
+    const { PHOTO_FISH_IDS } = await import("../src/ocean/photoFish");
+    for (const id of PHOTO_FISH_IDS) expect(created[0].fishUrls?.[id], id).toMatch(new RegExp(`ocean-${id}\\.glb`));
     expect(created).toHaveLength(1);
   });
 
