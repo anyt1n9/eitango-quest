@@ -1,9 +1,9 @@
 /**
  * 海の3D背景（three.js）。
  *
- * 光の筋・水底の光の網目・漂う粒・クラゲはその場で計算して描き、ウミガメ・ジンベエザメ・サンゴ・岩・海草は
+ * 光の筋・水底の光の網目・漂う粒・クラゲはその場で計算して描き、ジンベエザメ・サンゴ・岩・海草は
  * Blender でプログラム生成した3Dモデル（src/ocean/assets/ocean.glb、生成は scripts/blender/make_ocean_assets.py）を読む。
- * 魚（群れ・熱帯魚・ナポレオンフィッシュ・チョウチンアンコウ）とエイ（マダラトビエイ）は、写真から作った形
+ * 魚（群れ・熱帯魚・ナポレオンフィッシュ・チョウチンアンコウ）とエイ（マダラトビエイ）・ウミガメは、写真から作った形
  * （src/ocean/photoFish.ts）を、その深さで泳ぐものだけ読む。模様は写真から取るが、それ以外の画像ファイルは使わない。
  *
  * 水は赤い光から吸収するので、深いほど赤が消えて青だけが残る（色はすべて
@@ -159,7 +159,7 @@ const OBJ_FRAG = WATER + /* glsl */ `
     gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
   }`;
 
-/** 泳ぐ生き物（ウミガメ・ジンベエザメ）の色：頂点色に、深さの光と水底の光の網目を当てる */
+/** 泳ぐ生き物（ジンベエザメ）の色：頂点色に、深さの光と水底の光の網目を当てる */
 const CREATURE_FRAG = WATER + /* glsl */ `
   varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
   void main() {
@@ -171,7 +171,7 @@ const CREATURE_FRAG = WATER + /* glsl */ `
     gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
   }`;
 
-/** 写真から作った生き物（ナポレオンフィッシュ）の色：写真の模様に、深さの光と水底の光の網目を当てる。ひれの透けた所は捨てる */
+/** 写真から作った生き物（ナポレオンフィッシュ・ウミガメ）の色：写真の模様に、深さの光と水底の光の網目を当てる。ひれの透けた所は捨てる */
 const PHOTO_CREATURE_FRAG = WATER + /* glsl */ `
   uniform sampler2D uMap;
   varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
@@ -700,21 +700,23 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
   }));
   let rayMesh: THREE.Mesh | null = null;
 
-  /* ---- sea turtle (model from Blender; the flippers fly here) ---- */
-  // 前あしは甲羅の縁（|x| 0.42）より外を、縁を軸に羽ばたくように上下させる（先ほど少し遅れる）。
-  // 後ろあしは甲羅の後ろ（z < -0.25）で甲羅の縁（|x| 0.3）より外を、小さく動かす。
-  // 前あしは後ろへ反っていて、先は z = -0.2 あたりまで来る。前後を z = -0.12 で切っていたときは
-  // 前あしの先（約40頂点）だけが動かず、動く所との間の面が引き伸ばされて、長方形の板が付いて見えた。
-  // 甲羅の縁を動かさないよう、軸は甲羅の外形のすぐ外に置く（tests/oceanTurtle.test.ts）
+  /* ---- sea turtle (photo creature; the flippers fly here) ---- */
+  // 上と下から見た写真から作った形（ocean-seaturtle.glb。scripts/fishgen/make_turtle.py）を読み込んでから出す。
+  // 形は場面の向きと大きさで書かれている（頭が +Z、背が +Y、甲羅の半分の幅 0.40）ので回さない。
+  // あしの頂点には印（aFlipper =（前あしの重み、後ろあしの重み、回す軸の |x|））が付いていて、付け根を軸に羽ばたかせる。
+  // 甲羅と頭の重みは 0 なので動かない（src/ocean/turtle.ts、tests/oceanTurtle.test.ts）
   const turtle = new THREE.Group();
   scene.add(turtle);
   const turtleMat = track(mat({
+    side: THREE.DoubleSide,
+    uniforms: { uMap: { value: null } },
     vertexShader: `
       uniform float uTime;
-      attribute vec3 aCol;
-      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+      attribute vec3 aFlipper;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
       vec2 rot(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(v.x * c - v.y * s, v.x * s + v.y * c); }
       void main() {
+        vUv = uv;
         vec3 p = position; vec3 n = normal;
         float ax = abs(p.x), sx = p.x < 0.0 ? -1.0 : 1.0;
 ${turtleFlipperGlsl()}
@@ -723,15 +725,15 @@ ${turtleFlipperGlsl()}
         vec2 nq = rot(vec2(n.x * sx, n.y), a);
         n.x = nq.x * sx; n.y = nq.y;
         // the head nods a little with each stroke
-        p.y += smoothstep(0.42, 0.6, p.z) * sin(ph + 0.6) * 0.012;
+        p.y += smoothstep(0.45, 0.62, p.z) * sin(ph + 0.6) * 0.012;
         vec4 wp = modelMatrix * vec4(p, 1.0);
-        vWorld = wp.xyz; vColor = aCol;
+        vWorld = wp.xyz;
         vN = normalize(mat3(modelMatrix) * n);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
-    fragmentShader: CREATURE_FRAG,
+    fragmentShader: PHOTO_CREATURE_FRAG,
   }));
-  const turtleLods: (THREE.Mesh | undefined)[] = [];
+  let turtleMesh: THREE.Mesh | null = null;
 
   /* ---- humphead wrasse (photo fish; the body sways here) ---- */
   // 写真から作った形（ocean-wrasse.glb）を読み込んでから出す。体の後ろほど大きく左右にくねらせる
@@ -1116,7 +1118,6 @@ ${turtleFlipperGlsl()}
         lods[lod] = m;
       }
     };
-    creature("turtle", turtleMat, turtle, turtleLods);
     creature("whaleshark", whalesharkMat, whaleshark, whalesharkLods);
     // 熱帯魚が住むサンゴ：枝サンゴとノウサンゴの、どの画質でもサンゴ礁で見えている先頭の数本のうち、手前のもの
     const homes: THREE.Vector3[] = [];
@@ -1155,7 +1156,7 @@ ${turtleFlipperGlsl()}
     resize();
     pMat.uniforms.uPR.value = q.pixelRatio;
     pGeo.setDrawRange(0, q.particles);
-    for (const lods of [turtleLods, whalesharkLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
+    whalesharkLods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
     haloMat.uniforms.uPR.value = q.pixelRatio;
     applyHabitat();
     sample.start = 0;
@@ -1194,7 +1195,7 @@ ${turtleFlipperGlsl()}
     jelly.count = Math.min(MAX_JELLY, Math.ceil(q.jelly * abundance("jelly", d) - 1e-3));
     // 1匹で泳ぐものは、そこに住む量が半分を超える深さでだけ出す
     ray.visible = abundance("ray", d) >= 0.5 && rayMesh !== null;
-    turtle.visible = abundance("turtle", d) >= 0.5;
+    turtle.visible = abundance("turtle", d) >= 0.5 && turtleMesh !== null;
     // 写真から作った形を読み込んでから出す（読み込めなければ出さない）
     wrasse.visible = abundance("wrasse", d) >= 0.5 && wrasseMesh !== null;
     whaleshark.visible = abundance("whaleshark", d) >= 0.5;
@@ -1575,11 +1576,16 @@ ${turtleFlipperGlsl()}
     const g = new THREE.BufferGeometry();
     const pos = new Float32Array(mesh.geometry.getAttribute("position").array);
     const nor = new Float32Array(mesh.geometry.getAttribute("normal").array);
-    const fit: PhotoFishFit = id === "eagleray" ? { length: 1, mid: 0, scale: 1 } : orientPhotoFish(pos, nor, PHOTO_FISH_LENGTH[id]);
+    // エイとウミガメは場面の向きと大きさで書かれている（make_ray.py・make_turtle.py）ので回さない
+    const fit: PhotoFishFit = id === "eagleray" || id === "seaturtle"
+      ? { length: 1, mid: 0, scale: 1 } : orientPhotoFish(pos, nor, PHOTO_FISH_LENGTH[id]);
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
     g.setAttribute("uv", mesh.geometry.getAttribute("uv"));
     g.setIndex(mesh.geometry.getIndex());
+    // ウミガメのあしの印（glTF の _FLIPPER は three.js では _flipper の名前で読まれる）
+    const flipper = mesh.geometry.getAttribute("_flipper");
+    if (flipper) g.setAttribute("aFlipper", flipper);
     map.colorSpace = THREE.SRGBColorSpace;
     return { geometry: track(g), map: track(map), fit };
   }
@@ -1601,7 +1607,13 @@ ${turtleFlipperGlsl()}
   }
   function installPhotoFish(id: PhotoCreatureId, root: THREE.Object3D) {
     const { geometry, map, fit } = photoFishGeometry(root, id);
-    if (id === "eagleray") {
+    if (id === "seaturtle") {
+      if (!geometry.getAttribute("aFlipper")) throw new Error("ウミガメのあしの印（_FLIPPER）がありません");
+      turtleMat.uniforms.uMap.value = map;
+      turtleMesh = new THREE.Mesh(geometry, turtleMat);
+      turtleMesh.frustumCulled = false;
+      turtle.add(turtleMesh);
+    } else if (id === "eagleray") {
       rayMat.uniforms.uMap.value = map;
       rayMesh = new THREE.Mesh(geometry, rayMat);
       rayMesh.frustumCulled = false;

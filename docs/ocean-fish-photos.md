@@ -20,9 +20,10 @@ ChatGPT のチャットで同じ写真を作れる。写真1枚（ひれを広�
 | `lanternfish` | ハダカイワシ（ハダカイワシ科） | 薄明の海・深海 | `scripts/fishgen/photos/lanternfish.webp` |
 | `anglerfish` | チョウチンアンコウ（Himantolophus groenlandicus） | 深海 | `scripts/fishgen/photos/anglerfish.webp` |
 | `eagleray` | マダラトビエイ（Aetobatus narinari） | 浅瀬〜沖 | `scripts/fishgen/photos/eagleray_top.webp`・`eagleray_bottom.webp`（上と下から見た2枚） |
+| `seaturtle` | アオウミガメ（Chelonia mydas） | 浅瀬・サンゴ礁 | `scripts/fishgen/photos/seaturtle_top.webp`・`seaturtle_bottom.webp`（上と下から見た2枚） |
 
-エイのような平たい生き物は、真横の写真からは作れない。**上から見た写真と下から見た写真**の2枚から作る
-（`scripts/fishgen/make_ray.py`。下の「平たい生き物の頼み方」）。ウミガメ・ジンベエザメ・クラゲ・サンゴなどは、
+エイやウミガメのような平たい生き物は、真横の写真からは作れない。**上から見た写真と下から見た写真**の2枚から作る
+（`scripts/fishgen/make_ray.py`・`make_turtle.py`。下の「平たい生き物の頼み方」）。ジンベエザメ・クラゲ・サンゴなどは、
 いまは Blender の自作（`scripts/blender/make_ocean_assets.py`）のまま。
 
 ## ChatGPT への頼み方
@@ -46,7 +47,7 @@ ChatGPT のチャットで同じ写真を作れる。写真1枚（ひれを広�
 - ハダカイワシ：A single adult lanternfish (family Myctophidae), about 10 cm. Slender body, very large eye, forked tail. Dark brownish back, silvery sides, rows of small round bluish-white photophores along the lower sides and belly.
 - チョウチンアンコウ：A single adult female deep-sea anglerfish (Himantolophus groenlandicus), about 40 cm. Globular soft body, very large mouth with small pointed teeth, tiny eyes, a long fishing-rod-like spine rising from the head and ending in a pale bulb-shaped lure. Velvety black to very dark brown skin.
 
-## 平たい生き物（エイ）の頼み方
+## 平たい生き物（エイ・ウミガメ）の頼み方
 
 上から見た図（背）と下から見た図（腹）を、**別々の画像で**作ってもらう（1枚にまとめると1つの図が小さくなる）。
 横から見た図は使わない（厚みは体の形から付ける）。
@@ -56,6 +57,8 @@ ChatGPT のチャットで同じ写真を作れる。写真1枚（ひれを広�
 
 - 上と下の輪郭がよく重なるほど、腹の模様の継ぎ目が目立たない（マダラトビエイは95%重なった）。
 - 翼はまっすぐ左右に広げ、尾は真下へ伸ばしてもらう（曲がっていると、尾の形が上と下で合わない）。
+- ウミガメは、あし4本を甲羅から離して広げてもらう（甲羅に重なったあしは甲羅の一部として切り分けられ、動かせない）。
+  頭の向きは上下の写真で違ってよい（`make_turtle.py` が回してそろえる）。あしの角度が上と下で少し違っても、部位ごとに合わせる。
 
 ## 写真を見るところ（キットの説明より）
 

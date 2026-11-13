@@ -46,7 +46,7 @@ export default defineConfig(() => {
               // （名前が固定だと、作り直したモデルの直後に古いモデルと新しいコードが組み合わさる）
               urlPattern: ({ url }) => /\/assets\/(three|OceanBackground|ocean)-[^/]+\.(js|glb)$/.test(url.pathname),
               handler: 'CacheFirst',
-              // 置ける数は、three.js・OceanBackground と assets の glb（海・写真の魚6種）が全部入る数より多く
+              // 置ける数は、three.js・OceanBackground と assets の glb（海と、写真から作った生き物8種）が全部入る数より多く
               // （超えると古いものから捨てられ、オフラインで魚が欠ける。tests/photoFish.test.ts が見る）
               options: { cacheName: 'ocean-3d', expiration: { maxEntries: 16 } },
             },
