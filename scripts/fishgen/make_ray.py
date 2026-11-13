@@ -1,7 +1,7 @@
 """
 上から見た写真と下から見た写真から、平たい生き物（エイ）の3Dの形を作る（海の3D背景のマダラトビエイ）。
 
-  .venv/bin/python scripts/fishgen/make_ray.py [--preview <フォルダ>]
+  .venv/bin/python scripts/fishgen/make_ray.py [--preview <フォルダ>]   # --preview：模様（アトラス）の画像も書き出す
 
 写真は scripts/fishgen/photos/eagleray_top.webp と eagleray_bottom.webp（ChatGPT の画像生成で作ってもらったもの。
 docs/ocean-fish-photos.md）。できた形は src/ocean/assets/ocean-eagleray.glb に書く。numpy・scipy・Pillow を使う（bpy は要らない）。
@@ -13,7 +13,7 @@ Fish Kit のスクリプト（fishgen.py）は真横の写真1枚から魚を起
 - 模様：上の面には上から見た写真、下の面には下から見た写真を、上から見た写真の輪郭に合わせて
   引き伸ばしたもの（行ごとに左右の端をそろえ、下から見ているので左右を入れ替える）を貼る。
   輪郭の外は捨てる（アルファの切り抜き）。輪郭の外の色は内側の色で埋める（遠くで縮めたとき背景の青がにじまない）。
-- 座標：頭が +Z、背が +Y、翼の幅の方向が X（以前の Blender のマンタと同じ）。翼の端から端が 4.2（--span）。
+- 座標：頭が +Z、背が +Y、翼の幅の方向が X（以前の Blender のマンタと同じ）。翼の端から端が 4.2（RAY_SPAN）。
   向きと大きさをここでそろえるので、海の場面では回さずにそのまま使う（src/ocean/photoFish.ts の RAY_SPAN）。
 - 作り直すと、同じ写真からは同じファイルができる。
 """
@@ -62,7 +62,9 @@ def main():
     top_p = os.path.join(here, "photos", "eagleray_top.webp")
     bot_p = os.path.join(here, "photos", "eagleray_bottom.webp")
     out = os.path.join(here, "..", "..", "src", "ocean", "assets", "ocean-eagleray.glb")
-    span = float(args[args.index("--span") + 1]) if "--span" in args else 4.2
+    # 翼の端から端（場面の単位）。src/ocean/photoFish.ts の RAY_SPAN と同じ値にする（場面の羽ばたきはその半分を翼の端として
+    # 計算する）。変えるときは両方そろえる
+    span = 4.2
     preview = args[args.index("--preview") + 1] if "--preview" in args else None
 
     top, tm = load(top_p)
@@ -76,7 +78,9 @@ def main():
     width = np.where(tL >= 0, tR - tL + 1, 0)
     # 尾の付け根：翼より後ろで、行の幅が細くなる所
     widest = int(np.argmax(width))
-    tail0 = next(y for y in range(widest, y1) if width[y] < 0.04 * (x1 - x0))
+    tail0 = next((y for y in range(widest, y1) if width[y] < 0.04 * (x1 - x0)), None)
+    if tail0 is None:
+        sys.exit("尾の付け根が見つかりません（翼より後ろで細くなる行がない）。写真の輪郭の切り出しを確かめてください")
     # 腹びれは尾の付け根の少し後ろまである。体（格子）は腹びれの後ろの端まで、尾はそこから
     fins_end = tail0
     for y in range(tail0, y1):
@@ -217,9 +221,9 @@ def main():
         if tL[yi] >= 0:
             # 尾の中心は、その行で中心に近い区間
             seg = np.flatnonzero(tm[yi])
-            near = seg[np.abs(seg - cx) < 0.03 * (x1 - x0)]
-            c = near.mean() if near.size else cx
-            rad = max((near.max() - near.min() + 1) / 2 if near.size else 1.0, 1.0)
+            core = seg[np.abs(seg - cx) < 0.03 * (x1 - x0)]
+            c = core.mean() if core.size else cx
+            rad = max((core.max() - core.min() + 1) / 2 if core.size else 1.0, 1.0)
         else:
             c, rad = cx, 1.0
         rad = max(rad * (1 - 0.7 * i / (NT - 1)), 0.8)
