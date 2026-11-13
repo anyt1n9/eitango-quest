@@ -137,11 +137,11 @@ describe("1種ずつの説明", () => {
 
   it("名前と例文を読み上げる", async () => {
     const user = userEvent.setup();
-    renderGuide({ initialCreatureId: "manta-ray" });
-    await user.click(screen.getByRole("button", { name: "manta ray の発音を聴く" }));
+    renderGuide({ initialCreatureId: "eagle-ray" });
+    await user.click(screen.getByRole("button", { name: "spotted eagle ray の発音を聴く" }));
     await user.click(screen.getByRole("button", { name: "例文を読み上げる" }));
     const spoken = vi.mocked(window.speechSynthesis.speak).mock.calls.map(c => (c[0] as unknown as { text: string }).text);
-    expect(spoken).toEqual(["manta ray", OCEAN_GUIDE_TEXT["manta-ray"].example[0]]);
+    expect(spoken).toEqual(["spotted eagle ray", OCEAN_GUIDE_TEXT["eagle-ray"].example[0]]);
   });
 
   it("まだ出会っていない生き物は、URL で直接開かれても中身を見せない（一覧を出す）", () => {

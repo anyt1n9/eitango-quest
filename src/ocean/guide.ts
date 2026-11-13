@@ -17,7 +17,7 @@ import { DepthStageId, Dweller, stageIndexOf } from "./depth";
  */
 
 export type GuideId =
-  | "seagrass" | "sea-turtle" | "manta-ray" | "anchovy"
+  | "seagrass" | "sea-turtle" | "eagle-ray" | "anchovy"
   | "coral" | "brain-coral" | "butterflyfish" | "damselfish"
   | "sea-fan" | "humphead-wrasse"
   | "whale-shark" | "jellyfish"
@@ -40,7 +40,8 @@ export interface GuideCreature {
 export const OCEAN_GUIDE: readonly GuideCreature[] = [
   { id: "seagrass", name: "seagrass", ja: "海草", stage: "shallows", dweller: "seagrass" },
   { id: "sea-turtle", name: "sea turtle", ja: "ウミガメ", stage: "shallows", dweller: "turtle" },
-  { id: "manta-ray", name: "manta ray", ja: "マンタ", stage: "shallows", dweller: "manta" },
+  // 形は上と下から見た写真から作ったもの（以前は Blender のマンタ。図鑑もマダラトビエイに書き直した）
+  { id: "eagle-ray", name: "spotted eagle ray", ja: "マダラトビエイ", stage: "shallows", dweller: "ray" },
   // 群れの形は Fish Kit（CC0）のカタクチイワシ（src/ocean/assets/README.md）
   { id: "anchovy", name: "anchovy", ja: "カタクチイワシ", stage: "shallows", dweller: "fish" },
   { id: "coral", name: "coral", ja: "サンゴ", stage: "reef", dweller: "staghorn" },

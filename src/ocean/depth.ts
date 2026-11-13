@@ -12,7 +12,7 @@ import { readStoredString, writeStored } from "../storage";
  *     覚えた語数は減ることがある。そのたびに海が浅くなると「どうして戻ったのか」が分からず、
  *     復習で1問間違えただけで罰を受けたように見える。
  *   - **潜ったことのある深さなら、浅い方も選べる**（`quest_bg_ocean_depth`）。深い海は暗く、
- *     サンゴもマンタもいない。浅い海が好きな人が、覚えるほど好きな海を失うのでは逆効果になる。
+ *     サンゴもエイもいない。浅い海が好きな人が、覚えるほど好きな海を失うのでは逆効果になる。
  *     既定は「いちばん深いところ」（覚えるたびに潜っていく）。
  */
 
@@ -48,7 +48,7 @@ export const DEPTH_STAGES: readonly DepthStage[] = [
   },
   {
     id: "reef", name: "サンゴ礁", depth: 8, minMastered: 30,
-    scene: "枝サンゴとノウサンゴの礁。色とりどりの小魚とウミガメ、マンタ",
+    scene: "枝サンゴとノウサンゴの礁。色とりどりの小魚とウミガメ、マダラトビエイ",
     gradient: ["#2a88ae", "#0c4766", "#041927"],
   },
   {
@@ -160,7 +160,7 @@ export function oceanGradientCss(depth: number): string {
  */
 export type Dweller =
   | "seagrass" | "staghorn" | "brain" | "fan" | "rock"
-  | "manta" | "fish" | "turtle" | "reeffish" | "wrasse" | "whaleshark" | "lantern" | "angler" | "jelly" | "glow" | "snow";
+  | "ray" | "fish" | "turtle" | "reeffish" | "wrasse" | "whaleshark" | "lantern" | "angler" | "jelly" | "glow" | "snow";
 
 /** [水深, 量] の点を、水深の対数で直線につなぐ */
 const HABITAT: Record<Dweller, readonly (readonly [number, number])[]> = {
@@ -169,7 +169,8 @@ const HABITAT: Record<Dweller, readonly (readonly [number, number])[]> = {
   brain: [[3, 0.4], [8, 1], [18, 0.75], [35, 0.2], [70, 0]],
   fan: [[3, 0.3], [8, 0.55], [18, 1], [35, 1], [90, 0.5], [250, 0.3]],
   rock: [[3, 0.7], [8, 0.8], [18, 1], [250, 1]],
-  manta: [[3, 1], [35, 1], [60, 0]],
+  // エイ（マダラトビエイ。以前はマンタ）は浅瀬から沖まで
+  ray: [[3, 1], [35, 1], [60, 0]],
   // ウミガメは海草を食べに浅い所へ来る。サンゴ礁までで、斜面には来ない（1匹なので 0.5 以上で出す）
   turtle: [[3, 1], [8, 1], [14, 0.4], [22, 0]],
   // 熱帯魚（チョウチョウウオ・デバスズメダイ）はサンゴのまわりに住む

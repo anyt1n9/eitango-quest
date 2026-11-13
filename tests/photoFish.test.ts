@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import {
-  ANGLERFISH_LURE_KIT, PHOTO_FISH_IDS, PHOTO_FISH_LENGTH, kitPointToScene, orientPhotoFish, photoFishAt, photophoreMask, type PhotoFishId,
+  ANGLERFISH_LURE_KIT, PHOTO_CREATURE_IDS, PHOTO_FISH_IDS, PHOTO_FISH_LENGTH, RAY_SPAN, kitPointToScene, orientPhotoFish, photoFishAt,
+  photophoreMask, type PhotoCreatureId,
 } from "../src/ocean/photoFish";
 import { DEPTH_STAGES, abundance } from "../src/ocean/depth";
 
@@ -19,7 +20,7 @@ import { DEPTH_STAGES, abundance } from "../src/ocean/depth";
 const ASSETS = new URL("../src/ocean/assets/", import.meta.url);
 
 type Accessor = { bufferView: number; byteOffset?: number; componentType: number; count: number; type: string };
-function readGlb(id: PhotoFishId) {
+function readGlb(id: PhotoCreatureId) {
   const file = readFileSync(new URL(`ocean-${id}.glb`, ASSETS));
   const jsonLen = file.readUInt32LE(12);
   const json = JSON.parse(file.subarray(20, 20 + jsonLen).toString("utf8"));
@@ -93,6 +94,61 @@ describe.each(PHOTO_FISH_IDS)("写真の魚の形（%s）", (id) => {
   });
 });
 
+describe("エイの形（マダラトビエイ。上と下から見た写真から作った）", () => {
+  const g = readGlb("eagleray");
+  const pos = g.floats(g.acc("POSITION"), 3);
+  const nor = g.floats(g.acc("NORMAL"), 3);
+  const ext = (axis: number) => {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = axis; i < pos.length; i += 3) { lo = Math.min(lo, pos[i]); hi = Math.max(hi, pos[i]); }
+    return [lo, hi];
+  };
+
+  it("場面のコードが読める作り：float の位置・法線・UV と、webp の模様1枚。輪郭は模様で切り抜く", () => {
+    for (const name of ["POSITION", "NORMAL", "TEXCOORD_0"]) expect(g.acc(name).componentType, name).toBe(5126);
+    expect(g.json.extensionsUsed).toContain("EXT_texture_webp");
+    expect(g.json.materials[0].alphaMode).toBe("MASK");
+    expect(g.json.accessors[g.prim.indices].count / 3).toBeLessThan(6000);
+    expect(g.file.byteLength).toBeLessThan(260 * 1024);
+  });
+
+  it("回さずに使える向きと大きさ：頭が +Z、背が +Y、翼の端から端が RAY_SPAN、細い尾が後ろへ伸びる", () => {
+    const [x0, x1] = ext(0), [y0, y1] = ext(1), [z0, z1] = ext(2);
+    // 格子は輪郭より少し外まで張る（輪郭は模様で切り抜く）ので、端から端は RAY_SPAN より少し広い
+    expect(x1 - x0).toBeGreaterThan(RAY_SPAN);
+    expect(x1 - x0).toBeLessThan(RAY_SPAN * 1.1);
+    expect(Math.abs(x0 + x1)).toBeLessThan(0.15);
+    // 平たい：厚みは翼の幅の1割より薄く、背の側（+Y）が厚い
+    expect(y1 - y0).toBeLessThan(RAY_SPAN * 0.1);
+    expect(y1).toBeGreaterThan(-y0);
+    // 頭が前（+Z）、尾は翼の付け根よりずっと後ろ
+    expect(z1).toBeGreaterThan(0.5);
+    expect(z0).toBeLessThan(-2);
+    // 背の面の法線はおおむね上を、腹の面は下を向く（羽ばたきの陰はこの法線から計算する）
+    let up = 0, down = 0;
+    for (let i = 1; i < nor.length; i += 3) { if (nor[i] > 0.7) up++; if (nor[i] < -0.7) down++; }
+    expect(up).toBeGreaterThan(nor.length / 3 * 0.3);
+    expect(down).toBeGreaterThan(nor.length / 3 * 0.3);
+  });
+
+  it("模様の左半分が背、右半分が腹（背の面は左、腹の面は右の UV を使う）", () => {
+    const uv = g.floats(g.acc("TEXCOORD_0"), 2);
+    let topLeft = 0, topTotal = 0, bellyRight = 0, bellyTotal = 0;
+    for (let v = 0; v < nor.length / 3; v++) {
+      if (nor[v * 3 + 1] > 0.7) { topTotal++; if (uv[v * 2] <= 0.5) topLeft++; }
+      if (nor[v * 3 + 1] < -0.7) { bellyTotal++; if (uv[v * 2] >= 0.5) bellyRight++; }
+    }
+    expect(topLeft / topTotal).toBeGreaterThan(0.99);
+    expect(bellyRight / bellyTotal).toBeGreaterThan(0.99);
+  });
+
+  it("出どころの説明に、このファイルと作り方が書いてある", () => {
+    const readme = readFileSync(new URL("README.md", ASSETS), "utf8");
+    expect(readme).toContain("ocean-eagleray.glb");
+    expect(readme).toContain("make_ray.py");
+  });
+});
+
 describe("写真の魚（全体）", () => {
   it("長さの測れない形は断る（黙って無限大の大きさにしない）", () => {
     expect(() => orientPhotoFish(new Float32Array([0, 0, 0, 0, 1, 0]), null, 1)).toThrow();
@@ -116,11 +172,12 @@ describe("写真の魚（全体）", () => {
   });
 
   it("取りに行くのは、その深さで泳ぐ魚だけ（浅瀬では深海の魚の分まで通信しない）", () => {
-    const at = (id: string) => DEPTH_STAGES.filter(s => photoFishAt(s.depth).includes(id as PhotoFishId)).map(s => s.id);
+    const at = (id: string) => DEPTH_STAGES.filter(s => photoFishAt(s.depth).includes(id as PhotoCreatureId)).map(s => s.id);
     expect(photoFishAt(DEPTH_STAGES[0].depth)).not.toContain("anglerfish");
     expect(photoFishAt(DEPTH_STAGES[0].depth)).not.toContain("lanternfish");
     expect(at("anglerfish")).toEqual(DEPTH_STAGES.filter(s => abundance("angler", s.depth) >= 0.5).map(s => s.id));
     expect(at("wrasse")).toEqual(DEPTH_STAGES.filter(s => abundance("wrasse", s.depth) >= 0.5).map(s => s.id));
+    expect(at("eagleray")).toEqual(DEPTH_STAGES.filter(s => abundance("ray", s.depth) >= 0.5).map(s => s.id));
     // どの段でも、その段で見える魚の形は取りに行く
     for (const s of DEPTH_STAGES) {
       const ids = photoFishAt(s.depth);
@@ -151,7 +208,7 @@ describe("写真の魚（全体）", () => {
     const m = /urlPattern: \(\{ url \}\) => (\/.*\/)\.test\(url\.pathname\)/.exec(config);
     expect(m, "vite.config.ts の runtimeCaching が見つからない").not.toBeNull();
     const pattern = new RegExp(m![1].slice(1, -1));
-    for (const id of PHOTO_FISH_IDS) {
+    for (const id of PHOTO_CREATURE_IDS) {
       expect(pattern.test(`/assets/ocean-${id}-AbC123_x.glb`), id).toBe(true);
       expect(existsSync(new URL(`ocean-${id}.glb`, ASSETS)), id).toBe(true);
     }
