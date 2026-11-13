@@ -165,6 +165,9 @@ def main():
     pivots = {}
     for kk in (FRONT_L, FRONT_R, REAR_L, REAR_R):
         j = (tl == kk) & body
+        if not j.any():
+            # 接する所が無いと軸が NaN になり、場面であしの頂点が消えるか飛び散る。作る時点で止める
+            sys.exit(f"部位 {kk}（3〜6 があし）が甲羅・頭に接していません。写真の輪郭と部位の分け方（--preview の parts.png）を確かめてください")
         pivots[kk] = float(np.median(np.abs(np.nonzero(j)[1] - cx)))
     ramp = 0.25 * sa
     print("pivots (|x|)", {kk: round(v * k, 3) for kk, v in pivots.items()})
