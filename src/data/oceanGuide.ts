@@ -33,11 +33,11 @@ export const OCEAN_GUIDE_TEXT: Record<GuideId, GuideText> = {
     example: ["The sea turtle swam up to the surface to breathe.", "ウミガメは息をするために水面まで泳いで上がった。"],
     words: ["b1_turtle", "a2_shell", "s313", "s3-579"],
   },
-  "manta-ray": {
-    about: "翼のような胸びれを広げると、幅が5mを超えることもある大きなエイ。大きな口を開けて泳ぎ、水といっしょにプランクトンを取りこんで食べる。",
-    memo: "ray は「エイ」。光線の ray と同じ綴りだが、由来の違う別の語。manta はスペイン語で「毛布」のこと。",
-    example: ["A manta ray glided over the reef like a bird.", "マンタが鳥のように礁の上をすべっていった。"],
-    words: ["b1_glide", "b1_wing", "s253"],
+  "eagle-ray": {
+    about: "黒っぽい背に白い水玉もようのあるエイ。翼のような胸びれを羽ばたかせて、海の中を飛ぶように泳ぐ。とがった口先で砂の中の貝やカニを探し、かたい貝殻をかみ砕いて食べる。",
+    memo: "eagle は「ワシ」。胸びれを広げて泳ぐ姿を、空を飛ぶワシに見立てた名前。spotted は「まだらの・斑点のある」（spot は「点・しみ」）。ray は「エイ」で、光線の ray とは由来の違う別の語。貝殻（shell）をかみ砕く（crush）ための、板のような歯をもつ。",
+    example: ["A spotted eagle ray glided over the sand like a bird.", "マダラトビエイが、鳥のように砂地の上をすべっていった。"],
+    words: ["b2_eagle", "b1_glide", "a2_shell", "b1_crush"],
   },
   anchovy: {
     about: "大きな群れを作って泳ぐ小さな魚。群れでいると、敵の大きな魚にねらわれにくい。しらすや煮干しの多くは、この魚から作られる。下あごが短く、口が片方しかないように見えることから「片口」の名が付いたといわれる。",

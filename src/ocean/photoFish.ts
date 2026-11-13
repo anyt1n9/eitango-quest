@@ -16,6 +16,18 @@ export type PhotoFishId = "anchovy" | "lanternfish" | "butterflyfish" | "damself
 export const PHOTO_FISH_IDS: readonly PhotoFishId[] = ["anchovy", "lanternfish", "butterflyfish", "damselfish", "wrasse", "anglerfish"];
 
 /**
+ * 写真から作った生き物。魚（PhotoFishId）に、上と下から見た写真で作った平たいエイ（eagleray。マダラトビエイ）を加えたもの。
+ * エイは scripts/fishgen/make_ray.py が場面の向きと大きさで書くので、回さずにそのまま使う
+ * （頭が +Z、背が +Y、翼の端から端が RAY_SPAN）
+ */
+export type PhotoCreatureId = PhotoFishId | "eagleray";
+
+export const PHOTO_CREATURE_IDS: readonly PhotoCreatureId[] = [...PHOTO_FISH_IDS, "eagleray"];
+
+/** エイの翼の端から端（場面の単位）。羽ばたきの計算（翼の付け根からの距離）がこの半分を翼の端とする */
+export const RAY_SPAN = 4.2;
+
+/**
  * 場面での長さ（頭の先から尾の先まで）。実物よりずっと大きいのは、数m先を泳ぐので実物大では点にしか見えないため。
  *  - anchovy … 群れの計算（boids）と尾の振りが前提にしている長さ。以前その場で作っていた形（体が z ±0.26、尾びれの先が -0.36）と同じ
  *  - lanternfish … イワシの7割。写真の形を使う前は、深い所で群れの大きさを7割に縮めていた
@@ -90,14 +102,15 @@ export const ANGLERFISH_LURE_KIT = { x: 0.17, y: 0.0823, radius: 0.0157 };
  * （はじめて海を開いた人は浅瀬にいるので、深海の魚の分まで通信しない）。
  * 見せるかどうかの決め方（oceanScene.ts の applyHabitat）と合わせる
  */
-export function photoFishAt(depth: number): PhotoFishId[] {
-  const out: PhotoFishId[] = [];
+export function photoFishAt(depth: number): PhotoCreatureId[] {
+  const out: PhotoCreatureId[] = [];
   const school = abundance("fish", depth) > 0, lantern = abundance("lantern", depth);
   if (school && lantern < 1) out.push("anchovy");
   if (school && lantern > 0) out.push("lanternfish");
   if (abundance("reeffish", depth) > 0) out.push("butterflyfish", "damselfish");
   if (abundance("wrasse", depth) >= 0.5) out.push("wrasse");
   if (abundance("angler", depth) >= 0.5) out.push("anglerfish");
+  if (abundance("ray", depth) >= 0.5) out.push("eagleray");
   return out;
 }
 

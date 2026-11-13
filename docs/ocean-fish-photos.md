@@ -19,9 +19,11 @@ ChatGPT のチャットで同じ写真を作れる。写真1枚（ひれを広�
 | `wrasse` | ナポレオンフィッシュ（Cheilinus undulatus） | 礁の斜面・沖 | `scripts/fishgen/photos/wrasse.webp` |
 | `lanternfish` | ハダカイワシ（ハダカイワシ科） | 薄明の海・深海 | `scripts/fishgen/photos/lanternfish.webp` |
 | `anglerfish` | チョウチンアンコウ（Himantolophus groenlandicus） | 深海 | `scripts/fishgen/photos/anglerfish.webp` |
+| `eagleray` | マダラトビエイ（Aetobatus narinari） | 浅瀬〜沖 | `scripts/fishgen/photos/eagleray_top.webp`・`eagleray_bottom.webp`（上と下から見た2枚） |
 
-マンタ・ウミガメ・ジンベエザメ・クラゲ・サンゴなどは、この方法（真横の写真から魚の形を起こす）では作れないので、
-Blender の自作（`scripts/blender/make_ocean_assets.py`）のまま。
+エイのような平たい生き物は、真横の写真からは作れない。**上から見た写真と下から見た写真**の2枚から作る
+（`scripts/fishgen/make_ray.py`。下の「平たい生き物の頼み方」）。ウミガメ・ジンベエザメ・クラゲ・サンゴなどは、
+いまは Blender の自作（`scripts/blender/make_ocean_assets.py`）のまま。
 
 ## ChatGPT への頼み方
 
@@ -43,6 +45,17 @@ Blender の自作（`scripts/blender/make_ocean_assets.py`）のまま。
 - ナポレオンフィッシュ：A single adult male humphead wrasse (Cheilinus undulatus), about 150 cm. Large heavy body with a prominent bulbous hump on the forehead, thick fleshy lips, rounded tail. Green to blue-green body with fine dark wavy lines on each scale, two short dark lines behind the eye.
 - ハダカイワシ：A single adult lanternfish (family Myctophidae), about 10 cm. Slender body, very large eye, forked tail. Dark brownish back, silvery sides, rows of small round bluish-white photophores along the lower sides and belly.
 - チョウチンアンコウ：A single adult female deep-sea anglerfish (Himantolophus groenlandicus), about 40 cm. Globular soft body, very large mouth with small pointed teeth, tiny eyes, a long fishing-rod-like spine rising from the head and ending in a pale bulb-shaped lure. Velvety black to very dark brown skin.
+
+## 平たい生き物（エイ）の頼み方
+
+上から見た図（背）と下から見た図（腹）を、**別々の画像で**作ってもらう（1枚にまとめると1つの図が小さくなる）。
+横から見た図は使わない（厚みは体の形から付ける）。
+
+> 上の写真と同じ<生き物>を、真下から見た図にしてください。上から見た図と同じ姿勢・同じ大きさ・同じ位置で、
+> 頭を画面の上に向け、翼（胸びれ）を左右いっぱいに広げてください。背景は同じ無地。
+
+- 上と下の輪郭がよく重なるほど、腹の模様の継ぎ目が目立たない（マダラトビエイは95%重なった）。
+- 翼はまっすぐ左右に広げ、尾は真下へ伸ばしてもらう（曲がっていると、尾の形が上と下で合わない）。
 
 ## 写真を見るところ（キットの説明より）
 

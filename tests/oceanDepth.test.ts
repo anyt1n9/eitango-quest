@@ -12,7 +12,7 @@ import {
  */
 
 const DWELLERS: Dweller[] = [
-  "seagrass", "staghorn", "brain", "fan", "rock", "manta", "fish", "turtle", "reeffish", "wrasse", "whaleshark", "lantern",
+  "seagrass", "staghorn", "brain", "fan", "rock", "ray", "fish", "turtle", "reeffish", "wrasse", "whaleshark", "lantern",
   "angler", "jelly", "glow", "snow"
 ];
 /** 1匹で泳ぐもの（oceanScene.ts と同じく、量が半分を超える深さで出す） */
@@ -95,9 +95,9 @@ describe("深さごとに住む生き物", () => {
     expect(abundance("brain", 90)).toBe(0);
   });
 
-  it("マンタは沖まで、クラゲと生き物の光は深い所から。魚の群れは深い所ではハダカイワシになる", () => {
-    expect(abundance("manta", 35)).toBeGreaterThanOrEqual(0.5);
-    expect(abundance("manta", 90)).toBeLessThan(0.5);
+  it("エイは沖まで、クラゲと生き物の光は深い所から。魚の群れは深い所ではハダカイワシになる", () => {
+    expect(abundance("ray", 35)).toBeGreaterThanOrEqual(0.5);
+    expect(abundance("ray", 90)).toBeLessThan(0.5);
     // 銀色の群れは日の光が消える深さでハダカイワシ（体を光らせる）に入れ替わり、深海にも残る
     expect(abundance("lantern", depthOf("offshore"))).toBe(0);
     expect(abundance("lantern", depthOf("twilight"))).toBe(1);

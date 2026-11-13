@@ -8,7 +8,6 @@
   python scripts/blender/make_ocean_assets.py <出力フォルダ> [--preview]
 
 1つの GLB にまとめる。名前の末尾 _0/_1/_2 は画質の 高/中/低 で使う細かさ:
-  manta      … マンタ。羽ばたきは three.js 側で付けるので形だけ（前が +Z、上が +Y）
   staghorn_a / staghorn_b … 枝サンゴ（ミドリイシの仲間）
   brain      … 脳サンゴ（ノウサンゴ）
   fan        … ウミウチワ（扇形のヤギ類）
@@ -16,7 +15,7 @@
   seagrass   … 海草の株（リュウキュウスガモのような細い葉）
   turtle     … アオウミガメ。前あしの羽ばたきは three.js 側で付ける（|x| > 0.4 が前あし）
   whaleshark … ジンベエザメ。尾を振る動きは three.js 側
-ナポレオンフィッシュとチョウチンアンコウも以前はここで作っていたが、写真から作った形（scripts/fishgen/）に替えた。
+マンタ・ナポレオンフィッシュ・チョウチンアンコウも以前はここで作っていたが、写真から作った形（scripts/fishgen/）に替えた。
 色は頂点ごとに持つ（材質や画像は使わない）。--preview を付けると Cycles で確認用の画像も描き出す。
 """
 import bpy, bmesh, math, random, sys, os
@@ -145,86 +144,6 @@ def tri_count(ob):
     return sum(len(p.vertices) - 2 for p in ob.data.polygons)
 
 
-# ---------------------------------------------------------------- manta
-def build_manta(S=2.1, L=1.15):
-    """前が -Y（glTF に書き出すと +Z）、翼の幅 2S、体長 2L（尾を除く）"""
-    NU, NV = 56, 36
-
-    def front(s):
-        y = L * (0.55 - 0.75 * s ** 2.2) + 0.2 * L * math.exp(-((s - 0.165) / 0.045) ** 2)
-        if s < 0.1:
-            y -= 0.06 * L * (1 - s / 0.1)
-        return y
-
-    def back(s):
-        return L * (-0.6 + 0.37 * s ** 0.55)
-
-    def thick(s, v):
-        env = math.sqrt(max(0.0, 1 - v * v))
-        core = max(0.0, 1 - s / 0.34) ** 1.6
-        return (0.13 * L * core + 0.018 * L * (1 - s)) * env
-
-    bm = bmesh.new()
-    for sgn in (1, -1):
-        rows = []
-        for j in range(NV + 1):
-            v = 1 - 2 * j / NV
-            row = []
-            for i in range(2 * NU + 1):
-                u = -1 + i / NU
-                s = abs(u)
-                yf, yb = front(s), back(s)
-                fy = yb + (yf - yb) * (v + 1) / 2
-                t = thick(s, v)
-                z = t if sgn > 0 else -0.55 * t
-                z -= 0.07 * L * s * s
-                z -= 0.05 * L * math.exp(-((s - 0.165) / 0.045) ** 2) * max(0.0, (v - 0.6) / 0.4)
-                row.append(bm.verts.new((u * S, -fy, z)))
-            rows.append(row)
-        for j in range(NV):
-            for i in range(2 * NU):
-                a, b, c, d = rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]
-                bm.faces.new((a, b, c, d) if sgn > 0 else (a, d, c, b))
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
-    # 細い尾
-    tail = bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=True, segments=8, radius1=0.035, radius2=0.004, depth=1.1,
-                                 matrix=Matrix.Translation((0, 0.6 * L + 0.5, -0.02)) @ Matrix.Rotation(math.radians(-90), 4, 'X'))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    ob = from_bmesh('manta', bm)
-    smooth(ob)
-
-    dark, belly = (0.03, 0.035, 0.045), (0.8, 0.8, 0.78)
-
-    def color(co, n):
-        x, y, z = co
-        s = min(abs(x) / S, 1.0)
-        fy = -y
-        if fy < back(0) - 0.01:          # 尾
-            return dark
-        yf, yb = front(s), back(s)
-        v = max(-1.0, min(1.0, ((fy - yb) / max(yf - yb, 1e-4)) * 2 - 1))
-        if n.z >= 0:                     # 背中：黒地に肩の白い模様（ナンヨウマンタの特徴）
-            line = 0.72 - 1.7 * (s - 0.12)
-            shoulder = math.exp(-((v - line) / 0.16) ** 2) * smoothstep(0.08, 0.16, s) * (1 - smoothstep(0.38, 0.5, s))
-            c = mix(dark, (0.5, 0.52, 0.53), shoulder * 0.8)
-            return mix(c, (0.12, 0.13, 0.15), smoothstep(0.75, 1.0, s) * 0.5)
-        # お腹：白地。翼の縁は黒く、体の中央に個体ごとの黒い斑点、えらの切れ込み
-        c = belly
-        c = mix(c, dark, smoothstep(0.82, 0.97, s))
-        c = mix(c, dark, smoothstep(-0.7, -0.92, v) * 0.85)
-        spot = smoothstep(0.45, 0.6, noise.noise(Vector((x * 6, y * 6, 1.7))))
-        c = mix(c, dark, spot * (1 - smoothstep(0.3, 0.4, s)) * smoothstep(-0.6, -0.2, v) * 0.9)
-        if 0.07 < s < 0.17 and 0.05 < v < 0.5 and ((v - 0.05) / 0.09) % 1.0 < 0.22:
-            c = mix(c, (0.25, 0.25, 0.27), 0.7)
-        if s < 0.12 and v > 0.85:          # 口
-            c = mix(c, dark, 0.8)
-        return c
-
-    paint(ob, color)
-    return make_lods(ob, 'manta')
-
-
-# ---------------------------------------------------------------- branching coral (staghorn)
 def build_staghorn(name, seed, height=0.9):
     rnd = random.Random(seed)
     bm = bmesh.new()
@@ -650,7 +569,6 @@ def build_whaleshark():
 
 # ---------------------------------------------------------------- build all
 groups = {
-    'manta': build_manta(),
     'staghorn_a': build_staghorn('staghorn_a', 11),
     'staghorn_b': build_staghorn('staghorn_b', 23, height=0.7),
     'brain': build_brain('brain', 4),
@@ -681,7 +599,7 @@ if PREVIEW:
     for obs in groups.values():
         for o in obs[1:]:
             o.hide_render = True
-    layout = [('manta', (0, 0, 1.4), 0.75), ('staghorn_a', (-2.6, 0.4, 0), 1.3), ('staghorn_b', (-1.4, 1.2, 0), 1.3),
+    layout = [('staghorn_a', (-2.6, 0.4, 0), 1.3), ('staghorn_b', (-1.4, 1.2, 0), 1.3),
               ('brain', (1.4, 0.6, 0.2), 0.5), ('fan', (2.6, 1.4, 0), 1.6), ('rock_a', (-0.2, 1.8, 0.1), 0.7), ('rock_b', (3.6, 0.2, 0.1), 0.5), ('seagrass', (0.9, -1.2, 0), 1.8),
               ('turtle', (-2.2, -2.0, 0.9), 1.0)]
     mat = bpy.data.materials.new('vc')
@@ -696,8 +614,6 @@ if PREVIEW:
         o = groups[base][0]
         o.location = pos
         o.scale = (sc, sc, sc)
-        if base == 'manta':
-            o.rotation_euler = (math.radians(35), 0, math.radians(20))
         if base == 'turtle':
             o.rotation_euler = (math.radians(25), 0, math.radians(-30))
         o.data.materials.append(mat)

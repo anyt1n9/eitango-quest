@@ -1,10 +1,10 @@
 /**
  * 海の3D背景（three.js）。
  *
- * 光の筋・水底の光の網目・漂う粒・クラゲはその場で計算して描き、マンタ・ウミガメ・ジンベエザメ・サンゴ・岩・海草は
+ * 光の筋・水底の光の網目・漂う粒・クラゲはその場で計算して描き、ウミガメ・ジンベエザメ・サンゴ・岩・海草は
  * Blender でプログラム生成した3Dモデル（src/ocean/assets/ocean.glb、生成は scripts/blender/make_ocean_assets.py）を読む。
- * 魚（群れ・熱帯魚・ナポレオンフィッシュ・チョウチンアンコウ）は、写真から作った形（src/ocean/photoFish.ts）を
- * その深さで泳ぐものだけ読む。模様は写真から取るが、それ以外の画像ファイルは使わない。
+ * 魚（群れ・熱帯魚・ナポレオンフィッシュ・チョウチンアンコウ）とエイ（マダラトビエイ）は、写真から作った形
+ * （src/ocean/photoFish.ts）を、その深さで泳ぐものだけ読む。模様は写真から取るが、それ以外の画像ファイルは使わない。
  *
  * 水は赤い光から吸収するので、深いほど赤が消えて青だけが残る（色はすべて
  * 「日光が水を通ってどれだけ残るか」から計算する）。水深は覚えた語数で決まり
@@ -17,10 +17,11 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
-  ANGLERFISH_LURE_KIT, PHOTO_FISH_LENGTH, kitPointToScene, orientPhotoFish, photoFishAt, photophoreMask, type PhotoFishFit, type PhotoFishId,
+  ANGLERFISH_LURE_KIT, PHOTO_FISH_LENGTH, RAY_SPAN, kitPointToScene, orientPhotoFish, photoFishAt, photophoreMask,
+  type PhotoCreatureId, type PhotoFishFit,
 } from "./photoFish";
 import { judge, tierSpecs, type OceanTier, isSoftwareRenderer } from "./quality";
-import { ANGLER_RADIUS, MANTA_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
+import { ANGLER_RADIUS, RAY_RADIUS, SCHOOL_SWAY, TURTLE_RADIUS, WHALESHARK_RADIUS, WRASSE_RADIUS, swimSpread } from "./swim";
 import { abundance, depthAlong, type Dweller } from "./depth";
 import { turtleFlipperGlsl } from "./turtle";
 
@@ -54,7 +55,7 @@ export interface OceanOptions {
    * 読み込むまで・取れなかったときは、魚の群れと熱帯魚はその場で作る簡単な形で泳がせ、ナポレオンフィッシュと
    * チョウチンアンコウは出さない（どれも海は止めない）
    */
-  fishUrls?: Partial<Record<PhotoFishId, string>>;
+  fishUrls?: Partial<Record<PhotoCreatureId, string>>;
   motion: boolean;
   /** はじめの水深（m）。省くと6m */
   depth?: number;
@@ -72,7 +73,6 @@ const KD: [number, number, number] = [0.2, 0.06, 0.028];
 const DEFAULT_DEPTH = 6;
 /** 水の見通し（大きいほどかすむ。試作で「モデルがかすんで見えない」と言われて半分以下にした） */
 const FOG = 0.45;
-const HALF_SPAN = 2.1;
 /** 水深を変えるときに潜る（浮かぶ）秒数 */
 const DESCENT_SEC = 5;
 /**
@@ -159,7 +159,7 @@ const OBJ_FRAG = WATER + /* glsl */ `
     gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
   }`;
 
-/** 泳ぐ生き物（マンタ・ウミガメ・ジンベエザメ）の色：頂点色に、深さの光と水底の光の網目を当てる */
+/** 泳ぐ生き物（ウミガメ・ジンベエザメ）の色：頂点色に、深さの光と水底の光の網目を当てる */
 const CREATURE_FRAG = WATER + /* glsl */ `
   varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
   void main() {
@@ -652,17 +652,21 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
     fScale[i] = 0.6 + R() * 0.35;
   }
 
-  /* ---- manta ray (model from Blender; wings flap here) ---- */
-  const manta = new THREE.Group();
-  scene.add(manta);
-  const mantaPos = new THREE.Vector3(0, -50, 0);
-  const mantaMat = track(mat({
-    uniforms: { uHalfSpan: { value: HALF_SPAN } },
+  /* ---- spotted eagle ray (photo creature; wings flap here) ---- */
+  // 上と下から見た写真から作った形（ocean-eagleray.glb。scripts/fishgen/make_ray.py）を読み込んでから出す。
+  // 形は場面の向きと大きさで書かれている（頭が +Z、背が +Y、翼の端から端が RAY_SPAN）ので回さない。
+  // 翼は付け根から先へ向かって波打たせ（先ほど大きく、少し遅れて）、細い尾を左右に揺らす
+  const ray = new THREE.Group();
+  scene.add(ray);
+  const rayPos = new THREE.Vector3(0, -50, 0);
+  const rayMat = track(mat({
+    side: THREE.DoubleSide,
+    uniforms: { uHalfSpan: { value: RAY_SPAN / 2 }, uMap: { value: null } },
     vertexShader: `
       uniform float uTime; uniform float uHalfSpan;
-      attribute vec3 aCol;
-      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
       void main() {
+        vUv = uv;
         vec3 p = position;
         float s = clamp(abs(p.x) / uHalfSpan, 0.0, 1.0);
         float ph = uTime * 1.75 - s * 1.9;
@@ -670,27 +674,31 @@ export function createOceanScene(canvas: HTMLCanvasElement, opts: OceanOptions):
         float f = A * pow(s, 1.7) * sin(ph);
         float dfds = A * (1.7 * pow(max(s, 0.001), 0.7) * sin(ph) - 1.9 * pow(s, 1.7) * cos(ph));
         p.y += f;
-        float tail = (1.0 - smoothstep(-1.7, -0.7, p.z));
+        float tail = (1.0 - smoothstep(-2.0, -1.0, p.z));
         p.x += sin(uTime * 2.2 + p.z * 2.5) * 0.06 * tail;
         vec3 n = normal;
         n.x -= sign(p.x) * dfds / uHalfSpan * n.y;
         vec4 wp = modelMatrix * vec4(p, 1.0);
-        vWorld = wp.xyz; vColor = aCol;
+        vWorld = wp.xyz;
         vN = normalize(mat3(modelMatrix) * n);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: WATER + `
-      varying vec3 vWorld; varying vec3 vN; varying vec3 vColor;
+      uniform sampler2D uMap;
+      varying vec3 vWorld; varying vec3 vN; varying vec2 vUv;
       void main() {
+        vec4 tex = texture2D(uMap, vUv);
+        if (tex.a < 0.5) discard;
         float d = uDepth - vWorld.y;
-        vec3 n = normalize(vN);
+        vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
         vec3 L = sunAt(d);
         float c = causticAt(vWorld, d) * smoothstep(0.2, 0.8, n.y);
-        vec3 lit = vColor * (L * (0.25 + 0.75 * max(n.y, 0.0)) * (0.7 + 1.2 * c) + waterTint(d) * 0.4);
+        // 腹は下を向くので日の光がほとんど当たらない。水の色の照り返しを少し足して、白い腹が灰色に沈みすぎないようにする
+        vec3 lit = tex.rgb * (L * (0.3 + 0.7 * max(n.y, 0.0)) * (0.7 + 1.2 * c) + waterTint(d) * (0.4 + 0.3 * max(-n.y, 0.0)));
         gl_FragColor = vec4(finalize(throughWater(lit, length(vWorld - cameraPosition))), 1.0);
       }`,
   }));
-  const mantaLods: (THREE.Mesh | undefined)[] = [];
+  let rayMesh: THREE.Mesh | null = null;
 
   /* ---- sea turtle (model from Blender; the flippers fly here) ---- */
   // 前あしは甲羅の縁（|x| 0.42）より外を、縁を軸に羽ばたくように上下させる（先ほど少し遅れる）。
@@ -1108,7 +1116,6 @@ ${turtleFlipperGlsl()}
         lods[lod] = m;
       }
     };
-    creature("manta", mantaMat, manta, mantaLods);
     creature("turtle", turtleMat, turtle, turtleLods);
     creature("whaleshark", whalesharkMat, whaleshark, whalesharkLods);
     // 熱帯魚が住むサンゴ：枝サンゴとノウサンゴの、どの画質でもサンゴ礁で見えている先頭の数本のうち、手前のもの
@@ -1148,7 +1155,7 @@ ${turtleFlipperGlsl()}
     resize();
     pMat.uniforms.uPR.value = q.pixelRatio;
     pGeo.setDrawRange(0, q.particles);
-    for (const lods of [mantaLods, turtleLods, whalesharkLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
+    for (const lods of [turtleLods, whalesharkLods]) lods.forEach((m, lod) => { if (m) m.visible = lod === q.lod; });
     haloMat.uniforms.uPR.value = q.pixelRatio;
     applyHabitat();
     sample.start = 0;
@@ -1186,7 +1193,7 @@ ${turtleFlipperGlsl()}
     }
     jelly.count = Math.min(MAX_JELLY, Math.ceil(q.jelly * abundance("jelly", d) - 1e-3));
     // 1匹で泳ぐものは、そこに住む量が半分を超える深さでだけ出す
-    manta.visible = abundance("manta", d) >= 0.5;
+    ray.visible = abundance("ray", d) >= 0.5 && rayMesh !== null;
     turtle.visible = abundance("turtle", d) >= 0.5;
     // 写真から作った形を読み込んでから出す（読み込めなければ出さない）
     wrasse.visible = abundance("wrasse", d) >= 0.5 && wrasseMesh !== null;
@@ -1257,10 +1264,10 @@ ${turtleFlipperGlsl()}
         fz += (cz / cnt) * 0.6 + (az / cnt - fVel[ix + 2]) * 1.0 + sz * 0.04;
       }
       fx += (tx - fPos[ix]) * 0.12; fy += (ty - fPos[ix + 1]) * 0.12; fz += (tz - fPos[ix + 2]) * 0.12;
-      // scatter away from the manta (when there is one at this depth)
-      const mx = fPos[ix] - mantaPos.x, my = fPos[ix + 1] - mantaPos.y, mz = fPos[ix + 2] - mantaPos.z;
+      // scatter away from the ray (when there is one at this depth)
+      const mx = fPos[ix] - rayPos.x, my = fPos[ix + 1] - rayPos.y, mz = fPos[ix + 2] - rayPos.z;
       const md = mx * mx + my * my + mz * mz;
-      if (md < 9 && manta.visible) { const k = ((9 - md) * 0.9) / (Math.sqrt(md) + 0.1); fx += mx * k; fy += my * k * 0.5; fz += mz * k; }
+      if (md < 9 && ray.visible) { const k = ((9 - md) * 0.9) / (Math.sqrt(md) + 0.1); fx += mx * k; fy += my * k * 0.5; fz += mz * k; }
       const floorY = seabedY(fPos[ix], fPos[ix + 2]) + 1.0;
       if (fPos[ix + 1] < floorY) fy += (floorY - fPos[ix + 1]) * 3;
       let vxv = fVel[ix] + fx * dt, vyv = fVel[ix + 1] + fy * dt, vzv = fVel[ix + 2] + fz * dt;
@@ -1284,18 +1291,18 @@ ${turtleFlipperGlsl()}
   }
 
   const qRoll = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1);
-  function updateManta(t: number) {
+  function updateRay(t: number) {
     const th = t * ((2 * Math.PI) / 46) + 1.2;
-    const rx = MANTA_RADIUS * spread;
-    mantaPos.set(Math.cos(th) * rx, -0.9 + Math.sin(th * 2) * 0.6, -11 + Math.sin(th) * 4);
-    manta.position.copy(mantaPos);
+    const rx = RAY_RADIUS * spread;
+    rayPos.set(Math.cos(th) * rx, -0.9 + Math.sin(th * 2) * 0.6, -11 + Math.sin(th) * 4);
+    ray.position.copy(rayPos);
     vz.set(-Math.sin(th) * rx, Math.cos(th * 2) * 1.2, Math.cos(th) * 4).normalize();
     vx.crossVectors(up, vz).normalize();
     vy.crossVectors(vz, vx);
     m4.makeBasis(vx, vy, vz);
-    manta.quaternion.setFromRotationMatrix(m4);
+    ray.quaternion.setFromRotationMatrix(m4);
     qRoll.setFromAxisAngle(zAxis, -0.28 + Math.sin(t * 0.4) * 0.05);
-    manta.quaternion.multiply(qRoll);
+    ray.quaternion.multiply(qRoll);
   }
 
   /** 向きを進む向き（前が +Z）に合わせる */
@@ -1309,7 +1316,7 @@ ${turtleFlipperGlsl()}
     obj.quaternion.multiply(qRoll);
   }
 
-  // ウミガメはマンタより手前の低い所を、マンタと重ならない位置からゆっくり回る（1周64秒）
+  // ウミガメはエイより手前の低い所を、エイと重ならない位置からゆっくり回る（1周64秒）
   function updateTurtle(t: number) {
     const th = t * ((2 * Math.PI) / 64) + 3.6;
     const rx = TURTLE_RADIUS * spread;
@@ -1453,7 +1460,7 @@ ${turtleFlipperGlsl()}
       depthT = Math.min(1, depthT + dt / DESCENT_SEC);
       setDepthNow(depthAlong(depthFrom, depthTo, depthT));
     }
-    updateManta(time);
+    updateRay(time);
     updateTurtle(time);
     updateWrasse(time);
     updateWhaleshark(time);
@@ -1526,7 +1533,7 @@ ${turtleFlipperGlsl()}
 
   applyTier("mid");
   for (let i = 0; i < 40; i++) updateFish(0.05, i * 0.05);
-  updateManta(0);
+  updateRay(0);
   updateTurtle(0);
   updateWrasse(0);
   updateWhaleshark(0);
@@ -1547,19 +1554,19 @@ ${turtleFlipperGlsl()}
       opts.onStatus?.({ tier, fps: sample.fps, throttled: sample.throttled, frozen, modelsLoaded });
     })
     .catch((e) => {
-      // サンゴ礁もマンタも無い水だけが残るので、静かな地に切り替えてもらう
+      // サンゴ礁もウミガメも無い水だけが残るので、静かな地に切り替えてもらう
       console.warn("海の3Dモデルを読み込めませんでした", e);
       if (!disposed) opts.onFail?.("model");
     });
 
   /* ---- photo fish: fetched only for the depth being shown or dived to ---- */
-  const photoState: Partial<Record<PhotoFishId, "loading" | "ready" | "failed">> = {};
+  const photoState: Partial<Record<PhotoCreatureId, "loading" | "ready" | "failed">> = {};
   // 取れなかった魚は、次に潜る（浮かぶ）とき・出題から戻ったときに取り直す。通信が一瞬切れただけで、その回ずっと
   // 魚が欠けたままにしない。ただし壊れたファイルを何度も取りに行かないよう、回数に上限を置く
-  const photoTries: Partial<Record<PhotoFishId, number>> = {};
+  const photoTries: Partial<Record<PhotoCreatureId, number>> = {};
   const PHOTO_TRIES = 3;
-  /** 写真の魚の glb から、場面の向きと長さにそろえた形と模様を取り出す */
-  function photoFishGeometry(root: THREE.Object3D, id: PhotoFishId) {
+  /** 写真の魚の glb から、場面の向きと長さにそろえた形と模様を取り出す（エイは書かれた向きと大きさのまま） */
+  function photoFishGeometry(root: THREE.Object3D, id: PhotoCreatureId) {
     let src: THREE.Mesh | null = null;
     root.traverse((o) => { if (!src && (o as THREE.Mesh).isMesh) src = o as THREE.Mesh; });
     const mesh = src as THREE.Mesh | null;
@@ -1568,7 +1575,7 @@ ${turtleFlipperGlsl()}
     const g = new THREE.BufferGeometry();
     const pos = new Float32Array(mesh.geometry.getAttribute("position").array);
     const nor = new Float32Array(mesh.geometry.getAttribute("normal").array);
-    const fit = orientPhotoFish(pos, nor, PHOTO_FISH_LENGTH[id]);
+    const fit: PhotoFishFit = id === "eagleray" ? { length: 1, mid: 0, scale: 1 } : orientPhotoFish(pos, nor, PHOTO_FISH_LENGTH[id]);
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
     g.setAttribute("uv", mesh.geometry.getAttribute("uv"));
@@ -1592,9 +1599,14 @@ ${turtleFlipperGlsl()}
     t.colorSpace = THREE.NoColorSpace;
     return t;
   }
-  function installPhotoFish(id: PhotoFishId, root: THREE.Object3D) {
+  function installPhotoFish(id: PhotoCreatureId, root: THREE.Object3D) {
     const { geometry, map, fit } = photoFishGeometry(root, id);
-    if (id === "anchovy") {
+    if (id === "eagleray") {
+      rayMat.uniforms.uMap.value = map;
+      rayMesh = new THREE.Mesh(geometry, rayMat);
+      rayMesh.frustumCulled = false;
+      ray.add(rayMesh);
+    } else if (id === "anchovy") {
       geometry.setAttribute("aPhase", fish.geometry.getAttribute("aPhase"));
       fish.geometry = geometry;
       fish.material = track(mat({ ...fishShader("anchovy"), uniforms: { uMap: { value: map }, uSplit: lanternSplit } }));

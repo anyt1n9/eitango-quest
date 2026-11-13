@@ -60,11 +60,11 @@ describe("海の3D背景", () => {
     expect(el.getAttribute("aria-hidden")).toBe("true");
     expect(el.className).toContain("bg-scene");
     expect(el.dataset.kind).toBe("ocean");
-    // 3Dモデルと、写真から作った魚の形（6種）を渡す。魚の形を渡し忘れると、何も言わずに
-    // 群れと熱帯魚は簡単な形に戻り、ナポレオンフィッシュとチョウチンアンコウは出なくなる
+    // 3Dモデルと、写真から作った生き物の形（魚6種とエイ）を渡す。渡し忘れると、何も言わずに
+    // 群れと熱帯魚は簡単な形に戻り、ナポレオンフィッシュ・チョウチンアンコウ・エイは出なくなる
     expect(created[0].modelUrl).toMatch(/ocean\.glb/);
-    const { PHOTO_FISH_IDS } = await import("../src/ocean/photoFish");
-    for (const id of PHOTO_FISH_IDS) expect(created[0].fishUrls?.[id], id).toMatch(new RegExp(`ocean-${id}\\.glb`));
+    const { PHOTO_CREATURE_IDS } = await import("../src/ocean/photoFish");
+    for (const id of PHOTO_CREATURE_IDS) expect(created[0].fishUrls?.[id], id).toMatch(new RegExp(`ocean-${id}\\.glb`));
     expect(created).toHaveLength(1);
   });
 

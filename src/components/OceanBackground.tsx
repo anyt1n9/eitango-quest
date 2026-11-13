@@ -3,17 +3,19 @@ import { createOceanScene, type OceanScene } from "../ocean/oceanScene";
 import { oceanGradientCss } from "../ocean/depth";
 // 名前に中身のハッシュが付く（作り直したモデルと古いコードが組み合わさらない）
 import oceanModelUrl from "../ocean/assets/ocean.glb?url";
-// 写真から作った魚（Fish Kit の作り方。CC0。src/ocean/assets/README.md）。その深さで泳ぐものだけを取りに行く
+// 写真から作った魚（Fish Kit の作り方。CC0。src/ocean/assets/README.md）とエイ。その深さで泳ぐものだけを取りに行く
 import anchovyUrl from "../ocean/assets/ocean-anchovy.glb?url";
 import lanternfishUrl from "../ocean/assets/ocean-lanternfish.glb?url";
 import butterflyfishUrl from "../ocean/assets/ocean-butterflyfish.glb?url";
 import damselfishUrl from "../ocean/assets/ocean-damselfish.glb?url";
 import wrasseUrl from "../ocean/assets/ocean-wrasse.glb?url";
 import anglerfishUrl from "../ocean/assets/ocean-anglerfish.glb?url";
+// エイ（マダラトビエイ）。上と下から見た写真から作った（scripts/fishgen/make_ray.py）
+import eaglerayUrl from "../ocean/assets/ocean-eagleray.glb?url";
 
 const FISH_URLS = {
   anchovy: anchovyUrl, lanternfish: lanternfishUrl, butterflyfish: butterflyfishUrl,
-  damselfish: damselfishUrl, wrasse: wrasseUrl, anglerfish: anglerfishUrl,
+  damselfish: damselfishUrl, wrasse: wrasseUrl, anglerfish: anglerfishUrl, eagleray: eaglerayUrl,
 };
 
 /**
