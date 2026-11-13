@@ -103,9 +103,10 @@ describe("ウミガメのあし", () => {
     expect(moved.length, "前あしの先が動いていない").toBe(tips.length);
   });
 
-  it("どの時刻でも、甲羅と頭（あしの印の無い所）は動かない。甲羅の盛り上がった所（y > 0.03）にあしの印は無い", () => {
+  it("どの時刻でも、甲羅と頭（あしの印の無い所）は動かない。甲羅の盛り上がった所（y > 0.1）にあしの印は無い", () => {
+    // あしは付け根が腕のように太い（背の側で y 0.05 ほど）が、甲羅の盛り上がり（0.22 まで）には届かない
     for (let i = 0; i < flips.length; i++) {
-      if (pos[i * 3 + 1] > 0.03) expect(flips[i][0] + flips[i][1], `頂点 ${i}`).toBe(0);
+      if (pos[i * 3 + 1] > 0.1) expect(flips[i][0] + flips[i][1], `頂点 ${i}`).toBe(0);
     }
     // 後ろあしは前あしと位相がずれる（rearPhase）ので、1点の時刻だけでは見逃す
     for (let t = 0; t < 5.1; t += 0.25) {
@@ -117,6 +118,21 @@ describe("ウミガメのあし", () => {
       }
       expect(worst, `@${t.toFixed(2)}s`).toBeLessThan(1e-6);
     }
+  });
+
+  /**
+   * 頭とあしの厚みは、はじめ輪郭からの距離に比例させていたので、横から見ると薄いくさび形の板だった
+   * （頭の高さ 0.11、あしの厚み 0.03。「頭・腕・足が平たい」と言われた）。いまは丸い断面にしている
+   */
+  it("頭・前あし・後ろあしは平たい板ではない（上下に厚みがある）", () => {
+    const height = (sel: (i: number) => boolean) => {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < flips.length; i++) if (sel(i)) { lo = Math.min(lo, pos[i * 3 + 1]); hi = Math.max(hi, pos[i * 3 + 1]); }
+      return hi - lo;
+    };
+    expect(height(i => pos[i * 3 + 2] > 0.55), "頭（甲羅より前）").toBeGreaterThan(0.14);
+    expect(height(i => flips[i][0] > 0), "前あし").toBeGreaterThan(0.07);
+    expect(height(i => flips[i][1] > 0), "後ろあし").toBeGreaterThan(0.07);
   });
 
   it("あしを回す軸は、あしの付け根の近く（甲羅の半分の幅 0.40 より内側、首より外）にある", () => {
