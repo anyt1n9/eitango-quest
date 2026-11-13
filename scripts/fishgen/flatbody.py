@@ -98,22 +98,32 @@ class Mesh:
         self.verts, self.uvs, self.extra, self.faces = [], [], [], []
         self.extra_size = extra_size
 
-    def add_grid(self, P, UV, keep=None, flip=False, extra=None):
-        """P: (rows, cols, 3) の格子を三角形2枚ずつでつなぐ。keep[i, j] が偽のます目は捨てる。flip で面の向きを逆に"""
+    def add_grid(self, P, UV, keep=None, flip=False, extra=None, plane=None):
+        """P: (rows, cols, 3) の格子を三角形2枚ずつでつなぐ。keep[i, j] が偽のます目は捨てる。flip で面の向きを逆に。
+        plane: (rows, cols, 2) の、格子の点を写真の上でずらした位置。ずらして裏返った（折れ返った）三角形と、
+        つぶれた三角形を捨てる（輪郭の上へ寄せた点のまわりで起こる。残すと、そこの頂点の法線が裏を向く）"""
         r, c = P.shape[:2]
         base = len(self.verts)
         self.verts.extend(P.reshape(-1, 3)); self.uvs.extend(UV.reshape(-1, 2))
         if self.extra_size:
             self.extra.extend(extra.reshape(-1, self.extra_size))
+
+        def folded(p, q, s):
+            if plane is None:
+                return False
+            (px, py), (qx, qy), (sx, sy) = plane[p], plane[q], plane[s]
+            # ずらす前の格子では、(a, d, b) と (b, d, e) の外積はどれも負
+            return (qx - px) * (sy - py) - (qy - py) * (sx - px) > -1e-6
         for i in range(r - 1):
             for j in range(c - 1):
                 if keep is not None and not keep[i, j]:
                     continue
                 a = base + i * c + j; b = a + 1; d = a + c; e = d + 1
-                if flip:
-                    self.faces.append((a, b, d)); self.faces.append((b, e, d))
-                else:
-                    self.faces.append((a, d, b)); self.faces.append((b, d, e))
+                A, B, D, E = (i, j), (i, j + 1), (i + 1, j), (i + 1, j + 1)
+                for (t1, t2, t3), (g1, g2, g3) in (((a, d, b), (A, D, B)), ((b, d, e), (B, D, E))):
+                    if folded(g1, g2, g3):
+                        continue
+                    self.faces.append((t1, t3, t2) if flip else (t1, t2, t3))
 
     def finish(self):
         """使わない頂点を除き、面の法線を足し合わせた頂点の法線を付ける（背と腹は別の頂点なので、縁で混ざらない）"""

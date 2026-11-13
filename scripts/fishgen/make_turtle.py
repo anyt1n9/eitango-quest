@@ -8,7 +8,11 @@
 numpy・scipy・Pillow を使う（bpy は要らない）。形と模様の共通の部分は flatbody.py。
 
 - 部位：上から見た輪郭を、甲羅・頭・前あし2本・後ろあし2本に分ける（太さ 224 画素より細いものを削ると甲羅だけが残る）。
-- 厚み：甲羅は楕円の丸い屋根（背は高く、腹は低い）、頭と首は輪郭からの距離に比例して丸く、あしは薄く。
+- 厚み：甲羅は楕円の丸い屋根（背は高く、腹は低い）。頭・首・あしは丸い断面（その辺りの太さを半径にした円）にし、
+  あしは付け根を腕・脚のように太く、先へ行くほど平たくする。頭は横から見た写真に合わせて甲羅の縁より少し上に置く。
+  以前は輪郭からの距離に比例させていて、横から見ると頭もあしも薄いくさび形の板だった。
+- 輪郭：輪郭の外の格子の点は輪郭の上へ寄せ、背と腹の面をそこで閉じる（模様の切り抜きだけで輪郭を出すと、
+  丸くした頭やあしでは、背と腹の面のあいだが横から見て隙間になる）。寄せて裏返った三角形は捨てる。
 - 腹の模様：下から見た写真も同じように部位に分け、部位ごとに上から見た写真の位置へ合わせる（甲羅は楕円どうし、
   頭とあしは向きと長さ・幅をそろえる）。エイのように行ごとにそろえると、あしの角度が上と下の写真で違うので合わない。
 - あしの動き：あしの頂点に印 _FLIPPER =（前あしの重み、後ろあしの重み、回す軸の |x|）を付ける。場面のシェーダーは
@@ -140,36 +144,75 @@ def main():
     step = (x1 - x0) / 36                     # 格子の間隔（画素）
     atlas = Atlas(top, warped, tm, (x0, x1, y0, y1), int(np.ceil(2 * step)) + 4, 512)
 
+    # ---- あしの付け根（甲羅・頭と接する所）。あしを回す軸と、あしの太さ（付け根ほど太い）に使う
+    body = ndi.binary_dilation((tl == SHELL) | (tl == HEAD), iterations=8)
+    pivots, along = {}, np.zeros((H, W), np.float32)
+    for kk in (FRONT_L, FRONT_R, REAR_L, REAR_R):
+        part = tl == kk
+        j = part & body
+        if not j.any():
+            # 接する所が無いと軸が NaN になり、場面であしの頂点が消えるか飛び散る。作る時点で止める
+            sys.exit(f"部位 {kk}（3〜6 があし）が甲羅・頭に接していません。写真の輪郭と部位の分け方（--preview の parts.png）を確かめてください")
+        pivots[kk] = float(np.median(np.abs(np.nonzero(j)[1] - cx)))
+        # 付け根からの距離を、あしの先で 1 になるようにそろえる
+        dist = ndi.distance_transform_edt(~j)
+        along[part] = dist[part] / dist[part].max()
+    ramp = 0.25 * sa
+
     # ---- 厚み（画素）。部位の境目でなめらかにつながるよう、部位の印はぼかしてから使う
     dt = ndi.distance_transform_edt(tm)
     _, (iy, ix) = ndi.distance_transform_edt(tl == 0, return_indices=True)
     lab_ext = tl[iy, ix]                      # 輪郭の外は、いちばん近い部位
     soft = {kk: ndi.gaussian_filter((lab_ext == kk).astype(np.float32), 12) for kk in range(1, 7)}
+    # 頭とあしの丸みを効かせる範囲。部位の境目で 1 のまま、甲羅の側へ少し入ってから 0 になる（境目で半分にすると、
+    # 首の付け根や腕の付け根がくびれた）。甲羅の側は甲羅の丸み（max）が引き継ぐ
+    reach = {kk: np.clip(2 * ndi.gaussian_filter((lab_ext == kk).astype(np.float32), 16), 0, 1) for kk in range(2, 7)}
+    # 頭とあしの「その辺りの太さ」（輪郭からいちばん遠い所までの距離。円柱なら半径）。部位ごとに、近くでの最大をとり、
+    # 甲羅の側へは、いちばん近い頭・あしの値をのばす
+    radius = np.zeros((H, W), np.float32)
+    for kk in range(2, 7):
+        part = tl == kk
+        r_k = ndi.maximum_filter(np.where(part, dt, 0), size=int(0.9 * dt[part].max()))
+        radius[part] = r_k[part]
+    _, (ry, rx) = ndi.distance_transform_edt(tl < 2, return_indices=True)
+    radius = np.maximum(ndi.gaussian_filter(radius[ry, rx], 10), 1.0)
+    # あしの厚みと幅の比：付け根は腕・脚のように太く、先へ行くほど平たい櫂（かい）になる
+    # （前あし 0.55 → 0.15、後ろあしは短く太いので 0.6 → 0.25）
+    thick_ratio = np.zeros((H, W), np.float32)
+    for kk, base, tip in ((FRONT_L, 0.55, 0.15), (FRONT_R, 0.55, 0.15), (REAR_L, 0.6, 0.25), (REAR_R, 0.6, 0.25)):
+        part = tl == kk
+        thick_ratio[part] = tip + (base - tip) * (1 - along[part]) ** 1.5
+    _, (fy, fx) = ndi.distance_transform_edt(tl < 3, return_indices=True)
+    thick_ratio = ndi.gaussian_filter(thick_ratio[fy, fx], 6)
 
-    def thickness(x, y):
+    def round_profile(d, r):
+        """輪郭から d の所の、半径 r の丸い断面の高さ（輪郭で 0、中心で r。輪郭のそばで立ち上がる）"""
+        d = np.minimum(d, r)
+        return np.sqrt(np.clip(d * (2 * r - d), 0, None))
+
+    def surfaces(x, y):
+        """背の面と腹の面の高さ（画素。上が正）"""
         r2 = ((x - cx) / sa) ** 2 + ((y - cy) / sb) ** 2
         dome = np.clip(1 - r2, 0, 1)
         d = sample(dt, x, y)
+        r = sample(radius, x, y)
         s_shell = sample(soft[SHELL], x, y); s_head = sample(soft[HEAD], x, y)
-        s_fl = sum(sample(soft[kk], x, y) for kk in range(3, 7))
+        w_head = sample(reach[HEAD], x, y)
+        w_fl = np.maximum.reduce([sample(reach[kk], x, y) for kk in range(3, 7)])
+        edge = np.clip(d / 4.0, 0, 1)         # 輪郭の上では 0
         # 甲羅の丸みは楕円で付けるが、楕円と写真の輪郭はぴったりは重ならない。輪郭の近くで急に 0 に落とすと、
         # 横から見たとき縁がギザギザの壁になった。輪郭から半分の幅の2割までで、なめらかに薄くする
         rim = np.clip(d / (0.2 * sa), 0, 1) ** 0.7
-        up = np.maximum.reduce([0.55 * sa * dome ** 0.5 * rim * s_shell, 0.6 * d * s_head, 0.16 * d * s_fl])
-        dn = np.maximum.reduce([0.2 * sa * dome ** 0.4 * rim * s_shell, 0.5 * d * s_head, 0.12 * d * s_fl])
-        edge = np.clip(d / 4.0, 0, 1)         # 輪郭の上では 0
-        return up * edge, dn * edge
-
-    # ---- あしの印：付け根（甲羅・頭と接する所）の |x| を軸にし、そこから外へ重みを 0→1 にする
-    body = ndi.binary_dilation((tl == SHELL) | (tl == HEAD), iterations=8)
-    pivots = {}
-    for kk in (FRONT_L, FRONT_R, REAR_L, REAR_R):
-        j = (tl == kk) & body
-        if not j.any():
-            # 接する所が無いと軸が NaN になり、場面であしの頂点が消えるか飛び散る。作る時点で止める
-            sys.exit(f"部位 {kk}（3〜6 があし）が甲羅・頭に接していません。写真の輪郭と部位の分け方（--preview の parts.png）を確かめてください")
-        pivots[kk] = float(np.median(np.abs(np.nonzero(j)[1] - cx)))
-    ramp = 0.25 * sa
+        # 頭と首：丸い断面（縦は横の幅より少し低い）。横から見た写真では、頭は甲羅の縁より少し高い所にある
+        c = round_profile(d, r) * edge
+        head_up, head_dn, lift = 0.75 * c, 0.6 * c, 0.22 * r * s_head
+        # あし：丸い断面を、厚みと幅の比（thick_ratio）まで平たくする。上側を少し厚く
+        t = 2 * sample(thick_ratio, x, y) * c
+        fl_up, fl_dn = 0.55 * t, 0.45 * t
+        up = np.maximum.reduce([0.55 * sa * dome ** 0.5 * rim * s_shell * edge, head_up * w_head, fl_up * w_fl])
+        dn = np.maximum.reduce([0.2 * sa * dome ** 0.4 * rim * s_shell * edge, head_dn * w_head, fl_dn * w_fl])
+        # 背と腹の面は輪郭で同じ高さ（lift）で出会う。lift は頭のまわりだけで、甲羅とあしに向かって 0 になる
+        return lift + up, lift - dn, lift
     print("pivots (|x|)", {kk: round(v * k, 3) for kk, v in pivots.items()})
 
     def flippers(x, y):
@@ -189,12 +232,20 @@ def main():
     gx = np.arange(x0 - step, x1 + 2 * step, step)
     gy = np.arange(y0 - step, y1 + 2 * step, step)
     GX, GY = np.meshgrid(gx, gy)
-    up, dn = thickness(GX, GY)
-    fl = flippers(GX, GY)
     keep = keep_cells(sample(ndi.binary_dilation(tm, iterations=int(step * 1.5)), GX, GY))
+    # 輪郭の外の格子の点は、いちばん近い輪郭の上へ寄せ、背と腹の面をそこで閉じる。輪郭を模様の切り抜きだけで出すと、
+    # 頭やあしを丸くしたとき、輪郭の手前の格子の点がもう高いので、背と腹の面のあいだが横から見て隙間になった
+    _, (oy, ox) = ndi.distance_transform_edt(~tm, return_indices=True)
+    xi = np.clip(np.round(GX).astype(int), 0, W - 1); yi = np.clip(np.round(GY).astype(int), 0, H - 1)
+    outside = ~tm[yi, xi]
+    GX = np.where(outside, ox[yi, xi], GX).astype(float); GY = np.where(outside, oy[yi, xi], GY).astype(float)
+    back, belly, lift = surfaces(GX, GY)
+    back[outside] = lift[outside]; belly[outside] = lift[outside]
+    fl = flippers(GX, GY)
     mesh = Mesh(extra_size=3)
-    mesh.add_grid(to3(GX, GY, up), atlas.uv(GX, GY, False), keep, extra=fl)
-    mesh.add_grid(to3(GX, GY, -dn), atlas.uv(GX, GY, True), keep, flip=True, extra=fl)
+    plane = np.stack([GX, GY], -1)
+    mesh.add_grid(to3(GX, GY, back), atlas.uv(GX, GY, False), keep, extra=fl, plane=plane)
+    mesh.add_grid(to3(GX, GY, belly), atlas.uv(GX, GY, True), keep, flip=True, extra=fl, plane=plane)
     V, N, UV, F, FL = mesh.finish()
     print("verts", len(V), "tris", len(F), "x", V[:, 0].min(), V[:, 0].max(), "y", V[:, 1].min(), V[:, 1].max(), "z", V[:, 2].min(), V[:, 2].max())
 
