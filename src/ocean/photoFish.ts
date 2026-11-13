@@ -16,13 +16,14 @@ export type PhotoFishId = "anchovy" | "lanternfish" | "butterflyfish" | "damself
 export const PHOTO_FISH_IDS: readonly PhotoFishId[] = ["anchovy", "lanternfish", "butterflyfish", "damselfish", "wrasse", "anglerfish"];
 
 /**
- * 写真から作った生き物。魚（PhotoFishId）に、上と下から見た写真で作った平たいエイ（eagleray。マダラトビエイ）を加えたもの。
- * エイは scripts/fishgen/make_ray.py が場面の向きと大きさで書くので、回さずにそのまま使う
- * （頭が +Z、背が +Y、翼の端から端が RAY_SPAN）
+ * 写真から作った生き物。魚（PhotoFishId）に、上と下から見た写真で作った平たい生き物を加えたもの
+ * （eagleray：マダラトビエイ、seaturtle：アオウミガメ）。
+ * どちらも scripts/fishgen/make_ray.py・make_turtle.py が場面の向きと大きさで書くので、回さずにそのまま使う
+ * （頭が +Z、背が +Y。エイは翼の端から端が RAY_SPAN、ウミガメは甲羅の半分の幅が 0.40）
  */
-export type PhotoCreatureId = PhotoFishId | "eagleray";
+export type PhotoCreatureId = PhotoFishId | "eagleray" | "seaturtle";
 
-export const PHOTO_CREATURE_IDS: readonly PhotoCreatureId[] = [...PHOTO_FISH_IDS, "eagleray"];
+export const PHOTO_CREATURE_IDS: readonly PhotoCreatureId[] = [...PHOTO_FISH_IDS, "eagleray", "seaturtle"];
 
 /** エイの翼の端から端（場面の単位）。羽ばたきの計算（翼の付け根からの距離）がこの半分を翼の端とする */
 export const RAY_SPAN = 4.2;
@@ -111,6 +112,7 @@ export function photoFishAt(depth: number): PhotoCreatureId[] {
   if (abundance("wrasse", depth) >= 0.5) out.push("wrasse");
   if (abundance("angler", depth) >= 0.5) out.push("anglerfish");
   if (abundance("ray", depth) >= 0.5) out.push("eagleray");
+  if (abundance("turtle", depth) >= 0.5) out.push("seaturtle");
   return out;
 }
 

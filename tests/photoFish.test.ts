@@ -149,6 +149,60 @@ describe("エイの形（マダラトビエイ。上と下から見た写真か�
   });
 });
 
+describe("ウミガメの形（アオウミガメ。上と下から見た写真から作った）", () => {
+  const g = readGlb("seaturtle");
+  const pos = g.floats(g.acc("POSITION"), 3);
+  const nor = g.floats(g.acc("NORMAL"), 3);
+  const ext = (axis: number) => {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = axis; i < pos.length; i += 3) { lo = Math.min(lo, pos[i]); hi = Math.max(hi, pos[i]); }
+    return [lo, hi];
+  };
+
+  it("場面のコードが読める作り：float の位置・法線・UV・あしの印（_FLIPPER）と、webp の模様1枚", () => {
+    for (const name of ["POSITION", "NORMAL", "TEXCOORD_0", "_FLIPPER"]) expect(g.acc(name).componentType, name).toBe(5126);
+    expect(g.acc("_FLIPPER").type).toBe("VEC3");
+    expect(g.json.extensionsUsed).toContain("EXT_texture_webp");
+    expect(g.json.materials[0].alphaMode).toBe("MASK");
+    expect(g.json.accessors[g.prim.indices].count / 3).toBeLessThan(6000);
+    expect(g.file.byteLength).toBeLessThan(280 * 1024);
+  });
+
+  it("回さずに使える向きと大きさ：頭が +Z、背が +Y、甲羅の半分の幅が 0.40 くらい（あしを広げて 0.75 まで）", () => {
+    const [x0, x1] = ext(0), [y0, y1] = ext(1), [z0, z1] = ext(2);
+    expect(x1 - x0).toBeGreaterThan(1.2);
+    expect(x1 - x0).toBeLessThan(1.6);
+    expect(Math.abs(x0 + x1)).toBeLessThan(0.1);
+    // 甲羅は背の側が高く盛り上がり、腹の側は低い
+    expect(y1).toBeGreaterThan(0.15);
+    expect(y1).toBeGreaterThan(-y0 * 2);
+    // 頭が前（+Z）。以前の Blender のウミガメと同じく、頭の先は z = 0.77 くらい
+    expect(z1).toBeGreaterThan(0.7);
+    expect(z0).toBeLessThan(-0.8);
+    let up = 0, down = 0;
+    for (let i = 1; i < nor.length; i += 3) { if (nor[i] > 0.7) up++; if (nor[i] < -0.7) down++; }
+    expect(up).toBeGreaterThan(nor.length / 3 * 0.25);
+    expect(down).toBeGreaterThan(nor.length / 3 * 0.25);
+  });
+
+  it("模様の左半分が背、右半分が腹（背の面は左、腹の面は右の UV を使う）", () => {
+    const uv = g.floats(g.acc("TEXCOORD_0"), 2);
+    let topLeft = 0, topTotal = 0, bellyRight = 0, bellyTotal = 0;
+    for (let v = 0; v < nor.length / 3; v++) {
+      if (nor[v * 3 + 1] > 0.7) { topTotal++; if (uv[v * 2] <= 0.5) topLeft++; }
+      if (nor[v * 3 + 1] < -0.7) { bellyTotal++; if (uv[v * 2] >= 0.5) bellyRight++; }
+    }
+    expect(topLeft / topTotal).toBeGreaterThan(0.99);
+    expect(bellyRight / bellyTotal).toBeGreaterThan(0.99);
+  });
+
+  it("出どころの説明に、このファイルと作り方が書いてある", () => {
+    const readme = readFileSync(new URL("README.md", ASSETS), "utf8");
+    expect(readme).toContain("ocean-seaturtle.glb");
+    expect(readme).toContain("make_turtle.py");
+  });
+});
+
 describe("写真の魚（全体）", () => {
   it("長さの測れない形は断る（黙って無限大の大きさにしない）", () => {
     expect(() => orientPhotoFish(new Float32Array([0, 0, 0, 0, 1, 0]), null, 1)).toThrow();
@@ -178,6 +232,7 @@ describe("写真の魚（全体）", () => {
     expect(at("anglerfish")).toEqual(DEPTH_STAGES.filter(s => abundance("angler", s.depth) >= 0.5).map(s => s.id));
     expect(at("wrasse")).toEqual(DEPTH_STAGES.filter(s => abundance("wrasse", s.depth) >= 0.5).map(s => s.id));
     expect(at("eagleray")).toEqual(DEPTH_STAGES.filter(s => abundance("ray", s.depth) >= 0.5).map(s => s.id));
+    expect(at("seaturtle")).toEqual(DEPTH_STAGES.filter(s => abundance("turtle", s.depth) >= 0.5).map(s => s.id));
     // どの段でも、その段で見える魚の形は取りに行く
     for (const s of DEPTH_STAGES) {
       const ids = photoFishAt(s.depth);

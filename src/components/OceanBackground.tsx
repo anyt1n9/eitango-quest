@@ -12,10 +12,13 @@ import wrasseUrl from "../ocean/assets/ocean-wrasse.glb?url";
 import anglerfishUrl from "../ocean/assets/ocean-anglerfish.glb?url";
 // エイ（マダラトビエイ）。上と下から見た写真から作った（scripts/fishgen/make_ray.py）
 import eaglerayUrl from "../ocean/assets/ocean-eagleray.glb?url";
+// ウミガメ（アオウミガメ）。上と下から見た写真から作った（scripts/fishgen/make_turtle.py）
+import seaturtleUrl from "../ocean/assets/ocean-seaturtle.glb?url";
 
 const FISH_URLS = {
   anchovy: anchovyUrl, lanternfish: lanternfishUrl, butterflyfish: butterflyfishUrl,
   damselfish: damselfishUrl, wrasse: wrasseUrl, anglerfish: anglerfishUrl, eagleray: eaglerayUrl,
+  seaturtle: seaturtleUrl,
 };
 
 /**
