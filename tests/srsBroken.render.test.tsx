@@ -72,3 +72,58 @@ describe("壊れた quest_vocab_custom（追加した単語）", () => {
     window.history.pushState({}, "", "/");
   });
 });
+
+/**
+ * ランキング（quest_ranking_score）に null の要素があるとき（#151）。
+ * 読み込みは配列であることしか見ていなかったので、日付が変わった起動でライバルの成長が `null.isMe` で投げ、
+ * 成長した日付を残す前に落ちるため、読み直しても同じ所で落ち続けてアプリに入れなかった。
+ */
+describe("壊れた quest_ranking_score（ランキング）", () => {
+  it("null が混ざっていても、日付が変わった起動で落ちない", async () => {
+    localStorage.setItem("quest_ranking_score", JSON.stringify([
+      null,
+      { id: "rival", name: "ライバル", score: 500, avatar: "R" },
+      { id: "me", name: "あなた", score: 100, avatar: "M", isMe: true },
+      { id: "broken", name: "壊れた", score: "many" }
+    ]));
+    localStorage.setItem("quest_rival_growth_date", "2020-01-01");
+    window.history.pushState({}, "", "/records");
+    const { default: App } = await import("../src/App");
+    render(<App />);
+
+    await waitFor(() => expect(document.getElementById("vocabulary_loading_screen")).toBeNull());
+    expect(await screen.findByText("ライバル", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByText("画面の表示中に問題が発生しました")).toBeNull();
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem("quest_ranking_score") || "[]").map((u: { id: string }) => u.id).sort())
+        .toEqual(["me", "rival"])
+    );
+    window.history.pushState({}, "", "/");
+  });
+});
+
+/**
+ * 学習ログ（quest_daily_log）に null の日があるとき（#152）。
+ * 「記録」の学習カレンダーが描くときに `v.count` で投げ、「記録」は URL を持つので読み直しても同じ画面で落ち続けた。
+ */
+describe("壊れた quest_daily_log（学習ログ）", () => {
+  it("null や数でない日が混ざっていても「記録」を開け、正しい日は残す", async () => {
+    localStorage.setItem("quest_daily_log", JSON.stringify({
+      "2026-11-01": null,
+      "2026-11-02": { count: "x", correct: 1 },
+      "2026-11-03": { count: 5, correct: 4 }
+    }));
+    window.history.pushState({}, "", "/records");
+    const { default: App } = await import("../src/App");
+    render(<App />);
+
+    await waitFor(() => expect(document.getElementById("vocabulary_loading_screen")).toBeNull());
+    expect(await screen.findByText(/学習カレンダー|学習の記録/, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(document.getElementById("records_page")).toBeInTheDocument();
+    expect(screen.queryByText("画面の表示中に問題が発生しました")).toBeNull();
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem("quest_daily_log") || "{}")).toEqual({ "2026-11-03": { count: 5, correct: 4 } })
+    );
+    window.history.pushState({}, "", "/");
+  });
+});

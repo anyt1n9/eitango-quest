@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MapAndPuzzle from "../src/components/MapAndPuzzle";
 import { makeStats } from "./fixtures";
@@ -253,6 +253,47 @@ describe("初回正解ボーナス", () => {
 
     expect(updateRankingScore, "同じ語で2回もらえてしまう").toHaveBeenCalledTimes(1);
     expect(setStats).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * 答え合わせの二度押し（#153）。答え合わせのボタンが隠れるのは再描画のあとなので、
+   * ダブルタップでは答え合わせが2回走り、どちらも初回の正解と判定して +100P が2回入っていた。
+   */
+  it("答え合わせを二度押ししても、ボーナスは1回だけ", async () => {
+    mockFetch(OK_RESPONSE);
+    const { updateRankingScore, setStats } = renderMap();
+    await search("construct");
+    const user = userEvent.setup();
+    await screen.findByText("structure");
+    for (const word of ["construction", "constructive"]) {
+      await user.click(screen.getByRole("button", { name: word }));
+    }
+    const btn = document.getElementById("btn_submit_puzzle_answers")!;
+    // 再描画を挟まずに2回押す（fireEvent を並べると2回目はボタンが消えていて再現にならない）
+    act(() => {
+      btn.click();
+      btn.click();
+    });
+    expect(updateRankingScore).toHaveBeenCalledTimes(1);
+    expect(setStats).toHaveBeenCalledTimes(1);
+  });
+
+  it("間違えて「やり直す」を押したあとは、また答え合わせできる（二度押しの印を消している）", async () => {
+    mockFetch(OK_RESPONSE);
+    const { updateRankingScore } = renderMap();
+    await search("construct");
+    const user = userEvent.setup();
+    await screen.findByText("structure");
+    // 逆の順に入れて間違える
+    for (const word of ["constructive", "construction"]) {
+      await user.click(screen.getByRole("button", { name: word }));
+    }
+    await user.click(document.getElementById("btn_submit_puzzle_answers")!);
+    expect(updateRankingScore).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /やり直す/ }));
+    await solveCorrectly();
+    expect(updateRankingScore).toHaveBeenCalledTimes(1);
   });
 
   it("覚えているのは語ごと（別の語なら受け取れる）", async () => {

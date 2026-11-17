@@ -16,7 +16,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Level, Word, UserStats, RankingUser } from "../types";
-import { parseCSV, decodeCsvBytes, buildDistractors, normalizeImportedWord, appendNewWords } from "../importWords";
+import { parseCSV, decodeCsvBytes, buildDistractors, normalizeImportedWord, appendNewWords, isCsvHeaderRow } from "../importWords";
 import { isOffensiveText, isOffensiveWord, OFFENSIVE_WORD_MESSAGE } from "../offensiveTerms";
 import { playChime } from "../sound";
 import { shuffle } from "../shuffle";
@@ -157,14 +157,9 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
           throw new Error("有効なデータが見つかりませんでした。");
         }
 
-        let startIndex = 0;
-        const firstRow = rows[0];
-        const isHeader = firstRow.some(cell => 
-          /^(word|translation|level|sentence|english|japanese|単語|訳|意味|レベル|例文|日本語訳)$/i.test(cell)
-        );
-        if (isHeader) {
-          startIndex = 1;
-        }
+        // 1列目と2列目がどちらも列の名前のときだけ見出しとして読み飛ばす（src/importWords.ts の isCsvHeaderRow）
+        const isHeader = isCsvHeaderRow(rows[0]);
+        const startIndex = isHeader ? 1 : 0;
 
         const newWords: Word[] = [];
         let duplicateCount = 0;
@@ -262,6 +257,8 @@ export default function WordImport({ vocabulary, setVocabulary, setStats, setRan
         setCsvSuccess(
           `インポート成功！🎉 ${newWords.length}件の単語を新しく登録しました！ (重複スキップ: ${duplicateCount}件, 獲得スコア: +${scoreBonus})`
           + (blockedCount > 0 ? `\n不適切な表現を含むため ${blockedCount}件を除外しました。` : "")
+          // 読み飛ばしたことを書いておく（見出しのつもりでない1行目だったとき、1語欠けたことに気づけるように）
+          + (isHeader ? `\n1行目（${rows[0].slice(0, 2).join(", ")}）は見出しとして読み飛ばしました。` : "")
         );
       } catch (err: any) {
         console.error(err);

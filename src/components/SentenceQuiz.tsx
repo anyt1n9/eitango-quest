@@ -119,6 +119,12 @@ export default function SentenceQuiz({
   // コンポーネント破棄時のクリーンアップ
   useEffect(() => clearTimer, []);
 
+  // 単語帳は ref で読み、出題を作り直す依存に入れない。単語の取り込み（PDF・AI）は画面を離れても続き、
+  // 終わると単語帳が増えるので、依存に入れていると解いている途中で問題が丸ごと引き直され、
+  // 点数と結果一覧に入れ替わる前後の問題が混ざった（#154）
+  const vocabularyRef: { current: Word[] } = useRef(vocabulary);
+  vocabularyRef.current = vocabulary;
+
   // 出題プールからランダムに問題をピックアップし、各問題の4択選択肢をシャッフル
   const prepareQuestions = () => {
     // customWords が渡された場合（復習）はそれを出題プールにする。
@@ -128,7 +134,7 @@ export default function SentenceQuiz({
     // 落とさないと、穴だけがあって選ぶものが無い設問が出る
     const levelWords = (customWords && customWords.length > 0)
       ? customWords
-      : vocabulary.filter(w => w.level === level && canFillSentence(w));
+      : vocabularyRef.current.filter(w => w.level === level && canFillSentence(w));
     // 復習期日を過ぎた語・まだ解いていない語を優先して選ぶ
     // （復習セッションは既に対象が絞られているのでそのまま使う）
     const picked = (customWords && customWords.length > 0)
@@ -149,7 +155,7 @@ export default function SentenceQuiz({
 
   useEffect(() => {
     setQuestions(prepareQuestions());
-  }, [level, vocabulary, questionCount, customWordsKey]);
+  }, [level, questionCount, customWordsKey]);
 
   // リザルト画面から同じ設定でもう一度挑戦する（新しい出題セットを再抽選）
   const handleRetry = () => {

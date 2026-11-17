@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import AIDiary from "../src/components/AIDiary";
 import { makeWord } from "./fixtures";
 import { Word } from "../src/types";
+import { __resetNoticesForTest, getNotices } from "../src/notice";
 
 /**
  * AI英語日記。
@@ -253,5 +254,82 @@ describe("生成の連打", () => {
     });
     const saved = JSON.parse(localStorage.getItem("quest_diary_history") || "[]");
     expect(saved).toHaveLength(1);
+  });
+});
+
+/**
+ * 本文の中の使った単語の強調（#148）。
+ * サーバーは本文に活用形を使い、usedWords は原形で返すので、強調は語尾まで含めて1語として扱う。
+ * 語幹だけをキャプチャしていたときは split が語尾を捨て、本文が「walked → walk」「action → act」と欠けて出ていた。
+ */
+describe("本文の強調（使った単語）", () => {
+  const RESPONSE = {
+    title: "A Walk",
+    diaryText: "She walked in and took action. Interesting!",
+    diaryTranslation: "",
+    usedWords: ["walk", "act", "in"]
+  };
+
+  it("活用形の語尾を落とさず、本文をそのまま出す", async () => {
+    mockFetch(RESPONSE);
+    renderDiary();
+    await generate();
+    await screen.findAllByText(/A Walk/);
+    expect(document.getElementById("diary_book_content")!.textContent).toContain(
+      "She walked in and took action. Interesting!"
+    );
+  });
+
+  it("強調するのは一致した語（語尾まで）だけ", async () => {
+    mockFetch(RESPONSE);
+    renderDiary();
+    await generate();
+    await screen.findAllByText(/A Walk/);
+    const marked = [...document.querySelectorAll('#diary_book_content span[title^="習得済み単語"]')].map(e => e.textContent);
+    expect(marked).toEqual(["walked", "in", "action", "Interesting"]);
+  });
+});
+
+/**
+ * 生成を待っているあいだに画面を離れたとき（#149）。
+ * 画面が外れると state の更新も保存の効果も走らないので、保存を効果に任せていたときは、
+ * できた日記が黙って失われ、AIの呼び出しの予算だけが減っていた。
+ */
+describe("生成を待っているあいだに画面を離れたとき", () => {
+  it("できた日記は保存され、知らせが出る", async () => {
+    __resetNoticesForTest();
+    let resolve!: (v: unknown) => void;
+    globalThis.fetch = vi.fn().mockReturnValue(new Promise(r => { resolve = r; })) as unknown as typeof fetch;
+    const { unmount } = render(
+      <AIDiary vocabulary={WORDS} solvedHistory={MASTERED} srsData={{}} setSolvedHistory={vi.fn()} onBackToDashboard={vi.fn()} />
+    );
+    act(() => { document.getElementById("generator_diary_btn")!.click(); });
+    unmount();
+    await act(async () => { resolve({ ok: true, json: async () => OK_RESPONSE }); });
+
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem("quest_diary_history") || "[]");
+      expect(saved.map((e: { title: string }) => e.title)).toEqual(["A Quiet Morning"]);
+    });
+    expect(JSON.parse(localStorage.getItem("quest_current_diary_cache") || "null")?.title).toBe("A Quiet Morning");
+    expect(getNotices().map(n => n.message).join("\n")).toMatch(/A Quiet Morning.*できあがりました/);
+  });
+
+  it("前からの履歴は残したまま足す", async () => {
+    const old = { ...OK_RESPONSE, id: "diary_old", date: "2026年11月1日", title: "Old Day" };
+    localStorage.setItem("quest_diary_history", JSON.stringify([old]));
+    let resolve!: (v: unknown) => void;
+    globalThis.fetch = vi.fn().mockReturnValue(new Promise(r => { resolve = r; })) as unknown as typeof fetch;
+    const { unmount } = render(
+      <AIDiary vocabulary={WORDS} solvedHistory={MASTERED} srsData={{}} setSolvedHistory={vi.fn()} onBackToDashboard={vi.fn()} />
+    );
+    act(() => { document.getElementById("generator_diary_btn")!.click(); });
+    unmount();
+    await act(async () => { resolve({ ok: true, json: async () => OK_RESPONSE }); });
+
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem("quest_diary_history") || "[]");
+      expect(saved.map((e: { title: string }) => e.title)).toEqual(["A Quiet Morning", "Old Day"]);
+    });
   });
 });

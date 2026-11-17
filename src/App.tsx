@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { Level, Word, UserStats, RankingUser } from "./types";
 import { splitStoredWords } from "./storedWords";
+import { DailyLog, sanitizeDailyLog, sanitizeRanking } from "./storedRecords";
 import { loadVocabulary } from "./vocabulary";
 import Dashboard from "./components/Dashboard";
 import Quiz from "./components/Quiz";
@@ -224,9 +225,11 @@ export default function App() {
   );
 
   const [ranking, setRanking] = useState<RankingUser[]>(() => {
-    const saved = readStoredArray<RankingUser>("quest_ranking_score");
+    // 形の合わない要素（null など）は捨てる。そのまま使うと、日付が変わった起動のライバルの成長で
+    // 投げ、読み直しても同じ所で落ち続けた（#151。src/storedRecords.ts）
+    const saved = sanitizeRanking(readStoredArray<unknown>("quest_ranking_score"));
     // localStorageに残されたデータがMeを含まない or 古い場合はマージ
-    if (saved.some(u => u && u.isMe)) {
+    if (saved.some(u => u.isMe)) {
       return saved;
     }
     // 初期値に自分のスコアをマッピング
@@ -343,8 +346,9 @@ export default function App() {
   });
 
   // 学習カレンダー用の日別解答ログ（日付 -> 解答数・正解数）
-  const [dailyLog, setDailyLog] = useState<Record<string, { count: number; correct: number }>>(() =>
-    readStoredObject<Record<string, { count: number; correct: number }>>("quest_daily_log", {})
+  // 形の合わない日（値が null など）は捨てる。そのまま使うと「記録」の学習カレンダーが描くときに投げた（#152）
+  const [dailyLog, setDailyLog] = useState<DailyLog>(() =>
+    sanitizeDailyLog(readStoredObject<Record<string, unknown>>("quest_daily_log", {}))
   );
 
   useEffect(() => {
@@ -1367,7 +1371,8 @@ export default function App() {
             setWrongWords={setWrongWords}
             onOpenGrammar={openGrammarTopic}
             initialPassageId={openPassageId}
-            onOpenPassageChange={id => replaceParam("reading", id)}
+            // 閉じたこと・開き替えたことは App の state にも持つ（URL だけを直すと、指定が古いIDのまま残る。#155）
+            onOpenPassageChange={id => { setOpenPassageId(id); replaceParam("reading", id); }}
           />
         )}
 

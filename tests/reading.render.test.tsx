@@ -316,3 +316,80 @@ describe("AI長文の生成の連打", () => {
     expect(saved).toHaveLength(1);
   });
 });
+
+/** AI長文を1本返す応答（下の2つの describe で使う） */
+const GENERATED_PASSAGE = {
+  id: "aip_y1",
+  level: "junior",
+  title: "The Quiet Pond",
+  englishParagraphs: ["The pond was quiet.", "A frog jumped in."],
+  japaneseParagraphs: ["池は静かだった。", "カエルが飛び込んだ。"],
+  vocabularyHighlight: [{ word: "pond", translation: "池" }],
+  description: "静かな池の話",
+  pointReward: 100,
+  questions: [{ question: "池はどうでしたか。", options: ["静かだった", "うるさかった"], correctIndex: 0 }]
+};
+
+/**
+ * 生成を待っているあいだに画面を離れたとき（#149）。
+ * 画面が外れると state の更新も保存の効果も走らないので、保存を効果に任せていたときは
+ * できた長文が黙って失われていた。
+ */
+describe("AI長文の生成を待っているあいだに画面を離れたとき", () => {
+  beforeEach(() => { localStorage.clear(); __resetNoticesForTest(); });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("できた長文は保存され、次に開いたとき一覧にある", async () => {
+    let resolve!: (v: unknown) => void;
+    globalThis.fetch = vi.fn().mockReturnValue(new Promise(r => { resolve = r; })) as unknown as typeof fetch;
+    const { unmount } = render(
+      <Reading stats={makeStats()} setStats={vi.fn()} onBackToDashboard={vi.fn()} updateRankingScore={vi.fn()}
+        vocabulary={VOCAB} wrongWords={[]} setWrongWords={vi.fn()} />
+    );
+    act(() => { document.getElementById("btn_generate_passage")!.click(); });
+    unmount();
+    await act(async () => { resolve({ ok: true, json: async () => ({ ...GENERATED_PASSAGE }) }); });
+
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem("quest_custom_passages") || "[]");
+      expect(saved.map((p: { title: string }) => p.title)).toEqual(["The Quiet Pond"]);
+    });
+    expect(getNotices().map(n => n.message).join("\n")).toContain("The Quiet Pond");
+
+    renderReading();
+    expect(screen.getByText("The Quiet Pond")).toBeInTheDocument();
+  });
+});
+
+/**
+ * URL で開いた長文を閉じたあと（#155）。
+ * 開く効果が AI長文の一覧（customPassages）にも反応していたので、閉じたあとに AI長文を生成すると、
+ * URL で指定されていた長文が勝手に開き直された（閉じても指定が古いIDのまま残っていた）。
+ */
+describe("URL で開いた長文を閉じたあと", () => {
+  beforeEach(() => { localStorage.clear(); __resetNoticesForTest(); });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("AI長文を生成しても、閉じた長文を開き直さない", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...GENERATED_PASSAGE }) }) as unknown as typeof fetch;
+    const user = userEvent.setup();
+    renderReading({ initialPassageId: passages[0].id });
+    expect(document.getElementById("passage_detail_screen")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /長文一覧へ/ }));
+    expect(document.getElementById("passage_detail_screen")).toBeNull();
+
+    await user.click(document.getElementById("btn_generate_passage")!);
+    await waitFor(() => expect(getNotices().map(n => n.message).join("\n")).toContain("The Quiet Pond"));
+    expect(document.getElementById("passage_detail_screen")).toBeNull();
+  });
+
+  it("開いた長文を伝え、閉じたら null を伝える（App が指定を古いまま持たないように）", async () => {
+    const user = userEvent.setup();
+    const onOpenPassageChange = vi.fn();
+    renderReading({ initialPassageId: passages[0].id, onOpenPassageChange });
+    await waitFor(() => expect(onOpenPassageChange).toHaveBeenLastCalledWith(passages[0].id));
+    await user.click(screen.getByRole("button", { name: /長文一覧へ/ }));
+    expect(onOpenPassageChange).toHaveBeenLastCalledWith(null);
+  });
+});

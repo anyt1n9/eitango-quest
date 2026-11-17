@@ -96,11 +96,17 @@ export default function SpellingQuiz({
   const [isFinished, setIsFinished] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // 単語帳は ref で読み、出題を作り直す依存に入れない。単語の取り込み（PDF・AI）は画面を離れても続き、
+  // 終わると単語帳が増えるので、依存に入れていると解いている途中で問題が丸ごと引き直され、
+  // 点数と結果一覧に入れ替わる前後の問題が混ざった（#154）
+  const vocabularyRef: { current: Word[] } = useRef(vocabulary);
+  vocabularyRef.current = vocabulary;
+
   // 綴りを問うので、記号や数字の多い見出し（イディオム・文法パターン）は除く。
   // customWords が渡された場合（復習）はそれを出題プールにする
   const prepareQuestions = () => {
     const review = customWords && customWords.length > 0;
-    const pool = (review ? customWords! : vocabulary.filter(w => w.level === level)).filter(canSpell);
+    const pool = (review ? customWords! : vocabularyRef.current.filter(w => w.level === level)).filter(canSpell);
     // 復習セッションは既に対象が絞られているので、優先度づけをせずそのまま使う
     return review
       ? shuffle(pool).slice(0, Math.min(questionCount, pool.length))
@@ -113,7 +119,7 @@ export default function SpellingQuiz({
 
   useEffect(() => {
     setQuestions(prepareQuestions());
-  }, [level, vocabulary, questionCount, customWordsKey]);
+  }, [level, questionCount, customWordsKey]);
 
   const currentQuestion = questions[currentIndex];
 

@@ -80,16 +80,16 @@ export default function Reading({
   const allPassages = [...passages, ...customPassages];
 
   // URLで指定された長文を開く（再読み込みや共有されたリンクから入ってきたとき）。
-  // 見つからないIDは黙って一覧のままにする
+  // 見つからないIDは黙って一覧のままにする。
+  // 開くのは指定そのものが変わったときだけ。AI長文は最初の描画で読み込み済みなので、customPassages を
+  // 依存に入れて追いかける必要は無い。入れていたときは、URLで開いた長文を閉じたあとに AI長文を生成・削除すると、
+  // 閉じたはずの長文が開き直された（#155。閉じても指定が古いIDのまま残っていたため）
   useEffect(() => {
-    if (!initialPassageId) {
-      if (initialPassageId === null && selectedPassage === null) return;
-      return;
-    }
+    if (!initialPassageId) return;
     if (selectedPassage?.id === initialPassageId) return;
     const found = allPassages.find(p => p.id === initialPassageId);
     if (found) setSelectedPassage(found);
-  }, [initialPassageId, customPassages]);
+  }, [initialPassageId]);
 
   // 開いている長文をURLに反映する
   useEffect(() => {
@@ -226,6 +226,12 @@ export default function Reading({
         throw new Error("AIの応答を解釈できませんでした。もう一度お試しください。");
       }
 
+      // 保存は state の効果に任せず、受け取ったここで行う。待っているあいだに画面を離れると、
+      // この画面は外れていて state の更新も保存の効果も走らず、できた長文が黙って失われた（#149）
+      writeStored("quest_custom_passages", [
+        ...sanitizePassages(readStoredArray<unknown>("quest_custom_passages")),
+        passage
+      ]);
       setCustomPassages(prev => [...prev, passage]);
       notify(`AIが新しい長文『${passage.title}』を書きました。一覧から開いて読めます。`, "success");
     } catch (err: any) {

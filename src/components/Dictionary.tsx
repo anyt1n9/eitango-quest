@@ -321,10 +321,13 @@ export default function Dictionary({
   // 6. ページ分割されたデータ取得
   const totalItems = processedVocabulary.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  // 表示するページは範囲に収める。苦手の出し入れで最後のページの語が無くなると一覧だけが縮み、
+  // 「2 / 1」の空のページに取り残され、ページ送りも出ないので戻れなかった（#150）
+  const page = Math.min(currentPage, totalPages);
   const paginatedVocabulary = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
+    const start = (page - 1) * pageSize;
     return processedVocabulary.slice(start, start + pageSize);
-  }, [processedVocabulary, currentPage, pageSize]);
+  }, [processedVocabulary, page, pageSize]);
 
   // 各種のバッジ表示用の文言とクラス関数
   const getLevelBadgeProps = (level: Level, isCustom: boolean) => {
@@ -537,7 +540,7 @@ export default function Dictionary({
           {searchQuery && `（「${searchQuery}」）`}
         </div>
         <div>
-          ページ：{currentPage} / {totalPages}
+          ページ：{page} / {totalPages}
         </div>
       </div>
 
@@ -929,34 +932,34 @@ export default function Dictionary({
       {totalPages > 1 && (
         <div className="glass-panel flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-gray-200 rounded-2xl p-4 tabular-nums text-sm text-gray-600">
           <div>
-            表示中：<span className="font-bold text-gray-800">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-bold text-gray-800">{Math.min(currentPage * pageSize, totalItems)}</span> 件目 / 全 <span className="font-bold text-indigo-600">{totalItems}</span> 件
+            表示中：<span className="font-bold text-gray-800">{(page - 1) * pageSize + 1}</span> - <span className="font-bold text-gray-800">{Math.min(page * pageSize, totalItems)}</span> 件目 / 全 <span className="font-bold text-indigo-600">{totalItems}</span> 件
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             <button
               onClick={() => goToPage(1)}
-              disabled={currentPage === 1}
+              disabled={page === 1}
               className="min-w-11 min-h-11 px-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               &lt;&lt;
             </button>
             <button
-              onClick={() => goToPage(Math.max(currentPage - 1, 1))}
-              disabled={currentPage === 1}
+              onClick={() => goToPage(Math.max(page - 1, 1))}
+              disabled={page === 1}
               className="min-h-11 px-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               前へ
             </button>
 
             {/* 周辺ページ番号を表示（いまのページを中心に最大5ページ。src/pagination.ts） */}
-            {pageWindow(currentPage, totalPages).map(pageNum => {
+            {pageWindow(page, totalPages).map(pageNum => {
               return (
                 <button
                   key={pageNum}
                   onClick={() => goToPage(pageNum)}
-                  aria-current={currentPage === pageNum ? "page" : undefined}
+                  aria-current={page === pageNum ? "page" : undefined}
                   className={`min-w-11 min-h-11 rounded-xl border transition cursor-pointer ${
-                    currentPage === pageNum
+                    page === pageNum
                       ? "bg-indigo-50 border-indigo-600 text-indigo-800 font-bold"
                       : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700 font-medium"
                   }`}
@@ -967,15 +970,15 @@ export default function Dictionary({
             })}
 
             <button
-              onClick={() => goToPage(Math.min(currentPage + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              onClick={() => goToPage(Math.min(page + 1, totalPages))}
+              disabled={page === totalPages}
               className="min-h-11 px-3 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               次へ
             </button>
             <button
               onClick={() => goToPage(totalPages)}
-              disabled={currentPage === totalPages}
+              disabled={page === totalPages}
               className="min-w-11 min-h-11 px-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-40 font-medium cursor-pointer transition"
             >
               &gt;&gt;
