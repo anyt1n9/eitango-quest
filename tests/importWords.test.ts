@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCSV, decodeCsvBytes, CSV_ENCODING_ERROR, buildDistractors, normalizeImportedWord, appendNewWords } from "../src/importWords";
+import { parseCSV, decodeCsvBytes, CSV_ENCODING_ERROR, buildDistractors, normalizeImportedWord, appendNewWords, isCsvHeaderRow } from "../src/importWords";
 import { makeWord } from "./fixtures";
 import { Word } from "../src/types";
 
@@ -292,5 +292,24 @@ describe("取り込んだ語を単語帳に足す（appendNewWords）", () => {
   it("足す語が無ければ同じ配列を返す（無駄な再描画を起こさない）", () => {
     const prev = [makeWord({ id: "a", word: "assess" })];
     expect(appendNewWords(prev, [makeWord({ id: "b", word: "assess" })])).toBe(prev);
+  });
+});
+
+describe("isCsvHeaderRow（CSV の見出し行。#156）", () => {
+  it("1列目が英単語の列の名前で、2列目が訳の列の名前なら見出し", () => {
+    for (const row of [["word", "translation"], ["Word", "Meaning", "level"], ["english", "japanese"], ["単語", "意味"], ["英単語", "日本語訳"], [" word ", " 訳 "]]) {
+      expect(isCsvHeaderRow(row), row.join(",")).toBe(true);
+    }
+  });
+
+  it("どちらかの列だけが列の名前と同じ普通の単語は、見出しにしない", () => {
+    for (const row of [["level", "レベル"], ["meaning", "意味"], ["translation", "訳"], ["sentence", "文"], ["english", "英語"], ["word", "単語"], ["library", "図書館"]]) {
+      expect(isCsvHeaderRow(row), row.join(",")).toBe(false);
+    }
+  });
+
+  it("列が足りなければ見出しにしない", () => {
+    expect(isCsvHeaderRow(["word"])).toBe(false);
+    expect(isCsvHeaderRow([])).toBe(false);
   });
 });

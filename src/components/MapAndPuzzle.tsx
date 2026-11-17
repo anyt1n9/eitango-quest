@@ -126,6 +126,12 @@ export default function MapAndPuzzle({
   // パズル用インタラクティブ状態
   const [userSelections, setUserSelections] = useState<Record<number, string>>({}); // index -> word
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+  /**
+   * 答え合わせを済ませた印（同期的に見る）。isAnswerChecked（＝ボタンを隠す）が効くのは再描画のあとなので、
+   * ダブルタップでは checkAnswer が2回走り、どちらも初回の正解と判定して +100P が2回入っていた（#153）。
+   * isAnswerChecked を戻すのと同じ所で消す
+   */
+  const checkedRef = useRef(false);
   const [isDoneAlready, setIsDoneAlready] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -169,6 +175,7 @@ export default function MapAndPuzzle({
     setData(null);
     setUserSelections({});
     setIsAnswerChecked(false);
+    checkedRef.current = false;
     setIsDoneAlready(false);
     setShowExplanation(false);
 
@@ -268,7 +275,7 @@ export default function MapAndPuzzle({
   };
 
   const checkAnswer = () => {
-    if (!data) return;
+    if (!data || checkedRef.current) return;
     
     // 全空欄が埋まっているかチェック
     const maskedIndices = data.puzzle
@@ -306,6 +313,7 @@ export default function MapAndPuzzle({
       }
     });
 
+    checkedRef.current = true;
     setIsAnswerChecked(true);
 
     if (totalCorrect) {
@@ -339,6 +347,7 @@ export default function MapAndPuzzle({
   const resetPuzzle = () => {
     setUserSelections({});
     setIsAnswerChecked(false);
+    checkedRef.current = false;
     playSound("click");
   };
 

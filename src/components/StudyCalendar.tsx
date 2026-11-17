@@ -65,7 +65,7 @@ export default function StudyCalendar({ dailyLog, dailyGoal }: StudyCalendarProp
   // 集計サマリー
   const todayKey = todayStr(today);
   const entries = Object.entries(dailyLog);
-  const activeDays = entries.filter(([, v]) => v.count > 0).length;
+  const activeDays = entries.filter(([, v]) => (v?.count ?? 0) > 0).length;
 
   // 連続学習日数（今日または昨日を起点に途切れるまで遡る）
   let streak = 0;

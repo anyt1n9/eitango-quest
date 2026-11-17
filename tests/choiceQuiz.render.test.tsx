@@ -247,3 +247,38 @@ describe("語義分別クイズ", () => {
     expect(props.recordAnswer).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * 出題中に単語帳が増えたとき（#154）。単語の取り込み（PDF・AI）は画面を離れても続き、終わると単語帳が増える。
+ * 出題を作る処理が単語帳を依存に持っていたので、解いている途中で round が進んで枠ごと作り直され、
+ * それまでの解答が消えて1問目に戻っていた。
+ */
+describe("出題中に単語帳が増えたとき", () => {
+  const GROWN = [...VOCAB, W("imported", "imported", "取り込んだ語")];
+
+  it("類義語クイズ：解答の途中で作り直さない", async () => {
+    const props = common();
+    const { rerender } = render(<SynonymQuiz {...props} />);
+    await screen.findByText(/この語と同じ意味の語はどれ/);
+    const word = document.getElementById("synonym_prompt_word")!.textContent;
+    act(() => { optionButton("red").click(); });
+    expect(screen.getByRole("status")).toHaveTextContent("不正解です");
+
+    rerender(<SynonymQuiz {...props} vocabulary={GROWN} />);
+    await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    expect(screen.getByRole("status")).toHaveTextContent("不正解です");
+    expect(document.getElementById("synonym_prompt_word")!.textContent).toBe(word);
+  });
+
+  it("語義分別クイズ：解答の途中で作り直さない", async () => {
+    const props = common();
+    const { rerender } = render(<SenseQuiz {...props} recordPractice={vi.fn()} />);
+    await screen.findByText(/の意味はどれ/);
+    act(() => { optionButton("予約する").click(); });
+    expect(screen.getByRole("status")).toHaveTextContent("不正解です");
+
+    rerender(<SenseQuiz {...props} vocabulary={GROWN} recordPractice={vi.fn()} />);
+    await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    expect(screen.getByRole("status")).toHaveTextContent("不正解です");
+  });
+});

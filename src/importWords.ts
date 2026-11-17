@@ -21,6 +21,23 @@ const VALID_POS = ["verb", "noun", "adjective", "adverb", "other"];
 const FALLBACK_SENTENCE = "I want to study [_____] today.";
 const FALLBACK_SENTENCE_JA = "私は今日、[_____]を勉強したいです。";
 
+/** 見出し行の1列目（英単語の列の名前） */
+const WORD_HEADER = /^(word|words|english|english word|単語|英単語)$/i;
+/** 見出し行の2列目（訳の列の名前） */
+const TRANSLATION_HEADER = /^(translation|meaning|japanese|訳|和訳|意味|日本語|日本語訳)$/i;
+
+/**
+ * CSV の1行目が見出し（`word,translation` など）かどうか。
+ *
+ * 1列目が英単語の列の名前で、**かつ** 2列目が訳の列の名前のときだけ見出しとする。
+ * どれか1つのセルが見出しの名前と一致すれば見出しとしていたときは、見出しの無い CSV の1行目が
+ * `level,レベル`・`meaning,意味` のような普通の単語だと、その1語が黙って取り込まれなかった（#156）。
+ * データの行は1列目が英語・2列目が訳なので、両方が列の名前になる組は本物の見出しに限られる。
+ */
+export function isCsvHeaderRow(row: string[]): boolean {
+  return WORD_HEADER.test((row[0] ?? "").trim()) && TRANSLATION_HEADER.test((row[1] ?? "").trim());
+}
+
 /**
  * CSV を行と列に分ける。
  * 引用符の中の改行とカンマ、二重引用符のエスケープに対応する。

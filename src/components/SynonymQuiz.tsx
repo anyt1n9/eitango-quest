@@ -65,6 +65,10 @@ export default function SynonymQuiz({
   historyRef.current = solvedHistory;
   const srsRef = useRef(srsData);
   srsRef.current = srsData;
+  // 単語帳も ref で読む。依存に入れていると、単語の取り込みが出題中に終わったとき
+  // round が進んで枠ごと作り直され、それまでの解答が消えて1問目に戻った（#154）
+  const vocabularyRef: { current: Word[] } = useRef(vocabulary);
+  vocabularyRef.current = vocabulary;
 
   const prepare = useCallback(() => {
     setQuestions(null);
@@ -73,12 +77,12 @@ export default function SynonymQuiz({
         setError(null);
         setRound(r => r + 1);
         setQuestions(buildSynonymQuestions({
-          table, vocabulary, level, count: questionCount,
+          table, vocabulary: vocabularyRef.current, level, count: questionCount,
           solvedHistory: historyRef.current, srsData: srsRef.current
         }));
       })
       .catch(() => setError("類義語のデータを読み込めませんでした。通信の状態を確かめて、もう一度開いてください。"));
-  }, [level, vocabulary, questionCount]);
+  }, [level, questionCount]);
 
   useEffect(() => { prepare(); }, [prepare]);
 

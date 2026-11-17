@@ -276,6 +276,8 @@ Playwright 1.56 がブラウザを入れられずにすべての実行が落ち�
   そのままクイズに出題していた。
   **集計で作れるもの**（学習アドバイス・苦手分析）は 200 で返してよいが、
   出どころ（`source: "local"` など）を必ず明記する。
+  画面の側では、**AIが作ったもの（英語日記・AI長文）は受け取ったその場で保存する**（state の保存の効果に任せない）。
+  待っているあいだに画面を離れると画面が外れていて効果が走らず、できたものが黙って失われ、呼び出しの予算だけが減っていた（#149）。
 - **サーバーの手前の層のテスト** — `tests/serverMiddleware.test.ts`。
   **レート制限（`aiRateLimiter`）は本文の解析（`express.json`）より前に置く。**
   後ろに置いていたときは、制限を超えたクライアントでも parse-pdf に 15MB の JSON を
@@ -325,6 +327,9 @@ Playwright 1.56 がブラウザを入れられずにすべての実行が落ち�
   文穴埋めは例文の無い語を出せない）ので、出せる語だけに絞り、0語の形式は選べなくする。
   出題対象は配列の**中身**（IDの並び）で見ること。同一性で見ると、呼び出し側が毎レンダーで
   配列を作り直すだけで出題し直しになり、解答の途中で問題がすり替わる。
+  **単語帳（`vocabulary`）も出題を作り直す依存に入れない**（ref で読む）。単語の取り込み（PDF・AI）は画面を離れても続き、
+  終わると単語帳が増えるので、7形式とも解いている途中で問題が丸ごと引き直されていた（#154。
+  `tests/quizVocabularyGrowth.render.test.tsx` と `tests/choiceQuiz.render.test.tsx` の「出題中に単語帳が増えたとき」）。
 - **画面の描画テスト** — `tests/*.test.tsx`（`quiz.render` / `verbForms.render` /
   `wordSenses.render` / `wordUsage.render` / `reviewFormat.render`）。React Testing Library + jsdom で、学習者が実際に目にする部分を
   対象にする。「関数は正しいが画面に出ていない」「日→英モードで答えの綴りが見えている」
@@ -392,6 +397,11 @@ Playwright 1.56 がブラウザを入れられずにすべての実行が落ち�
   （綴り・訳・ID の無い要素と、収録語と同じ ID を捨てる）。捨てた要素は次の保存で元のキーから
   消えるので、`quest_vocab_custom_rejected` に足して控える（黙って失わない。アプリは読まない）。このファイルは起動時に読むので、
   型以外を import しないこと（`importWords.ts` は不適切語の一覧を抱えていて重い）。
+  ランキング（`quest_ranking_score`）と学習ログ（`quest_daily_log`）も同じで、`src/storedRecords.ts` の
+  `sanitizeRanking()` / `sanitizeDailyLog()` を通す。ランキングに `null` が1件あるだけで、日付が変わった起動の
+  ライバルの成長で投げ、成長した日付を残す前に落ちるので二度とアプリに入れなかった（#151）。学習ログの `null` の日は
+  「記録」の学習カレンダーで投げ、「記録」は URL を持つので読み直しても同じ画面で落ちた（#152）。
+  テストは `tests/storedRecords.test.ts` と `tests/srsBroken.render.test.tsx`。
 - **ログインボーナスのテスト** — `tests/loginBonus.test.ts` と `tests/records.render.test.tsx`。
   保存している `currentStreak` は「最後に受け取った日の時点の日数」なので、画面にも点数にも
   そのまま使わない。`src/loginBonus.ts` の `currentLoginStreak()`（昨日か今日に受け取っていなければ0）を通す。
@@ -404,7 +414,8 @@ Playwright 1.56 がブラウザを入れられずにすべての実行が落ち�
   `tests/answerDoubleTap.render.test.tsx`（クイズの解答の二度押し）、
   `tests/choiceQuiz.render.test.tsx`（類義語・語義分別の解答と「次へ」の二度押し）、
   `tests/pdfImportGuard.render.test.tsx`（PDFの二度落とし）、
-  `tests/reading.render.test.tsx` の「読破」（読破の報酬の二度押し）。
+  `tests/reading.render.test.tsx` の「読破」（読破の報酬の二度押し）、
+  `tests/mapPuzzle.render.test.tsx` の「答え合わせを二度押し」（つながりパズルの初回ボーナス。`checkedRef`。#153）。
   単語帳へ足すとき（CSV・PDF・AI）は `commitNewWords()` を通す。重複は
   始めた時点の `vocabulary` ではなく**いちばん新しい単語帳**（`latestVocabularyRef`）で数える。
   始めた時点で数えていたときは、待っているあいだに別の取り込みで入った語も「新しい語」になり、
@@ -482,6 +493,9 @@ Playwright 1.56 がブラウザを入れられずにすべての実行が落ち�
   AI・PDF から来た選択肢は**重複を除いてから数え、正解1つ＋誤答3つにそろえる**（`fourChoices`）。
   「正解を含む4件以上」しか見ていなかったときは、同じ訳が並ぶ（どれを押しても正解）・五択以上の設問が保存された。
   英語の選択肢は大文字小文字と前後の空白だけの違いも同じ語として扱う（#123）。
+  CSV の1行目を見出しとして読み飛ばすのは、**1列目が英単語の列の名前で、かつ2列目が訳の列の名前**のときだけ
+  （`isCsvHeaderRow`）。どれか1つのセルが列の名前と同じなら見出しとしていたときは、見出しの無い CSV の1行目が
+  `level,レベル` `meaning,意味` のような普通の単語だと黙って取り込まれなかった（#156）。読み飛ばしたら成功の文言にそう書く。
 - **発音記号のテスト** — `tests/phonetics.test.ts`。通信エラーが続いたときの休止を検査する。
   時計は `__setPhoneticsClock` で差し替える。休止の判定は待ち行列の前後の両方で行う
   （辞書は1ページに50語を同時に描くので、最初の失敗が返る前に50件並んでしまう）。

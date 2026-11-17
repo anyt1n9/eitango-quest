@@ -164,3 +164,29 @@ describe("CSV のファイル", () => {
     expect(added).toEqual(expect.arrayContaining(["pipe", "library", "station", "inch"]));
   });
 });
+
+/**
+ * 見出し行の見分け方（#156）。
+ * どれか1つのセルが見出しの名前と一致すれば見出しとしていたので、見出しの無い CSV の1行目が
+ * `level,レベル`・`meaning,意味` のような普通の単語だと、その1語が黙って取り込まれなかった。
+ * いまは1列目が英単語の列の名前で、かつ2列目が訳の列の名前のときだけ見出しとする。
+ */
+describe("CSVの見出し行", () => {
+  it("1行目が普通の単語（level,レベル）なら、見出しとみなさずに取り込む", async () => {
+    const words = await importCsv("level,レベル\nmeaning,意味\n");
+    expect(words.map(w => w.word)).toEqual(expect.arrayContaining(["level", "meaning"]));
+  });
+
+  it("本物の見出し（word,translation）は読み飛ばし、読み飛ばしたことを伝える", async () => {
+    const words = await importCsv("word,translation,level\nlibrary,図書館,junior\n");
+    expect(words.map(w => w.word)).not.toContain("word");
+    expect(words.map(w => w.word)).toContain("library");
+    expect(await screen.findByText(/1行目（word, translation）は見出しとして読み飛ばしました/)).toBeInTheDocument();
+  });
+
+  it("日本語の見出し（単語,意味）も読み飛ばす", async () => {
+    const words = await importCsv("単語,意味\nlibrary,図書館\n");
+    expect(words.map(w => w.word)).toEqual(expect.arrayContaining(["library"]));
+    expect(words.map(w => w.word)).not.toContain("単語");
+  });
+});

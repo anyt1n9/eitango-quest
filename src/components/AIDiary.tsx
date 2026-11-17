@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { removeStored, writeStored } from "../storage";
+import { readStoredArray, removeStored, writeStored } from "../storage";
+import { notify } from "../notice";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   
@@ -191,6 +192,12 @@ export default function AIDiary({
    * ガチャの pullingRef・単語追加の addingRef と同じ作り。
    */
   const generatingRef = useRef(false);
+  /** この画面がまだ出ているか（生成を待っているあいだに離れたかどうか） */
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // 生成APIの呼び出し
   const handleGenerateDiary = async () => {
@@ -231,6 +238,18 @@ export default function AIDiary({
           : []
       };
 
+      // 保存は state の効果に任せず、受け取ったここで行う。日記は長さの上限なしで書かせていて待ち時間が長く、
+      // そのあいだに画面を離れると、この画面は外れていて state の更新も保存の効果も走らず、
+      // できた日記が黙って失われた（#149）。保存済みの履歴を読み直して足すので、次に開いたときに出る
+      const stored = readStoredArray<unknown>("quest_diary_history")
+        .map(asDiaryEntry)
+        .filter((entry): entry is DiaryEntry => entry !== null);
+      writeStored("quest_diary_history", [newEntry, ...stored]);
+      writeStored("quest_current_diary_cache", newEntry);
+      if (!mountedRef.current) {
+        notify(`英語日記『${newEntry.title}』ができあがりました。教材の「AI 英語日記」で読めます。`, "success");
+        return;
+      }
       setDiary(newEntry);
       setHistory(prev => [newEntry, ...prev]);
       playLocalSound("sparkle");
@@ -299,20 +318,17 @@ export default function AIDiary({
     // 語尾変化も想定して境界やスペル全体をマッチ
     const escaped = sortedUsed.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
     
-    // 品詞変化も拾いやすいように単語の先頭や部分一致で処理
-    const patternStr = `\\b(${escaped.join("|")})\\w*\\b`;
-    const regex = new RegExp(patternStr, "gi");
+    // 活用形も拾うよう、語の先頭が一致すれば語尾まで含めて1語とする。
+    // 語尾（\w*）までキャプチャに入れること。語幹だけをキャプチャすると split が語尾を捨て、
+    // 本文が「walked → walk」「action → act」と欠けて表示された（#148。サーバーは本文に活用形を使い、
+    // usedWords は原形で返すので、ふつうの日記でほぼ毎回起きていた）
+    const regex = new RegExp(`\\b((?:${escaped.join("|")})\\w*)\\b`, "gi");
 
-    const parts = text.split(regex);
-    // マッチ箇所を特定してスタイル変更
-    // splitでキャプチャグループを使用すると、マッチした単語自体が奇数番目の要素として配列に格納されます
-    
+    // キャプチャが1つなので、split の結果は「一致しなかった所・一致した語」が交互に並ぶ（奇数番目が一致した語）
     return text.split(regex).map((part, index) => {
-      const isMatch = sortedUsed.some(
-        u => part.toLowerCase().startsWith(u.toLowerCase()) || u.toLowerCase().startsWith(part.toLowerCase())
-      );
-      
-      if (isMatch && part.trim().length > 0) {
+      const isMatch = index % 2 === 1;
+
+      if (isMatch) {
         return (
           <span 
             key={index} 
